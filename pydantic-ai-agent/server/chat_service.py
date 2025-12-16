@@ -338,6 +338,7 @@ class ChatService:
 
     async def process_message_with_agent(
         self,
+        agent_run_id: str,
         session: ChatSession,
         user_message: str,
         user: AgentUser,
@@ -383,8 +384,6 @@ class ChatService:
             user_id=user.userId,
             workbook_id=session.workbook_id,
         )
-
-        agent_run_id = str(uuid.uuid4())
 
         # PRE-RUN
         try:

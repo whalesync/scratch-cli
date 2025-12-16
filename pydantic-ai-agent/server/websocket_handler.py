@@ -9,12 +9,12 @@ from datetime import datetime, timezone
 from typing import Dict, Optional
 from fastapi import WebSocket, WebSocketDisconnect
 
-from session import ChatMessage, RequestAndResponseSummary
 from server.DTOs import (
     SendMessageRequestDTO,
 )
 from server.chat_service import ChatService
 from server.session_service import SessionService
+from server.agent_task_manager import AgentTaskManager
 from logger import log_info, log_error
 from logging import getLogger
 from server.auth import decode_and_validate_agent_jwt
@@ -51,6 +51,7 @@ class ConnectionManager:
         self.active_connections: Dict[str, WebSocketConnection] = {}
         self.chat_service = chat_service
         self.session_service = session_service
+        self.agent_task_manager = AgentTaskManager(chat_service, session_service)
 
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
@@ -269,11 +270,9 @@ async def websocket_endpoint(
                     ),
                 )
 
-                logger.info(f"💬 Processing message for session: {session_id}")
                 logger.info(
-                    f"📋 Available sessions: {session_service.list_session_ids()}"
+                    f"💬 Processing message for session {session_id}:  {request.message}"
                 )
-                logger.info(f"📝 Message: {request.message}")
 
                 if request.agent_jwt:
                     message_user = decode_and_validate_agent_jwt(request.agent_jwt)
@@ -318,164 +317,60 @@ async def websocket_endpoint(
                     )
                     continue  # Don't disconnect, just reject this message
 
-                # TODO: check if the message user is the same as the connecting user
-
-                if request.capabilities:
-                    logger.info(
-                        f"🔧 Capabilities provided: {len(request.capabilities)} capabilities"
-                    )
-                    for i, capability in enumerate(request.capabilities, 1):
-                        logger.info(f"   Capability {i}: {capability}")
-                else:
-                    logger.info(f"ℹ️ No capabilities provided")
-
-                if request.style_guides:
-                    logger.info(
-                        f"📋 Style guides provided: {len(request.style_guides)} style guides"
-                    )
-                else:
-                    logger.info(f"ℹ️ No style guides provided")
-
                 session = session_service.get_session(session_id)
                 session.last_activity = datetime.now(timezone.utc)
 
-                # Add user message to history
-                user_message = ChatMessage(
-                    message=request.message,
-                    role="user",
-                    timestamp=datetime.now(timezone.utc),
+                log_info(
+                    "Agent processing started",
+                    session_id=session_id,
+                    chat_history_length=len(session.chat_history),
+                    summary_history_length=len(session.summary_history),
+                    workbook_id=session.workbook_id,
                 )
 
-                session.chat_history.append(user_message)
-                logger.info(
-                    f"📝 Added user message to chat history. New length: {len(session.chat_history)}"
-                )
-
-                try:
-                    # Process with agent
-                    logger.info(f"🤖 Processing with agent...")
-                    log_info(
-                        "Agent processing started",
-                        session_id=session_id,
-                        chat_history_length=len(session.chat_history),
-                        summary_history_length=len(session.summary_history),
-                        workbook_id=session.workbook_id,
-                    )
-
-                    # Convert style guides to dict format if provided
-                    logger.info(f"🔍 Converting style guides...")
-                    style_guides_dict = {}
-                    if request.style_guides:
-                        style_guides_dict = {
-                            g.name: g.content for g in request.style_guides
-                        }
-
-                    async def progress_callback(
-                        progress_type: str, message: str, payload: dict
-                    ):
-                        await manager.send_message(
-                            json.dumps(
-                                {
-                                    "type": "message_progress",
-                                    "data": {
-                                        "progress_type": progress_type,
-                                        "message": message,
-                                        "payload": payload,
-                                    },
-                                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                                }
-                            ),
-                            session_id,
-                        )
-
-                    agent_response = await chat_service.process_message_with_agent(
-                        session,
-                        request.message,
-                        message_user,
-                        style_guides_dict,
-                        request.model,
-                        request.capabilities,
-                        request.active_table_id,
-                        request.data_scope,
-                        request.record_id,
-                        request.column_id,
-                        request.credential_id,
-                        request.mentioned_table_ids,
-                        request.model_context_length,
-                        1800.0,  # 30 minutes timeout
-                        progress_callback,
-                    )
-
-                    log_info(
-                        "Agent response received",
-                        session_id=session_id,
-                        response_length=len(agent_response.response_message),
-                        workbook_id=session.workbook_id,
-                    )
-
-                    # Add assistant response to chat history
-                    assistant_message = ChatMessage(
-                        message=agent_response.response_message,
-                        role="assistant",
-                        timestamp=datetime.now(timezone.utc),
-                    )
-
-                    session.chat_history.append(assistant_message)
-                    logger.info(
-                        f"📝 Added assistant message to chat history. New length: {len(session.chat_history)}"
-                    )
-
-                    summary_entry = RequestAndResponseSummary(
-                        request_summary=agent_response.request_summary,
-                        response_summary=agent_response.response_summary,
-                        timestamp=datetime.now(timezone.utc),
-                    )
-                    session.summary_history.append(summary_entry)
-                    logger.info(
-                        f"📋 Added to summary history. New length: {len(session.summary_history)}"
-                    )
-
-                    # Update session
-                    if (
-                        session.name.startswith("New chat")
-                        and summary_entry.request_summary
-                    ):
-                        new_name = (
-                            request.message
-                            if len(request.message) < 30
-                            else request.message[:30] + "..."
-                        )
-                        session.name = new_name
-
-                    session_service.update_session(session, connecting_user.userId)
-                    logger.info(f"💾 Session updated in storage")
-                    logger.info(
-                        f"📊 Final session state - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
-                    )
-
+                # Define callbacks for the async task
+                async def progress_callback(
+                    progress_type: str, message: str, payload: dict
+                ):
                     await manager.send_message(
                         json.dumps(
                             {
-                                "type": "message_response",
-                                "data": agent_response.model_dump(),
+                                "type": "message_progress",
+                                "data": {
+                                    "progress_type": progress_type,
+                                    "message": message,
+                                    "payload": payload,
+                                },
                                 "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
                         ),
                         session_id,
                     )
-                except Exception as e:
+
+                async def completion_callback(response_data: dict):
+                    """Called when message processing completes successfully"""
+                    log_info(
+                        "Agent response received",
+                        session_id=session_id,
+                        workbook_id=session.workbook_id,
+                    )
+                    await manager.send_message(
+                        json.dumps(response_data),
+                        session_id,
+                    )
+
+                async def error_callback(error: Exception):
+                    """Called when message processing fails"""
                     log_error(
                         "Message processing failed",
                         session_id=session_id,
-                        error=str(e),
+                        error=str(error),
                         workbook_id=session.workbook_id,
                     )
-                    logger.info(f"❌ Error processing message: {e}")
-                    logger.info(
-                        f"🔍 Session state after error - Chat History: {len(session.chat_history)}, Summary History: {len(session.summary_history)}"
-                    )
+                    logger.info(f"❌ Error processing message: {error}")
+
                     # Don't update the session if there was an error
-                    mapped_error = exception_mapping(e)
+                    mapped_error = exception_mapping(error)
                     await manager.send_message(
                         json.dumps(
                             {
@@ -488,6 +383,23 @@ async def websocket_endpoint(
                         ),
                         session_id,
                     )
+
+                # Start the async task - this returns immediately
+                task_id = manager.agent_task_manager.start_message_task(
+                    session=session,
+                    request=request,
+                    user=message_user,
+                    progress_callback=progress_callback,
+                    completion_callback=completion_callback,
+                    error_callback=error_callback,
+                )
+
+                logger.info(f"✅ Started async task {task_id} for session {session_id}")
+
+                # Send task started acknowledgment
+                progress_callback(
+                    "task_started", "Message processing started", {"task_id": task_id}
+                )
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected normally for session {session_id}")

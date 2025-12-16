@@ -19,7 +19,11 @@ class AgentRunState:
 
 
 class AgentRunStateManager:
-    """Threadsafe manager for agent run states to allow for external cancellation of runs"""
+    """
+    Threadsafe manager for agent run states to allow for external cancellation of runs
+
+    As the agent runs, it will check the run state to see if it should continue or cancel, allowing safe external cancellations
+    """
 
     def __init__(self):
         self._run_status_map: Dict[str, AgentRunState] = {}

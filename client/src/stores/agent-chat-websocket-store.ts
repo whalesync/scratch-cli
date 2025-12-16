@@ -5,9 +5,9 @@ import {
   BasicAgentMessageDataPayload,
   WebSocketMessage,
 } from '@/types/agent-websocket';
-import { ChatMessage, SendMessageRequestDTO } from '@spinner/shared-types';
 import { sleep } from '@/utils/helpers';
 import { WebSocketCloseCode } from '@/utils/websocket';
+import { ChatMessage, SendMessageRequestDTO } from '@spinner/shared-types';
 import pluralize from 'pluralize';
 import { create } from 'zustand';
 

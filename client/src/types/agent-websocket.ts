@@ -43,7 +43,8 @@ export interface AgentProgressMessageData {
     | 'create_agent'
     | 'request_sent'
     | 'model_response'
-    | 'build_response';
+    | 'build_response'
+    | 'task_started';
   message: string;
   payload: Record<string, unknown>;
 }

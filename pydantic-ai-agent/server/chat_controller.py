@@ -197,7 +197,10 @@ async def send_message(
         else:
             myLogger.info(f"   No style guides provided, using empty dict")
 
+        agent_run_id = str(uuid.uuid4())
+
         agent_response = await chat_service.process_message_with_agent(
+            agent_run_id,
             session,
             request.message,
             current_user,

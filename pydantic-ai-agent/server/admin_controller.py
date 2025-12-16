@@ -77,7 +77,7 @@ async def websocket_status():
     }
 
 
-@router.get("debug/agent/run-state")
+@router.get("/debug/agent/run-state")
 async def agent_run_state():
     """Agent runs endpoint"""
     run_status = await agent_run_state_manager.get_run_status()

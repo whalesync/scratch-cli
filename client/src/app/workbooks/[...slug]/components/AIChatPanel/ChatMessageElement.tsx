@@ -6,11 +6,11 @@ import { Text9Regular, TextMono12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { AgentProgressMessageData, AgentResponseDataPayload, UsageStats } from '@/types/agent-websocket';
-import { ChatMessage } from '@spinner/shared-types';
 import { timeAgo } from '@/utils/helpers';
 import { formatTokenCount } from '@/utils/token-counter';
 import { ActionIcon, Box, Code, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { ChatMessage } from '@spinner/shared-types';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -148,7 +148,14 @@ const AgentToolCallResultMessage = ({ msg }: { msg: ChatMessage }) => {
   );
 };
 
-const DETAILED_PROGRESS_MESSAGE_TYPES = ['run_started', 'status', 'tool_result', 'build_response', 'create_agent'];
+const DETAILED_PROGRESS_MESSAGE_TYPES = [
+  'run_started',
+  'status',
+  'tool_result',
+  'build_response',
+  'create_agent',
+  'task_started',
+];
 
 export const ChatMessageElement = ({
   msg,
@@ -172,7 +179,7 @@ export const ChatMessageElement = ({
       return null;
     }
 
-    if (payload.progress_type === 'run_started') {
+    if (payload.progress_type === 'run_started' || payload.progress_type === 'task_started') {
       return null;
     }
 
