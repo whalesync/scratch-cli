@@ -46,9 +46,11 @@ logger = getLogger(__name__)
 
 # TODO: refactor this as a service or singleton class
 class ChatService:
-    def __init__(self, session_service: SessionService):
+    def __init__(
+        self, session_service: SessionService, run_state_manager: AgentRunStateManager
+    ):
         self._session_service = session_service
-        self._run_state_manager = AgentRunStateManager()
+        self._run_state_manager = run_state_manager
 
     def _log_processing_start(
         self,

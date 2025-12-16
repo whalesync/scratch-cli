@@ -19,6 +19,7 @@ from server.DTOs import (
 from server.capabilities import AVAILABLE_CAPABILITIES
 from server.chat_service import ChatService
 from server.session_service import SessionService
+from server.agent_run_state_manager import AgentRunStateManager
 from server.auth import AgentUser, get_current_user
 from logger import log_info, log_error
 from server.exception_mapping import exception_mapping
@@ -31,8 +32,10 @@ myLogger = getLogger(__name__)
 router = APIRouter(tags=["chat"])
 
 # Initialize services
+# TODO: refactor these to be singletons that get initialized in the main.py file
 session_service = SessionService()
-chat_service = ChatService(session_service)
+agent_run_state_manager = AgentRunStateManager()
+chat_service = ChatService(session_service, agent_run_state_manager)
 
 
 @router.post("/sessions", response_model=CreateSessionResponseDTO)

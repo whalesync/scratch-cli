@@ -27,6 +27,7 @@ from agents.data_agent.models import (
     UsageStats,
     ResponseFromAgent,
 )
+from server.agent_run_state_manager import AgentRunStateManager
 from server.exceptions import TokenLimitExceededException
 from server.token_utils import estimate_tokens_from_request_parts
 
@@ -49,7 +50,7 @@ async def process_agent_stream(
     session: ChatSession,
     agent_run_id: str,
     model: str,
-    run_state_manager: Any,
+    run_state_manager: AgentRunStateManager,
     progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     usage_limits: Optional[UsageLimits] = None,
     model_context_length: Optional[int] = None,
@@ -231,7 +232,9 @@ async def process_agent_stream(
 
     except AgentRunCancelledError as e:
         logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
-        result = CancelledAgentRunResult(agent_run.usage() if agent_run.usage else None)
+        # NOTE: usage doesn't get fully calculated until after at least one node is full resolved, so token counts will often be 0
+        usage = agent_run.usage() if agent_run else None
+        result = CancelledAgentRunResult(usage)
     except UsageLimitExceeded as e:
         # Pydantic-AI's built-in usage limit exception. Unfortunately we do not hit it.
         # se should investigate why. Until than - handle the error manually for common providers

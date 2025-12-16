@@ -10,7 +10,11 @@ from fastapi import APIRouter
 from logging import getLogger
 from datetime import datetime
 from server.websocket_handler import get_connection_manager
-from server.chat_controller import chat_service, session_service
+from server.chat_controller import (
+    chat_service,
+    session_service,
+    agent_run_state_manager,
+)
 from fastapi import WebSocket
 
 logger = getLogger(__name__)
@@ -34,7 +38,7 @@ async def health_check():
     }
 
 
-@router.get("/websocket/status")
+@router.get("/debug/websocket/status")
 async def websocket_status():
     """Websocket status endpoint"""
     connection_manager = get_connection_manager(chat_service, session_service)
@@ -68,7 +72,16 @@ async def websocket_status():
         connection_info = "No connections found"
 
     return {
-        "status": "enabled",
         "timestamp": datetime.now().isoformat(),
         "connections": connection_info,
+    }
+
+
+@router.get("debug/agent/run-state")
+async def agent_run_state():
+    """Agent runs endpoint"""
+    run_status = await agent_run_state_manager.get_run_status()
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "agent_runs": run_status,
     }

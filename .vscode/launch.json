@@ -8,11 +8,10 @@
       "program": "${workspaceFolder}/pydantic-ai-agent/main.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}/pydantic-ai-agent",
-
       "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
-
       "justMyCode": false,
-      "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
+      "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python",
+      "gevent": false
     },
     {
       "name": "Debug Test Agent",
@@ -21,9 +20,7 @@
       "program": "${workspaceFolder}/pydantic-ai-agent/_experiments/simple_test_agent/main.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}/pydantic-ai-agent",
-
       "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
-
       "justMyCode": false,
       "python": "${workspaceFolder}/pydantic-ai-agent/venv/bin/python"
     }

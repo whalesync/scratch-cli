@@ -1,7 +1,8 @@
 from logging import getLogger
 
-from ast import Dict
+from typing import Dict
 import asyncio
+import copy
 
 myLogger = getLogger(__name__)
 
@@ -70,3 +71,8 @@ class AgentRunStateManager:
             if run_state:
                 return run_state.session_id == session_id
             return False
+
+    async def get_run_status(self) -> Dict[str, AgentRunState]:
+        """Create a deep clone of the status map and return it"""
+        async with self._lock:
+            return copy.deepcopy(self._run_status_map)

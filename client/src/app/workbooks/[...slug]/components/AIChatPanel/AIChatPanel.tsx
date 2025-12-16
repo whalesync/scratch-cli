@@ -32,7 +32,7 @@ import { AgentProgressMessageData, WebSocketMessage } from '@/types/agent-websoc
 import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
-import { Alert, Anchor, Box, Center, Divider, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import { Alert, Anchor, Box, Center, Divider, Group, Loader, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO, SnapshotTableId } from '@spinner/shared-types';
 import { ChevronDownIcon, CircleStopIcon, LucideFileKey, Plus, SendIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -76,6 +76,8 @@ export default function AIChatPanel() {
     refreshSessions,
   } = useAIAgentSessionManagerContext();
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
+  const [agentTaskCancelInProgress, setAgentTaskCancelInProgress] = useState<boolean>(false);
+
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
   const { promptAssets } = usePromptAssets();
@@ -260,6 +262,7 @@ export default function AIChatPanel() {
 
   const sendMessage = async () => {
     if (!message.trim() || !activeSessionId || agentTaskRunning) return;
+    setAgentTaskCancelInProgress(false);
     const messageCleaned = message.trim();
 
     // handle slash (/) and (@) commands
@@ -562,15 +565,35 @@ export default function AIChatPanel() {
             </IconButtonOutline>
           )}
           {/* Stop button */}
-          {agentTaskRunning && (
+          {agentTaskRunning && !agentTaskCancelInProgress && (
             <ButtonSecondarySolid
               size="xs"
-              onClick={() => runningAgentTaskId && cancelAgentRun(runningAgentTaskId)}
+              onClick={() => {
+                if (runningAgentTaskId) {
+                  try {
+                    cancelAgentRun(runningAgentTaskId);
+                    setAgentTaskCancelInProgress(true);
+                  } catch (error) {
+                    console.error('Error cancelling agent run:', error);
+                    setAgentTaskCancelInProgress(false);
+                  }
+                }
+              }}
               disabled={!runningAgentTaskId || !agentTaskRunning}
               leftSection={<CircleStopIcon size={16} />}
               style={{ flexShrink: 0 }}
             >
               Stop
+            </ButtonSecondarySolid>
+          )}
+          {agentTaskCancelInProgress && agentTaskRunning && (
+            <ButtonSecondarySolid
+              size="xs"
+              leftSection={<Loader size={16} type="bars" />}
+              style={{ flexShrink: 0, cursor: 'not-allowed', pointerEvents: 'none' }}
+              onClick={(event) => event.preventDefault()}
+            >
+              Stopping...
             </ButtonSecondarySolid>
           )}
         </Group>

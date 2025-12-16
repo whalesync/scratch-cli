@@ -6,9 +6,9 @@ import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useAgentTokenUsage } from '@/hooks/use-agent-usage-stats';
-import { Box, Center, Group, Select, Stack, Table, Tabs } from '@mantine/core';
+import { Box, Center, Group, Select, Stack, Table, Tabs, Tooltip } from '@mantine/core';
 import { AgentUsageEvent, UsageSummary } from '@spinner/shared-types';
-import { ArrowDownIcon, CalendarIcon } from 'lucide-react';
+import { ArrowDownIcon, CalendarIcon, InfoIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export const TokenUsageSection = () => {
@@ -212,6 +212,13 @@ const UsageEventListTable = ({ events, loading }: { events?: AgentUsageEvent[]; 
                   <Group gap="4px">
                     <ModelProviderIcon model={event.model} size={24} withBorder />
                     {event.model}
+                    {event.context?.cancelled_by_user && (
+                      <Tooltip label="Session canceled by user">
+                        <Box>
+                          <StyledLucideIcon Icon={InfoIcon} size={12} c="var(--fg-muted)" />
+                        </Box>
+                      </Tooltip>
+                    )}
                   </Group>
                 </Table.Td>
                 <Table.Td>{new Date(event.createdAt).toLocaleDateString()}</Table.Td>
