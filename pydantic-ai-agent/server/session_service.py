@@ -10,13 +10,9 @@ from scratchpad.api import ScratchpadApi
 from logging import getLogger
 from session import ChatMessage, RequestAndResponseSummary
 
-# from agents.data_agent.models import ChatMessage, RequestAndResponseSummary
-
-
 logger = getLogger(__name__)
 
 
-# TODO: refactor this as a service or singleton class
 class SessionService:
     """
     Service for managing chat sessions.

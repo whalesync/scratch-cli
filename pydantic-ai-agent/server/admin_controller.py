@@ -6,14 +6,13 @@ FastAPI Endpoints for Health Check
 from typing import Any
 
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from logging import getLogger
 from datetime import datetime
-from server.websocket_handler import get_connection_manager
-from server.chat_controller import (
-    chat_service,
-    session_service,
-    agent_run_state_manager,
+from server.services import (
+    AgentRunStateManagerDep,
+    AgentTaskManagerDep,
+    WebSocketConnectionManagerDep,
 )
 from fastapi import WebSocket
 
@@ -34,15 +33,15 @@ async def health_check():
     return {
         "status": "alive",
         "timestamp": datetime.now().isoformat(),
-        "service": "scratchpad-ai-agent",
+        "service": "scratchpad-agent",
     }
 
 
 @router.get("/debug/websocket/status")
-async def websocket_status():
+async def websocket_status(
+    connection_manager: WebSocketConnectionManagerDep,
+):
     """Websocket status endpoint"""
-    connection_manager = get_connection_manager(chat_service, session_service)
-
     connection_info = []
     if connection_manager.active_connections:
         for key in connection_manager.active_connections.keys():
@@ -77,11 +76,26 @@ async def websocket_status():
     }
 
 
-@router.get("/debug/agent/run-state")
-async def agent_run_state():
+@router.get("/debug/agent/run-state/status")
+async def agent_run_state(
+    agent_run_state_manager: AgentRunStateManagerDep,
+):
     """Agent runs endpoint"""
     run_status = await agent_run_state_manager.get_run_status()
     return {
         "timestamp": datetime.now().isoformat(),
         "agent_runs": run_status,
+    }
+
+
+@router.get("/debug/agent/task-manager/status")
+async def agent_task_manager(
+    agent_task_manager: AgentTaskManagerDep,
+):
+    """Agent task manager status endpoint"""
+
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "active_task_count": agent_task_manager.get_active_task_count(),
+        "task_history": agent_task_manager.get_task_history(),
     }

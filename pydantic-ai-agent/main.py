@@ -11,23 +11,59 @@ import sys
 import threading
 import time as time_module
 from typing import Optional, Any
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from server.chat_controller import router as chat_router, chat_service, session_service
+from server.chat_controller import router as chat_router
 from server.admin_controller import router as admin_router
 from server.websocket_handler import websocket_endpoint
+from server.services import (
+    WebSocketConnectionManagerDep,
+    initialize_services,
+    get_session_service,
+)
 
 from config import get_settings
 from logging import getLogger
 
 logger = getLogger(__name__)
 
-# Initialize FastAPI app
 
-app = FastAPI(title=f"{get_settings().project_name} AI Agent", version="1.0.0")
+# Application lifespan manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI app.
+    Handles initialization and cleanup of services.
+    """
+    # Startup: Initialize all services
+    logger.info("Initializing services...")
+    initialize_services()
+    logger.info("Services initialized successfully")
+
+    # Start cleanup thread
+    def cleanup_loop():
+        while True:
+            time_module.sleep(3600)  # 1 hour
+            get_session_service().cleanup_inactive_sessions()
+
+    cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+    cleanup_thread.start()
+    logger.info("Cleanup thread started")
+
+    yield
+
+    # Shutdown: Cleanup if needed
+    logger.info("Shutting down services...")
+
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(
+    title=f"{get_settings().project_name} AI Agent", version="1.0.0", lifespan=lifespan
+)
 
 logger.info(f"App Environment: {get_settings().app_env}")
 
@@ -48,21 +84,15 @@ app.include_router(admin_router)
 # WebSocket endpoint
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint_handler(
-    websocket: WebSocket, session_id: str, auth: Optional[str] = None
+    connection_manager: WebSocketConnectionManagerDep,
+    websocket: WebSocket,
+    session_id: str,
+    auth: Optional[str] = None,
 ):
     """WebSocket endpoint for real-time chat"""
-    await websocket_endpoint(websocket, session_id, chat_service, session_service, auth)
+    await websocket_endpoint(connection_manager, websocket, session_id, auth)
 
 
 if __name__ == "__main__":
-    # Run cleanup every hour
-    def cleanup_loop():
-        while True:
-            time_module.sleep(3600)  # 1 hour
-            session_service.cleanup_inactive_sessions()
-
-    cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
-    cleanup_thread.start()
-
     # Start the server
     uvicorn.run(app, host="0.0.0.0", port=8000)

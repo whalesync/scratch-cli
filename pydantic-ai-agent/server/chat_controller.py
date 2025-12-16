@@ -17,9 +17,7 @@ from server.DTOs import (
     CreateSessionResponseDTO,
 )
 from server.capabilities import AVAILABLE_CAPABILITIES
-from server.chat_service import ChatService
-from server.session_service import SessionService
-from server.agent_run_state_manager import AgentRunStateManager
+from server.services import SessionServiceDep, ChatServiceDep
 from server.auth import AgentUser, get_current_user
 from logger import log_info, log_error
 from server.exception_mapping import exception_mapping
@@ -31,16 +29,12 @@ myLogger = getLogger(__name__)
 # Create router
 router = APIRouter(tags=["chat"])
 
-# Initialize services
-# TODO: refactor these to be singletons that get initialized in the main.py file
-session_service = SessionService()
-agent_run_state_manager = AgentRunStateManager()
-chat_service = ChatService(session_service, agent_run_state_manager)
-
 
 @router.post("/sessions", response_model=CreateSessionResponseDTO)
 async def create_session(
-    workbook_id: str, current_user: AgentUser = Depends(get_current_user)
+    workbook_id: str,
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
 ):
     """Create a new chat session"""
     session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:8]}"
@@ -68,7 +62,9 @@ async def create_session(
 
 @router.get("/sessions/{session_id}", response_model=ChatSession)
 async def get_session(
-    session_id: str, current_user: AgentUser = Depends(get_current_user)
+    session_id: str,
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
 ):
     """Get session information"""
     myLogger.info(
@@ -99,6 +95,8 @@ async def get_session(
 async def send_message(
     session_id: str,
     request: SendMessageRequestDTO,
+    session_service: SessionServiceDep,
+    chat_service: ChatServiceDep,
     current_user: AgentUser = Depends(get_current_user),
 ):
     """Send a message to the agent"""
@@ -274,7 +272,9 @@ async def send_message(
 
 @router.delete("/sessions/{session_id}")
 async def delete_session(
-    session_id: str, current_user: AgentUser = Depends(get_current_user)
+    session_id: str,
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
 ):
     """Delete a session"""
 
@@ -287,7 +287,10 @@ async def delete_session(
 
 
 @router.get("/sessions")
-async def list_sessions(current_user: AgentUser = Depends(get_current_user)):
+async def list_sessions(
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
+):
     """List all active sessions"""
     # Convert full sessions to summaries
     session_summaries = []
@@ -306,7 +309,9 @@ async def list_sessions(current_user: AgentUser = Depends(get_current_user)):
 
 @router.get("/sessions/workbook/{workbook_id}")
 async def list_sessions_for_snapshot(
-    workbook_id: str, current_user: AgentUser = Depends(get_current_user)
+    workbook_id: str,
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
 ):
     """List all active sessions for a snapshot"""
     # Convert full sessions to summaries
@@ -332,6 +337,7 @@ async def list_sessions_for_snapshot(
 async def cancel_agent_run(
     session_id: str,
     run_id: str,
+    chat_service: ChatServiceDep,
     current_user: AgentUser = Depends(get_current_user),
 ):
     """Cancel an agent run"""
@@ -343,7 +349,10 @@ async def cancel_agent_run(
 
 
 @router.post("/cleanup")
-async def cleanup_sessions(current_user: AgentUser = Depends(get_current_user)):
+async def cleanup_sessions(
+    session_service: SessionServiceDep,
+    current_user: AgentUser = Depends(get_current_user),
+):
     """Manually trigger session cleanup"""
     before_count = len(session_service.get_sessions_for_snapshot())
     session_service.cleanup_inactive_sessions()
