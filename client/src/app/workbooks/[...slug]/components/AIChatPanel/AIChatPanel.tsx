@@ -513,27 +513,29 @@ export default function AIChatPanel() {
           </Tooltip>
 
           {/* Model picker */}
-          <ButtonSecondaryInline
-            onClick={() => setShowModelSelector(true)}
-            disabled={!activeOpenRouterCredentials}
-            rightSection={<ChevronDownIcon size={12} />}
-            w="auto"
-            styles={{
-              // This is the longest and most variable text, so we want it to shrink if we run out of space. Everything else in this row has flexShrink: 0.
-              // To get the ellipsis we need to set display to block, which requires lineHeight for vertical centering.
-              root: { flexShrink: 1, minWidth: 0 },
-              label: {
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'block',
-                lineHeight: '26px',
-              },
-              section: { flexShrink: 0 },
-            }}
-          >
-            {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
-          </ButtonSecondaryInline>
+          <Tooltip label={`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}>
+            <ButtonSecondaryInline
+              onClick={() => setShowModelSelector(true)}
+              disabled={!activeOpenRouterCredentials}
+              rightSection={<ChevronDownIcon size={12} />}
+              w="auto"
+              styles={{
+                // This is the longest and most variable text, so we want it to shrink if we run out of space. Everything else in this row has flexShrink: 0.
+                // To get the ellipsis we need to set display to block, which requires lineHeight for vertical centering.
+                root: { flexShrink: 1, minWidth: 0 },
+                label: {
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                  lineHeight: '26px',
+                },
+                section: { flexShrink: 0 },
+              }}
+            >
+              {`${activeModel.value} (${formatTokenCount(activeModel.contextLength ?? 1)})`}
+            </ButtonSecondaryInline>
+          </Tooltip>
 
           {/* Tools Selection */}
           <CapabilitiesButton
