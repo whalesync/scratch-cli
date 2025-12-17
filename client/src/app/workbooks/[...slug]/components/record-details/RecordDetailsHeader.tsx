@@ -1,11 +1,23 @@
-import { IconButtonInline } from '@/app/components/base/buttons';
+import { IconButtonInline, IconButtonOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { TableSpec } from '@/types/server-entities/workbook';
-import { Anchor, Breadcrumbs, Center, Group, StyleProp, Tooltip } from '@mantine/core';
-import { useHotkeys } from '@mantine/hooks';
-import { ArrowLeftIcon, ArrowRightIcon, ChevronRightIcon, PenOffIcon, XIcon } from 'lucide-react';
+import { formatFieldValue, TableSpec } from '@/types/server-entities/workbook';
+import { Anchor, Breadcrumbs, Center, Group, Modal, StyleProp, Tooltip } from '@mantine/core';
+import { useDisclosure, useHotkeys } from '@mantine/hooks';
+import DOMPurify from 'dompurify';
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ChevronRightIcon,
+  EyeIcon,
+  PenOffIcon,
+  TextAlignEndIcon,
+  TextAlignJustifyIcon,
+  XIcon,
+} from 'lucide-react';
+import htmlParser from 'prettier/plugins/html';
+import prettier from 'prettier/standalone';
 import { useCallback, useMemo } from 'react';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
 
@@ -18,6 +30,7 @@ interface RecordDetailsHeaderProps {
   onClose?: () => void;
   hiddenColumns: string[];
   record?: ProcessedSnapshotRecord;
+  onUpdateField?: (columnId: string, value: string) => void;
 }
 
 export const RecordDetailsHeader = ({
@@ -28,6 +41,7 @@ export const RecordDetailsHeader = ({
   onClose,
   hiddenColumns,
   record,
+  onUpdateField,
 }: RecordDetailsHeaderProps) => {
   // Order the columns like they appear in the grid view
   const orderedColumns = useMemo(() => getGridOrderedColumnSpecs(table, hiddenColumns).columns, [table, hiddenColumns]);
@@ -80,6 +94,40 @@ export const RecordDetailsHeader = ({
     ['INPUT', 'TEXTAREA'],
   );
 
+  const handleFormatHtml = useCallback(async () => {
+    if (!columnId || !onUpdateField || !record || !currentColumn) return;
+    const currentValue = formatFieldValue(record.fields[columnId], currentColumn);
+    try {
+      const formatted = await prettier.format(currentValue || '', {
+        parser: 'html',
+        plugins: [htmlParser],
+        printWidth: 80,
+        tabWidth: 2,
+      });
+      onUpdateField(columnId, formatted.trim());
+    } catch {
+      // If formatting fails, leave as-is
+    }
+  }, [columnId, onUpdateField, record, currentColumn]);
+
+  const handleMinifyHtml = useCallback(() => {
+    if (!columnId || !onUpdateField || !record || !currentColumn) return;
+    const currentValue = formatFieldValue(record.fields[columnId], currentColumn) || '';
+    const minified = currentValue
+      .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+      .replace(/\s+/g, ' ') // Collapse whitespace
+      .replace(/>\s+</g, '><') // Remove whitespace between tags
+      .replace(/\s+>/g, '>') // Remove whitespace before closing >
+      .replace(/<\s+/g, '<') // Remove whitespace after opening <
+      .trim();
+    onUpdateField(columnId, minified);
+  }, [columnId, onUpdateField, record, currentColumn]);
+
+  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
+
+  const currentHtmlValue =
+    columnId && record && currentColumn ? formatFieldValue(record.fields[columnId], currentColumn) : '';
+
   return (
     <Group w="100%" h={h} style={{ borderBottom: '0.5px solid var(--fg-divider)' }} align="center" gap={0} px="xs">
       {/* Centered ignoring the buttons */}
@@ -108,6 +156,35 @@ export const RecordDetailsHeader = ({
       <IconButtonInline mr="auto" onClick={() => onClose?.()}>
         <XIcon size={13} />
       </IconButtonInline>
+      {currentColumn?.metadata?.textFormat === 'html' && columnId && onUpdateField && record && (
+        <>
+          <Modal opened={previewOpened} onClose={closePreview} title="HTML Preview" size="xl" centered>
+            <iframe
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:8px;font-family:system-ui,sans-serif;">${DOMPurify.sanitize(currentHtmlValue || '')}</body></html>`}
+              style={{ width: '100%', height: 400, border: 'none' }}
+              sandbox="allow-same-origin"
+              title="HTML Preview"
+            />
+          </Modal>
+          <Group gap={4}>
+            <Tooltip label="Preview" position="bottom" withArrow>
+              <IconButtonOutline size="compact-xs" onClick={openPreview}>
+                <EyeIcon size={13} />
+              </IconButtonOutline>
+            </Tooltip>
+            <Tooltip label="Prettify" position="bottom" withArrow>
+              <IconButtonOutline size="compact-xs" onClick={handleFormatHtml}>
+                <TextAlignEndIcon size={13} />
+              </IconButtonOutline>
+            </Tooltip>
+            <Tooltip label="Minify" position="bottom" withArrow>
+              <IconButtonOutline size="compact-xs" onClick={handleMinifyHtml}>
+                <TextAlignJustifyIcon size={13} />
+              </IconButtonOutline>
+            </Tooltip>
+          </Group>
+        </>
+      )}
       <IconButtonInline onClick={goToPreviousColumn}>
         <ArrowLeftIcon size={13} />
       </IconButtonInline>

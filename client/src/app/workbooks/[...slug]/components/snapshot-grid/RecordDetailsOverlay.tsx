@@ -7,6 +7,7 @@ import { Box, Divider, Group, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
+import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { FocusableElement } from '../record-details/DisplayField';
 import { RECORD_DETILE_SIDEBAR_W } from '../record-details/record-detail-constants';
 import { RecordDetails } from '../record-details/RecordDetails';
@@ -41,6 +42,8 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
     workbookId,
     handleRowNavigation,
   } = props;
+
+  const { addPendingChange } = useUpdateRecordsContext();
 
   // Ref to the focusable input element in the current field
   const focusTargetRef = useRef<FocusableElement | null>(null);
@@ -157,6 +160,18 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
               onClose={handleCloseRecordDetails}
               hiddenColumns={table.hiddenColumns}
               record={selectedRecord}
+              onUpdateField={(columnId, value) => {
+                handleRecordUpdate(selectedRecord.id.wsId, columnId, value);
+                addPendingChange({
+                  workbookId,
+                  tableId: table.id,
+                  operation: {
+                    op: 'update',
+                    wsId: selectedRecord.id.wsId,
+                    data: { [columnId]: value },
+                  },
+                });
+              }}
             />
 
             <Box p={0} style={{ position: 'relative' }}>
