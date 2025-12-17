@@ -54,6 +54,14 @@ const IN_MEMORY_FLAGS = {
     disabled: false,
     defaultVariant: 'on',
   },
+  [UserFlag.ENABLE_CREATE_BUG_REPORT]: {
+    variants: {
+      on: true,
+      off: false,
+    },
+    disabled: false,
+    defaultVariant: 'off',
+  },
 };
 
 @Injectable()

@@ -27,6 +27,7 @@ export interface UserExperimentFlags {
   CONNECTOR_LIST: string[];
   ENABLE_TOKEN_LIMIT_WARNINGS: boolean;
   ENABLE_WEBFLOW_OAUTH: boolean;
+  ENABLE_CREATE_BUG_REPORT: boolean;
 }
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {

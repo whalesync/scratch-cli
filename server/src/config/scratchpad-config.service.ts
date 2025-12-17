@@ -178,6 +178,22 @@ export class ScratchpadConfigService {
     return this.getOptionalFlagVariable('USE_JOBS', false);
   }
 
+  getLinearApiKey(): string | undefined {
+    return this.getOptionalEnvVariable('LINEAR_API_KEY');
+  }
+
+  getScratchApplicationUrl(): string {
+    const env = ScratchpadConfigService.getScratchpadEnvironment();
+    if (env === 'development') {
+      return `http://localhost:3000`;
+    }
+
+    if (env === 'production') {
+      return 'https://app.scratch.md';
+    }
+    return `https://${env}.scratch.md`;
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

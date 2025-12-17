@@ -1,5 +1,8 @@
 import { Subscription } from '@prisma/client';
+import { ScratchPlanType } from '@spinner/shared-types';
 import _ from 'lodash';
+import { UserCluster } from 'src/db/cluster-types';
+import { getPlanTypeFromString } from './plans';
 
 export function getActiveSubscriptions(subscriptions: Subscription[]): Subscription[] {
   const currentDate = new Date();
@@ -25,4 +28,12 @@ export function isActiveSubscriptionOwnedByUser(subscriptions: Subscription[], u
 
 export function isSubscriptionExpired(subscription: Subscription): boolean {
   return subscription.expiration < new Date();
+}
+
+export function getSubscriptionPlanType(user: UserCluster.User): ScratchPlanType {
+  const latestSubscription = getLastestExpiringSubscription(user.organization?.subscriptions ?? []);
+  if (!latestSubscription) {
+    return ScratchPlanType.FREE_PLAN;
+  }
+  return getPlanTypeFromString(latestSubscription.planType) ?? ScratchPlanType.FREE_PLAN;
 }

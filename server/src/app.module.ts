@@ -5,6 +5,7 @@ import { AgentSessionModule } from './agent-session/agent-session.module';
 import { AgentTokenUsageModule } from './agent-token-usage/agent-token-usage.module';
 import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
+import { BugReportModule } from './bug-report/bug-report.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { CodeMigrationsModule } from './code-migrations/code-migrations.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
@@ -65,6 +66,7 @@ import { WorkerModule } from './worker/workers.module';
     ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
     ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),
     DevToolsModule,
+    BugReportModule,
   ],
   controllers: [],
   providers: [],

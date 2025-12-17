@@ -9,7 +9,6 @@ import { AuditLogEventType } from './types';
 export class AuditLogService {
   constructor(private readonly dbService: DbService) {}
 
-  // TODO (DEV-8628): change signature to take Actor instead of userId and organizationId in args
   async logEvent(args: {
     actor: Actor;
     eventType: AuditLogEventType;

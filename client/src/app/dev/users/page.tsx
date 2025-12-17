@@ -9,14 +9,24 @@ import { useUserDevTools } from '@/hooks/use-user-dev-tools';
 import { getBuildFlavor } from '@/utils/build';
 import { ActionIcon, Alert, Anchor, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
 import { AlertCircleIcon, CheckIcon, CopyIcon, HatGlassesIcon, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { UserDetailsCard } from './components/UserDetails';
 import { clerkUserUrl } from './utils';
 
 const UsersPage = () => {
+  const searchParams = useSearchParams();
+  const qParam = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState('');
   const { users, isLoading, error, search, retrieveUserDetails, currentUserDetails, clearCurrentUserDetails } =
     useUserDevTools();
+
+  useEffect(() => {
+    if (qParam.trim() && qParam.trim() !== searchQuery) {
+      setSearchQuery(qParam.trim());
+      search(qParam.trim());
+    }
+  }, [qParam, search, searchQuery]); // Run when query parameter or search function changes
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
