@@ -204,6 +204,7 @@ resource "google_cloud_run_v2_service" "api_service" {
           "GEMINI_API_KEY",
           "GOOGLE_CLIENT_ID",
           "GOOGLE_CLIENT_SECRET",
+          "LINEAR_API_KEY",
           "NOTION_CLIENT_ID",
           "NOTION_CLIENT_SECRET",
           "OPENROUTER_PROVISIONING_KEY",
