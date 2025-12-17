@@ -69,8 +69,13 @@
 /** CUSTOM TOOLTIP STYLES */
 .tooltip {
   /* Colors are reversed here for contrast with the normal page */
-  background-color: red;
+  background-color: var(--fg-primary);
   color: var(--bg-base);
+
+  /* Ensure solid background in dark mode - Mantine's default may have transparency */
+  :global([data-mantine-color-scheme='dark']) & {
+    background-color: var(--fg-primary);
+  }
 
   border: none;
   border-radius: var(--mantine-radius-sm);
