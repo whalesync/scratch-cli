@@ -51,7 +51,12 @@ export const EnhancedTextArea = forwardRef<TextAreaRef, EnhancedTextAreaProps>(
         textarea.focus();
       },
       focus: () => {
-        textareaRef.current?.focus();
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.focus();
+        // Position cursor at the end of the text
+        const length = textarea.value.length;
+        textarea.setSelectionRange(length, length);
       },
     }));
 

@@ -1,14 +1,13 @@
 import { Text12Regular } from '@/app/components/base/text';
-import { TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
-import { FC, RefObject, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
-import { DisplayField } from './DisplayField';
+import { DisplayField, FocusableElement } from './DisplayField';
 
 interface RecordDetailsProps {
   workbookId: WorkbookId;
@@ -19,7 +18,7 @@ interface RecordDetailsProps {
   rejectCellValues: (items: { wsId: string; columnId: string }[]) => Promise<void>;
   onFocusOnField?: (columnId: string | undefined) => void;
   onRecordUpdate?: (recordId: string, field: string, value: string | number | boolean) => void;
-  focusTargetRef?: RefObject<TextAreaRef | null>;
+  focusTargetRef?: (element: FocusableElement | null) => void;
 }
 
 export const RecordDetails: FC<RecordDetailsProps> = (props) => {

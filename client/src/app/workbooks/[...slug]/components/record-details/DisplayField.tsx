@@ -17,10 +17,12 @@ import {
 } from '@/types/server-entities/workbook';
 import { Anchor, Checkbox, NumberInput, ScrollArea, Stack, TextInput } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
-import { FC, RefObject, useState } from 'react';
+import { FC, useState } from 'react';
 import styles from './DisplayField.module.css';
 import { FieldRow } from './FieldRow';
 import { JsonFieldInput } from './JsonFieldInput';
+
+export type FocusableElement = TextAreaRef | HTMLInputElement;
 
 interface DisplayFieldProps {
   table: TableSpec;
@@ -33,7 +35,7 @@ interface DisplayFieldProps {
   onAcceptSuggestion: () => void;
   onRejectSuggestion: () => void;
   saving: boolean;
-  focusTargetRef?: RefObject<TextAreaRef | null>;
+  focusTargetRef?: (element: FocusableElement | null) => void;
 }
 
 export const DisplayField: FC<DisplayFieldProps> = (props) => {
@@ -93,6 +95,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     const numberInputField = (
       <NumberInput
         key={columnId}
+        ref={focusTargetRef}
         value={currentValue}
         onChange={(value) =>
           updateField(columnId, value === '' ? 0 : typeof value === 'number' ? value : value.toString())
@@ -153,6 +156,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
       <TextInput
         key={`${columnId}-${currentValueString}`}
         defaultValue={currentValueString}
+        ref={focusTargetRef}
         onBlur={(e) => {
           const inputValue = e.target.value;
           // Only update if the date is valid (including empty string)

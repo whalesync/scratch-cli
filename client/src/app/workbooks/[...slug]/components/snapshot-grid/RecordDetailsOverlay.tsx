@@ -5,8 +5,9 @@ import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { SnapshotTable } from '@/types/server-entities/workbook';
 import { Box, Divider, Group, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
-import { FC, useEffect, useRef } from 'react';
+import { FC, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { ActiveCells } from '../../../../../stores/workbook-editor-store';
+import { FocusableElement } from '../record-details/DisplayField';
 import { RECORD_DETILE_SIDEBAR_W } from '../record-details/record-detail-constants';
 import { RecordDetails } from '../record-details/RecordDetails';
 import { RecordDetailsHeader } from '../record-details/RecordDetailsHeader';
@@ -42,12 +43,39 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
   } = props;
 
   // Ref to the focusable input element in the current field
-  const focusTargetRef = useRef<TextAreaRef | null>(null);
+  const focusTargetRef = useRef<FocusableElement | null>(null);
+
+  // Callback ref to handle both TextAreaRef and HTMLInputElement
+  const setFocusTargetRef = useCallback((element: FocusableElement | null) => {
+    focusTargetRef.current = element;
+  }, []);
+
+  // Helper function to focus the input and position cursor at the end
+  const focusInput = useCallback(() => {
+    const ref = focusTargetRef.current;
+    if (!ref) return;
+
+    // Check if it's a TextAreaRef (has custom focus method)
+    if ('focus' in ref && typeof ref.focus === 'function' && 'getCursorPosition' in ref) {
+      // It's a TextAreaRef - use its focus method which positions cursor at end
+      (ref as TextAreaRef).focus();
+    } else if (ref instanceof HTMLInputElement) {
+      // It's a standard input - focus and position cursor at end
+      ref.focus();
+      const length = ref.value.length;
+      ref.setSelectionRange(length, length);
+    }
+  }, []);
 
   const columnsWithSuggestions = Object.keys(selectedRecord?.__suggested_values || {});
   const hasSuggestions =
     columnsWithSuggestions.length > 0 &&
     (!activeCells.columnId || columnsWithSuggestions.includes(activeCells.columnId));
+
+  // Focus the input when the overlay opens or column changes
+  useLayoutEffect(() => {
+    focusInput();
+  }, [activeCells.columnId, focusInput]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -64,7 +92,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
 
         event.preventDefault();
         event.stopPropagation();
-        focusTargetRef.current?.focus();
+        focusInput();
         return;
       }
 
@@ -98,7 +126,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleRowNavigation, handleCloseRecordDetails]);
+  }, [handleRowNavigation, handleCloseRecordDetails, focusInput]);
 
   const HEADER_HEIGHT = 36;
 
@@ -150,7 +178,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
                   rejectCellValues={rejectCellValues}
                   onFocusOnField={handleFieldFocus}
                   onRecordUpdate={handleRecordUpdate}
-                  focusTargetRef={focusTargetRef}
+                  focusTargetRef={setFocusTargetRef}
                 />
               </ScrollArea>
             </Box>
