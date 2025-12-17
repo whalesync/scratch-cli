@@ -165,6 +165,10 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             if (!inputValue.trim()) {
               updateField(columnId, '');
             } else {
+              // Don't update if the date is the same
+              if (inputValue === currentValueString) {
+                return;
+              }
               updateField(columnId, inputValue);
             }
           } else {
