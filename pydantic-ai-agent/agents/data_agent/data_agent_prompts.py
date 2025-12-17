@@ -14,7 +14,7 @@ from server.capabilities import (
     has_data_manipulation_capabilities,
     has_one_of_capabilities,
 )
-from utils.get_styleguide import get_styleguide
+from utils.prompt_assets import get_prompt_asset
 
 logger = getLogger(__name__)
 
@@ -415,14 +415,9 @@ def construct_data_fetch_tools_instructions(
 
 def get_data_agent_instructions(
     capabilities: list[str] | None = None,
-    style_guides: dict[str, str] | None = None,
+    prompt_assets: dict[str, str] | None = None,
     data_scope: str | None = None,
 ) -> str:
-    logger.debug(
-        f"🔍 get_data_agent_instructions called with capabilities: {capabilities}"
-    )
-    logger.debug(f"🔍 style_guides: {style_guides}")
-
     # Define the variable names that can be overridden
     variable_names = [
         "BASE_INSTRUCTIONS",
@@ -438,9 +433,11 @@ def get_data_agent_instructions(
 
     def get_section(variable_name: str, default_content: str) -> str:
         # Use the utility function to get style guide content
-        style_guide_content = get_styleguide(style_guides, variable_name)
+        prompt_asset_content = get_prompt_asset(prompt_assets, variable_name)
         return (
-            style_guide_content if style_guide_content is not None else default_content
+            prompt_asset_content
+            if prompt_asset_content is not None
+            else default_content
         )
 
     base_instructions = BASE_INSTRUCTIONS
@@ -507,21 +504,21 @@ def get_data_agent_instructions(
         + table_tools
     )
 
-    # Add non-matching style guides as a STYLE GUIDES section
-    if style_guides:
-        non_matching_style_guides = {
+    # Add non-matching prompt assets as a ASSETS section
+    if prompt_assets:
+        non_matching_prompt_assets = {
             key: value
-            for key, value in style_guides.items()
+            for key, value in prompt_assets.items()
             if key not in variable_names
         }
 
-        if non_matching_style_guides:
+        if non_matching_prompt_assets:
             logger.info(
-                f"   Adding {len(non_matching_style_guides)} non-matching style guides as STYLE GUIDES section"
+                f"   Adding {len(non_matching_prompt_assets)} non-matching prompt assets as PROMPT ASSETS section"
             )
-            style_guides_section = "\n\n# STYLE GUIDES\n"
-            for key, content in non_matching_style_guides.items():
-                style_guides_section += f"\n## {key}\n\n{content}\n"
-            main_prompt += style_guides_section
+            prompt_assets_section = "\n\n# ASSETS\n"
+            for key, content in non_matching_prompt_assets.items():
+                prompt_assets_section += f"\n## {key}\n\n{content}\n"
+            main_prompt += prompt_assets_section
 
     return main_prompt

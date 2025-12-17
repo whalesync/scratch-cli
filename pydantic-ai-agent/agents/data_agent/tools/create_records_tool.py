@@ -17,7 +17,7 @@ from pydantic_ai._function_schema import FunctionSchema
 from pydantic_core import SchemaValidator, core_schema
 from scratchpad.api import ScratchpadApi
 from scratchpad.entities import RecordOperation
-from utils.get_styleguide import get_styleguide
+from utils.prompt_assets import get_prompt_asset
 
 logger = getLogger(__name__)
 
@@ -215,19 +215,23 @@ async def create_records_implementation(
 tool_name = "create_records"
 
 
-def create_create_records_tool(style_guides: Dict[str, str] = None):
-    if style_guides is None:
-        style_guides = {}
+def create_create_records_tool(prompt_assets: Dict[str, str] = None):
+    if prompt_assets is None:
+        prompt_assets = {}
 
     # Use utility function to get custom name, description, and JSON schema
-    custom_name = get_styleguide(style_guides, f"TOOLS_{tool_name}_name") or tool_name
+    custom_name = (
+        get_prompt_asset(prompt_assets, f"TOOLS_{tool_name}_name") or tool_name
+    )
     custom_description = (
-        get_styleguide(style_guides, f"TOOLS_{tool_name}_description") or description
+        get_prompt_asset(prompt_assets, f"TOOLS_{tool_name}_description") or description
     )
 
     # Get custom JSON schema from style guides if available
     custom_json_schema = json_schema
-    json_schema_content = get_styleguide(style_guides, f"TOOLS_{tool_name}_json_schema")
+    json_schema_content = get_prompt_asset(
+        prompt_assets, f"TOOLS_{tool_name}_json_schema"
+    )
     if json_schema_content:
         try:
             custom_json_schema = json.loads(json_schema_content)

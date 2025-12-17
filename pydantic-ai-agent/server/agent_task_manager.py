@@ -5,17 +5,16 @@ Agent Task Manager for handling asynchronous message processing
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, Optional, Callable, Awaitable, List
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from logging import getLogger
+from typing import Awaitable, Callable, Dict, List, Optional
 
-from session import ChatMessage, RequestAndResponseSummary, ChatSession
-from server.chat_service import ChatService
-from server.session_service import SessionService
 from server.auth import AgentUser
+from server.chat_service import ChatService
 from server.DTOs import SendMessageRequestDTO
-
+from server.session_service import SessionService
+from session import ChatMessage, ChatSession, RequestAndResponseSummary
 
 logger = getLogger(__name__)
 
@@ -105,9 +104,9 @@ class AgentTaskManager:
             logger.info(f"Starting async message processing task {task_id}")
 
             # Convert style guides to dict format if provided
-            style_guides_dict = {}
-            if request.style_guides:
-                style_guides_dict = {g.name: g.content for g in request.style_guides}
+            prompt_assets_dict = {}
+            if request.prompt_assets:
+                prompt_assets_dict = {g.name: g.content for g in request.prompt_assets}
 
             # Add user message to history
             user_message = ChatMessage(
@@ -126,7 +125,7 @@ class AgentTaskManager:
                 session,
                 request.message,
                 user,
-                style_guides_dict,
+                prompt_assets_dict,
                 request.model,
                 request.capabilities,
                 request.active_table_id,

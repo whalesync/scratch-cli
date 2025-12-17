@@ -22,15 +22,13 @@ from fastapi import HTTPException
 from logger import log_error, log_info
 from pydantic_ai.usage import RunUsage
 from scratchpad.api import ScratchpadApi
-from utils.helpers import mask_string
-from utils.response_extractor import extract_response
-
 from server.agent_run_state_manager import AgentRunStateManager
 from server.agent_stream_processor import CancelledAgentRunResult, process_agent_stream
 from server.auth import AgentUser
 from server.exceptions import TokenLimitExceededException
 from server.session_service import SessionService
-from server.user_prompt_utils import build_workbook_context
+from utils.helpers import mask_string
+from utils.response_extractor import extract_response
 
 logger = getLogger(__name__)
 
@@ -47,7 +45,7 @@ class ChatService:
         self,
         session: ChatSession,
         capabilities: Optional[List[str]],
-        style_guides: Dict[str, str],
+        prompt_assets: Dict[str, str],
         data_scope: Optional[str],
     ) -> None:
         """Log the start of agent processing with relevant context"""
@@ -66,12 +64,12 @@ class ChatService:
             )
 
         # Log style guides if provided
-        if style_guides:
+        if prompt_assets:
             log_info(
-                "Style guides provided for session",
+                "Prompt assets provided for session",
                 session_id=session.id,
-                style_guides_count=len(style_guides),
-                style_guide_names=list(style_guides.keys()),
+                prompt_assets_count=len(prompt_assets),
+                prompt_asset_names=list(prompt_assets.keys()),
                 workbook_id=session.workbook_id,
             )
 
@@ -333,7 +331,7 @@ class ChatService:
         session: ChatSession,
         user_message: str,
         user: AgentUser,
-        style_guides: Dict[str, str],
+        prompt_assets: Dict[str, str],
         model: Optional[str] = None,
         capabilities: List[str] = None,
         active_table_id: Optional[str] = None,
@@ -355,7 +353,7 @@ class ChatService:
 
             progress_callback = noop_callback
 
-        self._log_processing_start(session, capabilities, style_guides, data_scope)
+        self._log_processing_start(session, capabilities, prompt_assets, data_scope)
 
         # Determine the API key to use for the agent
         api_key, user_open_router_credentials = self._get_openrouter_api_key(
@@ -368,7 +366,7 @@ class ChatService:
             session_id=session.id,
             chat_history_length=len(session.chat_history),
             summary_history_length=len(session.summary_history),
-            style_guides_count=len(style_guides) if style_guides else 0,
+            prompt_assets_count=len(prompt_assets) if prompt_assets else 0,
             capabilities_count=len(capabilities) if capabilities else 0,
             # full_prompt_length=len(full_prompt),
             user_message=user_message,
@@ -428,7 +426,7 @@ class ChatService:
                 api_key=api_key,
                 model_name=model,
                 capabilities=capabilities,
-                style_guides=style_guides,
+                prompt_assets=prompt_assets,
                 data_scope=data_scope,
                 filtered_counts=filtered_counts,
             )

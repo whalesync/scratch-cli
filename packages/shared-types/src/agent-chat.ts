@@ -59,7 +59,7 @@ export interface SendMessageRequestDTO {
   message: string;
   agent_jwt?: string;
   credential_id?: string;
-  style_guides?: { name: string; content: string }[];
+  prompt_assets?: { name: string; content: string }[];
   capabilities: string[];
   model?: string;
   active_table_id?: string;

@@ -104,7 +104,7 @@ async def send_message(
         session_id=session_id,
         user_id=current_user.userId,
         message_length=len(request.message),
-        style_guides_count=len(request.style_guides) if request.style_guides else 0,
+        prompt_asset_count=len(request.prompt_assets) if request.prompt_assets else 0,
         capabilities_count=len(request.capabilities) if request.capabilities else 0,
     )
 
@@ -117,12 +117,10 @@ async def send_message(
     else:
         myLogger.info(f"ℹ️ No capabilities provided")
 
-    if request.style_guides:
-        myLogger.info(
-            f"📋 Style guides provided: {len(request.style_guides)} style guides"
-        )
-        for i, style_guide in enumerate(request.style_guides, 1):
-            content = style_guide.content
+    if request.prompt_assets:
+        myLogger.info(f"📋 Prompt assets provided: {len(request.prompt_assets)}")
+        for i, prompt_asset in enumerate(request.prompt_assets, 1):
+            content = prompt_asset.content
             if isinstance(content, str):
                 truncated_content = (
                     content[:50] + "..." if len(content) > 50 else content
@@ -133,8 +131,8 @@ async def send_message(
                     if len(str(content)) > 50
                     else str(content)
                 )
-            myLogger.info(
-                f"   Style guide {i}: {style_guide.name} - {truncated_content}"
+            myLogger.debug(
+                f"   Prompt asset {i}: {prompt_asset.name} - {truncated_content}"
             )
     else:
         myLogger.info(f"ℹ️ No style guides provided")
@@ -182,17 +180,12 @@ async def send_message(
             workbook_id=session.workbook_id,
         )
 
-        # Convert style guides to dict format if provided
-        myLogger.info(f"🔍 Converting style guides:")
-        myLogger.info(f"   request.style_guides: {request.style_guides}")
-        myLogger.info(f"   request.style_guides type: {type(request.style_guides)}")
-
-        style_guides_dict = {}
-        if request.style_guides:
-            style_guides_dict = {g.name: g.content for g in request.style_guides}
-            myLogger.info(f"   Converted to: {style_guides_dict}")
+        prompt_assets_dict = {}
+        if request.prompt_assets:
+            prompt_assets_dict = {g.name: g.content for g in request.prompt_assets}
+            myLogger.info(f"   Converted to: {prompt_assets_dict}")
         else:
-            myLogger.info(f"   No style guides provided, using empty dict")
+            myLogger.info(f"   No prompt assets provided, using empty dict")
 
         agent_run_id = str(uuid.uuid4())
 
@@ -201,7 +194,7 @@ async def send_message(
             session,
             request.message,
             current_user,
-            style_guides_dict,
+            prompt_assets_dict,
             request.model,
             request.capabilities,
             request.active_table_id,

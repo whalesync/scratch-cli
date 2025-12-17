@@ -331,9 +331,9 @@ export default function AIChatPanel() {
 
       // Include style guide content if selected
       if (selectedPromptAssets.length > 0) {
-        messageData.style_guides = selectedPromptAssets.map((sg) => ({
-          name: sg.name,
-          content: sg.body,
+        messageData.prompt_assets = selectedPromptAssets.map((asset) => ({
+          name: asset.name,
+          content: asset.body,
         }));
       }
 

@@ -55,15 +55,15 @@ class GetRecordsInput(BaseModel):
 
 def get_data_tools(
     capabilities: Optional[List[str]] = None,
-    style_guides: Dict[str, str] = None,
+    prompt_assets: Dict[str, str] = None,
     data_scope: Optional[str] = None,
 ):
     tools = []
 
     if (capabilities is None or DATA_UPDATE in capabilities) and data_scope == "table":
-        tools.append(create_update_records_tool(style_guides))
+        tools.append(create_update_records_tool(prompt_assets))
     if (capabilities is None or DATA_CREATE in capabilities) and data_scope == "table":
-        tools.append(create_create_records_tool(style_guides))
+        tools.append(create_create_records_tool(prompt_assets))
     return tools
 
 

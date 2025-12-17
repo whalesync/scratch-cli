@@ -1,10 +1,12 @@
 import { Badge } from '@/app/components/base/badge';
+import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text12Book, Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { getSessionId, getSessionRecordingStatus, getSessionReplayUrl } from '@/lib/posthog';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
 import { ActionIcon, Checkbox, CopyButton, Divider, Grid, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
-import { CheckIcon, CopyIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, PlayIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
 
 export const UserDevToolsSection = () => {
@@ -115,6 +117,37 @@ export const UserDevToolsSection = () => {
                   </Grid.Col>
                 </Fragment>
               ))}
+          </Grid>
+        </Group>
+        <Divider />
+        <Group wrap="nowrap" gap="xs" align="flex-start">
+          <Text13Regular miw={150}>PostHog Debug</Text13Regular>
+          <Grid w="100%">
+            <Grid.Col span={4}>
+              <Text12Regular>Session ID</Text12Regular>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Text12Regular>{getSessionId()}</Text12Regular>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Text12Regular>Session Recording Status</Text12Regular>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Badge>{getSessionRecordingStatus()}</Badge>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Text12Regular>Session Replay URL</Text12Regular>
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <ButtonSecondaryOutline
+                size="xs"
+                w="fit-content"
+                leftSection={<PlayIcon size={16} />}
+                onClick={() => window.open(getSessionReplayUrl(), '_blank')}
+              >
+                View replay
+              </ButtonSecondaryOutline>
+            </Grid.Col>
           </Grid>
         </Group>
       </Stack>

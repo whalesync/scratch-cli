@@ -25,7 +25,7 @@ def create_agent(
     api_key: str,
     model_name: Optional[str] = None,
     capabilities: Optional[List[str]] = None,
-    style_guides: Dict[str, str] = {},
+    prompt_assets: Dict[str, str] = {},
     data_scope: Optional[str] = None,
     filtered_counts: Optional[Dict[str, int]] = None,
 ):
@@ -33,13 +33,12 @@ def create_agent(
     logger.info(f"🔍 create_agent called with:")
     logger.info(f"   model_name: {model_name}")
     logger.info(f"   capabilities: {capabilities}")
-    logger.info(f"   style_guides: {style_guides}")
-    logger.info(f"   style_guides type: {type(style_guides)}")
+    logger.info(f"   prompt_assets: {prompt_assets}")
     logger.info(f"   data_scope: {data_scope}")
-    if style_guides:
-        logger.info(f"   style_guides length: {len(style_guides)}")
-        for i, g in enumerate(style_guides):
-            logger.info(f"   style_guide {i}: {g}")
+    if prompt_assets:
+        logger.info(f"   prompt_assets length: {len(prompt_assets)}")
+        for i, g in enumerate(prompt_assets):
+            logger.info(f"   prompt_asset {i}: {g}")
 
     try:
         # Use provided model name or fall back to environment variable
@@ -63,7 +62,7 @@ def create_agent(
             """Generate instructions with snapshot context dynamically for each run"""
             # Get base instructions
             base_instructions = get_data_agent_instructions(
-                capabilities, style_guides, data_scope
+                capabilities, prompt_assets, data_scope
             )
 
             # Build snapshot context from the run context
@@ -93,7 +92,7 @@ def create_agent(
             history_processors=[data_agent_history_processor],
             model=model,
             deps_type=ChatRunContext,
-            tools=get_data_tools(capabilities, style_guides, data_scope),
+            tools=get_data_tools(capabilities, prompt_assets, data_scope),
             builtin_tools=builtin_tools,
         )
 

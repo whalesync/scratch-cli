@@ -10,7 +10,6 @@ from typing import Optional
 
 from fastapi import WebSocket, WebSocketDisconnect
 from logger import log_error, log_info
-
 from server.auth import decode_and_validate_agent_jwt
 from server.DTOs import SendMessageRequestDTO
 from server.exception_mapping import exception_mapping
@@ -175,8 +174,8 @@ async def websocket_endpoint(
                     "Message received",
                     session_id=session_id,
                     message_length=len(request.message),
-                    style_guides_count=(
-                        len(request.style_guides) if request.style_guides else 0
+                    prompt_assets_count=(
+                        len(request.prompt_assets) if request.prompt_assets else 0
                     ),
                     capabilities_count=(
                         len(request.capabilities) if request.capabilities else 0

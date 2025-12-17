@@ -45,6 +45,19 @@ export function captureException(error: Error, properties: Record<string, unknow
   }
 }
 
+export function getSessionRecordingStatus(): string {
+  const sessionRecording = posthog.sessionRecording;
+  return sessionRecording?.status || 'Unknown';
+}
+
+export function getSessionId(): string | undefined {
+  return posthog.get_session_id();
+}
+
+export function getSessionReplayUrl(): string | undefined {
+  return posthog.get_session_replay_url();
+}
+
 export function trackPageView(url: string): void {
   captureEvent(PostHogEvents.PAGE_VIEW, { url });
 }

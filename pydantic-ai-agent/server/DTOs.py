@@ -49,9 +49,9 @@ class SendMessageRequestDTO(BaseModel):
     credential_id: Optional[str] = Field(
         default=None, description="ID of the credentials to use for the agent"
     )
-    style_guides: Optional[List[Guideline]] = Field(
+    prompt_assets: Optional[List[Guideline]] = Field(
         default=None,
-        description="List of style guides with name and content to override system prompt sections",
+        description="List of prompt assets with name and content to override system prompt sections",
     )
     capabilities: List[str] = Field(
         default=None, description="List of selected capabilities for this message"
