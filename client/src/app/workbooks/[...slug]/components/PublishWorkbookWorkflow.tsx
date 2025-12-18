@@ -1,6 +1,6 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
+import { TableSelectorModal } from '@/app/components/modals/TableSelectorModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { TableSelectorModal } from '@/app/components/TableSelectorModal';
 import { PublishLimitExceededModal } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/PublishLimitExceededModal';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSubscription } from '@/hooks/use-subscription';

@@ -6,14 +6,14 @@ import { ModelOption, PersistedModelOption } from '@/types/common';
 import { Box, Center, Group, ModalProps, ScrollArea, SegmentedControl, Stack, TextInput } from '@mantine/core';
 import { CheckIcon, Search } from 'lucide-react';
 import { forwardRef, useEffect, useRef, useState } from 'react';
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
-import { Text13Book, Text13Medium, Text13Regular } from './base/text';
-import { DotSpacer } from './DotSpacer';
-import { ModelProviderIcon } from './Icons/ModelProvidericon';
-import { StyledLucideIcon } from './Icons/StyledLucideIcon';
-import { ErrorInfo } from './InfoPanel';
-import { LoaderWithMessage } from './LoaderWithMessage';
-import { ModalWrapper } from './ModalWrapper';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
+import { Text13Book, Text13Medium, Text13Regular } from '../base/text';
+import { DotSpacer } from '../DotSpacer';
+import { ModelProviderIcon } from '../Icons/ModelProvidericon';
+import { StyledLucideIcon } from '../Icons/StyledLucideIcon';
+import { ErrorInfo } from '../InfoPanel';
+import { LoaderWithMessage } from '../LoaderWithMessage';
+import { ModalWrapper } from '../ModalWrapper';
 
 interface ModelPickerModalProps extends ModalProps {
   currentModelOption: PersistedModelOption;

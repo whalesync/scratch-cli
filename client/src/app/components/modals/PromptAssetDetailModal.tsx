@@ -16,7 +16,7 @@ import { CreateStyleGuideDto, StyleGuideId } from '@spinner/shared-types';
 import { CircleCheckBigIcon, CircleXIcon, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
-import { ButtonPrimaryLight, ButtonSecondaryOutline, IconButtonOutline } from './base/buttons';
+import { ButtonPrimaryLight, ButtonSecondaryOutline, IconButtonOutline } from '../base/buttons';
 
 type InitialValues = { asset: StyleGuide | 'new-text' | 'new-url' };
 

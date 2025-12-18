@@ -6,7 +6,7 @@ import { useRef } from 'react';
 import { ButtonPrimarySolid, ButtonSecondaryOutline } from '../components/base/buttons';
 import { PromptAssetDropzone } from '../components/dropzone/PromptAssetDropzone';
 import MainContent from '../components/layouts/MainContent';
-import { PromptAssetDetailModal, useEditAssetModal } from '../components/PromptAssetDetailModal';
+import { PromptAssetDetailModal, useEditAssetModal } from '../components/modals/PromptAssetDetailModal';
 import { PromptAssetTable } from './components/PromptAssetTable';
 
 export default function PromptAssetsPage() {

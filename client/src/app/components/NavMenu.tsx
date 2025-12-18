@@ -1,12 +1,15 @@
 'use client';
 
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { DocsUrls } from '@/utils/docs-urls';
 import { RouteUrls } from '@/utils/route-urls';
 import { UserButton } from '@clerk/nextjs';
 import { Box, Center, Stack, useMantineColorScheme } from '@mantine/core';
 import {
   BlocksIcon,
+  BugIcon,
   ChevronDown,
   CircleQuestionMarkIcon,
   CpuIcon,
@@ -84,6 +87,8 @@ const lowerMenuItems: MenuItem[] = [
 
 export function NavMenu() {
   const pathname = usePathname();
+  const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
+  const { user } = useScratchPadUser();
   const { isDevToolsEnabled } = useDevTools();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const colorModeItem: MenuItem = {
@@ -96,6 +101,19 @@ export function NavMenu() {
     label: colorScheme === 'light' ? 'Dark mode' : 'Light mode',
     icon: colorScheme === 'light' ? MoonIcon : SunIcon,
   };
+
+  const lowerSectionMenuItems: MenuItem[] = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT
+    ? [
+        {
+          type: 'button',
+          onClick: openReportABugModal,
+          label: 'Report a Bug',
+          icon: BugIcon,
+        },
+        ...lowerMenuItems,
+      ]
+    : lowerMenuItems;
+
   return (
     <Stack h="100%" p="10px 8px" gap="10px" bg="var(--bg-panel)">
       <Stack gap="2px" justify="flex-start" w="100%">
@@ -110,7 +128,7 @@ export function NavMenu() {
       <Stack gap="2px" justify="flex-start" w="100%" mt="auto">
         <NavMenuItem item={colorModeItem} isActive={false} />
 
-        {lowerMenuItems
+        {lowerSectionMenuItems
           .filter((item) => isDevToolsEnabled || !item.isDevTool)
           .map((item) => {
             const isActive = item.type === 'link' && pathname.startsWith(item.href);

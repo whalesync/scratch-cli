@@ -4,9 +4,9 @@ import { Group, Loader, Stack, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import pluralize from 'pluralize';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from './base/buttons';
-import { ModalWrapper } from './ModalWrapper';
-import { SelectTableRow } from './SelectTableRow';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
+import { ModalWrapper } from '../ModalWrapper';
+import { SelectTableRow } from '../SelectTableRow';
 
 interface Props {
   isOpen: boolean;

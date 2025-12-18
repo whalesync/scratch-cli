@@ -3,8 +3,8 @@ import classes from './notifications.module.css';
 
 interface NotificationData {
   title?: string;
-  message: string;
-  autoClose?: number;
+  message: React.ReactNode;
+  autoClose?: boolean | number;
 }
 
 /* 

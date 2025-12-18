@@ -23,6 +23,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { ColorSchemeScript, mantineHtmlProps, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { DatesProviderWrapper } from './components/DatesProviderWrapper';
+import { ReportABugModal } from './components/modals/ReportABugModal';
 import { SCRATCHPAD_MANTINE_THEME } from './components/theme/theme';
 import { ScratchpadPostHogProvider } from './providers';
 
@@ -42,7 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <ClerkProvider>
               <ClerkAuthContextProvider>
-                <ScratchpadPostHogProvider>{children}</ScratchpadPostHogProvider>
+                <ScratchpadPostHogProvider>
+                  {children}
+                  <ReportABugModal />
+                </ScratchpadPostHogProvider>
                 <div id="portal" />
               </ClerkAuthContextProvider>
             </ClerkProvider>

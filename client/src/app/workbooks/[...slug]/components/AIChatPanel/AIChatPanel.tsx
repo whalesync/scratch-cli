@@ -9,7 +9,7 @@ import {
   IconButtonOutline,
 } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import ModelPickerModal from '@/app/components/ModelPickerModal';
+import ModelPickerModal from '@/app/components/modals/ModelPickerModal';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
 import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';

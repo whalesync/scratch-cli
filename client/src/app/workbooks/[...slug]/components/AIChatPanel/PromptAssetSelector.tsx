@@ -14,7 +14,7 @@ import { Workbook } from '@/types/server-entities/workbook';
 import { Combobox, Divider, Group, useCombobox } from '@mantine/core';
 import { AtSignIcon, FileIcon, FileTextIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
-import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/PromptAssetDetailModal';
+import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/modals/PromptAssetDetailModal';
 import { ContextBadges } from './ContextBadges';
 
 export function PromptAssetSelector({

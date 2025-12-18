@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type State = {
   rightPanelOpened: boolean;
   navDrawerOpened: boolean;
+  reportABugModalOpened: boolean;
 };
 
 type Actions = {
@@ -11,6 +12,8 @@ type Actions = {
   toggleNavDrawer: () => void;
   openNavDrawer: () => void;
   closeNavDrawer: () => void;
+  openReportABugModal: () => void;
+  closeReportABugModal: () => void;
 };
 
 type LayoutManagerStore = State & Actions;
@@ -18,9 +21,12 @@ type LayoutManagerStore = State & Actions;
 export const useLayoutManagerStore = create<LayoutManagerStore>((set) => ({
   rightPanelOpened: true,
   navDrawerOpened: false,
+  reportABugModalOpened: false,
   setRightPanelOpened: (rightPanelOpened: boolean) => set({ rightPanelOpened }),
   toggleRightPanel: () => set((state) => ({ rightPanelOpened: !state.rightPanelOpened })),
   toggleNavDrawer: () => set((state) => ({ navDrawerOpened: !state.navDrawerOpened })),
   openNavDrawer: () => set({ navDrawerOpened: true }),
   closeNavDrawer: () => set({ navDrawerOpened: false }),
+  openReportABugModal: () => set({ reportABugModalOpened: true }),
+  closeReportABugModal: () => set({ reportABugModalOpened: false }),
 }));

@@ -16,25 +16,25 @@ export class BugReportService {
     createBugReportDto: CreateBugReportDto,
     user: UserCluster.User,
   ): Promise<{ issueId: string | undefined; link: string | undefined }> {
-    const title = `${createBugReportDto.title ?? 'User bug report'} - ${user.email}`;
+    const title = `${createBugReportDto.title ?? 'User bug report'}`;
 
     const userDashboardUrl = `${this.configService.getScratchApplicationUrl()}/dev/users?q=${user.id}`;
 
     let description = '';
     description += `**Env**: ${this.configService.getScratchpadEnvironment()}\n`;
-    if (createBugReportDto.pageUrl) {
-      description += `**Page**: ${createBugReportDto.pageUrl}\n`;
-    }
     if (createBugReportDto.bugType) {
       description += `**Bug Type**: ${createBugReportDto.bugType}\n`;
     }
+    if (createBugReportDto.pageUrl) {
+      description += `**Page**: ${createBugReportDto.pageUrl}\n`;
+    }
     if (createBugReportDto.replayUrl) {
-      description += `**Posthog Session Replay URL**: [View Replay](${createBugReportDto.replayUrl})\n`;
+      description += `**Posthog Session**: [View Replay](${createBugReportDto.replayUrl})\n`;
     }
 
     // User information
     description += `
-### User
+## User
 **ID**: [${user.id}](${userDashboardUrl})
 **Name**: ${user.name}
 **Email**: ${user.email}
@@ -42,23 +42,26 @@ export class BugReportService {
 `;
 
     // Bug Report information
-    description += `\n### Details\n`;
+    description += `\n## Details\n`;
 
     description += `${createBugReportDto.userDescription ?? 'No description provided'}\n`;
 
     // Additional context
-    description += `\n### Additional Context\n`;
+    if (createBugReportDto.workbookId || createBugReportDto.snapshotTableId || createBugReportDto.additionalContext) {
+      description += `\n## Additional Context\n`;
 
-    if (createBugReportDto.workbookId) {
-      description += `**Workbook ID**: ${createBugReportDto.workbookId}\n`;
+      if (createBugReportDto.workbookId) {
+        description += `**Workbook**: ${createBugReportDto.workbookId}\n`;
+      }
+
+      if (createBugReportDto.snapshotTableId) {
+        description += `**Snapshot Table**: ${createBugReportDto.snapshotTableId}\n`;
+      }
+
+      description += `${createBugReportDto.additionalContext && Object.keys(createBugReportDto.additionalContext).length > 0 ? JSON.stringify(createBugReportDto.additionalContext, null, 2) : ''}\n`;
+
+      // TODO: break down the additional context into sections once whe know what kind of things are stored there
     }
-
-    if (createBugReportDto.snapshotTableId) {
-      description += `**Snapshot Table ID**: ${createBugReportDto.snapshotTableId}\n`;
-    }
-
-    description += `${createBugReportDto.additionalContext && Object.keys(createBugReportDto.additionalContext).length > 0 ? JSON.stringify(createBugReportDto.additionalContext, null, 2) : ''}\n`;
-
     try {
       const { issueId, link } = await this.linearService.createIssue(title, description);
 
