@@ -46,6 +46,12 @@ export class BugReportService {
 
     description += `${createBugReportDto.userDescription ?? 'No description provided'}\n`;
 
+    // Include screenshot if provided
+    if (createBugReportDto.screenshot) {
+      description += `\n## Screenshot\n`;
+      description += `![Screenshot](${createBugReportDto.screenshot})\n`;
+    }
+
     // Additional context
     if (createBugReportDto.workbookId || createBugReportDto.snapshotTableId || createBugReportDto.additionalContext) {
       description += `\n## Additional Context\n`;

@@ -33,6 +33,10 @@ export class CreateBugReportDto {
   @IsOptional()
   snapshotTableId?: string;
 
+  @IsString()
+  @IsOptional()
+  screenshot?: string;
+
   @IsOptional()
   additionalContext?: Record<string, any>;
 }
@@ -40,4 +44,7 @@ export class CreateBugReportDto {
 export type ValidatedCreateBugReportDto = Required<
   Pick<CreateBugReportDto, 'title' | 'bugType' | 'userDescription' | 'pageUrl'>
 > &
-  Pick<CreateBugReportDto, 'additionalContext' | 'replayUrl' | 'sessionId' | 'workbookId' | 'snapshotTableId'>;
+  Pick<
+    CreateBugReportDto,
+    'additionalContext' | 'replayUrl' | 'sessionId' | 'workbookId' | 'snapshotTableId' | 'screenshot'
+  >;

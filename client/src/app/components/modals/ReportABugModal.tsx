@@ -6,8 +6,10 @@ import { bugReportApi } from '@/lib/api/bug-report';
 import { getSessionId, getSessionReplayUrl } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { isExperimentEnabled } from '@/types/server-entities/users';
-import { Alert, Anchor, Group, Stack, Textarea, TextInput } from '@mantine/core';
+import { Alert, Anchor, Box, Group, Image, Loader, Stack, Textarea, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import * as htmlToImage from 'html-to-image';
+import { CameraIcon, XIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
@@ -18,12 +20,15 @@ import { ScratchpadNotifications } from '../ScratchpadNotifications';
 export function ReportABugModal() {
   const { user } = useScratchPadUser();
   const reportABugModalOpened = useLayoutManagerStore((state) => state.reportABugModalOpened);
+  const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
   const closeReportABugModal = useLayoutManagerStore((state) => state.closeReportABugModal);
+  const [bugReportScreenshot, setBugReportScreenshot] = useState<string | null>(null);
 
   const { workbook, activeTable } = useActiveWorkbook();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const pathname = usePathname();
 
   const isWorkbookPage = usePathname().startsWith('/workbook') && workbook;
@@ -39,6 +44,45 @@ export function ReportABugModal() {
     },
   });
 
+  const handleTakeScreenshot = async () => {
+    try {
+      // Close the modal first to remove the backdrop
+      closeReportABugModal();
+
+      // Small delay to allow the modal and backdrop to fully hide
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      setIsCapturingScreenshot(true);
+
+      // Another small delay to show the spinner before capture
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Capture the screenshot with reduced quality
+      const dataUrl = await htmlToImage.toJpeg(document.body, {
+        cacheBust: true,
+        skipFonts: false,
+        pixelRatio: 1.0, // If you have to reduce file size.
+        quality: 0.7, // JPEG quality (0-1)
+      });
+
+      setBugReportScreenshot(dataUrl);
+      setIsCapturingScreenshot(false);
+
+      // Reopen the modal after capture
+      openReportABugModal();
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error);
+      setError('Failed to capture screenshot. Please try again.');
+      setIsCapturingScreenshot(false);
+      // Reopen the modal even if capture failed
+      openReportABugModal();
+    }
+  };
+
+  const handleRemoveScreenshot = () => {
+    setBugReportScreenshot(null);
+  };
+
   const handleSubmit = async () => {
     if (!form.validate().hasErrors) {
       try {
@@ -52,8 +96,10 @@ export function ReportABugModal() {
           // add some additional context based on the page the user is on
           workbookId: isWorkbookPage ? workbook?.id : undefined,
           snapshotTableId: isWorkbookPage ? activeTable?.id : undefined,
+          screenshot: bugReportScreenshot || undefined,
         });
         form.reset();
+        setBugReportScreenshot(null);
         closeReportABugModal();
 
         let notificationMessage: React.ReactNode = 'Thank you for your report! The dev team was notified.';
@@ -84,11 +130,46 @@ export function ReportABugModal() {
 
   const handleCancel = () => {
     form.reset();
+    setBugReportScreenshot(null);
     closeReportABugModal();
   };
 
   if (!isExperimentEnabled('ENABLE_CREATE_BUG_REPORT', user)) {
     return null;
+  }
+
+  // Show loader when capturing screenshot - only if modal is closed
+  if (isCapturingScreenshot && !reportABugModalOpened) {
+    return (
+      <Box
+        pos="fixed"
+        top={0}
+        left={0}
+        w="100vw"
+        h="100vh"
+        style={{
+          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          pointerEvents: 'none',
+        }}
+      >
+        <Stack
+          align="center"
+          gap="md"
+          style={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            padding: '24px 32px',
+            borderRadius: '8px',
+          }}
+        >
+          <Loader size="xl" color="white" />
+          <Text13Book style={{ color: 'white' }}>Capturing screenshot...</Text13Book>
+        </Stack>
+      </Box>
+    );
   }
 
   return (
@@ -133,6 +214,38 @@ export function ReportABugModal() {
           disabled={isSubmitting}
           {...form.getInputProps('description')}
         />
+
+        {/* Screenshot section */}
+        <Stack gap="sm">
+          {!bugReportScreenshot ? (
+            <ButtonSecondaryOutline
+              onClick={handleTakeScreenshot}
+              disabled={isSubmitting}
+              leftSection={<CameraIcon size={16} />}
+            >
+              Take screenshot
+            </ButtonSecondaryOutline>
+          ) : (
+            <Stack gap="xs">
+              <Group justify="space-between">
+                <Text13Book>Screenshot attached</Text13Book>
+                <ButtonSecondaryOutline onClick={handleRemoveScreenshot} disabled={isSubmitting} size="xs">
+                  <XIcon size={14} />
+                </ButtonSecondaryOutline>
+              </Group>
+              <Box
+                style={{
+                  border: '1px solid var(--mantine-color-gray-4)',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  maxHeight: '200px',
+                }}
+              >
+                <Image src={bugReportScreenshot} alt="Screenshot preview" fit="contain" />
+              </Box>
+            </Stack>
+          )}
+        </Stack>
       </Stack>
     </ModalWrapper>
   );
