@@ -175,7 +175,12 @@ export class DevToolsController {
           },
         });
       }
-      await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
+      const existingCredential = await this.agentCredentialsService.findSystemOpenRouterCredential(req.user.id);
+      if (existingCredential) {
+        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
+      } else {
+        await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(req.user.id, plan);
+      }
     } else if (planType !== ScratchPlanType.FREE_PLAN) {
       // create a fake new subscription
       await this.dbService.client.subscription.create({
@@ -191,7 +196,13 @@ export class DevToolsController {
           stripeStatus: 'active',
         },
       });
-      await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
+
+      const existingCredential = await this.agentCredentialsService.findSystemOpenRouterCredential(req.user.id);
+      if (existingCredential) {
+        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
+      } else {
+        await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(req.user.id, plan);
+      }
     }
   }
 
