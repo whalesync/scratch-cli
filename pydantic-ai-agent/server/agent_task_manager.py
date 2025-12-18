@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from typing import Awaitable, Callable, Dict, List, Optional
 
+from server.agent_control_types import AgentRunInterface
 from server.auth import AgentUser
 from server.chat_service import ChatService
 from server.DTOs import SendMessageRequestDTO
@@ -28,10 +29,11 @@ class TaskHistoryItem:
     created_at: datetime
     updated_at: datetime
     status: str
+    final_run_state: str
 
 
-class AgentMessageTask:
-    """Represents an asynchronous message processing task"""
+class AgentRunTask:
+    """Represents an asynchronous agent run task"""
 
     def __init__(
         self,
@@ -44,7 +46,19 @@ class AgentMessageTask:
         self.asyncio_task = asyncio_task
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
-        self.status = "running"  # running, completed, failed, cancelled
+        # Tracks the top level status of the task
+        # running, completed, failed
+        self.status = "running"
+        # Tracks the how the actual agent run is processing and is updated frequently by the agent stream processor
+        # running, completed, error, stopping, stopped
+        self.run_state = "running"
+        # Tracks if user has initiated a stop of the agent
+        self.stop_initiated = False
+
+    def stop_task(self):
+        """Stop the task"""
+        self.stop_initiated = True
+        self.updated_at = datetime.now(timezone.utc)
 
     def hard_cancel(self):
         """Cancel the task"""
@@ -68,6 +82,11 @@ class AgentMessageTask:
         self.status = "cancelled"
         self.updated_at = datetime.now(timezone.utc)
 
+    def update_run_state(self, run_state: str):
+        """Update the run state of the task"""
+        self.run_state = run_state
+        self.updated_at = datetime.now(timezone.utc)
+
 
 class AgentTaskManager:
     """Manages asynchronous message processing tasks"""
@@ -75,8 +94,9 @@ class AgentTaskManager:
     def __init__(self, chat_service: ChatService, session_service: SessionService):
         self.chat_service = chat_service
         self.session_service = session_service
-        self.active_tasks: Dict[str, AgentMessageTask] = {}
+        self.active_tasks: Dict[str, AgentRunTask] = {}
         self.task_history: List[TaskHistoryItem] = []
+        self._lock = asyncio.Lock()
 
     async def process_message_async(
         self,
@@ -119,9 +139,21 @@ class AgentTaskManager:
                 f"Added user message to chat history. New length: {len(session.chat_history)}"
             )
 
+            async def is_stop_initiated_wrapper() -> bool:
+                return await self.is_stop_initiated(task_id)
+
+            async def update_run_state_wrapper(run_state: str) -> None:
+                await self.update_run_state(task_id, run_state)
+
+            agent_run_interface = AgentRunInterface(
+                task_id=task_id,
+                is_stop_initiated=is_stop_initiated_wrapper,
+                update_run_state=update_run_state_wrapper,
+            )
+
             # Process with agent
             agent_response = await self.chat_service.process_message_with_agent(
-                task_id,
+                agent_run_interface,
                 session,
                 request.message,
                 user,
@@ -195,8 +227,9 @@ class AgentTaskManager:
             )
 
             # Mark task as completed
-            if task_id in self.active_tasks:
-                self.active_tasks[task_id].mark_as_completed()
+            async with self._lock:
+                if task_id in self.active_tasks:
+                    self.active_tasks[task_id].mark_as_completed()
 
             # Call completion callback with response data
             await completion_callback(
@@ -211,35 +244,39 @@ class AgentTaskManager:
 
         except asyncio.CancelledError:
             logger.info(f"Task {task_id} was cancelled")
-            if task_id in self.active_tasks:
-                self.active_tasks[task_id].mark_as_cancelled()
+            async with self._lock:
+                if task_id in self.active_tasks:
+                    self.active_tasks[task_id].mark_as_cancelled()
             raise
         except Exception as e:
             logger.exception(f"Error in async message processing task {task_id}: {e}")
-            if task_id in self.active_tasks:
-                self.active_tasks[task_id].mark_as_failed()
+            async with self._lock:
+                if task_id in self.active_tasks:
+                    self.active_tasks[task_id].mark_as_failed()
             await error_callback(e)
         finally:
             # Add task to history before removing from active tasks
-            if task_id in self.active_tasks:
-                task = self.active_tasks[task_id]
-                history_item = TaskHistoryItem(
-                    task_id=task.task_id,
-                    session_id=task.session_id,
-                    created_at=task.created_at,
-                    status=task.status,
-                    updated_at=task.updated_at,
-                )
-                # track newest first
-                self.task_history.insert(0, history_item)
+            async with self._lock:
+                if task_id in self.active_tasks:
+                    task = self.active_tasks[task_id]
+                    history_item = TaskHistoryItem(
+                        task_id=task.task_id,
+                        session_id=task.session_id,
+                        created_at=task.created_at,
+                        status=task.status,
+                        updated_at=task.updated_at,
+                        final_run_state=task.run_state if task.run_state else "unknown",
+                    )
+                    # track newest first
+                    self.task_history.insert(0, history_item)
 
-                # Keep only the most recent 1000 tasks
-                self.task_history = self.task_history[:1000]
+                    # Keep only the most recent 1000 tasks
+                    self.task_history = self.task_history[:1000]
 
-                # Clean up task from active tasks
-                del self.active_tasks[task_id]
+                    # Clean up task from active tasks
+                    del self.active_tasks[task_id]
 
-    def start_message_task(
+    async def start_message_task(
         self,
         session: ChatSession,
         request: SendMessageRequestDTO,
@@ -270,49 +307,77 @@ class AgentTaskManager:
         )
 
         # Store the task
-        message_task = AgentMessageTask(
+        message_task = AgentRunTask(
             task_id=task_id,
             session_id=session.id,
             asyncio_task=asyncio_task,
         )
-        self.active_tasks[task_id] = message_task
+        async with self._lock:
+            self.active_tasks[task_id] = message_task
 
         logger.info(f"Started message task {task_id} for session {session.id}")
         return task_id
 
-    def hard_cancel_task(self, task_id: str) -> bool:
+    async def hard_cancel_task(self, task_id: str) -> bool:
         """
         Attempts a hard cancellation of a running task by trying to kill the underlying asyncio task
 
-        WARNING: Unlike communciating through the AgentRunStateManager, this will not gracefully handle the task cancellation so a response will not be returned to the client.
+        WARNING: this will not gracefully handle the task cancellation so a response will not be returned to the client.
 
         Returns:
             True if task was found and cancelled, False otherwise
         """
-        if task_id in self.active_tasks:
-            task = self.active_tasks[task_id]
-            task.hard_cancel()
-            logger.info(f"Cancelled task {task_id}")
-            return True
+        async with self._lock:
+            if task_id in self.active_tasks:
+                task = self.active_tasks[task_id]
+                task.hard_cancel()
+                logger.info(f"Cancelled task {task_id}")
+                return True
         logger.warning(f"Task {task_id} not found")
         return False
 
-    def get_task_status(self, task_id: str) -> Optional[str]:
-        """Get the status of a task"""
-        if task_id in self.active_tasks:
-            return self.active_tasks[task_id].status
+    async def initiate_stop(self, task_id: str):
+        """Initiate a stop of a running task"""
+        async with self._lock:
+            if task_id in self.active_tasks:
+                task = self.active_tasks[task_id]
+                task.stop_task()
+                logger.info(f"Initiated stop of task {task_id}")
+        logger.warning(f"Task {task_id} not found")
+
+    async def get_task(self, task_id: str) -> Optional[AgentRunTask]:
+        """Get the task"""
+        async with self._lock:
+            if task_id in self.active_tasks:
+                return self.active_tasks[task_id]
         return None
 
-    def get_active_task_count(self) -> int:
+    async def get_active_task_count(self) -> int:
         """Get the number of active tasks"""
-        return len(self.active_tasks)
+        async with self._lock:
+            return len(self.active_tasks)
 
-    def get_task_history(self) -> List[TaskHistoryItem]:
+    async def get_task_history(self) -> List[TaskHistoryItem]:
         """Get the task history"""
-        return self.task_history
+        async with self._lock:
+            return self.task_history.copy()
 
-    def get_active_tasks(self) -> List[AgentMessageTask]:
+    async def get_active_tasks(self) -> List[AgentRunTask]:
         """Get the active tasks"""
-        active_tasks = list(self.active_tasks.values())
-        active_tasks.sort(key=lambda x: x.created_at, reverse=True)
-        return active_tasks
+        async with self._lock:
+            active_tasks = list(self.active_tasks.values())
+            active_tasks.sort(key=lambda x: x.created_at, reverse=True)
+            return active_tasks
+
+    async def is_stop_initiated(self, task_id: str) -> bool:
+        """Check if the stop has been initiated for a task"""
+        async with self._lock:
+            if task_id in self.active_tasks:
+                return self.active_tasks[task_id].stop_initiated
+        return False
+
+    async def update_run_state(self, task_id: str, run_state: str):
+        """Update the run state of a task"""
+        async with self._lock:
+            if task_id in self.active_tasks:
+                self.active_tasks[task_id].update_run_state(run_state)

@@ -8,11 +8,7 @@ from logging import getLogger
 
 from fastapi import APIRouter, Request, WebSocket
 from fastapi.responses import HTMLResponse
-from server.services import (
-    AgentRunStateManagerDep,
-    AgentTaskManagerDep,
-    WebSocketConnectionManagerDep,
-)
+from server.services import AgentTaskManagerDep, WebSocketConnectionManagerDep
 
 logger = getLogger(__name__)
 
@@ -74,36 +70,10 @@ async def websocket_status(
     }
 
 
-@router.get("/debug/agent/run-state/status")
-async def agent_run_state(
-    agent_run_state_manager: AgentRunStateManagerDep,
-):
-    """Agent runs endpoint"""
-    run_status = await agent_run_state_manager.get_run_status()
-    return {
-        "timestamp": datetime.now().isoformat(),
-        "agent_runs": run_status,
-    }
-
-
-@router.get("/debug/agent/task-manager/status")
-async def agent_task_manager(
-    agent_task_manager: AgentTaskManagerDep,
-):
-    """Agent task manager status endpoint"""
-
-    return {
-        "timestamp": datetime.now().isoformat(),
-        "active_task_count": agent_task_manager.get_active_task_count(),
-        "task_history": agent_task_manager.get_task_history(),
-    }
-
-
 @router.get("/debug/dashboard", response_class=HTMLResponse)
 async def debug_dashboard(
     request: Request,
     connection_manager: WebSocketConnectionManagerDep,
-    agent_run_state_manager: AgentRunStateManagerDep,
     agent_task_manager: AgentTaskManagerDep,
 ):
     """Admin dashboard with Jinja2 template"""
@@ -127,34 +97,23 @@ async def debug_dashboard(
                 }
             )
 
-    # Gather agent run state
-    run_status = await agent_run_state_manager.get_run_status()
-    agent_runs = []
-
-    for run_id, run_state in run_status.items():
-        agent_runs.append(
-            {
-                "run_id": run_id,
-                "session_id": run_state.session_id,
-                "status": run_state.status,
-            }
-        )
-
     # Gather task manager status
     active_tasks = []
-    for task in agent_task_manager.get_active_tasks():
+    for task in await agent_task_manager.get_active_tasks():
         active_tasks.append(
             {
                 "task_id": task.task_id,
                 "session_id": task.session_id,
                 "status": task.status,
+                "run_state": task.run_state,
+                "stop_initiated": task.stop_initiated,
                 "created_at": task.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated_at": task.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
         )
 
     # Get recent task history (last 20)
-    task_history = agent_task_manager.get_task_history()
+    task_history = await agent_task_manager.get_task_history()
     recent_history = []
     for item in task_history[-20:]:
         recent_history.append(
@@ -162,6 +121,7 @@ async def debug_dashboard(
                 "task_id": item.task_id,
                 "session_id": item.session_id,
                 "status": item.status,
+                "run_state": item.final_run_state,
                 "created_at": item.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "completed_at": item.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -175,9 +135,6 @@ async def debug_dashboard(
             "websocket_status": {
                 "active_count": len(websocket_connections),
                 "connections": websocket_connections,
-            },
-            "agent_run_state": {
-                "runs": agent_runs,
             },
             "task_manager": {
                 "active_count": len(active_tasks),

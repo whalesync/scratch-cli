@@ -72,11 +72,11 @@ export default function AIChatPanel() {
     deleteSession,
     activateSession,
     clearActiveSession,
-    cancelAgentRun,
+    stopAgent,
     refreshSessions,
   } = useAIAgentSessionManagerContext();
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
-  const [agentTaskCancelInProgress, setAgentTaskCancelInProgress] = useState<boolean>(false);
+  const [agentStopInProgress, setAgentStopInProgress] = useState<boolean>(false);
 
   const [runningAgentTaskId, setRunningAgentTaskId] = useState<string | null>(null);
 
@@ -262,7 +262,7 @@ export default function AIChatPanel() {
 
   const sendMessage = async () => {
     if (!message.trim() || !activeSessionId || agentTaskRunning) return;
-    setAgentTaskCancelInProgress(false);
+    setAgentStopInProgress(false);
     const messageCleaned = message.trim();
 
     // handle slash (/) and (@) commands
@@ -565,17 +565,17 @@ export default function AIChatPanel() {
             </IconButtonOutline>
           )}
           {/* Stop button */}
-          {agentTaskRunning && !agentTaskCancelInProgress && (
+          {agentTaskRunning && !agentStopInProgress && (
             <ButtonSecondarySolid
               size="xs"
               onClick={() => {
                 if (runningAgentTaskId) {
                   try {
-                    cancelAgentRun(runningAgentTaskId);
-                    setAgentTaskCancelInProgress(true);
+                    stopAgent(runningAgentTaskId);
+                    setAgentStopInProgress(true);
                   } catch (error) {
                     console.error('Error cancelling agent run:', error);
-                    setAgentTaskCancelInProgress(false);
+                    setAgentStopInProgress(false);
                   }
                 }
               }}
@@ -586,7 +586,7 @@ export default function AIChatPanel() {
               Stop
             </ButtonSecondarySolid>
           )}
-          {agentTaskCancelInProgress && agentTaskRunning && (
+          {agentStopInProgress && agentTaskRunning && (
             <ButtonSecondarySolid
               size="xs"
               leftSection={<Loader size={16} type="bars" />}

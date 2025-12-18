@@ -82,10 +82,10 @@ export const agentApi = {
    * @param sessionId - The ID of the session to cancel the agent run for
    * @param runId - The ID of the run to cancel
    */
-  cancelAgentRun: async (sessionId: string, runId: string): Promise<CancelAgentRunResponse> => {
+  stopAgentRun: async (sessionId: string, taskId: string): Promise<CancelAgentRunResponse> => {
     try {
       const axios = API_CONFIG.getAgentAxiosInstance();
-      const res = await axios.post<CancelAgentRunResponse>(`/sessions/${sessionId}/cancel-agent-run/${runId}`);
+      const res = await axios.post<CancelAgentRunResponse>(`/sessions/${sessionId}/stop-agent-run/${taskId}`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to cancel agent run');

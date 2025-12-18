@@ -19,7 +19,7 @@ from server.DTOs import (
     SendMessageResponseDTO,
 )
 from server.exception_mapping import exception_mapping
-from server.services import ChatServiceDep, SessionServiceDep
+from server.services import AgentTaskManagerDep, ChatServiceDep, SessionServiceDep
 from session import ChatMessage, ChatSession, RequestAndResponseSummary
 
 myLogger = getLogger(__name__)
@@ -341,17 +341,17 @@ async def list_sessions_for_snapshot(
     return {"sessions": session_summaries}
 
 
-@router.post("/sessions/{session_id}/cancel-agent-run/{run_id}")
-async def cancel_agent_run(
+@router.post("/sessions/{session_id}/stop-agent-run/{task_id}")
+async def stop_agent_run(
     session_id: str,
-    run_id: str,
-    chat_service: ChatServiceDep,
+    task_id: str,
+    agent_task_manager: AgentTaskManagerDep,
     current_user: AgentUser = Depends(get_current_user),
 ):
-    """Cancel an agent run"""
-    msg = await chat_service.cancel_agent_run(session_id, run_id)
+    """Stop an agent run"""
+    msg = await agent_task_manager.initiate_stop(task_id)
     myLogger.info(
-        f"🛑 Cancelled agent run {run_id} for session {session_id} by user {current_user.userId}"
+        f"🛑 Stopping agent run {task_id} for session {session_id} by user {current_user.userId}"
     )
     return {"message": msg}
 

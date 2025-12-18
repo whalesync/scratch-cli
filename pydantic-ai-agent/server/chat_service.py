@@ -22,8 +22,8 @@ from fastapi import HTTPException
 from logger import log_error, log_info
 from pydantic_ai.usage import RunUsage
 from scratchpad.api import ScratchpadApi
-from server.agent_run_state_manager import AgentRunStateManager
-from server.agent_stream_processor import CancelledAgentRunResult, process_agent_stream
+from server.agent_control_types import AgentRunInterface
+from server.agent_stream_processor import StoppedAgentRunResult, process_agent_stream
 from server.auth import AgentUser
 from server.exceptions import TokenLimitExceededException
 from server.session_service import SessionService
@@ -33,13 +33,9 @@ from utils.response_extractor import extract_response
 logger = getLogger(__name__)
 
 
-# TODO: refactor this as a service or singleton class
 class ChatService:
-    def __init__(
-        self, session_service: SessionService, run_state_manager: AgentRunStateManager
-    ):
+    def __init__(self, session_service: SessionService):
         self._session_service = session_service
-        self._run_state_manager = run_state_manager
 
     def _log_processing_start(
         self,
@@ -327,7 +323,7 @@ class ChatService:
 
     async def process_message_with_agent(
         self,
-        agent_run_id: str,
+        agent_run_task: AgentRunInterface,
         session: ChatSession,
         user_message: str,
         user: AgentUser,
@@ -389,7 +385,7 @@ class ChatService:
             # Create context with pre-loaded data
 
             chatRunContext: ChatRunContext = ChatRunContext(
-                run_id=agent_run_id,
+                run_id=agent_run_task.task_id,
                 session=session,
                 user_id=user.userId,
                 workbook=workbook,
@@ -403,8 +399,8 @@ class ChatService:
 
             await progress_callback(
                 "run_started",
-                f"Run started with ID {agent_run_id}",
-                {"run_id": agent_run_id},
+                f"Run started with ID {agent_run_task.task_id}",
+                {"run_id": agent_run_task.task_id},
             )
 
             # The snapshot context is now handled by dynamic instructions
@@ -432,10 +428,7 @@ class ChatService:
             )
 
             # Store the chat context so it can be accessed by the cancel system
-            await self._run_state_manager.start_run(
-                session.id,
-                agent_run_id,
-            )
+            await agent_run_task.update_run_state("agent_running")
 
             # Run the streaming with timeout
             logger.info(
@@ -450,12 +443,11 @@ class ChatService:
             result = await asyncio.wait_for(
                 process_agent_stream(
                     agent=agent,
+                    agent_run_task=agent_run_task,
                     full_prompt=full_prompt,
                     chat_run_context=chatRunContext,
                     session=session,
-                    agent_run_id=agent_run_id,
                     model=model,
-                    run_state_manager=self._run_state_manager,
                     progress_callback=progress_callback,
                     model_context_length=model_context_length,
                 ),
@@ -474,6 +466,7 @@ class ChatService:
                 workbook_id=session.workbook_id,
             )
             logger.info(f"❌ Agent.run() timed out after {timeout_seconds} seconds")
+            await agent_run_task.update_run_state("timeout")
             raise HTTPException(status_code=408, detail="Agent response timeout")
         except TokenLimitExceededException as e:
             log_error(
@@ -486,30 +479,28 @@ class ChatService:
             logger.info(
                 f"❌ Token limit exceeded: {e.requested_tokens} requested, {e.max_tokens} max"
             )
+            await agent_run_task.update_run_state("token_limit_exceeded")
             raise HTTPException(status_code=413, detail=str(e))
-        finally:
-            await self._run_state_manager.delete_run(agent_run_id)
 
         # The agent returns an AgentRunResult wrapper, we need to extract the actual response
 
         logger.info(f"🔍 Agent result: {type(result)}")
 
-        if isinstance(result, CancelledAgentRunResult):
+        if isinstance(result, StoppedAgentRunResult):
+            # agent was stopped by the user, handle as a special response to the caller
+            stopped_result: StoppedAgentRunResult = result
+            logger.info(f"Build response for cancelled run {agent_run_task.task_id}")
 
-            cancelled_result: CancelledAgentRunResult = result
-            # cancelled by user, handle as a special response to the caller
-            logger.info(f"Build response for cancelled run {agent_run_id}")
-
-            if cancelled_result.usage_stats.requests > 0:
+            if stopped_result.usage_stats.requests > 0:
                 try:
                     ScratchpadApi.track_token_usage(
                         user.userId,
                         credential_id,
                         model,
-                        cancelled_result.usage_stats.requests,
-                        cancelled_result.usage_stats.request_tokens,
-                        cancelled_result.usage_stats.response_tokens,
-                        cancelled_result.usage_stats.total_tokens,
+                        stopped_result.usage_stats.requests,
+                        stopped_result.usage_stats.request_tokens,
+                        stopped_result.usage_stats.response_tokens,
+                        stopped_result.usage_stats.total_tokens,
                         usage_context={
                             "session_id": session.id,
                             "workbook_id": session.workbook_id,
@@ -526,10 +517,10 @@ class ChatService:
                     )
 
             return ResponseFromAgent(
-                response_message="Request cancelled by user",
-                response_summary="Request cancelled by user",
-                request_summary="Request cancelled by user",
-                usage_stats=cancelled_result.usage_stats,
+                response_message="Request stopped by user",
+                response_summary="Request stopped by user",
+                request_summary="Request stopped by user",
+                usage_stats=stopped_result.usage_stats,
             )
 
         # Apply history processor to clean up data-fetch tool responses before persisting
@@ -624,19 +615,3 @@ class ChatService:
                 status_code=500,
                 detail="Invalid response from agent. Please try again or switch to a different model if the problem persists.",
             )
-
-    async def cancel_agent_run(self, session_id: str, run_id: str) -> str:
-        """Cancel a run"""
-        logger.info(
-            f"Cancelling agent run {run_id} for session {session_id}",
-        )
-
-        if not await self._run_state_manager.exists(session_id, run_id):
-            logger.info(
-                f"Run {run_id} not found",
-                extra={"run_id": run_id, "session_id": session_id},
-            )
-            return "Run not found"
-
-        await self._run_state_manager.cancel_run(run_id)
-        return "Run cancelled"

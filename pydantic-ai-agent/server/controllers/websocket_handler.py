@@ -299,13 +299,15 @@ async def websocket_endpoint(
                     )
 
                 # Start the async task - this returns immediately
-                task_id = connection_manager.agent_task_manager.start_message_task(
-                    session=session,
-                    request=request,
-                    user=message_user,
-                    progress_callback=progress_callback,
-                    completion_callback=completion_callback,
-                    error_callback=error_callback,
+                task_id = (
+                    await connection_manager.agent_task_manager.start_message_task(
+                        session=session,
+                        request=request,
+                        user=message_user,
+                        progress_callback=progress_callback,
+                        completion_callback=completion_callback,
+                        error_callback=error_callback,
+                    )
                 )
 
                 logger.info(f"✅ Started async task {task_id} for session {session_id}")

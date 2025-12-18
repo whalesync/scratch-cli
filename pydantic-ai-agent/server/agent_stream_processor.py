@@ -5,16 +5,11 @@ Agent Stream Processor for handling agent execution and streaming
 
 import re
 from logging import getLogger
-from typing import Any, Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Optional
 
-from agents.data_agent.models import (
-    ChatRunContext,
-    ChatSession,
-    ResponseFromAgent,
-    UsageStats,
-)
+from agents.data_agent.models import ChatRunContext, ChatSession, ResponseFromAgent
 from pydantic_ai import Agent
-from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded, UserError
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
@@ -24,34 +19,28 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.run import AgentRunResult
 from pydantic_ai.usage import UsageLimits
-from server.agent_run_state_manager import AgentRunStateManager
+from server.agent_control_types import (
+    AgentRunInterface,
+    AgentRunStoppedError,
+    StoppedAgentRunResult,
+)
 from server.exceptions import TokenLimitExceededException
 from server.token_utils import estimate_tokens_from_request_parts
 
 logger = getLogger(__name__)
 
 
-class AgentRunCancelledError(UserError):
-    """Error raised when an agent run is cancelled"""
-
-    def __init__(self, message: str, run_id: str, when: str):
-        super().__init__(message)
-        self.run_id = run_id
-        self.when = when
-
-
 async def process_agent_stream(
     agent: Agent,
+    agent_run_task: AgentRunInterface,
     full_prompt: str,
     chat_run_context: ChatRunContext,
     session: ChatSession,
-    agent_run_id: str,
     model: str,
-    run_state_manager: AgentRunStateManager,
     progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     usage_limits: Optional[UsageLimits] = None,
     model_context_length: Optional[int] = None,
-) -> AgentRunResult[ResponseFromAgent] | "CancelledAgentRunResult" | None:
+) -> AgentRunResult[ResponseFromAgent] | StoppedAgentRunResult | None:
     """
     Process agent stream and return the result.
 
@@ -69,7 +58,7 @@ async def process_agent_stream(
         The agent run result
 
     Raises:
-        AgentRunCancelledError: If the run is cancelled
+        AgentRunStoppedError: If the run is stopped
     """
     result = None
 
@@ -81,10 +70,10 @@ async def process_agent_stream(
             usage_limits=usage_limits,
         ) as agent_run:
             async for node in agent_run:
-                if await run_state_manager.is_cancelled(agent_run_id):
-                    raise AgentRunCancelledError(
-                        "Run cancelled",
-                        agent_run_id,
+                if await agent_run_task.is_stop_initiated():
+                    raise AgentRunStoppedError(
+                        "Run stopped by user",
+                        agent_run_task.task_id,
                         "between processing nodes",
                     )
 
@@ -140,10 +129,10 @@ async def process_agent_stream(
                     async with node.stream(agent_run.ctx) as request_stream:
                         async for event in request_stream:
                             # check cancel status
-                            if await run_state_manager.is_cancelled(agent_run_id):
-                                raise AgentRunCancelledError(
-                                    "Run cancelled",
-                                    agent_run_id,
+                            if await agent_run_task.is_stop_initiated():
+                                raise AgentRunStoppedError(
+                                    "Run stopped by user",
+                                    agent_run_task.task_id,
                                     "while waiting for model response",
                                 )
 
@@ -170,10 +159,10 @@ async def process_agent_stream(
 
                     async with node.stream(agent_run.ctx) as handle_stream:
                         async for event in handle_stream:
-                            if await run_state_manager.is_cancelled(agent_run_id):
-                                raise AgentRunCancelledError(
-                                    "Run cancelled",
-                                    agent_run_id,
+                            if await agent_run_task.is_stop_initiated():
+                                raise AgentRunStoppedError(
+                                    "Run stopped by user",
+                                    agent_run_task.task_id,
                                     "while processing tool result",
                                 )
 
@@ -225,13 +214,14 @@ async def process_agent_stream(
                     )
 
             result = agent_run.result
-            await run_state_manager.complete_run(agent_run_id)
+            await agent_run_task.update_run_state("completed")
 
-    except AgentRunCancelledError as e:
-        logger.info(f"Run {e.run_id} cancelled by user: {e.when}")
+    except AgentRunStoppedError as e:
+        logger.info(f"Run {e.run_id} stopped by user: {e.when}")
+        await agent_run_task.update_run_state("stopped")
         # NOTE: usage doesn't get fully calculated until after at least one node is full resolved, so token counts will often be 0
         usage = agent_run.usage() if agent_run else None
-        result = CancelledAgentRunResult(usage)
+        result = StoppedAgentRunResult(usage)
     except UsageLimitExceeded as e:
         # Pydantic-AI's built-in usage limit exception. Unfortunately we do not hit it.
         # se should investigate why. Until than - handle the error manually for common providers
@@ -275,25 +265,8 @@ async def process_agent_stream(
             # Re-raise other ModelHTTPErrors
             raise
     except Exception as e:
+        await agent_run_task.update_run_state("error")
         logger.exception(f"Unhandled exception in process_agent_stream: {str(e)}")
         raise
 
     return result
-
-
-class CancelledAgentRunResult:
-    """Result for a cancelled agent run"""
-
-    def __init__(self, usage: Any):
-        self.usage_stats = UsageStats(
-            requests=usage.requests if usage and usage.requests else 0,
-            request_tokens=(usage.input_tokens if usage and usage.input_tokens else 0),
-            response_tokens=(
-                usage.output_tokens if usage and usage.output_tokens else 0
-            ),
-            total_tokens=(
-                usage.input_tokens + usage.output_tokens
-                if usage and usage.input_tokens and usage.output_tokens
-                else 0
-            ),
-        )

@@ -9,8 +9,6 @@ Services are managed as singletons and injected via FastAPI's dependency injecti
 from typing import Annotated
 
 from fastapi import Depends
-
-from server.agent_run_state_manager import AgentRunStateManager
 from server.agent_task_manager import AgentTaskManager
 from server.chat_service import ChatService
 from server.session_service import SessionService
@@ -18,7 +16,6 @@ from server.websocket_connection_manager import ConnectionManager
 
 # Global service instances (singletons)
 _session_service: SessionService | None = None
-_agent_run_state_manager: AgentRunStateManager | None = None
 _chat_service: ChatService | None = None
 _websocket_connection_manager: ConnectionManager | None = None
 _agent_task_manager: AgentTaskManager | None = None
@@ -28,11 +25,10 @@ def initialize_services() -> None:
     """
     Initialize all services. Should be called during application startup.
     """
-    global _session_service, _agent_run_state_manager, _chat_service, _agent_task_manager, _websocket_connection_manager
+    global _session_service, _chat_service, _agent_task_manager, _websocket_connection_manager
 
     _session_service = SessionService()
-    _agent_run_state_manager = AgentRunStateManager()
-    _chat_service = ChatService(_session_service, _agent_run_state_manager)
+    _chat_service = ChatService(_session_service)
     _agent_task_manager = AgentTaskManager(_chat_service, _session_service)
     _websocket_connection_manager = ConnectionManager(
         _chat_service, _session_service, _agent_task_manager
@@ -53,22 +49,6 @@ def get_session_service() -> SessionService:
             "Services not initialized. Call initialize_services() first."
         )
     return _session_service
-
-
-def get_agent_run_state_manager() -> AgentRunStateManager:
-    """
-    Dependency injection for AgentRunStateManager.
-
-    Usage:
-        @router.get("/example")
-        async def example(run_state_manager: Annotated[AgentRunStateManager, Depends(get_agent_run_state_manager)]):
-            ...
-    """
-    if _agent_run_state_manager is None:
-        raise RuntimeError(
-            "Services not initialized. Call initialize_services() first."
-        )
-    return _agent_run_state_manager
 
 
 def get_chat_service() -> ChatService:
@@ -111,9 +91,7 @@ def get_agent_task_manager() -> AgentTaskManager:
 
 # Type aliases for cleaner endpoint signatures
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
-AgentRunStateManagerDep = Annotated[
-    AgentRunStateManager, Depends(get_agent_run_state_manager)
-]
+
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 WebSocketConnectionManagerDep = Annotated[
     ConnectionManager, Depends(get_websocket_connection_manager)
