@@ -294,3 +294,9 @@ class AgentTaskManager:
     def get_task_history(self) -> List[TaskHistoryItem]:
         """Get the task history"""
         return self.task_history
+
+    def get_active_tasks(self) -> List[AgentMessageTask]:
+        """Get the active tasks"""
+        active_tasks = list(self.active_tasks.values())
+        active_tasks.sort(key=lambda x: x.created_at, reverse=True)
+        return active_tasks

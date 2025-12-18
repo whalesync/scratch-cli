@@ -15,6 +15,7 @@ from typing import Any, Optional
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 
 from config import get_settings
 from server.controllers.admin_controller import router as admin_router
@@ -27,6 +28,9 @@ from server.services import (
 )
 
 logger = getLogger(__name__)
+
+# Initialize Jinja2 templates
+templates = Jinja2Templates(directory="templates")
 
 
 # Application lifespan manager
@@ -76,6 +80,11 @@ app.add_middleware(
 # Include the routers
 app.include_router(chat_router)
 app.include_router(admin_router)
+
+
+# Export templates for use in controllers
+def get_templates():
+    return templates
 
 
 # WebSocket endpoint

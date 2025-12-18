@@ -71,7 +71,9 @@ async def websocket_endpoint(
     logger.info(
         f"Connection established and session loaded for user: {connecting_user}"
     )
+    connection_manager.set_user(session_id, connecting_user)
 
+    # send the active task count to the client
     await connection_manager.send_message(
         json.dumps(
             {

@@ -10,6 +10,7 @@ from typing import Dict, Optional
 
 from fastapi import WebSocket
 from server.agent_task_manager import AgentTaskManager
+from server.auth import AgentUser
 from server.chat_service import ChatService
 from server.session_service import SessionService
 
@@ -29,6 +30,7 @@ class WebSocketConnection:
         self.created_at = datetime.now(timezone.utc)
         self.last_activity_at = self.created_at
         self.last_activity_type = "connect"
+        self.user: Optional[AgentUser] = None
 
     def track_last_activity(self, activity_type: str):
         self.last_activity_at = datetime.now(timezone.utc)
@@ -92,3 +94,9 @@ class ConnectionManager:
                     logger.error(f"Failed to send message to {session_id}: {e}")
                     # Remove the connection if it's broken, but only if it's still the same websocket
                     self.disconnect(session_id, stored_websocket.websocket)
+
+    def set_user(self, session_id: str, user: AgentUser):
+        if session_id in self.active_connections:
+            stored_websocket = self.active_connections[session_id]
+            if stored_websocket and stored_websocket.websocket:
+                stored_websocket.user = user
