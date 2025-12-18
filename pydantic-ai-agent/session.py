@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic_ai.messages import ModelMessage
 
@@ -23,6 +23,20 @@ class ChatMessage(BaseModel):
     message: str
     role: str  # "user" or "assistant"
     timestamp: datetime
+
+    # Token usage (only for assistant messages)
+    model: Optional[str] = Field(
+        default=None, description="Model used for this message"
+    )
+    request_tokens: Optional[int] = Field(
+        default=None, description="Tokens in the request"
+    )
+    response_tokens: Optional[int] = Field(
+        default=None, description="Tokens in the response"
+    )
+    total_tokens: Optional[int] = Field(
+        default=None, description="Total tokens for this message"
+    )
 
 
 class ChatSession(BaseModel):

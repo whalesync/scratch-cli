@@ -144,6 +144,22 @@ class AgentTaskManager:
                 message=agent_response.response_message,
                 role="assistant",
                 timestamp=datetime.now(timezone.utc),
+                model=request.model,
+                request_tokens=(
+                    agent_response.usage_stats.request_tokens
+                    if agent_response.usage_stats
+                    else None
+                ),
+                response_tokens=(
+                    agent_response.usage_stats.response_tokens
+                    if agent_response.usage_stats
+                    else None
+                ),
+                total_tokens=(
+                    agent_response.usage_stats.total_tokens
+                    if agent_response.usage_stats
+                    else None
+                ),
             )
             session.chat_history.append(assistant_message)
             logger.info(

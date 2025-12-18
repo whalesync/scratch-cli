@@ -193,6 +193,10 @@ class SessionService:
                     "message": msg.message,
                     "role": msg.role,
                     "timestamp": msg.timestamp.isoformat(),
+                    "model": msg.model,
+                    "request_tokens": msg.request_tokens,
+                    "response_tokens": msg.response_tokens,
+                    "total_tokens": msg.total_tokens,
                 }
                 for msg in session.chat_history
             ],
@@ -217,6 +221,10 @@ class SessionService:
                     message=msg_data["message"],
                     role=msg_data["role"],
                     timestamp=datetime.fromisoformat(msg_data["timestamp"]),
+                    model=msg_data.get("model"),
+                    request_tokens=msg_data.get("request_tokens"),
+                    response_tokens=msg_data.get("response_tokens"),
+                    total_tokens=msg_data.get("total_tokens"),
                 )
             )
 
