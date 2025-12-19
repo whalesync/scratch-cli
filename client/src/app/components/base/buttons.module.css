@@ -3,6 +3,7 @@
   color: var(--fg-muted);
   padding: 0;
   aspect-ratio: 1;
+  padding-inline: 0px !important; /** Not sure why this is needed, it's non-deterministic with local vs remote builds. */
 
   &:disabled {
     background-color: transparent;
