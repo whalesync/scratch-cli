@@ -7,8 +7,8 @@ from logging import getLogger
 from typing import Dict, List, Optional
 
 from agents.data_agent.data_agent_history_processor import data_agent_history_processor
-from agents.data_agent.data_agent_prompts import get_data_agent_instructions
 from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from agents.data_agent.prompts.system_prompt_builder import SystemPromptBuilder
 from agents.data_agent.tools_config import configure_tools, get_data_tools
 from config import get_settings
 from pydantic_ai import Agent, RunContext
@@ -58,10 +58,11 @@ def create_agent(
         #     builtin_tools.append(WebSearchTool(search_context_size="high", max_uses=5))
 
         # Create dynamic instructions function that includes snapshot context
+
         def get_dynamic_instructions(ctx: RunContext[ChatRunContext]) -> str:
             """Generate instructions with snapshot context dynamically for each run"""
             # Get base instructions
-            base_instructions = get_data_agent_instructions(
+            base_instructions = SystemPromptBuilder().build(
                 capabilities, prompt_assets, data_scope
             )
 

@@ -3,21 +3,16 @@ import re
 from collections import Counter
 from pathlib import Path
 from typing import List
-from pydantic_ai import Agent, Tool
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelResponse,
-    SystemPromptPart,
-    ToolReturnPart,
-)
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.providers.openrouter import OpenRouterProvider
+
+import logfire as logfire_module
+from agents.data_agent.prompts.system_prompt_builder import SystemPromptBuilder
 from dotenv import load_dotenv
-from data_agent_prompts import get_data_agent_instructions
+from pydantic_ai import Agent, Tool
+from pydantic_ai.messages import ModelMessage, SystemPromptPart, ToolReturnPart
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 from update_records_tool import create_update_records_tool
 from user_prompt import user_prompt_snapshot
-import logfire as logfire_module
 
 load_dotenv()
 
@@ -47,13 +42,14 @@ def send_message(message: str) -> str:
 
 
 # Use the local_model defined in step 1
+prompts = SystemPromptBuilder()
 obsidian_agent = Agent(
     model=model,
     tools=[
         Tool(send_message),
         create_update_records_tool(),
     ],
-    system_prompt=get_data_agent_instructions(),
+    system_prompt=prompts.get_data_agent_instructions(),
 )
 
 

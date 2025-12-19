@@ -1,15 +1,15 @@
+import os
+
+import logfire as logfire_module
+from agents.data_agent.data_tools import get_data_tools
+from agents.data_agent.models import ChatRunContext, ResponseFromAgent
+from agents.data_agent.prompts.system_prompt_builder import SystemPromptBuilder
+from dotenv import load_dotenv
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
-from pydantic_evals.evaluators.common import IsInstance
 from pydantic_evals import Case, Dataset
-from agents.data_agent.models import ResponseFromAgent
-from agents.data_agent.data_agent_prompts import get_data_agent_instructions
-from agents.data_agent.data_tools import get_data_tools
-from agents.data_agent.models import ChatRunContext
-import os
-from dotenv import load_dotenv
-import logfire as logfire_module
+from pydantic_evals.evaluators.common import IsInstance
 
 load_dotenv()  # Lo
 
@@ -44,7 +44,7 @@ model = OpenAIModel(
 
 agent = Agent(
     name="DataAgent - Evals",
-    instructions=get_data_agent_instructions([], {}),
+    instructions=SystemPromptBuilder().build([], {}),
     output_type=ResponseFromAgent,
     model=model,
     deps_type=ChatRunContext,
