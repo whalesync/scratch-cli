@@ -6,7 +6,7 @@ WebSocket Handler for real-time chat
 
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi import WebSocket
 from server.agent_task_manager import AgentTaskManager
@@ -31,10 +31,18 @@ class WebSocketConnection:
         self.last_activity_at = self.created_at
         self.last_activity_type = "connect"
         self.user: Optional[AgentUser] = None
+        self.activity_history: List[dict] = []
 
-    def track_last_activity(self, activity_type: str):
+    def track_activity(self, activity_type: str, payload: Optional[dict] = None):
         self.last_activity_at = datetime.now(timezone.utc)
         self.last_activity_type = activity_type
+        self.activity_history.append(
+            {
+                "timestamp": datetime.now(timezone.utc),
+                "activity_type": activity_type,
+                "payload": payload,
+            }
+        )
 
     def __str__(self):
         return f"WebSocketConnection(created_at={self.created_at}, last_activity_at={self.last_activity_at}, last_activity_type={self.last_activity_type})"
@@ -76,11 +84,13 @@ class ConnectionManager:
                     f"Disconnect skipped for session {session_id}: connection was replaced"
                 )
 
-    def track_activity(self, session_id: str, activity_type: str):
+    def track_activity(
+        self, session_id: str, activity_type: str, payload: Optional[dict] = None
+    ):
         if session_id in self.active_connections:
             stored_websocket = self.active_connections[session_id]
             if stored_websocket and stored_websocket.websocket:
-                stored_websocket.track_last_activity(activity_type)
+                stored_websocket.track_activity(activity_type, payload)
 
     async def send_message(self, message: str, session_id: str):
         if session_id in self.active_connections:
@@ -89,7 +99,9 @@ class ConnectionManager:
             if stored_websocket and stored_websocket.websocket:
                 try:
                     await stored_websocket.websocket.send_text(message)
-                    stored_websocket.track_last_activity("send_message")
+                    stored_websocket.track_activity(
+                        "send_message", {"message": message}
+                    )
                 except Exception as e:
                     logger.error(f"Failed to send message to {session_id}: {e}")
                     # Remove the connection if it's broken, but only if it's still the same websocket

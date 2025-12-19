@@ -3,6 +3,7 @@
 FastAPI Endpoints for Health Check
 """
 
+import json
 from datetime import datetime
 from logging import getLogger
 
@@ -31,45 +32,6 @@ async def health_check():
     }
 
 
-@router.get("/debug/websocket/status")
-async def websocket_status(
-    connection_manager: WebSocketConnectionManagerDep,
-):
-    """Websocket status endpoint"""
-    connection_info = []
-    if connection_manager.active_connections:
-        for key in connection_manager.active_connections.keys():
-
-            stored_connection = connection_manager.active_connections[key]
-
-            status = "n/a"
-            client_info = "n/a"
-            if (
-                stored_connection
-                and stored_connection.websocket
-                and isinstance(stored_connection.websocket, WebSocket)
-            ):
-                status = f"{stored_connection.websocket.client_state}"
-                client_info = f"{stored_connection.websocket.client}"
-
-            connection_info.append(
-                {
-                    "session_id": key,
-                    "status": status,
-                    "client_info": client_info,
-                    "last_activity_at": stored_connection.last_activity_at.isoformat(),
-                    "last_activity_type": stored_connection.last_activity_type,
-                }
-            )
-    else:
-        connection_info = "No connections found"
-
-    return {
-        "timestamp": datetime.now().isoformat(),
-        "connections": connection_info,
-    }
-
-
 @router.get("/debug/dashboard", response_class=HTMLResponse)
 async def debug_dashboard(
     request: Request,
@@ -94,6 +56,21 @@ async def debug_dashboard(
                     ),
                     "user": conn.user.userId if conn.user else "unknown",
                     "last_activity_type": conn.last_activity_type or "N/A",
+                    "activity_history": [
+                        {
+                            "timestamp": (
+                                activity["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+                                if activity["timestamp"]
+                                else "N/A"
+                            ),
+                            "activity_type": activity.get("activity_type", "N/A"),
+                            "payload": json.dumps(
+                                activity.get("payload", {}), indent=2
+                            ),
+                        }
+                        for activity in reversed(conn.activity_history)
+                    ],
+                    "activity_history_count": len(conn.activity_history),
                 }
             )
 
@@ -109,6 +86,7 @@ async def debug_dashboard(
                 "stop_initiated": task.stop_initiated,
                 "created_at": task.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated_at": task.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "user_message": task.user_message,
             }
         )
 
@@ -124,6 +102,7 @@ async def debug_dashboard(
                 "run_state": item.final_run_state,
                 "created_at": item.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "completed_at": item.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "user_message": item.user_message,
             }
         )
 

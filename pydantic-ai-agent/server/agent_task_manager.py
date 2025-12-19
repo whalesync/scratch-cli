@@ -30,6 +30,7 @@ class TaskHistoryItem:
     updated_at: datetime
     status: str
     final_run_state: str
+    user_message: str
 
 
 class AgentRunTask:
@@ -39,10 +40,12 @@ class AgentRunTask:
         self,
         task_id: str,
         session_id: str,
+        user_message: str,
         asyncio_task: asyncio.Task,
     ):
         self.task_id = task_id
         self.session_id = session_id
+        self.user_message = user_message
         self.asyncio_task = asyncio_task
         self.created_at = datetime.now(timezone.utc)
         self.updated_at = datetime.now(timezone.utc)
@@ -266,6 +269,7 @@ class AgentTaskManager:
                         status=task.status,
                         updated_at=task.updated_at,
                         final_run_state=task.run_state if task.run_state else "unknown",
+                        user_message=task.user_message,
                     )
                     # track newest first
                     self.task_history.insert(0, history_item)
@@ -311,6 +315,7 @@ class AgentTaskManager:
             task_id=task_id,
             session_id=session.id,
             asyncio_task=asyncio_task,
+            user_message=request.message,
         )
         async with self._lock:
             self.active_tasks[task_id] = message_task

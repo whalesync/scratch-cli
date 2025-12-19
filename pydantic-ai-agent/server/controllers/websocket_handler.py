@@ -137,7 +137,9 @@ async def websocket_endpoint(
 
             message_type = message_data.get("type")
             connection_manager.track_activity(
-                session_id, f"process_message - {message_type}"
+                session_id,
+                f"process_message",
+                {"message_type": message_type, "message_data": message_data},
             )
 
             if message_type == "ping":
