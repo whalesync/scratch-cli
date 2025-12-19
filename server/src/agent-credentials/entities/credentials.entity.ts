@@ -31,7 +31,7 @@ export class AgentCredentialEntity implements AgentCredential {
     } else {
       this.name = credential.name ?? 'User Provided';
     }
-    this.tokenUsageWarningLimit = undefined;
+    this.tokenUsageWarningLimit = credential.tokenUsageWarningLimit ?? undefined;
     this.source = credential.source as 'USER' | 'SYSTEM';
     this.usage = usage;
     this.default = credential.default;

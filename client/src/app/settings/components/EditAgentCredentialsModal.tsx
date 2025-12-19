@@ -3,7 +3,7 @@ import { useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { isExperimentEnabled } from '@/types/server-entities/users';
 import { Alert, Checkbox, Divider, ModalProps, NumberInput, PasswordInput, Stack, TextInput } from '@mantine/core';
-import { useSetState } from '@mantine/hooks';
+import { useForm } from '@mantine/form';
 import { AgentCredential, CreateAgentCredentialDto, UpdateAgentCredentialDto } from '@spinner/shared-types';
 import { useCallback, useEffect, useState } from 'react';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../../components/base/buttons';
@@ -14,6 +14,13 @@ interface EditAgentCredentialsModalProps extends ModalProps {
   onSuccess?: () => void;
 }
 
+type FormValues = {
+  apiKey: string;
+  name: string;
+  isDefaultProvider?: boolean;
+  tokenUsageWarningLimit?: number | null;
+};
+
 export const EditAgentCredentialsModal = ({
   credentials,
   onSuccess,
@@ -23,67 +30,70 @@ export const EditAgentCredentialsModal = ({
   const { createCredentials, updateCredentials } = useAgentCredentials(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useSetState<CreateAgentCredentialDto>({
-    service: 'openrouter',
-    apiKey: '',
-    name: '',
-    default: false,
-    tokenUsageWarningLimit: undefined,
+  const form = useForm<FormValues>({
+    initialValues: {
+      apiKey: '',
+      name: '',
+      isDefaultProvider: false,
+    },
+    validate: {
+      apiKey: (value) => (value.trim().length > 0 ? null : 'API Key is required'),
+      name: (value) => (value.trim().length > 0 ? null : 'Name is required'),
+    },
   });
 
   useEffect(() => {
-    if (!modalProps.opened) {
-      return;
-    }
-
-    if (credentials) {
-      // setup for update
-      setFormData({
-        service: credentials.service,
-        apiKey: '',
-        name: credentials.name ?? '',
-        default: credentials.default,
-        tokenUsageWarningLimit: credentials.tokenUsageWarningLimit ?? undefined,
-      });
-    } else {
-      // setup for create
-      setFormData({
-        service: 'openrouter',
-        apiKey: '',
-        name: '',
-        default: false,
-        tokenUsageWarningLimit: undefined,
+    if (modalProps.opened) {
+      form.reset();
+      form.setValues({
+        apiKey: credentials?.label ?? '',
+        name: credentials?.name ?? '',
+        isDefaultProvider: credentials?.default ?? false,
+        tokenUsageWarningLimit: credentials?.tokenUsageWarningLimit ?? undefined,
       });
     }
-  }, [credentials, modalProps.opened, setFormData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- doesn't work for form values.
+  }, [modalProps.opened, credentials]);
 
-  const handleSubmit = useCallback(async () => {
-    try {
-      setSaving(true);
-      setError(null);
+  const handleSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        setSaving(true);
+        setError(null);
 
-      if (credentials) {
-        const updateDto: UpdateAgentCredentialDto = {
-          name: credentials.source === 'USER' ? formData.name : undefined,
-          default: formData.default,
-          tokenUsageWarningLimit: formData.tokenUsageWarningLimit,
-        };
-        await updateCredentials(credentials.id, updateDto);
-      } else {
-        await createCredentials(formData);
+        if (credentials) {
+          const dto = new UpdateAgentCredentialDto();
+          dto.name = credentials.source === 'USER' ? values.name : undefined;
+          dto.default = values.isDefaultProvider;
+          dto.tokenUsageWarningLimit = values.tokenUsageWarningLimit;
+          await updateCredentials(credentials.id, dto);
+        } else {
+          const dto = new CreateAgentCredentialDto();
+          dto.service = 'openrouter';
+          dto.apiKey = values.apiKey;
+          dto.name = values.name;
+          dto.default = values.isDefaultProvider;
+          dto.tokenUsageWarningLimit = values.tokenUsageWarningLimit;
+          await createCredentials(dto);
+        }
+        ScratchpadNotifications.success({
+          title: 'Credentials updated',
+          message: 'The credentials have been updated',
+        });
+
+        onSuccess?.();
+      } catch (error) {
+        console.error('Error updating credentials:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      } finally {
+        setSaving(false);
       }
-      ScratchpadNotifications.success({
-        title: 'Credentials updated',
-        message: 'The credentials have been updated',
-      });
+    },
+    [credentials, updateCredentials, createCredentials, onSuccess],
+  );
 
-      onSuccess?.();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
-    } finally {
-      setSaving(false);
-    }
-  }, [credentials, formData, updateCredentials, createCredentials, onSuccess]);
+  const tokenUsageWarningLimit = form.getValues().tokenUsageWarningLimit;
+  const isTokenUsageWarningChecked = typeof tokenUsageWarningLimit === 'number' && tokenUsageWarningLimit > 0;
 
   return (
     <ModalWrapper
@@ -94,7 +104,7 @@ export const EditAgentCredentialsModal = ({
             <ButtonSecondaryOutline variant="outline" onClick={() => modalProps.onClose?.()} disabled={saving}>
               Cancel
             </ButtonSecondaryOutline>
-            <ButtonPrimaryLight onClick={handleSubmit} disabled={saving}>
+            <ButtonPrimaryLight onClick={() => form.onSubmit(handleSubmit)()} disabled={saving}>
               {credentials ? 'Save' : 'Add API Key'}
             </ButtonPrimaryLight>
           </>
@@ -107,62 +117,48 @@ export const EditAgentCredentialsModal = ({
           {error}
         </Alert>
       )}
-      <Stack gap="16px">
-        <TextInput
-          size="xs"
-          label="Name"
-          required
-          value={formData.name}
-          onChange={(event) => setFormData({ name: event.target.value })}
-          disabled={credentials?.source === 'SYSTEM'}
-        />
-        <PasswordInput
-          size="xs"
-          label="API Key"
-          required
-          value={credentials ? credentials.label : formData.apiKey}
-          onChange={(event) => setFormData({ apiKey: event.target.value })}
-          disabled={!!credentials}
-        />
-        {isExperimentEnabled('ENABLE_TOKEN_LIMIT_WARNINGS', user) && (
-          <>
-            <Divider label="Settings" labelPosition="left" />
-            <Checkbox
-              label="Token usage warning"
-              description="Get notified if a chat session exceeds the specified token limit."
-              checked={formData.tokenUsageWarningLimit !== undefined && formData.tokenUsageWarningLimit > 0}
-              onChange={(event) => {
-                if (event.target.checked) {
-                  setFormData({ tokenUsageWarningLimit: 1000 });
-                } else {
-                  setFormData({ tokenUsageWarningLimit: undefined });
-                }
-              }}
-            />
-            <NumberInput
-              ml="28px"
-              size="xs"
-              min={0}
-              hideControls
-              value={formData.tokenUsageWarningLimit ?? ''}
-              onChange={(value) => {
-                if (typeof value === 'number') {
-                  setFormData({ tokenUsageWarningLimit: value });
-                } else {
-                  setFormData({ tokenUsageWarningLimit: undefined });
-                }
-              }}
-            />
-          </>
-        )}
+      <form onSubmit={form.onSubmit(handleSubmit)}>
+        <Stack gap="16px">
+          <TextInput
+            size="xs"
+            label="Name"
+            required
+            disabled={credentials?.source === 'SYSTEM'}
+            {...form.getInputProps('name')}
+          />
+          <PasswordInput
+            size="xs"
+            label="API Key"
+            required
+            {...form.getInputProps('apiKey')}
+            disabled={!!credentials}
+          />
+          {isExperimentEnabled('ENABLE_TOKEN_LIMIT_WARNINGS', user) && (
+            <>
+              <Divider label="Settings" labelPosition="left" />
+              <Checkbox
+                label="Token usage warning"
+                description="Get notified if a chat session exceeds the specified token limit."
+                checked={isTokenUsageWarningChecked}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    form.setFieldValue('tokenUsageWarningLimit', 1000);
+                  } else {
+                    form.setFieldValue('tokenUsageWarningLimit', null);
+                  }
+                }}
+              />
+              <NumberInput ml="28px" size="xs" min={0} hideControls {...form.getInputProps('tokenUsageWarningLimit')} />
+            </>
+          )}
 
-        <Checkbox
-          label="Default model provider default"
-          description="Use this model provider as default in new workbooks."
-          checked={formData.default}
-          onChange={(event) => setFormData({ default: event.target.checked })}
-        />
-      </Stack>
+          <Checkbox
+            label="Default model provider default"
+            description="Use this model provider as default in new workbooks."
+            {...form.getInputProps('isDefaultProvider', { type: 'checkbox' })}
+          />
+        </Stack>
+      </form>
     </ModalWrapper>
   );
 };

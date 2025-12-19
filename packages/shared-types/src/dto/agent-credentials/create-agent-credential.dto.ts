@@ -13,7 +13,7 @@ export class CreateAgentCredentialDto {
 
   @IsNumber()
   @IsOptional()
-  tokenUsageWarningLimit?: number;
+  tokenUsageWarningLimit?: number | null;
 
   @IsBoolean()
   @IsOptional()

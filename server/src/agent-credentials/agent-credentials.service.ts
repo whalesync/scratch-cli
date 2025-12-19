@@ -79,7 +79,7 @@ export class AgentCredentialsService {
       apiKey: string;
       name?: string;
       default?: boolean;
-      tokenUsageWarningLimit?: number;
+      tokenUsageWarningLimit?: number | null;
       metadata?: AgentCredentialMetadata;
     },
     actor: Actor,
@@ -133,7 +133,7 @@ export class AgentCredentialsService {
     data: {
       apiKey?: string;
       name?: string;
-      tokenUsageWarningLimit?: number;
+      tokenUsageWarningLimit?: number | null;
       default?: boolean;
       metadata?: AgentCredentialMetadata;
     },

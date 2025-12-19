@@ -7,7 +7,7 @@ export class UpdateAgentCredentialDto {
 
   @IsNumber()
   @IsOptional()
-  tokenUsageWarningLimit?: number;
+  tokenUsageWarningLimit?: number | null;
 
   @IsBoolean()
   @IsOptional()
