@@ -34,7 +34,16 @@ import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
 import { Alert, Anchor, Box, Center, Divider, Group, Loader, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO, SnapshotTableId } from '@spinner/shared-types';
-import { ChevronDownIcon, CircleStopIcon, LucideFileKey, Plus, SendIcon, Trash2Icon, XIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  CircleDollarSignIcon,
+  CircleStopIcon,
+  LucideFileKey,
+  Plus,
+  SendIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useAgentPricing } from '../../../../../hooks/use-agent-pricing';
@@ -57,7 +66,9 @@ export default function AIChatPanel() {
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
+  const [limitWarningAlert, setLimitWarningAlert] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [ignoreSessionLimitWarning, setIgnoreSessionLimitWarning] = useState<boolean>(false);
   const [errorDetails, setErrorDetails] = useState<string | React.ReactNode | null>(null);
   const [resetInputFocus, setResetInputFocus] = useState(false);
   const [showDeleteSessionButton, setShowDeleteSessionButton] = useState(false);
@@ -74,6 +85,7 @@ export default function AIChatPanel() {
     setActiveModel,
     setAccumulatedCost,
     resetCost,
+    accumulatedCost,
   } = useAgentChatContext();
 
   const {
@@ -417,6 +429,10 @@ export default function AIChatPanel() {
 
   // Calculate costs from chat messages when they arrive
   useEffect(() => {
+    if (ignoreSessionLimitWarning) {
+      setIgnoreSessionLimitWarning(false);
+      return;
+    }
     if (!agentPricingModels || activeSession?.chat_history?.length === 0 || isLoadingPricing) return;
 
     // Find assistant messages with token data that we haven't processed yet
@@ -437,7 +453,22 @@ export default function AIChatPanel() {
     });
 
     setAccumulatedCost(totalNewCost);
-  }, [activeSession?.chat_history, setAccumulatedCost, isLoadingPricing, agentPricingModels]);
+    if (
+      activeOpenRouterCredentials?.tokenUsageWarningLimit &&
+      totalNewCost > activeOpenRouterCredentials?.tokenUsageWarningLimit
+    ) {
+      setLimitWarningAlert(true);
+    } else {
+      setLimitWarningAlert(false);
+    }
+  }, [
+    activeSession?.chat_history,
+    setAccumulatedCost,
+    isLoadingPricing,
+    agentPricingModels,
+    activeOpenRouterCredentials?.tokenUsageWarningLimit,
+    ignoreSessionLimitWarning,
+  ]);
 
   const chatInputEnabled =
     activeOpenRouterCredentials && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
@@ -472,6 +503,11 @@ export default function AIChatPanel() {
             />
           )}
           <Box flex={1} />
+          <Tooltip label={`Session cost: $${accumulatedCost.toFixed(4)}`}>
+            <Box>
+              <StyledLucideIcon Icon={CircleDollarSignIcon} size="sm" c="dimmed" centerInText />
+            </Box>
+          </Tooltip>
           <ToolbarIconButton
             icon={Plus}
             onClick={createNewSession}
@@ -483,6 +519,40 @@ export default function AIChatPanel() {
       </Box>
       <Box w="100%" h="100%" className={classes.chatPanelBody} ref={scrollAreaRef}>
         {/* Error Alert */}
+        {limitWarningAlert && activeSessionId && (
+          <Alert
+            color="yellow"
+            mb="sm"
+            p="xs"
+            title="Token usage warning"
+            withCloseButton
+            onClose={() => setLimitWarningAlert(false)}
+          >
+            <Stack gap="xs" justify="center" align="center">
+              <Text12Regular>
+                You have exceeded your chat session cost limit. Do you want to stop the session?
+              </Text12Regular>
+              <Group gap="xs" justify="center" align="center">
+                <ButtonSecondaryOutline
+                  onClick={() => {
+                    stopAgent(activeSessionId);
+                    setLimitWarningAlert(false);
+                  }}
+                >
+                  Stop session
+                </ButtonSecondaryOutline>
+                <ButtonSecondaryOutline
+                  onClick={() => {
+                    setIgnoreSessionLimitWarning(true);
+                    setLimitWarningAlert(false);
+                  }}
+                >
+                  Continue
+                </ButtonSecondaryOutline>
+              </Group>
+            </Stack>
+          </Alert>
+        )}
         {error && (
           <Alert color="red" mb="sm" p="xs" title={error} withCloseButton onClose={() => setError(null)}>
             {errorDetails && <Text12Regular>{errorDetails}</Text12Regular>}

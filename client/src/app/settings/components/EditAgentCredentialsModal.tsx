@@ -138,7 +138,7 @@ export const EditAgentCredentialsModal = ({
               <Divider label="Settings" labelPosition="left" />
               <Checkbox
                 label="Token usage warning"
-                description="Get notified if a chat session exceeds the specified token limit."
+                description="Get notified if a chat session exceeds the specified dollar amount."
                 checked={isTokenUsageWarningChecked}
                 onChange={(event) => {
                   if (event.target.checked) {
@@ -148,7 +148,14 @@ export const EditAgentCredentialsModal = ({
                   }
                 }}
               />
-              <NumberInput ml="28px" size="xs" min={0} hideControls {...form.getInputProps('tokenUsageWarningLimit')} />
+              <NumberInput
+                ml="28px"
+                leftSection="$"
+                size="xs"
+                min={0}
+                hideControls
+                {...form.getInputProps('tokenUsageWarningLimit')}
+              />
             </>
           )}
 
