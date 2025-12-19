@@ -25,7 +25,7 @@ export const MarkdownRenderer = (props: Options): JSX.Element => {
           <List fw="inherit" fz="inherit" type="unordered" listStyleType="disc" ref={ref} {...props} />
         )),
         li: React.forwardRef<HTMLLIElement, React.ComponentProps<typeof List.Item>>(({ ...props }, ref) => (
-          <List.Item lh={1.5} fw="inherit" fz="inherit" ref={ref} {...props} />
+          <List.Item lh={1.5} fw="inherit" fz="inherit" style={{ listStylePosition: 'outside' }} ref={ref} {...props} />
         )),
         ...(components || {}),
       }}
