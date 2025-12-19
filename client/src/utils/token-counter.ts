@@ -2,7 +2,7 @@
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
 import { PersistedModelOption } from '../types/common';
-import { SnapshotTable } from '../types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 
 // Stats about how many tokens a list of records takes.
 type TokenCountResult = {

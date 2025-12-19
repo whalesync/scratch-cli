@@ -1,5 +1,5 @@
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { ColumnSpec } from '@/types/server-entities/workbook';
+import { ColumnSpec } from '@spinner/shared-types';
 import { Tooltip } from '@mantine/core';
 import { AlertCircleIcon } from 'lucide-react';
 

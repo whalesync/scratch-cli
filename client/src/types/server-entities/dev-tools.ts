@@ -1,4 +1,4 @@
-import { AuditLogEvent } from './audit-logs';
+import { AuditLogEvent } from '@spinner/shared-types';
 import { User } from './users';
 
 /**

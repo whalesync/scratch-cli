@@ -2,8 +2,6 @@ import { ScratchPlanType } from '@spinner/shared-types';
 import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
 import { assertIsDefined } from 'src/utils/asserts';
 
-export { ScratchPlanType } from '@spinner/shared-types';
-
 export function getPlanTypeFromString(typeString: string): ScratchPlanType | undefined {
   for (const [k, v] of Object.entries(ScratchPlanType)) {
     if (k === typeString) {

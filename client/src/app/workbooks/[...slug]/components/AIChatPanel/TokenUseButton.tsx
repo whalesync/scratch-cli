@@ -1,4 +1,4 @@
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { DocsUrls } from '@/utils/docs-urls';
 import { Anchor, Divider, Popover, Stack } from '@mantine/core';
 import { CircleAlert } from 'lucide-react';

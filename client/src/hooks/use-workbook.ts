@@ -2,14 +2,15 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { recordApi } from '@/lib/api/record';
 import { workbookApi } from '@/lib/api/workbook';
-import { EntityId } from '@/types/server-entities/table-list';
+import { AddTableToWorkbookDto, UpdateWorkbookDto } from '@/types/server-entities/workbook';
 import {
-  AddTableToWorkbookDto,
+  EntityId,
+  Service,
   SnapshotColumnSettingsMap,
-  UpdateWorkbookDto,
+  SnapshotTableId,
   Workbook,
-} from '@/types/server-entities/workbook';
-import { Service, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+  WorkbookId,
+} from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';

@@ -1,5 +1,5 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Menu } from '@mantine/core';
 import { CheckIcon, ChevronDownIcon, CirclePlusIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';

@@ -125,6 +125,11 @@ model AiAgentCredential {
   @@index([userId])
 }
 
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/connector-account.ts
+/// Begin "keep in sync" section
+///
+
 model ConnectorAccount {
   id                        String                 @id // type: ConnectorAccountId
   createdAt                 DateTime               @default(now())
@@ -148,6 +153,15 @@ model ConnectorAccount {
   @@index([organizationId])
 }
 
+///
+/// End "keep in sync" section
+///
+
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/workbook.ts
+/// Begin "keep in sync" section
+///
+
 model Workbook {
   id        String   @id // type: WorkbookId
   name      String?
@@ -159,12 +173,21 @@ model Workbook {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  snapshotTables      SnapshotTable[]
-  onboardingForUser   User?            @relation("OnboardingWorkbook")
+  snapshotTables    SnapshotTable[]
+  onboardingForUser User?           @relation("OnboardingWorkbook")
 
   @@index([userId])
   @@index([organizationId])
 }
+
+///
+/// End "keep in sync" section
+///
+
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/snapshot-table.ts
+/// Begin "keep in sync" section
+///
 
 model SnapshotTable {
   id        String   @id // type: SnapshotTableId
@@ -182,7 +205,7 @@ model SnapshotTable {
   connectorService Service
 
   // Single TableSpec object (not array)
-  tableSpec Json // TableSpec 
+  tableSpec Json // TableSpec
 
   /// Map of user settings for the columns in this table
   /// type: SnapshotColumnSettingsMap.
@@ -227,6 +250,15 @@ model SnapshotTable {
   @@index([version])
 }
 
+///
+/// End "keep in sync" section
+///
+
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/style-guide.ts
+/// Begin "keep in sync" section
+///
+
 model StyleGuide {
   id               String       @id // type: StyleGuideId
   createdAt        DateTime     @default(now())
@@ -246,6 +278,10 @@ model StyleGuide {
   @@index([userId])
   @@index([organizationId])
 }
+
+///
+/// End "keep in sync" section
+///
 
 model AiAgentTokenUsageEvent {
   id             String   @id // type: AiAgentTokenUsageEventId
@@ -364,6 +400,11 @@ model Upload {
   @@index([organizationId])
 }
 
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/audit-log-event.ts
+/// Begin "keep in sync" section
+///
+
 model AuditLogEvent {
   id             String   @id // type: AuditLogEventId
   createdAt      DateTime @default(now())
@@ -379,6 +420,15 @@ model AuditLogEvent {
   @@index([organizationId])
   @@index([entityId])
 }
+
+///
+/// End "keep in sync" section
+///
+
+///
+/// NOTE: Keep this in sync with packages/shared-types/src/db/organization.ts
+/// Begin "keep in sync" section
+///
 
 model Organization {
   id        String   @id // type: OrganizationId
@@ -396,6 +446,10 @@ model Organization {
   invoiceResults    InvoiceResult[]
   actions           Action[]
 }
+
+///
+/// End "keep in sync" section
+///
 
 /// org's actions that are billable and we need to account for.
 model Action {

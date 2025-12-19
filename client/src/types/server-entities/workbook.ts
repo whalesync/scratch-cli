@@ -1,97 +1,20 @@
 import { isNotEmpty } from '@/utils/helpers';
-import { Service, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import {
+  ColumnSpec,
+  EntityId,
+  PostgresColumnType,
+  Service,
+  SnapshotColumnSettingsMap,
+  SnapshotTable,
+  TableSpec,
+  Workbook,
+} from '@spinner/shared-types';
 import isBoolean from 'lodash/isBoolean';
 import isNumber from 'lodash/isNumber';
 import partition from 'lodash/partition';
 import toNumber from 'lodash/toNumber';
 import truncate from 'lodash/truncate';
 import uniq from 'lodash/uniq';
-import { EntityId } from './table-list';
-
-export type ColumnMetadata = {
-  textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';
-  dateFormat?: 'date' | 'datetime' | 'time';
-  numberFormat?: 'decimal' | 'integer';
-  options?: ColumnOption[];
-  /**
-   * If true, any value is allowed for the column.
-   * otherwise the column must follow the option values.
-   */
-  allowAnyOption?: boolean;
-  /**
-   * If true, the column is a scratch column.
-   * scratch columns are not saved to the connector and are only internally by the UI and the agents.
-   */
-  scratch?: boolean;
-};
-
-export type ColumnOption = {
-  value?: string;
-  label?: string;
-};
-
-export interface ColumnSpec {
-  id: EntityId;
-  name: string;
-  readonly?: boolean;
-  required?: boolean;
-  pgType: PostgresColumnType;
-  metadata?: ColumnMetadata;
-  dataConverterTypes?: string[];
-}
-
-export enum PostgresColumnType {
-  TEXT = 'text',
-  NUMERIC = 'numeric',
-  BOOLEAN = 'boolean',
-  JSONB = 'jsonb',
-  TEXT_ARRAY = 'text[]',
-  NUMERIC_ARRAY = 'numeric[]',
-  BOOLEAN_ARRAY = 'boolean[]',
-  TIMESTAMP = 'timestamp',
-}
-
-export interface TableSpec {
-  id: EntityId;
-  name: string;
-  columns: ColumnSpec[];
-  // The remoteId of the column that should be used as the title/header column for visualizing records
-  titleColumnRemoteId?: string[];
-}
-
-export type SnapshotColumnSettings = {
-  dataConverter: string | null;
-};
-
-export type SnapshotColumnSettingsMap = { [columnWsId: string]: SnapshotColumnSettings };
-
-export interface SnapshotTable {
-  id: SnapshotTableId;
-  createdAt: string;
-  updatedAt: string;
-  workbookId: WorkbookId;
-  connectorAccountId: string | null;
-  connectorDisplayName: string | null;
-  connectorService: Service | null;
-  tableSpec: TableSpec;
-  columnSettings: SnapshotColumnSettingsMap;
-  activeRecordSqlFilter: string | null;
-  pageSize: number | null;
-  hidden: boolean;
-  lock: string | null;
-  hiddenColumns: string[];
-  lastSyncTime: string | null;
-  dirty: boolean;
-}
-
-export interface Workbook {
-  id: WorkbookId;
-  name: string | null;
-  createdAt: string;
-  updatedAt: string;
-  snapshotTables?: SnapshotTable[];
-  userId: string;
-}
 
 export interface CreateWorkbookDto {
   name?: string;

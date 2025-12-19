@@ -1,6 +1,5 @@
 import { ScratchPadUser } from '@/hooks/useScratchpadUser';
-import { Workbook } from '@/types/server-entities/workbook';
-import { ScratchPlanType } from '@spinner/shared-types';
+import { ScratchPlanType, Workbook } from '@spinner/shared-types';
 import uniqBy from 'lodash/uniqBy';
 import posthog from 'posthog-js';
 

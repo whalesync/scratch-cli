@@ -5,7 +5,7 @@ import { ExistingChangeTypes, hasAnyChange } from '@/app/components/field-value-
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { RECORD_DETILE_SIDEBAR_W } from '@/app/workbooks/[...slug]/components/record-details/record-detail-constants';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { ColumnSpec } from '@/types/server-entities/workbook';
+import { ColumnSpec } from '@spinner/shared-types';
 import { Box, Group, Tooltip } from '@mantine/core';
 import { PenOffIcon } from 'lucide-react';
 import { FC } from 'react';

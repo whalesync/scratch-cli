@@ -1,4 +1,5 @@
-import { ColumnSpec, PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { ColumnSpec, PostgresColumnType } from '@spinner/shared-types';
 import { IRowNode } from 'ag-grid-community';
 import toString from 'lodash/toString';
 

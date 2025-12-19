@@ -1,19 +1,1 @@
-import { AuthType, ConnectorHealthStatus, Service } from '@spinner/shared-types';
-
-export interface ConnectorAccount {
-  id: string; // ConnectorAccountId
-  createdAt: string; // DateTime
-  updatedAt: string; // DateTime
-  userId: string; // Uuid
-  service: Service;
-  displayName: string;
-  encryptedCredentials: Record<string, string>;
-  healthStatus: ConnectorHealthStatus | null;
-  healthStatusLastCheckedAt: string | null; // DateTime
-  healthStatusMessage: string | null; // Message if health status is not OK
-  modifier: string | null; // ID of the custom connector or other modifier entity
-  extras: Record<string, unknown> | null; // Additional service-specific configuration
-  authType: AuthType;
-}
-
 export type TestConnectionResponse = { health: 'ok' } | { health: 'error'; error: string };

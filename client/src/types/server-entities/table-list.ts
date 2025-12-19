@@ -1,9 +1,4 @@
-import { Service } from '@spinner/shared-types';
-
-export interface EntityId {
-  wsId: string;
-  remoteId: string[];
-}
+import { EntityId, Service } from '@spinner/shared-types';
 
 export interface TablePreview {
   id: EntityId;

@@ -1,8 +1,7 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { Workbook } from '@/types/server-entities/workbook';
-import { SnapshotTableId } from '@spinner/shared-types';
+import { SnapshotTableId, Workbook } from '@spinner/shared-types';
 import { useSWRConfig } from 'swr';
 
 export const useExportAsCsv = () => {

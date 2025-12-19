@@ -4,7 +4,7 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { workbookApi } from '@/lib/api/workbook';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Checkbox, Group, Stack, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { useEffect, useState } from 'react';

@@ -1,17 +1,6 @@
 import { PublishSummary } from '@/types/server-entities/publish-summary';
-import type {
-  AddScratchColumnDto,
-  AddTableToWorkbookDto,
-  CreateWorkbookDto,
-  DownloadWorkbookResult,
-  DownloadWorkbookWithoutJobResult,
-  RemoveScratchColumnDto,
-  SnapshotTable,
-  UpdateColumnSettingsDto,
-  UpdateWorkbookDto,
-  Workbook,
-} from '@/types/server-entities/workbook';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { AddScratchColumnDto, AddTableToWorkbookDto, CreateWorkbookDto, DownloadWorkbookResult, DownloadWorkbookWithoutJobResult, RemoveScratchColumnDto, UpdateColumnSettingsDto, UpdateWorkbookDto,  } from '@/types/server-entities/workbook';
+import { SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 

@@ -1,7 +1,7 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { SnapshotTable, TableSpec } from '@/types/server-entities/workbook';
+import { SnapshotTable, TableSpec } from '@spinner/shared-types';
 import { Box, Group, Loader, Stack } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useCallback, useMemo, useState } from 'react';

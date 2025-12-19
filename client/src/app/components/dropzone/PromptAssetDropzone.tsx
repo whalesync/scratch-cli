@@ -2,10 +2,9 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { promptAssetApi } from '@/lib/api/prompt-asset';
-import { DEFAULT_CONTENT_TYPE } from '@/types/server-entities/style-guide';
 import { MantineStyleProps } from '@mantine/core';
 import { DropzoneProps } from '@mantine/dropzone';
-import { CreateStyleGuideDto } from '@spinner/shared-types';
+import { CreateStyleGuideDto, DEFAULT_CONTENT_TYPE } from '@spinner/shared-types';
 import { mutate } from 'swr';
 import { FileDropzone } from './FileDropzone';
 

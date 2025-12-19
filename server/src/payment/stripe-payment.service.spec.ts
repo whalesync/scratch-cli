@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/unbound-method */
+import { ScratchPlanType } from '@spinner/shared-types';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
@@ -12,7 +13,7 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { ErrorCode, isErr, isOk } from 'src/types/results';
 import Stripe from 'stripe';
-import { ScratchPlanType, TEST_SANDBOX_PLANS } from './plans';
+import { TEST_SANDBOX_PLANS } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 // Valid test price ID from plans.ts

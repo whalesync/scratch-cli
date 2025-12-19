@@ -1,5 +1,5 @@
 import { useOperationCounts } from '@/hooks/use-operation-counts';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Group, Loader, Stack, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import pluralize from 'pluralize';

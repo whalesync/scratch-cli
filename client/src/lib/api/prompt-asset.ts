@@ -1,5 +1,5 @@
-import { ExternalContent, StyleGuide, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
-import { CreateStyleGuideDto } from '@spinner/shared-types';
+import { CreateStyleGuideDto, StyleGuide } from '@spinner/shared-types';
+import { ExternalContent, UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { validateHelper } from '../../utils/validate-helper';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';

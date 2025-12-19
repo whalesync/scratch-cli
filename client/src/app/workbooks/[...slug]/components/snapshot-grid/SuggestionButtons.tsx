@@ -1,5 +1,6 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { TableSpec } from '@spinner/shared-types';
 import { ActionIcon, Group } from '@mantine/core';
 import { Check, X } from 'lucide-react';
 import { FC, useState } from 'react';

@@ -1,6 +1,6 @@
 import { ButtonSecondaryInline } from '@/app/components/base/buttons';
 import { recordApi } from '@/lib/api/record';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Loader, Menu } from '@mantine/core';
 import { EllipsisVerticalIcon, FileDownIcon, FileUpIcon } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';

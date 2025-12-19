@@ -1,4 +1,4 @@
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import pluralize from 'pluralize';
 import { useMemo } from 'react';
 import { useOperationCounts } from '../../../../../../../hooks/use-operation-counts';

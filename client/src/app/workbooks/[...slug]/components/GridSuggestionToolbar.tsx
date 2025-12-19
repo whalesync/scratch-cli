@@ -4,7 +4,7 @@ import { Text12Regular, TextMono12Regular } from '@/app/components/base/text';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Group, Loader } from '@mantine/core';
 import pluralize from 'pluralize';
 import { JSX, useState } from 'react';

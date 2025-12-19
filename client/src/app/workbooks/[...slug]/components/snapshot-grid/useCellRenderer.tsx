@@ -1,7 +1,8 @@
 import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
 import { FieldValueWrapper } from '@/app/components/field-value-wrappers/value/FieldValueWrapper';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { TableSpec } from '@spinner/shared-types';
 import { ICellRendererParams } from 'ag-grid-community';
 // Custom cell renderer with diff support for suggested values
 

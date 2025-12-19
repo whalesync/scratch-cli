@@ -2,9 +2,10 @@ import { IconButtonInline, IconButtonOutline } from '@/app/components/base/butto
 import { Text13Regular } from '@/app/components/base/text';
 import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { formatFieldValue, TableSpec } from '@/types/server-entities/workbook';
+import { formatFieldValue } from '@/types/server-entities/workbook';
 import { Anchor, Breadcrumbs, Center, Group, Modal, StyleProp, Tooltip } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
+import { TableSpec } from '@spinner/shared-types';
 import DOMPurify from 'dompurify';
 import {
   ArrowLeftIcon,

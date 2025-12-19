@@ -1,4 +1,4 @@
-import { SnapshotTable, Workbook } from '@/types/server-entities/workbook';
+import { SnapshotTable, Workbook } from '@spinner/shared-types';
 /**
  * Get visible snapshotTables from a snapshot, creating virtual ones if needed for backward compatibility.
  * By default, hidden tables are filtered out.

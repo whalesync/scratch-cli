@@ -1,8 +1,7 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { promptAssetApi } from '@/lib/api/prompt-asset';
-import { StyleGuide } from '@/types/server-entities/style-guide';
-import { StyleGuideId } from '@spinner/shared-types';
+import { StyleGuide, StyleGuideId } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import useSWR from 'swr';
 

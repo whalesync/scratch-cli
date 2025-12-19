@@ -1,6 +1,7 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { SnapshotRecord, TableSpec } from '@/types/server-entities/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { TableSpec } from '@spinner/shared-types';
 import { ActionIcon, Box, Code, Group, MantineStyleProps, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { ChangeObject } from 'diff';

@@ -1,5 +1,5 @@
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { PlusIcon } from 'lucide-react';
 import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
 

@@ -14,8 +14,8 @@ import { useAllTables } from '@/hooks/use-all-tables';
 import { useUploads } from '@/hooks/use-uploads';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { EntityId, TableGroup } from '@/types/server-entities/table-list';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { TableGroup } from '@/types/server-entities/table-list';
+import { EntityId, SnapshotTable } from '@spinner/shared-types';
 import { timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {

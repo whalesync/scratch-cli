@@ -1,7 +1,6 @@
 import { RouteUrls } from '@/utils/route-urls';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
-import { SnapshotTable, Workbook } from '../types/server-entities/workbook';
 
 // Transient ID for a tab that doesn't have a table yet.
 // This isn't persisted or saved between sessions.

@@ -1,6 +1,6 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { ColumnSpec } from '@/types/server-entities/workbook';
+import { ColumnSpec } from '@spinner/shared-types';
 import { Box, Group } from '@mantine/core';
 import { FC, useEffect, useRef, useState } from 'react';
 import { Text13Regular } from '../../base/text';

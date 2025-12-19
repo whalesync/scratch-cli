@@ -1,4 +1,4 @@
-import { SnapshotTable, Workbook } from '@/types/server-entities/workbook';
+import { SnapshotTable, Workbook } from '@spinner/shared-types';
 
 export interface SnapshotTableGridProps {
   workbook: Workbook;

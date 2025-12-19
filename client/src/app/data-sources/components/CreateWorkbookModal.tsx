@@ -7,8 +7,8 @@ import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { tableName, tablesName } from '@/service-naming-conventions';
-import { ConnectorAccount } from '@/types/server-entities/connector-accounts';
 import { TablePreview } from '@/types/server-entities/table-list';
+import { ConnectorAccount } from '@spinner/shared-types';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   Center,

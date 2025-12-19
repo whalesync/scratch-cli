@@ -1,5 +1,4 @@
-import { ColumnSpec } from '@/types/server-entities/workbook';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { ColumnSpec, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 

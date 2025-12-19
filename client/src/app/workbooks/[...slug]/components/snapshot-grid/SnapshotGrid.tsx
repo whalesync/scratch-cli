@@ -8,7 +8,8 @@ import {
 } from '@/app/workbooks/[...slug]/components/snapshot-grid/header-column-utils';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { recordName } from '@/service-naming-conventions';
-import { PostgresColumnType, SnapshotRecord } from '@/types/server-entities/workbook';
+import { SnapshotRecord } from '@/types/server-entities/workbook';
+import { PostgresColumnType } from '@spinner/shared-types';
 import { Box, Center, Text, useMantineColorScheme } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
 import { Service } from '@spinner/shared-types';

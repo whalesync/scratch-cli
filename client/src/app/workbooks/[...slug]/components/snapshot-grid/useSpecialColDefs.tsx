@@ -1,7 +1,7 @@
 import { IdValueWrapper } from '@/app/components/field-value-wrappers/value/IdValueWrapper';
 import { ID_COLUMN_FIELD } from '@/app/workbooks/[...slug]/components/snapshot-grid/ag-grid-constants';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { TableSpec } from '@/types/server-entities/workbook';
+import { TableSpec } from '@spinner/shared-types';
 import { ColDef, GridApi, ICellRendererParams } from 'ag-grid-community';
 import { IdHeaderComponent } from '../../../../components/field-value-wrappers/header/IdHeaderComponent';
 import { getCellClassFn } from './useCellClass';

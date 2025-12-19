@@ -1,4 +1,5 @@
-import { ColumnSpec, formatFieldValue, SnapshotRecord } from '@/types/server-entities/workbook';
+import { formatFieldValue, SnapshotRecord } from '@/types/server-entities/workbook';
+import { ColumnSpec } from '@spinner/shared-types';
 import { ChangeObject, diffWordsWithSpace } from 'diff';
 
 export type ProcessedFieldValue = {

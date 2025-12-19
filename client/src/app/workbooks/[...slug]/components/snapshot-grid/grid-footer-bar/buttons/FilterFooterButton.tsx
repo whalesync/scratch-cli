@@ -2,7 +2,7 @@ import { Text12Regular, Text13Regular } from '@/app/components/base/text';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { recordApi } from '@/lib/api/record';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Box, Menu, Textarea } from '@mantine/core';
 import { CheckIcon, CodeIcon, FunnelIcon, FunnelPlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';

@@ -12,10 +12,9 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { trackClickDownloadResource } from '@/lib/posthog';
-import { StyleGuide } from '@/types/server-entities/style-guide';
 import { formatBytes } from '@/utils/helpers';
 import { Group, Menu, Table } from '@mantine/core';
-import { StyleGuideId } from '@spinner/shared-types';
+import { StyleGuide, StyleGuideId } from '@spinner/shared-types';
 import capitalize from 'lodash/capitalize';
 import { DownloadIcon, Edit3Icon, FileTextIcon, LinkIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';

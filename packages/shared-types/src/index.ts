@@ -6,6 +6,9 @@ import 'reflect-metadata';
 // Enums shared between client and server
 export * from './enums';
 
+// Database entity types
+export * from './db';
+
 export * from './agent-chat';
 export * from './agent-credentials';
 export * from './agent-usage-events';

@@ -8,14 +8,7 @@ import {
   ProcessedFieldValue,
   processFieldValue,
 } from '@/app/components/field-value-wrappers/ProcessedFieldValue';
-import {
-  AcceptAllSuggestionsResult,
-  getSnapshotTableById,
-  RejectAllSuggestionsResult,
-  SNAPSHOT_RECORD_CREATED_FIELD,
-  SNAPSHOT_RECORD_DELETED_FIELD,
-  SnapshotRecord,
-} from '@/types/server-entities/workbook';
+import { AcceptAllSuggestionsResult, getSnapshotTableById, RejectAllSuggestionsResult, SNAPSHOT_RECORD_CREATED_FIELD, SNAPSHOT_RECORD_DELETED_FIELD, SnapshotRecord,  } from '@/types/server-entities/workbook';
 import { hashStringList } from '@/utils/helpers';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';

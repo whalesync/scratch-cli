@@ -4,7 +4,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { recordApi } from '@/lib/api/record';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Group, Menu } from '@mantine/core';
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import pluralize from 'pluralize';

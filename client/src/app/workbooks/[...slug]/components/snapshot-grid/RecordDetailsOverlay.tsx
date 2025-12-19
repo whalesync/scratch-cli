@@ -2,7 +2,7 @@
 
 import { TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Box, Divider, Group, Paper, ScrollArea } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { FC, useCallback, useEffect, useLayoutEffect, useRef } from 'react';

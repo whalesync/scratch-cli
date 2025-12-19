@@ -12,7 +12,7 @@
  * For other services, the user may pick the header column when the snapshot is being created (e.g., git sync).
  */
 
-import { ColumnSpec, TableSpec } from '@/types/server-entities/workbook';
+import { ColumnSpec, TableSpec } from '@spinner/shared-types';
 
 const commonTitleColumnPatterns = ['title', 'name'];
 

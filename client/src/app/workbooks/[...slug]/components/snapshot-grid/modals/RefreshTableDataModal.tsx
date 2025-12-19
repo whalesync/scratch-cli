@@ -8,12 +8,8 @@ import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
-import {
-  DownloadWorkbookResult,
-  hasDeletedConnection,
-  SnapshotTable,
-  Workbook,
-} from '../../../../../../types/server-entities/workbook';
+import { DownloadWorkbookResult, hasDeletedConnection } from '../../../../../../types/server-entities/workbook';
+import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { DownloadProgressModal } from '../../../../../components/jobs/download/DownloadJobProgressModal';
 import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
 import { TableSelection } from '../../../../../components/TableSelectionComponent';

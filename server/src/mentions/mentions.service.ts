@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { SCRATCH_ID_COLUMN, type WorkbookId } from '@spinner/shared-types';
+import { SCRATCH_ID_COLUMN, UploadType, type WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
-import { UploadType } from 'src/uploads/types';
 import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { Actor } from 'src/users/types';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';

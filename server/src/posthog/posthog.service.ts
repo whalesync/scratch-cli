@@ -1,10 +1,10 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { AiAgentCredential, StyleGuide, User } from '@prisma/client';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { PostHog } from 'posthog-node';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WorkbookCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
-import { ScratchPlanType } from 'src/payment/plans';
 
 type PostHogEventProperties = Record<string, unknown>;
 

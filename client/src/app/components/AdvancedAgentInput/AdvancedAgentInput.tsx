@@ -3,7 +3,7 @@
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi } from '@/lib/api/mentions';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
-import { TableSpec, Workbook } from '@/types/server-entities/workbook';
+import { TableSpec, Workbook } from '@spinner/shared-types';
 import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { forwardRef, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';

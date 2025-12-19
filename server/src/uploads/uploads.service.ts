@@ -7,15 +7,18 @@ import {
   createUploadId,
   createWorkbookId,
   CsvAdvancedSettings,
+  MdUploadData,
   PreviewCsvResponseDto,
   REMOTE_ID_COLUMN,
   RESERVED_COLUMN_NAMES,
   SCRATCH_ID_COLUMN,
   Service,
   SnapshotTableId,
+  Upload,
   UploadCsvDto,
   UploadCsvResponseDto,
   UploadMdResponseDto,
+  UploadType,
   WorkbookId,
 } from '@spinner/shared-types';
 import { parse, Parser } from 'csv-parse';
@@ -35,7 +38,6 @@ import { FormatterTransform } from './csvStreams/FormatterTransform';
 import { ParserTransform } from './csvStreams/ParserTransform';
 import { PgCopyFromWritableStream } from './csvStreams/PgCopyFromWritableStream';
 import { ProcessorTransform } from './csvStreams/ProcessorTransform';
-import { MdUploadData, Upload, UploadType } from './types';
 import { UploadsDbService } from './uploads-db.service';
 
 @Injectable()

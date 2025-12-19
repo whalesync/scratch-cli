@@ -1,5 +1,5 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Box, Checkbox, Group, Text } from '@mantine/core';
 import { FC, ReactNode } from 'react';
 

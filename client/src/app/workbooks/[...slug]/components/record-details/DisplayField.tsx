@@ -6,15 +6,8 @@ import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/Proce
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { HtmlViewer } from '@/app/components/HtmlViewer';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import {
-  formatFieldValue,
-  getSafeBooleanValue,
-  getSafeNumberValue,
-  isLargeTextColumn,
-  isUrlColumn,
-  PostgresColumnType,
-  TableSpec,
-} from '@/types/server-entities/workbook';
+import { formatFieldValue, getSafeBooleanValue, getSafeNumberValue, isLargeTextColumn, isUrlColumn,  } from '@/types/server-entities/workbook';
+import { PostgresColumnType, TableSpec } from '@spinner/shared-types';
 import { Anchor, Checkbox, NumberInput, ScrollArea, Stack, TextInput } from '@mantine/core';
 import { diffWordsWithSpace } from 'diff';
 import { FC, useState } from 'react';

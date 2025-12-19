@@ -1,8 +1,8 @@
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { ConnectorAccount, TestConnectionResponse } from '@/types/server-entities/connector-accounts';
-import { CreateConnectorAccountDto, UpdateConnectorAccountDto } from '@spinner/shared-types';
+import { TestConnectionResponse } from '@/types/server-entities/connector-accounts';
+import { ConnectorAccount, CreateConnectorAccountDto, UpdateConnectorAccountDto } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';

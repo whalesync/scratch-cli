@@ -10,7 +10,7 @@ import {
   trackClickViewResourceFromChat,
   trackRemoveResourceFromChat,
 } from '@/lib/posthog';
-import { Workbook } from '@/types/server-entities/workbook';
+import { Workbook } from '@spinner/shared-types';
 import { Combobox, Divider, Group, useCombobox } from '@mantine/core';
 import { AtSignIcon, FileIcon, FileTextIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';

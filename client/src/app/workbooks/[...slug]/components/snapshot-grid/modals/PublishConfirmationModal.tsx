@@ -1,6 +1,6 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useOperationCounts } from '@/hooks/use-operation-counts';
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Group, Modal, Stack, Text } from '@mantine/core';
 import { Service, WorkbookId } from '@spinner/shared-types';
 import { CircleAlertIcon } from 'lucide-react';

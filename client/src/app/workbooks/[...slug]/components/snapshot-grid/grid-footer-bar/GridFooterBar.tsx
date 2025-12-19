@@ -1,6 +1,6 @@
 'use client';
 
-import { SnapshotTable } from '@/types/server-entities/workbook';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Box, Group } from '@mantine/core';
 import { ColumnsFooterButton } from './buttons/ColumnsFooterButton';
 import { DevWebocketFooterButton } from './buttons/DevWebocketFooterButton';

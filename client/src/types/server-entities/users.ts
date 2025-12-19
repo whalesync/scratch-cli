@@ -1,4 +1,4 @@
-import { SubscriptionInfo, UserOnboarding } from '@spinner/shared-types';
+import { Organization, SubscriptionInfo, UserOnboarding } from '@spinner/shared-types';
 
 export interface User {
   id: string;
@@ -32,14 +32,6 @@ export interface UserExperimentFlags {
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {
   return user?.experimentalFlags?.[experiment] === true;
-}
-
-export interface Organization {
-  id: string;
-  clerkId: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export type UserSettingValue = string | number | boolean;

@@ -1,5 +1,4 @@
-import { SnapshotTable } from '@/types/server-entities/workbook';
-import { isSnapshotTableId } from '@spinner/shared-types';
+import { isSnapshotTableId, SnapshotTable } from '@spinner/shared-types';
 import { useWorkbookEditorUIStore } from '../stores/workbook-editor-store';
 import { useWorkbook, UseWorkbookReturn } from './use-workbook';
 

@@ -3,16 +3,17 @@
 import { SWR_KEYS } from '@/lib/api/keys';
 import { promptAssetApi } from '@/lib/api/prompt-asset';
 import { trackClickDownloadResource } from '@/lib/posthog';
-import {
-  DEFAULT_CONTENT_TYPE,
-  ResourceContentType,
-  StyleGuide,
-  UpdateStyleGuideDto,
-} from '@/types/server-entities/style-guide';
+import { UpdateStyleGuideDto } from '@/types/server-entities/style-guide';
 import { Alert, Checkbox, Group, Modal, Stack, Textarea, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import { CreateStyleGuideDto, StyleGuideId } from '@spinner/shared-types';
+import {
+  CreateStyleGuideDto,
+  DEFAULT_CONTENT_TYPE,
+  ResourceContentType,
+  StyleGuide,
+  StyleGuideId,
+} from '@spinner/shared-types';
 import { CircleCheckBigIcon, CircleXIcon, DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';

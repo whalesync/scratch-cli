@@ -2,7 +2,7 @@ import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/bas
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
-import { PostgresColumnType } from '@/types/server-entities/workbook';
+import { PostgresColumnType } from '@spinner/shared-types';
 import { Select, Stack, TextInput } from '@mantine/core';
 import { useState } from 'react';
 import { WorkbookModals, useWorkbookEditorUIStore } from '../../../../../../stores/workbook-editor-store';

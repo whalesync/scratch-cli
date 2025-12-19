@@ -1,5 +1,5 @@
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { PostgresColumnType } from '@/types/server-entities/workbook';
+import { PostgresColumnType } from '@spinner/shared-types';
 import { Braces, Brackets, Hash, ToggleLeft, Type } from 'lucide-react';
 
 // Function to get column type icon
