@@ -13,15 +13,15 @@ from logging import getLogger
 from typing import Any, Optional
 
 import uvicorn
+from config import get_settings
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-
-from config import get_settings
 from server.controllers.admin_controller import router as admin_router
 from server.controllers.chat_controller import router as chat_router
 from server.controllers.websocket_handler import websocket_endpoint
 from server.services import (
+    AgentTaskManagerDep,
     WebSocketConnectionManagerDep,
     get_session_service,
     initialize_services,
@@ -91,12 +91,15 @@ def get_templates():
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint_handler(
     connection_manager: WebSocketConnectionManagerDep,
+    agent_task_manager: AgentTaskManagerDep,
     websocket: WebSocket,
     session_id: str,
     auth: Optional[str] = None,
 ):
     """WebSocket endpoint for real-time chat"""
-    await websocket_endpoint(connection_manager, websocket, session_id, auth)
+    await websocket_endpoint(
+        connection_manager, agent_task_manager, websocket, session_id, auth
+    )
 
 
 if __name__ == "__main__":

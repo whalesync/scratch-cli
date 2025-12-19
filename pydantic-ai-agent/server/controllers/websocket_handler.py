@@ -10,8 +10,9 @@ from typing import Optional
 
 from fastapi import WebSocket, WebSocketDisconnect
 from logger import log_error, log_info
+from server.agent_task_manager import AgentTaskManager
 from server.auth import decode_and_validate_agent_jwt
-from server.DTOs import SendMessageRequestDTO
+from server.DTOs import SendMessageRequestDTO, StopAgentMessageRequestDTO
 from server.exception_mapping import exception_mapping
 from server.websocket_connection_manager import ConnectionManager
 
@@ -20,6 +21,7 @@ logger = getLogger(__name__)
 
 async def websocket_endpoint(
     connection_manager: ConnectionManager,
+    agent_task_manager: AgentTaskManager,
     websocket: WebSocket,
     session_id: str,
     auth: Optional[str] = None,
@@ -168,6 +170,20 @@ async def websocket_endpoint(
                     session_id,
                 )
 
+            if message_type == "stop":
+                data_payload = message_data.get("data", {})
+                request = StopAgentMessageRequestDTO(**data_payload)
+                if request.hard_kill:
+                    logger.info(
+                        f"Processing request to hard stop agent task {request.task_id}"
+                    )
+                    await agent_task_manager.hard_cancel_task(request.task_id)
+                else:
+                    logger.info(
+                        f"Processing request to stop agent task {request.task_id}"
+                    )
+                    await agent_task_manager.initiate_stop(request.task_id)
+
             if message_type == "message":
                 data_payload = message_data.get("data", {})
                 request = SendMessageRequestDTO(**data_payload)
@@ -299,15 +315,13 @@ async def websocket_endpoint(
                     )
 
                 # Start the async task - this returns immediately
-                task_id = (
-                    await connection_manager.agent_task_manager.start_message_task(
-                        session=session,
-                        request=request,
-                        user=message_user,
-                        progress_callback=progress_callback,
-                        completion_callback=completion_callback,
-                        error_callback=error_callback,
-                    )
+                task_id = await agent_task_manager.start_message_task(
+                    session=session,
+                    request=request,
+                    user=message_user,
+                    progress_callback=progress_callback,
+                    completion_callback=completion_callback,
+                    error_callback=error_callback,
                 )
 
                 logger.info(f"✅ Started async task {task_id} for session {session_id}")

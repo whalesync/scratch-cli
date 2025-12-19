@@ -83,6 +83,11 @@ export type SendMessageResponse = {
   request_summary: string;
 };
 
+export type StopAgentMessageRequestDTO = {
+  task_id: string;
+  hard_kill?: boolean;
+};
+
 export type DeleteSessionResponse = {
   success: boolean;
 };

@@ -95,7 +95,6 @@ export default function AIChatPanel() {
     deleteSession,
     activateSession,
     clearActiveSession,
-    stopAgent,
     refreshSessions,
   } = useAIAgentSessionManagerContext();
   const [agentTaskRunning, setAgentTaskRunning] = useState<boolean>(false);
@@ -198,10 +197,11 @@ export default function AIChatPanel() {
   const messageHistory = useAgentChatWebSocketStore((state) => state.messageHistory);
   const connect = useAgentChatWebSocketStore((state) => state.connect);
   const disconnect = useAgentChatWebSocketStore((state) => state.disconnect);
-  const sendAiAgentMessage = useAgentChatWebSocketStore((state) => state.sendAiAgentMessage);
+  const sendAgentMessage = useAgentChatWebSocketStore((state) => state.sendAgentMessage);
   const sendPing = useAgentChatWebSocketStore((state) => state.sendPing);
   const clearChat = useAgentChatWebSocketStore((state) => state.clearChat);
   const addMessageHandler = useAgentChatWebSocketStore((state) => state.addMessageHandler);
+  const stopAgent = useAgentChatWebSocketStore((state) => state.stopAgent);
 
   useEffect(() => {
     // return a cleanup function that removes the message handler when the component unmounts
@@ -374,7 +374,7 @@ export default function AIChatPanel() {
       }
 
       trackSendMessage(message.length, selectedPromptAssets.length, dataScope, workbook);
-      sendAiAgentMessage(messageData);
+      sendAgentMessage(messageData);
 
       // Mark onboarding step as completed
       markStepCompleted('gettingStartedV1', 'contentEditedWithAi');
@@ -519,7 +519,7 @@ export default function AIChatPanel() {
       </Box>
       <Box w="100%" h="100%" className={classes.chatPanelBody} ref={scrollAreaRef}>
         {/* Error Alert */}
-        {limitWarningAlert && activeSessionId && (
+        {limitWarningAlert && activeSessionId && runningAgentTaskId && (
           <Alert
             color="yellow"
             mb="sm"
@@ -535,7 +535,7 @@ export default function AIChatPanel() {
               <Group gap="xs" justify="center" align="center">
                 <ButtonSecondaryOutline
                   onClick={() => {
-                    stopAgent(activeSessionId);
+                    stopAgent(runningAgentTaskId, false);
                     setLimitWarningAlert(false);
                   }}
                 >
@@ -680,7 +680,7 @@ export default function AIChatPanel() {
               onClick={() => {
                 if (runningAgentTaskId) {
                   try {
-                    stopAgent(runningAgentTaskId);
+                    stopAgent(runningAgentTaskId, false);
                     setAgentStopInProgress(true);
                   } catch (error) {
                     console.error('Error cancelling agent run:', error);

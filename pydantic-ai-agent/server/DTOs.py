@@ -29,10 +29,13 @@ class Guideline(BaseModel):
     )
 
 
-class CancelMessageRequestDTO(BaseModel):
-    """Request to cancel a message"""
+class StopAgentMessageRequestDTO(BaseModel):
+    """Request to stop an agent task"""
 
-    run_id: str = Field(description="ID of the run to cancel")
+    task_id: str = Field(description="ID of the agent task to stop")
+    hard_kill: bool = Field(
+        description="Whether to hard kill the agent task", default=False
+    )
 
 
 class SendMessageRequestDTO(BaseModel):

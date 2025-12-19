@@ -42,10 +42,11 @@ type State = {
 type Actions = {
   connect: (sessionId: string) => Promise<void>;
   disconnect: () => Promise<void>;
-  sendAiAgentMessage: (payload: SendMessageRequestDTO) => void;
+  sendAgentMessage: (payload: SendMessageRequestDTO) => void;
   sendPing: () => void;
   sendEchoError: () => void;
   clearChat: () => void;
+  stopAgent: (taskId: string, hardKill: boolean) => void;
 
   // Handler management
   addMessageHandler: (handler: (message: WebSocketMessage) => Promise<void> | void) => () => void;
@@ -350,7 +351,7 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
     }
   },
 
-  sendAiAgentMessage: (data: SendMessageRequestDTO) => {
+  sendAgentMessage: (data: SendMessageRequestDTO) => {
     const state = get();
 
     if (state.connectionStatus !== 'connected' || !state.ws) {
@@ -378,6 +379,23 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
         variant: 'message',
       },
     ]);
+  },
+
+  stopAgent: (taskId: string, hardKill: boolean = false) => {
+    const state = get();
+    if (state.connectionStatus !== 'connected' || !state.ws) {
+      return;
+    }
+
+    state.ws.send(
+      JSON.stringify({
+        type: 'stop',
+        data: {
+          task_id: taskId,
+          hard_kill: hardKill,
+        },
+      }),
+    );
   },
 
   sendPing: () => {

@@ -343,7 +343,9 @@ class AgentTaskManager:
                 task = self.active_tasks[task_id]
                 task.stop_task()
                 logger.info(f"Initiated stop of task {task_id}")
+                return f"Initiated stop of task {task_id}"
         logger.warning(f"Task {task_id} not found")
+        return f"Task {task_id} not found"
 
     async def get_task(self, task_id: str) -> Optional[AgentRunTask]:
         """Get the task"""

@@ -316,7 +316,7 @@ async def list_sessions(
 
 
 @router.get("/sessions/workbook/{workbook_id}")
-async def list_sessions_for_snapshot(
+async def list_sessions_for_workbook(
     workbook_id: str,
     session_service: SessionServiceDep,
     current_user: AgentUser = Depends(get_current_user),
@@ -347,12 +347,23 @@ async def stop_agent_run(
     task_id: str,
     agent_task_manager: AgentTaskManagerDep,
     current_user: AgentUser = Depends(get_current_user),
+    hard_kill: bool = False,
 ):
     """Stop an agent run"""
-    msg = await agent_task_manager.initiate_stop(task_id)
-    myLogger.info(
-        f"🛑 Stopping agent run {task_id} for session {session_id} by user {current_user.userId}"
-    )
+    if hard_kill:
+        cancelled = await agent_task_manager.hard_cancel_task(task_id)
+        if cancelled:
+            msg = f"Hard cancelled agent run {task_id}"
+        else:
+            msg = f"Task {task_id} not found for hard cancellation"
+        myLogger.info(
+            f"🛑 Hard cancelling agent run {task_id} for session {session_id} by user {current_user.userId}"
+        )
+    else:
+        msg = await agent_task_manager.initiate_stop(task_id)
+        myLogger.info(
+            f"🛑 Stopping agent run {task_id} for session {session_id} by user {current_user.userId}"
+        )
     return {"message": msg}
 
 
