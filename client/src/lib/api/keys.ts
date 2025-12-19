@@ -72,4 +72,7 @@ export const SWR_KEYS = {
   billing: {
     plans: () => ['billing', 'plans'],
   },
+  agentPricing: {
+    list: () => ['agent-pricing', 'list'],
+  },
 };

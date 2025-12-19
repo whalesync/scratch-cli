@@ -9,9 +9,9 @@ import {
   ModelOption,
   PersistedModelOption,
 } from '@/types/common';
-import { DataScope, WorkbookId } from '@spinner/shared-types';
 import { UserSetting } from '@/types/server-entities/users';
 import { useLocalStorage } from '@mantine/hooks';
+import { DataScope, WorkbookId } from '@spinner/shared-types';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 /**
@@ -22,6 +22,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
  * - Active record and column
  * - Read and write focus
  * - Active resources/style guides
+ * - Session cost tracking
  */
 interface AgentChatContextValue {
   dataScope: DataScope;
@@ -34,6 +35,9 @@ interface AgentChatContextValue {
   setActiveResources: (ids: string[]) => void;
   activeModel: PersistedModelOption;
   setActiveModel: (model: ModelOption) => void;
+  accumulatedCost: number;
+  setAccumulatedCost: (cost: number) => void;
+  resetCost: () => void;
 }
 
 export const AgentChatContext = createContext<AgentChatContextValue | undefined>(undefined);
@@ -51,6 +55,7 @@ export const AgentChatContextProvider = ({ children, workbookId }: AgentChatCont
   const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
   const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
   const [modelValidated, setModelValidated] = useState<boolean>(false);
+  const [accumulatedCost, setAccumulatedCost] = useState<number>(0);
 
   const { promptAssets } = usePromptAssets();
 
@@ -119,6 +124,10 @@ export const AgentChatContextProvider = ({ children, workbookId }: AgentChatCont
     setActiveColumnId(columnId);
   }, []);
 
+  const resetCost = useCallback(() => {
+    setAccumulatedCost(0);
+  }, []);
+
   const value: AgentChatContextValue = {
     dataScope,
     activeRecordId,
@@ -130,6 +139,9 @@ export const AgentChatContextProvider = ({ children, workbookId }: AgentChatCont
     setActiveResources,
     activeModel,
     setActiveModel,
+    accumulatedCost,
+    setAccumulatedCost,
+    resetCost,
   };
 
   return <AgentChatContext.Provider value={value}>{children}</AgentChatContext.Provider>;

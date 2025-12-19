@@ -24,6 +24,11 @@ export interface ChatMessage {
   timestamp: string;
   payload?: object;
   variant: 'admin' | 'message' | 'progress' | 'error' | 'usage';
+  // Token usage (only for assistant messages)
+  model?: string;
+  request_tokens?: number;
+  response_tokens?: number;
+  total_tokens?: number;
 }
 
 export interface ChatSession {

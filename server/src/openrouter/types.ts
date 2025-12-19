@@ -65,3 +65,6 @@ export interface OpenRouterUpdateApiKeyResponse {
 export interface OpenRouterGetCurrentApiKeyResponse {
   data: OpenRouterGetCurrentApiKeyData;
 }
+
+// Re-export OpenRouter model types from shared-types
+export type { OpenRouterModel, OpenRouterModelPricing, OpenRouterModelsResponse } from '@spinner/shared-types';

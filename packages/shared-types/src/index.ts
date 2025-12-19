@@ -17,6 +17,7 @@ export * from './connector-types';
 export * from './ids';
 export * from './meta-columns';
 export * from './onboarding';
+export * from './openrouter';
 export * from './subscription';
 export * from './upload-types';
 export * from './workbook-types';

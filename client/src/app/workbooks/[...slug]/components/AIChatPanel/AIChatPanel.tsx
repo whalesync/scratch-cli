@@ -37,6 +37,8 @@ import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO, SnapshotTableId 
 import { ChevronDownIcon, CircleStopIcon, LucideFileKey, Plus, SendIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
+import { useAgentPricing } from '../../../../../hooks/use-agent-pricing';
+import { calculateMessageCost } from '../../../../../utils/agent-cost-calculator';
 import { Text12Regular, Text13Medium } from '../../../../components/base/text';
 import { WORKBOOK_TAB_BAR_HEIGHT } from '../WorkbookTabBar';
 import classes from './AIChatPanel.module.css';
@@ -50,6 +52,7 @@ import { TokenUseButton } from './TokenUseButton';
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
   const { activeOpenRouterCredentials } = useAgentCredentials(true);
+  const { models: agentPricingModels, isLoading: isLoadingPricing } = useAgentPricing();
   const { markStepCompleted } = useOnboardingUpdate();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
@@ -62,8 +65,16 @@ export default function AIChatPanel() {
   const [showToolsModal, setShowToolsModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
-  const { dataScope, activeRecordId, activeColumnId, activeResources, activeModel, setActiveModel } =
-    useAgentChatContext();
+  const {
+    dataScope,
+    activeRecordId,
+    activeColumnId,
+    activeResources,
+    activeModel,
+    setActiveModel,
+    setAccumulatedCost,
+    resetCost,
+  } = useAgentChatContext();
 
   const {
     activeSessionId,
@@ -212,6 +223,7 @@ export default function AIChatPanel() {
       trackStartAgentSession(workbook);
       setError(null);
       setMessage('');
+      resetCost(); // Reset cost tracking for new session
       setResetInputFocus(true);
       scrollToBottom();
     } catch (error) {
@@ -237,6 +249,7 @@ export default function AIChatPanel() {
           await connect(sessionId);
           trackOpenOldChatSession(workbook);
           setMessage('');
+          resetCost(); // Reset cost tracking when switching sessions
           setResetInputFocus(true);
           scrollToBottom();
         } catch (error) {
@@ -254,6 +267,7 @@ export default function AIChatPanel() {
       connect,
       workbook,
       setMessage,
+      resetCost,
       setResetInputFocus,
       scrollToBottom,
       setError,
@@ -400,6 +414,31 @@ export default function AIChatPanel() {
   //     variant: 'message',
   //   });
   // }
+
+  // Calculate costs from chat messages when they arrive
+  useEffect(() => {
+    if (!agentPricingModels || activeSession?.chat_history?.length === 0 || isLoadingPricing) return;
+
+    // Find assistant messages with token data that we haven't processed yet
+    const assistantMessages = activeSession?.chat_history?.filter(
+      (msg) => msg.role === 'assistant' && msg.model && msg.total_tokens !== undefined,
+    );
+    if (assistantMessages?.length === 0) return;
+    // Calculate costs for history messages
+    let totalNewCost = 0;
+    assistantMessages?.forEach((msg) => {
+      if (msg.model && msg.request_tokens !== undefined && msg.response_tokens !== undefined) {
+        const cost = calculateMessageCost(msg.model, msg.request_tokens, msg.response_tokens, agentPricingModels);
+
+        if (cost.totalCost > 0) {
+          totalNewCost += cost.totalCost;
+        }
+      }
+    });
+
+    setAccumulatedCost(totalNewCost);
+  }, [activeSession?.chat_history, setAccumulatedCost, isLoadingPricing, agentPricingModels]);
+
   const chatInputEnabled =
     activeOpenRouterCredentials && activeSessionId && connectionStatus === 'connected' && !agentTaskRunning;
 

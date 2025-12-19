@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { AgentCredentialsModule } from './agent-credentials/agent-credentials.module';
 import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
+import { AgentPricingModule } from './agent-pricing/agent-pricing.module';
 import { AgentSessionModule } from './agent-session/agent-session.module';
 import { AgentTokenUsageModule } from './agent-token-usage/agent-token-usage.module';
 import { AuditLogModule } from './audit/audit-log.module';
@@ -44,6 +45,7 @@ import { WorkerModule } from './worker/workers.module';
     AgentJwtModule,
     AgentSessionModule,
     AgentCredentialsModule,
+    AgentPricingModule,
     DbModule,
     UserModule,
     ClerkModule,

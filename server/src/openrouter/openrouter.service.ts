@@ -7,6 +7,8 @@ import {
   OpenRouterDeleteKeyResponse,
   OpenRouterGetCurrentApiKeyData,
   OpenRouterGetCurrentApiKeyResponse,
+  OpenRouterModel,
+  OpenRouterModelsResponse,
   OpenRouterUpdateApiKeyResponse,
   OpenRouterUpdateRequest,
 } from './types';
@@ -190,6 +192,31 @@ export class OpenRouterService {
         return generalError(`Failed to get OpenRouter current API key data: ${errorMessage}`);
       }
       return generalError(`Failed to get OpenRouter current API key data: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Get all available models with their pricing information
+   * https://openrouter.ai/docs/api-reference/models
+   * @returns List of models with pricing data
+   */
+  async getModels(): AsyncResult<OpenRouterModel[]> {
+    try {
+      const response = await axios.get(`${this.openRouterApiUrl}/models`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'HTTP-Referer': this.httpReferer,
+          'X-Title': this.httpXTitle,
+        },
+      });
+      const responseData = response.data as OpenRouterModelsResponse;
+      return ok(responseData.data);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = (error.response?.data as { message?: string })?.message || error.message;
+        return generalError(`Failed to fetch OpenRouter models: ${errorMessage}`);
+      }
+      return generalError(`Failed to fetch OpenRouter models: ${String(error)}`);
     }
   }
 }
