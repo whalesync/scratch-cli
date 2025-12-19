@@ -64,14 +64,13 @@ import {
   UpdateWorkbookDto,
 } from '@spinner/shared-types';
 import type { Response } from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Observable } from 'rxjs';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { THE_TACTILE_DESK_CSV } from '../uploads/the-tactile-desk-sample';
 import { UploadsService } from '../uploads/uploads.service';
 import { OnboardingService } from '../users/onboarding.service';
 import { userToActor } from '../users/types';
@@ -165,12 +164,11 @@ export class WorkbookController {
       throw new NotFoundException('Workbook not found');
     }
 
-    // Read the sample CSV file (use process.cwd() since __dirname points to dist/ at runtime)
-    const sampleFilePath = path.join(process.cwd(), 'src/uploads/the-tactile-desk.csv');
-    const buffer = fs.readFileSync(sampleFilePath);
+    // Use the sample CSV constant
+    const content = THE_TACTILE_DESK_CSV;
+    const buffer = Buffer.from(content, 'utf-8');
 
     // Parse the header row to get column names
-    const content = buffer.toString('utf-8');
     const firstLine = content.split('\n')[0];
     const columnNames = firstLine.split(',').map((col) => col.trim().replace(/^"|"$/g, ''));
 
