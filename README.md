@@ -15,9 +15,9 @@ The Scratch project consists of 3 elements:
 
 Full [Documentation](./server/README.md)
 
-## 2. Data Studio Client (`/client`)
+## 2. Content Editor Client (`/client`)
 
-- The Data studio tool
+- The AI powered content editor
 - Next.js / React / Mantine
 - Thin client that mainly interacts with the server
 - Runs locally on port 3000
