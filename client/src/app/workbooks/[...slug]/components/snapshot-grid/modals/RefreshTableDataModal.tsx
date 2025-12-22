@@ -3,13 +3,13 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { SelectTableRow } from '@/app/components/SelectTableRow';
 import { Alert, Box, Text as MantineText, Stack } from '@mantine/core';
+import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
 import { DownloadWorkbookResult, hasDeletedConnection } from '../../../../../../types/server-entities/workbook';
-import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { DownloadProgressModal } from '../../../../../components/jobs/download/DownloadJobProgressModal';
 import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
 import { TableSelection } from '../../../../../components/TableSelectionComponent';
@@ -91,9 +91,11 @@ const ConfirmRefreshModal = ({
     });
   };
 
-  const availableTables = workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || [];
-
-  const hasDirtyTables = availableTables.some((table) => selectedTableIds.includes(table.id) && table.dirty);
+  const availableTables =
+    workbook.snapshotTables?.filter((table: SnapshotTable) => !hasDeletedConnection(table) && !table.hidden) || [];
+  const hasDirtyTables = availableTables.some(
+    (table: SnapshotTable) => selectedTableIds.includes(table.id) && table.dirty,
+  );
 
   return (
     <ModalWrapper
