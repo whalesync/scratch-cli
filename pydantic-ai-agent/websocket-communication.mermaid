@@ -1,0 +1,72 @@
+sequenceDiagram
+    participant Client as Client (Browser)
+    participant AgentServer as Agent Server
+    participant ScratchAPI as Scratch API Server
+    participant Agent as AI Agent
+
+    Note over Client,Agent: 1. Create Session (HTTP)
+    Client->>AgentServer: POST /sessions<br/>{name, workbook_id}
+    AgentServer->>AgentServer: Create ChatSession in memory
+    AgentServer->>ScratchAPI: POST /agent-sessions<br/>Save session data
+    ScratchAPI-->>AgentServer: Session stored
+    AgentServer-->>Client: {session_id, capabilities}
+
+    Note over Client,Agent: 2. Open WebSocket Connection
+    Client->>AgentServer: WebSocket Connect<br/>ws://{host}/ws/{session_id}?auth={jwt}
+    AgentServer->>AgentServer: Validate JWT
+    AgentServer->>ScratchAPI: GET /agent-sessions/{session_id}<br/>Load session (if not cached)
+    ScratchAPI-->>AgentServer: Session data
+    AgentServer->>AgentServer: Cache session in memory
+    AgentServer-->>Client: connection_confirmed
+
+    Note over Client,Agent: 3. Send User Message
+    Client->>AgentServer: message<br/>{message, model, capabilities, ...}
+    AgentServer-->>Client: message_progress (task_started)
+
+    Note over Client,Agent: 4. Agent Processing
+    AgentServer->>ScratchAPI: GET /workbooks/{workbook_id}<br/>Load workbook data
+    ScratchAPI-->>AgentServer: Workbook & records
+    AgentServer->>Agent: Process message
+    AgentServer-->>Client: message_progress (run_started)
+    AgentServer-->>Client: message_progress (create_agent)
+
+    loop Agent Execution
+        Agent->>Agent: Use tools & reason
+        AgentServer-->>Client: message_progress (tool_call)
+        alt Data Modification Tool
+            Agent->>ScratchAPI: PUT/POST/DELETE<br/>Update records/workbook
+            ScratchAPI-->>Agent: Success
+        end
+        AgentServer-->>Client: message_progress (tool_result)
+    end
+
+    Note over Client,Agent: 5. Return Final Result
+    Agent-->>AgentServer: Final response
+    AgentServer->>AgentServer: Update session history
+    AgentServer->>ScratchAPI: PUT /agent-sessions/{session_id}<br/>Save updated session
+    ScratchAPI-->>AgentServer: Session stored
+    AgentServer->>ScratchAPI: POST /token-usage<br/>Track API usage
+    ScratchAPI-->>AgentServer: Usage tracked
+    AgentServer-->>Client: message_response<br/>{response_message, usage_stats}
+
+    Note over Client,Agent: 6. Optional: Stop Agent
+    Client->>AgentServer: stop<br/>{task_id, hard_kill}
+    AgentServer->>Agent: Cancel execution
+    Agent-->>AgentServer: Stopped
+    AgentServer->>ScratchAPI: POST /token-usage<br/>Track partial usage
+    ScratchAPI-->>AgentServer: Usage tracked
+    AgentServer-->>Client: message_response<br/>"Request stopped by user"
+
+    Note over Client,Agent: 7. Error Handling
+    alt Error Occurs
+        Agent-->>AgentServer: Error
+        AgentServer-->>Client: agent_error<br/>{detail: error_message}
+    end
+
+    Note over Client,Agent: 8. Disconnect
+    Client->>AgentServer: WebSocket Close
+    AgentServer->>AgentServer: Keep session in cache
+    AgentServer-->>Client: Connection closed
+
+    Note over Client,Agent: Session Storage Strategy
+    Note over AgentServer: • Memory cache for active sessions<br/>• Auto-persist to Scratch API<br/>• Load from API on reconnect<br/>• Cleanup inactive sessions after 24h
