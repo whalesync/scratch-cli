@@ -3,7 +3,7 @@
 Token estimation utilities for agent requests
 """
 
-from typing import Optional
+from typing import Optional, Sequence
 
 
 def format_token_count(tokens: int) -> str:
@@ -35,7 +35,9 @@ def estimate_tokens_from_content(content: str) -> int:
     return len(content) // 3
 
 
-def estimate_tokens_from_request_parts(instructions: Optional[str], parts: list) -> int:
+def estimate_tokens_from_request_parts(
+    instructions: Optional[str], parts: Sequence
+) -> int:
     """
     Estimate tokens from model request's instructions and parts
 

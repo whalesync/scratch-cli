@@ -329,7 +329,7 @@ class ChatService:
         user: AgentUser,
         prompt_assets: Dict[str, str],
         model: Optional[str] = None,
-        capabilities: List[str] = None,
+        capabilities: List[str] | None = None,
         active_table_id: Optional[str] = None,
         data_scope: Optional[str] = None,
         record_id: Optional[str] = None,
@@ -485,6 +485,18 @@ class ChatService:
         # The agent returns an AgentRunResult wrapper, we need to extract the actual response
 
         logger.info(f"🔍 Agent result: {type(result)}")
+
+        if result is None:
+            log_error(
+                "Invalid agent response of None",
+                session_id=session.id,
+                workbook_id=session.workbook_id,
+            )
+            logger.info(f"❌ Invalid response from agent: {result}")
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid response from agent. Please try again or switch to a different model if the problem persists.",
+            )
 
         if isinstance(result, StoppedAgentRunResult):
             # agent was stopped by the user, handle as a special response to the caller

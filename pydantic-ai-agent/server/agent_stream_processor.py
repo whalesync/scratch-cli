@@ -31,12 +31,12 @@ logger = getLogger(__name__)
 
 
 async def process_agent_stream(
-    agent: Agent,
+    agent: Agent[ChatRunContext, ResponseFromAgent],
     agent_run_task: AgentRunInterface,
     full_prompt: str,
     chat_run_context: ChatRunContext,
     session: ChatSession,
-    model: str,
+    model: str | None,
     progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
     usage_limits: Optional[UsageLimits] = None,
     model_context_length: Optional[int] = None,
@@ -62,6 +62,7 @@ async def process_agent_stream(
     """
     result = None
 
+    agent_run = None
     try:
         async with agent.iter(
             full_prompt,
