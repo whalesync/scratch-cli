@@ -1,9 +1,9 @@
 import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { ColumnSpec } from '@spinner/shared-types';
 import { Box, Group } from '@mantine/core';
+import { ColumnSpec } from '@spinner/shared-types';
 import { FC, useEffect, useRef, useState } from 'react';
-import { Text13Regular } from '../../base/text';
+import { TextMono12Regular } from '../../base/text';
 import { gettingStartedFlowUI } from '../../onboarding/getting-started/getting-started';
 import { OnboardingStepContent } from '../../onboarding/OnboardingStepContent';
 import { ChangeDotsGroup } from '../ChangeDotsGroup/ChangeDotsGroup';
@@ -53,12 +53,12 @@ export const FieldValueWrapper: FC<FieldValueWrapperProps> = ({
       )}
     </>
   ) : (
-    <Text13Regular
+    <TextMono12Regular
       c={!record.isTableDirty || record.__dirty ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
       style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
     >
       {processedFieldValue.formattedValue}
-    </Text13Regular>
+    </TextMono12Regular>
   );
 
   // Use intersection observer to hide tooltip when cell scrolls out of grid viewport

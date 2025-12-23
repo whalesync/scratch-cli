@@ -1,4 +1,4 @@
-import { Text13Regular } from '@/app/components/base/text';
+import { TextMono13Regular } from '@/app/components/base/text';
 import { DiffViewer } from '@/app/components/DiffViewer';
 import { EnhancedTextArea, TextAreaRef } from '@/app/components/EnhancedTextArea';
 import { jsonFormatter } from '@/app/components/field-value-wrappers/json-formatter';
@@ -131,7 +131,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text13Regular>{currentValueString}</Text13Regular>
+          <TextMono13Regular>{currentValueString}</TextMono13Regular>
         ) : (
           numberInputField
         )}
@@ -182,6 +182,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
           input: {
             borderColor: 'transparent',
             fontSize: '13px',
+            fontFamily: 'monospace',
           },
         }}
         errorProps={{
@@ -212,7 +213,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text13Regular>{currentValueString}</Text13Regular>
+          <TextMono13Regular>{currentValueString}</TextMono13Regular>
         ) : (
           dateInputField
         )}
@@ -301,7 +302,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             {mode === 'multiple' && suggestionButtons}
           </Stack>
         ) : mode === 'multiple' ? (
-          <Text13Regular
+          <TextMono13Regular
             style={{
               fontFamily: 'monospace',
               whiteSpace: 'pre-wrap',
@@ -309,7 +310,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
             }}
           >
             {currentValue}
-          </Text13Regular>
+          </TextMono13Regular>
         ) : (
           <JsonFieldInput
             columnId={columnId}
@@ -430,7 +431,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     ) : mode === 'multiple' && isHtmlColumn ? (
       <HtmlViewer value={currentValue ?? ''} readOnly={true} minHeight="100px" />
     ) : mode === 'multiple' ? (
-      <Text13Regular>{currentValue}</Text13Regular>
+      <TextMono13Regular>{currentValue}</TextMono13Regular>
     ) : (
       textInputField
     );

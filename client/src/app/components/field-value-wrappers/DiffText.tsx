@@ -1,6 +1,7 @@
-import { Box, MantineStyleProps, Text } from '@mantine/core';
+import { Box, MantineStyleProps } from '@mantine/core';
 import { ChangeObject } from 'diff';
 import { FC } from 'react';
+import { TextMono12Regular } from '../base/text';
 import styles from './value/FieldValueWrapper.module.css';
 
 type DiffTextProps = MantineStyleProps & {
@@ -20,7 +21,7 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
 
         if (change.added) {
           return (
-            <Text
+            <TextMono12Regular
               span
               key={idx}
               c="var(--fg-added)"
@@ -28,13 +29,13 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               // dangerouslySetInnerHTML={{ __html: value }}
             >
               {value}
-            </Text>
+            </TextMono12Regular>
           );
         }
 
         if (change.removed) {
           return (
-            <Text
+            <TextMono12Regular
               span
               key={idx}
               c="var(--fg-removed)"
@@ -46,14 +47,14 @@ export const DiffText: FC<DiffTextProps> = ({ changes, ...styleProps }: DiffText
               }}
             >
               {value}
-            </Text>
+            </TextMono12Regular>
           );
         }
 
         return (
-          <Text span key={idx}>
+          <TextMono12Regular span key={idx}>
             {value}
-          </Text>
+          </TextMono12Regular>
         );
       })}
     </Box>

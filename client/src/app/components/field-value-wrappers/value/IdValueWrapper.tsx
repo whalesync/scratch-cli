@@ -3,7 +3,7 @@ import { ActionIcon, Box, Group } from '@mantine/core';
 import { ChangeObject, diffWordsWithSpace } from 'diff';
 import { Maximize2Icon } from 'lucide-react';
 import { FC, useState } from 'react';
-import { Text13Regular } from '../../base/text';
+import { TextMono12Regular } from '../../base/text';
 import { ChangeLinesStack } from '../ChangeLinesStack/ChangeLinesStack';
 import { ExistingChangeTypes } from '../ProcessedFieldValue';
 import styles from './FieldValueWrapper.module.css';
@@ -54,12 +54,12 @@ export const IdValueWrapper: FC<IdValueWrapperProps> = ({ record, onOpenOverlay,
           overflow: 'hidden',
         }}
       >
-        <Text13Regular
+        <TextMono12Regular
           c={!record?.isTableDirty || record.__dirty ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
           style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
           {String(record?.id?.remoteId)}
-        </Text13Regular>
+        </TextMono12Regular>
       </Box>
 
       {/* Hover button */}
