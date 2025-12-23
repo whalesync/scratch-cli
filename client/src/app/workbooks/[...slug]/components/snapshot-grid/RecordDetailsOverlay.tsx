@@ -142,8 +142,16 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
         if (document.activeElement === focusTargetRef.current) {
           return;
         }
-        // Don't focus if already in an input/textarea
-        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+
+        const target = event.target as HTMLElement;
+        const isInEditableArea =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target.isContentEditable ||
+          target.closest('.cm-content, .cm-editor, [contenteditable="true"]') !== null;
+
+        // Don't focus if already in an editable area (including CodeMirror)
+        if (isInEditableArea) {
           return;
         }
 
@@ -158,20 +166,34 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
         event.preventDefault();
         event.stopPropagation();
 
-        // If input is focused, just blur it (arrows will now navigate fields/rows)
-        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-          (event.target as HTMLElement).blur();
+        const target = event.target as HTMLElement;
+        const isInEditableArea =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target.isContentEditable ||
+          target.closest('.cm-content, .cm-editor, [contenteditable="true"]') !== null;
+
+        // If in an editable area, just blur it (arrows will now navigate fields/rows)
+        if (isInEditableArea) {
+          target.blur();
           return;
         }
 
-        // If input is not focused, close the overlay
+        // If not in an editable area, close the overlay
         handleCloseRecordDetails();
         return;
       }
 
       if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-          // ignore arrow keys in input and textarea
+        const target = event.target as HTMLElement;
+        const isInEditableArea =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target.isContentEditable ||
+          target.closest('.cm-content, .cm-editor, [contenteditable="true"]') !== null;
+
+        if (isInEditableArea) {
+          // ignore arrow keys when in any editable area (including CodeMirror)
           return;
         }
 
