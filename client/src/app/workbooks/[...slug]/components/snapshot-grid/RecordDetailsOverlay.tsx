@@ -253,7 +253,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
             />
             {isSideBySideMode(mode) ? (
               <Group gap={4} justify="space-around" flex={1} p={0} style={{ position: 'relative' }}>
-                <Stack flex={1}>
+                <Stack gap={0} flex={1}>
                   <Group
                     h={HEADER_HEIGHT}
                     style={{ borderBottom: '0.5px solid var(--fg-divider)', position: 'relative' }}
@@ -316,7 +316,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
                 </Stack>
 
                 <Divider orientation="vertical" top={0} bottom={0} pos="absolute" />
-                <Stack flex={1}>
+                <Stack gap={0} flex={1}>
                   <Group
                     h={HEADER_HEIGHT}
                     style={{ borderBottom: '0.5px solid var(--fg-divider)', position: 'relative' }}
