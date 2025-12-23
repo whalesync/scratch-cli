@@ -25,7 +25,7 @@ export interface ModelOption {
 
 export type PersistedModelOption = Pick<ModelOption, 'value' | 'contextLength'>;
 
-export const DEFAULT_AGENT_MODEL_ID = 'openai/gpt-4o-mini';
+export const DEFAULT_AGENT_MODEL_ID = 'anthropic/claude-haiku-4.5';
 export const DEFAULT_AGENT_MODEL_CONTEXT_LENGTH = 200000;
 
 export const DEFAULT_AGENT_MODEL: PersistedModelOption = {

@@ -31,11 +31,11 @@ def create_env_file():
         print("Using default OpenRouter key")
 
     model_name = input(
-        "Enter model name (or press Enter to use default 'openai/gpt-4o-mini'): "
+        "Enter model name (or press Enter to use default 'anthropic/claude-haiku-4.5'): "
     ).strip()
     if not model_name:
-        model_name = "openai/gpt-4o-mini"
-        print("Using default model: openai/gpt-4o-mini")
+        model_name = "anthropic/claude-haiku-4.5"
+        print("Using default model: anthropic/claude-haiku-4.5")
 
     logfire_token = input(
         "Enter your Logfire token (optional, press Enter to skip): "

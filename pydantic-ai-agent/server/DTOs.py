@@ -60,7 +60,8 @@ class SendMessageRequestDTO(BaseModel):
         default=None, description="List of selected capabilities for this message"
     )
     model: Optional[str] = Field(
-        default="openai/gpt-4o-mini", description="Model to use for AI generation"
+        default="anthropic/claude-haiku-4.5",
+        description="Model to use for AI generation",
     )
     active_table_id: Optional[str] = Field(
         default=None, description="ID of the currently active table"
