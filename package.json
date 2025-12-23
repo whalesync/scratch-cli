@@ -7,6 +7,9 @@
     "server",
     "packages/*"
   ],
+  "scripts": {
+    "dev": "./start-dev.sh"
+  },
   "engines": {
     "node": ">=22.0.0"
   }
