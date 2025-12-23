@@ -1,30 +1,31 @@
-import { IconButtonInline, IconButtonOutline } from '@/app/components/base/buttons';
+import { IconButtonInline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { FieldErrorIcon } from '@/app/components/field-value-wrappers/FieldErrorIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { isSideBySideMode } from '@/app/workbooks/[...slug]/components/helpers';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
 import { formatFieldValue } from '@/types/server-entities/workbook';
-import { Anchor, Breadcrumbs, Center, Group, Modal, StyleProp, Tooltip } from '@mantine/core';
-import { useDisclosure, useHotkeys } from '@mantine/hooks';
+import { Anchor, Breadcrumbs, Center, Group, StyleProp, Tooltip } from '@mantine/core';
+import { useHotkeys } from '@mantine/hooks';
 import { TableSpec } from '@spinner/shared-types';
-import DOMPurify from 'dompurify';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   ChevronRightIcon,
-  EyeIcon,
+  Columns2Icon,
   PenOffIcon,
-  TextAlignEndIcon,
-  TextAlignJustifyIcon,
   XIcon,
 } from 'lucide-react';
-import htmlParser from 'prettier/plugins/html';
-import prettier from 'prettier/standalone';
 import { useCallback, useMemo } from 'react';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
+import { RecordDetailsMode } from '../types';
+import { HtmlActionButtons } from './HtmlActionButtons';
 
 interface RecordDetailsHeaderProps {
   table: TableSpec;
   h?: StyleProp<React.CSSProperties['height']>;
+  mode: RecordDetailsMode;
+  onToggleMode: () => void;
   columnId: string | undefined;
   onSwitchColumn: (columnId: string | undefined) => void;
   v2?: boolean;
@@ -37,6 +38,8 @@ interface RecordDetailsHeaderProps {
 export const RecordDetailsHeader = ({
   table,
   h,
+  mode,
+  onToggleMode,
   columnId,
   onSwitchColumn,
   onClose,
@@ -95,37 +98,6 @@ export const RecordDetailsHeader = ({
     ['INPUT', 'TEXTAREA'],
   );
 
-  const handleFormatHtml = useCallback(async () => {
-    if (!columnId || !onUpdateField || !record || !currentColumn) return;
-    const currentValue = formatFieldValue(record.fields[columnId], currentColumn);
-    try {
-      const formatted = await prettier.format(currentValue || '', {
-        parser: 'html',
-        plugins: [htmlParser],
-        printWidth: 80,
-        tabWidth: 2,
-      });
-      onUpdateField(columnId, formatted.trim());
-    } catch {
-      // If formatting fails, leave as-is
-    }
-  }, [columnId, onUpdateField, record, currentColumn]);
-
-  const handleMinifyHtml = useCallback(() => {
-    if (!columnId || !onUpdateField || !record || !currentColumn) return;
-    const currentValue = formatFieldValue(record.fields[columnId], currentColumn) || '';
-    const minified = currentValue
-      .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
-      .replace(/\s+/g, ' ') // Collapse whitespace
-      .replace(/>\s+</g, '><') // Remove whitespace between tags
-      .replace(/\s+>/g, '>') // Remove whitespace before closing >
-      .replace(/<\s+/g, '<') // Remove whitespace after opening <
-      .trim();
-    onUpdateField(columnId, minified);
-  }, [columnId, onUpdateField, record, currentColumn]);
-
-  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
-
   const currentHtmlValue =
     columnId && record && currentColumn ? formatFieldValue(record.fields[columnId], currentColumn) : '';
 
@@ -157,35 +129,32 @@ export const RecordDetailsHeader = ({
       <IconButtonInline mr="auto" onClick={() => onClose?.()}>
         <XIcon size={13} />
       </IconButtonInline>
-      {currentColumn?.metadata?.textFormat === 'html' && columnId && onUpdateField && record && (
-        <>
-          <Modal opened={previewOpened} onClose={closePreview} title="HTML Preview" size="xl" centered>
-            <iframe
-              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:8px;font-family:system-ui,sans-serif;">${DOMPurify.sanitize(currentHtmlValue || '')}</body></html>`}
-              style={{ width: '100%', height: 400, border: 'none' }}
-              sandbox="allow-same-origin"
-              title="HTML Preview"
-            />
-          </Modal>
-          <Group gap={4}>
-            <Tooltip label="Preview" position="bottom" withArrow>
-              <IconButtonOutline size="compact-xs" onClick={openPreview}>
-                <EyeIcon size={13} />
-              </IconButtonOutline>
-            </Tooltip>
-            <Tooltip label="Prettify" position="bottom" withArrow>
-              <IconButtonOutline size="compact-xs" onClick={handleFormatHtml}>
-                <TextAlignEndIcon size={13} />
-              </IconButtonOutline>
-            </Tooltip>
-            <Tooltip label="Minify" position="bottom" withArrow>
-              <IconButtonOutline size="compact-xs" onClick={handleMinifyHtml}>
-                <TextAlignJustifyIcon size={13} />
-              </IconButtonOutline>
-            </Tooltip>
-          </Group>
-        </>
+      {currentColumn?.metadata?.textFormat === 'html' &&
+        columnId &&
+        onUpdateField &&
+        record &&
+        !isSideBySideMode(mode) && (
+          <HtmlActionButtons
+            value={currentHtmlValue}
+            onUpdate={(value) => onUpdateField(columnId, value)}
+            disabled={currentColumn.readonly}
+          />
+        )}
+      {columnId && record?.__suggested_values && Object.keys(record?.__suggested_values || {}).length > 0 && (
+        <Tooltip label="Toggle side-by-side view" position="bottom" withArrow>
+          <IconButtonInline
+            onClick={onToggleMode}
+            data-active={isSideBySideMode(mode) || undefined}
+            style={{
+              backgroundColor: isSideBySideMode(mode) ? 'var(--bg-selected)' : undefined,
+              color: isSideBySideMode(mode) ? 'var(--fg-primary)' : undefined,
+            }}
+          >
+            <StyledLucideIcon Icon={Columns2Icon} size={13} />
+          </IconButtonInline>
+        </Tooltip>
       )}
+
       <IconButtonInline onClick={goToPreviousColumn}>
         <ArrowLeftIcon size={13} />
       </IconButtonInline>

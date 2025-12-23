@@ -6,9 +6,15 @@ import { ExistingChangeTypes } from '@/app/components/field-value-wrappers/Proce
 import { InlineSuggestionButtons } from '@/app/components/field-value-wrappers/SuggestionButtons';
 import { HtmlViewer } from '@/app/components/HtmlViewer';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { formatFieldValue, getSafeBooleanValue, getSafeNumberValue, isLargeTextColumn, isUrlColumn,  } from '@/types/server-entities/workbook';
-import { PostgresColumnType, TableSpec } from '@spinner/shared-types';
+import {
+  formatFieldValue,
+  getSafeBooleanValue,
+  getSafeNumberValue,
+  isLargeTextColumn,
+  isUrlColumn,
+} from '@/types/server-entities/workbook';
 import { Anchor, Checkbox, NumberInput, ScrollArea, Stack, TextInput } from '@mantine/core';
+import { PostgresColumnType, TableSpec } from '@spinner/shared-types';
 import { diffWordsWithSpace } from 'diff';
 import { FC, useState } from 'react';
 import styles from './DisplayField.module.css';
@@ -29,6 +35,7 @@ interface DisplayFieldProps {
   onRejectSuggestion: () => void;
   saving: boolean;
   focusTargetRef?: (element: FocusableElement | null) => void;
+  removeSuggestion?: boolean;
 }
 
 export const DisplayField: FC<DisplayFieldProps> = (props) => {
@@ -43,6 +50,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     onRejectSuggestion,
     saving,
     focusTargetRef /** place on an element that wants to get focus when user hits enter */,
+    removeSuggestion = false,
   } = props;
 
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
@@ -115,7 +123,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
         changeTypes={processedFieldValue.existingChangeTypes}
         recordChangeTypes={recordChangeTypes}
       >
-        {hasSuggestion ? (
+        {hasSuggestion && !removeSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
               <DiffViewer originalValue={currentValueString} suggestedValue={suggestedValueString} />
@@ -196,7 +204,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
         record={record}
         columnDef={column}
       >
-        {hasSuggestion ? (
+        {hasSuggestion && !removeSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
               <DiffViewer originalValue={currentValueString} suggestedValue={suggestedValueString} />
@@ -252,7 +260,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
         changeTypes={processedFieldValue.existingChangeTypes}
         recordChangeTypes={recordChangeTypes}
       >
-        {hasSuggestion ? (
+        {hasSuggestion && !removeSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <DiffViewer
               originalValue={currentValue?.toString() ?? ''}
@@ -285,7 +293,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
         changeTypes={processedFieldValue.existingChangeTypes}
         recordChangeTypes={recordChangeTypes}
       >
-        {hasSuggestion ? (
+        {hasSuggestion && !removeSuggestion ? (
           <Stack h="auto" gap="xs" w="100%">
             <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
               <DiffViewer originalValue={currentValue ?? ''} suggestedValue={suggestedValue ?? ''} />
@@ -330,7 +338,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
           changeTypes={processedFieldValue.existingChangeTypes}
           recordChangeTypes={recordChangeTypes}
         >
-          {hasSuggestion ? (
+          {hasSuggestion && !removeSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
                 <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
@@ -358,7 +366,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
     } else {
       return (
         <Stack align="flex-start" gap="xs" w="100%">
-          {hasSuggestion ? (
+          {hasSuggestion && !removeSuggestion ? (
             <Stack h="auto" gap="xs" w="100%">
               <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
                 <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />
@@ -439,7 +447,7 @@ export const DisplayField: FC<DisplayFieldProps> = (props) => {
       changeTypes={processedFieldValue.existingChangeTypes}
       recordChangeTypes={recordChangeTypes}
     >
-      {hasSuggestion ? (
+      {hasSuggestion && !removeSuggestion ? (
         <Stack h="auto" gap="xs" w="100%">
           <ScrollArea mah="100%" w="100%" type="hover" mb="xs">
             <DiffViewer originalValue={currentValue} suggestedValue={suggestedValue} />

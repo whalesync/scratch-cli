@@ -28,3 +28,5 @@ export type ContextMenu = {
   x: number;
   y: number;
 };
+
+export type RecordDetailsMode = 'sideBySide' | 'default';

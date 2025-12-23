@@ -1,4 +1,5 @@
 import { ColumnSpec } from '@spinner/shared-types';
+import { RecordDetailsMode } from './types';
 export const isActionsColumn = (col: number, colLength: number) => {
   return col === colLength + 2;
 };
@@ -30,3 +31,7 @@ export function titleWithSort(column: ColumnSpec, sort: SortState | undefined) {
 }
 
 export const FAKE_LEFT_COLUMNS = 2; // Updated to account for the new record status column
+
+export const isSideBySideMode = (mode: RecordDetailsMode) => {
+  return mode === 'sideBySide';
+};
