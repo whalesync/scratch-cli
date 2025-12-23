@@ -179,15 +179,14 @@ build server docker image:
 
 build and test agent:
   stage: build and test
-  image: python:$PYTHON_VERSION-slim
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$UV_DOCKER_BASE_LAYER
   script:
     - cd pydantic-ai-agent
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
+    - uv sync
     - echo "Checking for Python syntax errors"
-    - find . -name "*.py" -not -path "./venv/*" -not -path "./testing/*" -print -exec python -m py_compile {} \;
+    - find . -name "*.py" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./testing/*" -print -exec python -m py_compile {} \;
     - echo "Checking for Python code style issues"
-    - black --check .
+    - uv run black --check .
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -221,7 +220,7 @@ build agent docker image:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - pydantic-ai-agent/Dockerfile
-        - pydantic-ai-agent/package.json
+        - pydantic-ai-agent/pyproject.toml
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]

@@ -2,9 +2,16 @@ variables:
   # Node.js version for client and server
   NODE_VERSION: "22"
   # Python version for pydantic-ai-agent
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.14"
   # For GCP.
   GCP_REGION: "us-central1"
+
+  # For uv
+  UV_VERSION: "0.9.18"
+  UV_DOCKER_BASE_LAYER: bookworm-slim
+  # GitLab CI creates a separate mountpoint for the build directory,
+  # so we need to copy instead of using hard links.
+  UV_LINK_MODE: copy
 
 # default image used by all jobs unless overridden
 image:

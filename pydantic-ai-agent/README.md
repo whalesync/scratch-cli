@@ -4,23 +4,28 @@ The agent server is the bridge between the user, the Scratch data and the LLMs b
 
 ## Setup
 
-1. Create a virtual environment:
+1. Install uv:
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+brew install uv
 ```
 
-2. Install dependencies:
+2. Install dependencies (This will also create a virtual environment in `./.venv`):
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 3. Set up environment variables:
 
 ```bash
 cp .env.example .env
+```
+
+4. Activate the virtual environment:
+
+```bash
+source .venv/bin/activate
 ```
 
 Set your `LOGFIRE_TOKEN` and `LOGFIRE_ENVIRONMENT` values
@@ -39,17 +44,17 @@ python main.py
 
 5. Check **Black** is working as your formatter
 
-   Scratch uses Black for our Python code formatter and it is install with the pip command above. It is configured in `.vscode/settings.json`
+   Scratch uses Black for our Python code formatter and it is installed automatically by uv. It is configured in `.vscode/settings.json`.
 
    Ensure it is working properly in your editor since these things are easily broken.
 
-## Deactivating VENV
+## Deactivating the virtual environment
 
 ```bash
 deactivate
 ```
 
-## Upgrading dependencies in requirements.txt
+## Upgrading dependencies
 
 When trying out upgrades it is a good idea to setup a new venv first and install the dependencies there so that you preserve a working version. This helps keep things clean and also simulates what will happen on a new deploy of the code.
 
@@ -66,13 +71,21 @@ python -m venv venv-pydantic-update
 source venv-pydantic-update/bin/activate
 ```
 
-### Make changes to requirements.txt
+### Test with uv
 
-Do your changes then install the packages
+You can run the app with a different set of dependencies in a temporary environment using uv:
 
 ```bash
-pip install -r requirements.txt
+uv run --with 'pydantic-ai==1.38.0' main.py
 ```
+
+### Make changes to the dependencies
+
+```bash
+uv add 'requests==2.31.0'
+```
+
+See [the guide to working on projects with uv](https://docs.astral.sh/uv/guides/projects/) for more info.
 
 ### Test the server to see if it worked
 

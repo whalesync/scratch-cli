@@ -20,5 +20,10 @@
   "isort.check": true,
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
-  }
+  },
+  "python-env.workspaceSearchPaths": [
+    "./pydantic-ai-agent"
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
+  "python-envs.pythonProjects": []
 }
