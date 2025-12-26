@@ -3,8 +3,8 @@
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { mentionsApi } from '@/lib/api/mentions';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
-import { TableSpec, Workbook } from '@spinner/shared-types';
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { Loader } from '@mantine/core';
+import { SnapshotTableId, TableSpec, Workbook, WorkbookId } from '@spinner/shared-types';
 import { forwardRef, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
@@ -22,6 +22,7 @@ interface AdvancedAgentInputProps {
   disabled?: boolean;
   onFocus?: () => void;
   commands?: Command[];
+  inProgress?: boolean;
 }
 
 const revert = () => {
@@ -59,7 +60,10 @@ const renderFieldSuggestion = (suggestion: any) => {
 };
 
 export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentInputProps>(
-  ({ tableId, workbook, onMessageChange, onSendMessage, disabled = false, onFocus, commands = [] }, ref) => {
+  (
+    { tableId, workbook, onMessageChange, onSendMessage, disabled = false, onFocus, commands = [], inProgress = false },
+    ref,
+  ) => {
     const [value, setValueState] = useState('');
     const previousValueRef = useRef('');
     const suggestionsPortalRef = useRef<HTMLDivElement | null>(null);
@@ -187,6 +191,11 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
 
     return (
       <div className={classNames.mentions__wrapper} onClick={() => inputRef.current?.focus()}>
+        {inProgress && (
+          <div className={classNames.spinner__overlay}>
+            <Loader size="sm" color="var(--fg-muted)" />
+          </div>
+        )}
         <MentionsInput
           value={value}
           onChange={handleChange}
@@ -205,7 +214,7 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
           }}
           onFocus={onFocus}
           disabled={disabled}
-          placeholder={`Type a message ...`}
+          placeholder={inProgress ? `` : `Type a message ...`}
           classNames={classNames}
           spellCheck={false}
           allowSuggestionsAboveCursor={true}

@@ -18,3 +18,30 @@
   flex-shrink: 0; /* Prevents it from shrinking */
   flex-grow: 1;
 }
+
+.progressLoading {
+  font-family: monospace;
+}
+
+.progressLoading::after {
+  content: '...';
+  display: inline-block;
+  width: 3ch; /* 3 character widths */
+  text-align: left;
+  animation: dots 1.5s steps(4) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75% {
+    content: '...';
+  }
+}

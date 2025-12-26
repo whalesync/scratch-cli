@@ -33,7 +33,13 @@ import { sleep } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
 import { Alert, Anchor, Box, Center, Divider, Group, Loader, Paper, Stack, Text, Tooltip } from '@mantine/core';
-import { AGENT_CAPABILITIES, Capability, SendMessageRequestDTO, SnapshotTableId } from '@spinner/shared-types';
+import {
+  AGENT_CAPABILITIES,
+  Capability,
+  ChatMessage,
+  SendMessageRequestDTO,
+  SnapshotTableId,
+} from '@spinner/shared-types';
 import {
   ChevronDownIcon,
   CircleDollarSignIcon,
@@ -54,9 +60,46 @@ import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
+import { ProgressMessageGroup } from './ProgressMessageGroup';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
+
+/**
+ * Groups consecutive progress messages into arrays.
+ * Non-progress messages remain as individual items.
+ *
+ * Example:
+ * [ChatA, ChatB, ProgressX, ProgressY, ChatE, ProgressM]
+ * becomes:
+ * [ChatA, ChatB, [ProgressX, ProgressY], ChatE, [ProgressM]]
+ */
+const groupConsecutiveProgressMessages = (messages: ChatMessage[]): (ChatMessage | ChatMessage[])[] => {
+  const grouped: (ChatMessage | ChatMessage[])[] = [];
+  let currentProgressGroup: ChatMessage[] = [];
+
+  messages.forEach((msg) => {
+    if (msg.variant === 'progress') {
+      // Add to current progress group
+      currentProgressGroup.push(msg);
+    } else {
+      // If we have accumulated progress messages, add them as a group
+      if (currentProgressGroup.length > 0) {
+        grouped.push(currentProgressGroup);
+        currentProgressGroup = [];
+      }
+      // Add the non-progress message
+      grouped.push(msg);
+    }
+  });
+
+  // Don't forget the last group if it exists
+  if (currentProgressGroup.length > 0) {
+    grouped.push(currentProgressGroup);
+  }
+
+  return grouped;
+};
 
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
@@ -427,6 +470,11 @@ export default function AIChatPanel() {
   //   });
   // }
 
+  // Group consecutive progress messages
+  const groupedMessages = groupConsecutiveProgressMessages(chatHistory);
+  const last = chatHistory.length > 0 ? chatHistory[chatHistory.length - 1] : null;
+  const isLastMessageProgress = last?.variant === 'progress';
+
   // Calculate costs from chat messages when they arrive
   useEffect(() => {
     if (ignoreSessionLimitWarning) {
@@ -566,9 +614,17 @@ export default function AIChatPanel() {
         {/* Messages */}
         {activeSessionId ? (
           <Stack gap="xs">
-            {chatHistory.map((msg, index) => (
-              <ChatMessageElement key={index} msg={msg} />
-            ))}
+            {groupedMessages.map((item, index) => {
+              if (Array.isArray(item)) {
+                // It's a group of progress messages
+                return (
+                  <ProgressMessageGroup key={index} messages={item} isLastMessageProgress={isLastMessageProgress} />
+                );
+              } else {
+                // It's a single message
+                return <ChatMessageElement key={index} msg={item} />;
+              }
+            })}
           </Stack>
         ) : (
           <Center h="100%">
@@ -605,7 +661,8 @@ export default function AIChatPanel() {
           workbook={workbook}
           onMessageChange={setMessage}
           onSendMessage={sendMessage}
-          disabled={agentTaskRunning || !activeOpenRouterCredentials}
+          disabled={agentTaskRunning || !activeOpenRouterCredentials || isLastMessageProgress}
+          inProgress={isLastMessageProgress}
           onFocus={handleTextInputFocus}
           commands={commands}
         />

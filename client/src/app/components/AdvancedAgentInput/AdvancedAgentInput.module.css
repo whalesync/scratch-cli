@@ -3,6 +3,20 @@
   max-height: 152px;
   overflow-y: auto;
   overflow-x: hidden;
+  position: relative;
+}
+
+.spinner__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .mentions__input {
