@@ -1,6 +1,6 @@
 'use client';
 
-import { AdvancedAgentInput } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
+import { AdvancedAgentInput, AdvancedAgentInputRef } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
 import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
 import {
   ButtonSecondaryInline,
@@ -118,7 +118,7 @@ export default function AIChatPanel() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showToolsModal, setShowToolsModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const textInputRef = useRef<HTMLTextAreaElement>(null);
+  const textInputRef = useRef<AdvancedAgentInputRef>(null);
   const {
     dataScope,
     activeRecordId,
@@ -424,6 +424,7 @@ export default function AIChatPanel() {
 
       // clear the current message
       setMessage('');
+      textInputRef.current?.clear();
     } catch (error) {
       setError('Failed to send agent message');
       setErrorDetails(error instanceof Error ? error.message : 'Unknown error');

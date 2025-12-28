@@ -5,7 +5,7 @@ import { mentionsApi } from '@/lib/api/mentions';
 import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { Loader } from '@mantine/core';
 import { SnapshotTableId, TableSpec, Workbook, WorkbookId } from '@spinner/shared-types';
-import { forwardRef, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
 import { Command, CommandSuggestion } from './CommandSuggestions';
@@ -13,6 +13,12 @@ import { SuggestionItem } from './SuggestionItem';
 import { TypesafeMention } from './TypesafeMention';
 
 const MIN_QUERY_LENGTH = 2;
+
+export interface AdvancedAgentInputRef {
+  setValue: (value: string) => void;
+  clear: () => void;
+  focus: () => void;
+}
 
 interface AdvancedAgentInputProps {
   tableId: SnapshotTableId;
@@ -59,7 +65,7 @@ const renderFieldSuggestion = (suggestion: any) => {
   return <SuggestionItem title={suggestion.display} description={'Field'} />;
 };
 
-export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentInputProps>(
+export const AdvancedAgentInput = forwardRef<AdvancedAgentInputRef, AdvancedAgentInputProps>(
   (
     { tableId, workbook, onMessageChange, onSendMessage, disabled = false, onFocus, commands = [], inProgress = false },
     ref,
@@ -179,14 +185,24 @@ export const AdvancedAgentInput = forwardRef<HTMLTextAreaElement, AdvancedAgentI
 
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-    // Combine the forwarded ref with our local ref
+    // Expose methods via ref
+    useImperativeHandle(ref, () => ({
+      setValue: (newValue: string) => {
+        setValue(newValue);
+        setPreviousValue(newValue);
+      },
+      clear: () => {
+        setValue('');
+        setPreviousValue('');
+      },
+      focus: () => {
+        inputRef.current?.focus();
+      },
+    }));
+
+    // Set the local ref
     const setRefs = (element: HTMLTextAreaElement | null) => {
       inputRef.current = element;
-      if (typeof ref === 'function') {
-        ref(element);
-      } else if (ref) {
-        ref.current = element;
-      }
     };
 
     return (
