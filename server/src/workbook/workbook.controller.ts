@@ -32,6 +32,7 @@ import type {
   ValidatedRejectCellValueDto,
   ValidatedRejectCellValueItem,
   ValidatedRemoveScratchColumnDto,
+  ValidatedSetContentColumnDto,
   ValidatedSetTitleColumnDto,
   ValidatedUpdateColumnSettingsDto,
   WorkbookId,
@@ -57,6 +58,7 @@ import {
   SEEN_COLUMN,
   Service,
   SetActiveRecordsFilterDto,
+  SetContentColumnDto,
   SetTableViewStateDto,
   SetTitleColumnDto,
   SUGGESTED_FIELDS_COLUMN,
@@ -419,6 +421,18 @@ export class WorkbookController {
   ): Promise<void> {
     const dto = setTitleColumnDto as ValidatedSetTitleColumnDto;
     await this.service.setTitleColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
+  }
+
+  @Patch(':id/tables/:tableId/content-column')
+  @HttpCode(204)
+  async setContentColumn(
+    @Param('id') workbookId: WorkbookId,
+    @Param('tableId') tableId: string,
+    @Body() setContentColumnDto: SetContentColumnDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const dto = setContentColumnDto as ValidatedSetContentColumnDto;
+    await this.service.setContentColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
   }
 
   @Post(':id/tables/:tableId/reject-values')

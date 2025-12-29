@@ -21,9 +21,12 @@ export type TableTabState = {
 export type TabId = NewTabId | SnapshotTableId;
 export type TabState = NewTabState | TableTabState;
 
+export type RecordViewType = 'details' | 'md';
+
 export type ActiveCells = {
   recordId: string | undefined;
   columnId: string | undefined;
+  viewType?: RecordViewType;
 };
 
 export enum WorkbookModals {

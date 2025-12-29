@@ -66,6 +66,7 @@ export * from './dto/workbook/reject-cell-value.dto';
 export * from './dto/workbook/resolve-remote-deletes.dto';
 export * from './dto/workbook/scratch-column.dto';
 export * from './dto/workbook/set-table-view-state.dto';
+export * from './dto/workbook/set-content-column.dto';
 export * from './dto/workbook/set-title-column.dto';
 export * from './dto/workbook/update-active-record-filter.dto';
 export * from './dto/workbook/update-column-settings.dto';

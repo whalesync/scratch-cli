@@ -65,13 +65,14 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
   const columnName = props.displayName || columnId;
 
   // Get current column configuration
-  const { isColumnHidden, isScratchColumn, currentDataConverter, isTitleColumn } = useMemo(() => {
+  const { isColumnHidden, isScratchColumn, currentDataConverter, isTitleColumn, isContentColumn } = useMemo(() => {
     const isScratchColumn = props.columnSpec?.metadata?.scratch ?? false;
     const currentTable = props.tableId ? workbook?.snapshotTables?.find((t) => t.id === props.tableId) : undefined;
     const isColumnHidden = currentTable?.hiddenColumns?.includes(columnId) ?? false;
     const currentDataConverter = currentTable?.columnSettings?.[columnId]?.dataConverter ?? '';
     const isTitleColumn = isEqual(currentTable?.tableSpec?.titleColumnRemoteId, props.columnSpec?.id?.remoteId);
-    return { isScratchColumn, isColumnHidden, currentDataConverter, isTitleColumn };
+    const isContentColumn = isEqual(currentTable?.tableSpec?.mainContentColumnRemoteId, props.columnSpec?.id?.remoteId);
+    return { isScratchColumn, isColumnHidden, currentDataConverter, isTitleColumn, isContentColumn };
   }, [workbook, props.tableId, columnId, props.columnSpec]);
 
   const handleHeaderClick = () => {
@@ -174,6 +175,7 @@ export const CustomHeaderComponent: React.FC<CustomHeaderComponentProps> = (prop
         isColumnHidden={isColumnHidden}
         isScratchColumn={isScratchColumn}
         isTitleColumn={isTitleColumn}
+        isContentColumn={isContentColumn}
         currentDataConverter={currentDataConverter}
         workbook={workbook}
         updateColumnSettings={updateColumnSettings}

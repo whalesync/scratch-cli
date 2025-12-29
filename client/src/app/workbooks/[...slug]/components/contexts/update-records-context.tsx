@@ -308,6 +308,8 @@ function optimisticDataForBulkUpdateRecords(
       // Update the data fields
       if (op.data !== undefined) {
         record.fields = { ...record.fields, ...op.data };
+        // Also update __fields (JSON representation used by MD view)
+        record.__fields = { ...(record.__fields || record.fields), ...op.data };
       }
 
       // Update the edited fields metadata

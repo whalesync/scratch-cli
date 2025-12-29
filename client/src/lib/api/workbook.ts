@@ -120,6 +120,15 @@ export const workbookApi = {
     }
   },
 
+  setContentColumn: async (id: WorkbookId, tableId: SnapshotTableId, columnId: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.patch(`/workbook/${id}/tables/${tableId}/content-column`, { columnId });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to set content column');
+    }
+  },
+
   async downloadWithoutJob(id: WorkbookId): Promise<DownloadWorkbookWithoutJobResult> {
     try {
       const axios = API_CONFIG.getAxiosInstance();

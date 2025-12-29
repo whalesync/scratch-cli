@@ -40,6 +40,8 @@ export interface TableSpec {
   columns: ColumnSpec[];
   // The remoteId of the column that should be used as the title/header column for visualizing records
   titleColumnRemoteId?: string[];
+  // The remoteId of the column that should be used as the main content/body in MD view
+  mainContentColumnRemoteId?: string[];
 }
 
 ///

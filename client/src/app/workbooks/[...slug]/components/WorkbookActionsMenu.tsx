@@ -1,9 +1,10 @@
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
+import { RouteUrls } from '@/utils/route-urls';
 import { Loader, Menu } from '@mantine/core';
 import { Service } from '@spinner/shared-types';
 import { Edit3Icon, Trash2Icon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
@@ -12,6 +13,7 @@ import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webfl
 
 export const WorkbookActionsMenu = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const { workbook, activeTable, isLoading } = useActiveWorkbook();
   const { isDevToolsEnabled } = useDevTools();
   const showModal = useWorkbookEditorUIStore((state) => state.showModal);
@@ -70,6 +72,16 @@ export const WorkbookActionsMenu = () => {
             <Menu.Label>Dev Tools</Menu.Label>
             <DevToolMenuItem onClick={openDevTools}> Workbook Inspector</DevToolMenuItem>
             <DevToolMenuItem onClick={handleOpenAdvancedInput}>Advanced Agent Input</DevToolMenuItem>
+            {RouteUrls.isWorkbookFilePage(pathname) && (
+              <DevToolMenuItem onClick={() => router.push(RouteUrls.workbookPageUrl(workbook?.id ?? ''))}>
+                Switch to Table View
+              </DevToolMenuItem>
+            )}
+            {!RouteUrls.isWorkbookFilePage(pathname) && (
+              <DevToolMenuItem onClick={() => router.push(RouteUrls.workbookFilePageUrl(workbook?.id ?? ''))}>
+                Switch to File View
+              </DevToolMenuItem>
+            )}
           </>
         )}
 

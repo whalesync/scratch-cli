@@ -22,6 +22,8 @@
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
     "@codemirror/lang-html": "^6.4.11",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language-data": "^6.5.2",
     "@gfazioli/mantine-split-pane": "^2.5.3",
     "@mantine/core": "^8.3.5",
     "@mantine/dates": "^8.3.5",
@@ -42,6 +44,7 @@
     "dayjs": "^1.11.18",
     "diff": "^8.0.2",
     "dompurify": "^3.3.1",
+    "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
     "js-tiktoken": "^1.0.21",
     "lodash": "^4.17.21",

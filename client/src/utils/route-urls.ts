@@ -14,6 +14,7 @@ export class RouteUrls {
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
   static workbookPageUrl = (id: string) => `/workbooks/${id}`;
+  static workbookFilePageUrl = (id: string) => `/workbooks-md/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
   static workbookRecordView = (id: string, tableId: string, recordId: string) =>
@@ -51,8 +52,7 @@ export class RouteUrls {
     `^\/$`, // root path
     RouteUrls.dataSourcesPageUrl,
     RouteUrls.workbooksPageUrl,
-    RouteUrls.promptAssetsPageUrl,
-    RouteUrls.workbooksPageUrl,
+    '/workbooks-md',
     RouteUrls.promptAssetsPageUrl,
   ];
 
@@ -69,14 +69,27 @@ export class RouteUrls {
    * @param columnId - The ID of the column. If undefined, the column id will be removed from the path.
    */
   static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string, columnId?: string) => {
-    if (tableId && recordId && columnId) {
-      window.history.replaceState(null, '', RouteUrls.workbookColumnView(workbookId, tableId, recordId, columnId));
-    } else if (tableId && recordId) {
-      window.history.replaceState(null, '', RouteUrls.workbookRecordView(workbookId, tableId, recordId));
-    } else if (tableId) {
-      window.history.replaceState(null, '', RouteUrls.workbookTablePage(workbookId, tableId));
-    } else {
-      window.history.replaceState(null, '', RouteUrls.workbookPageUrl(workbookId));
+    const isNewView = typeof window !== 'undefined' && RouteUrls.isWorkbookFilePage(window.location.pathname);
+    const base = isNewView ? '/workbooks-md' : '/workbooks';
+
+    let url = `${base}/${workbookId}`;
+
+    if (tableId) {
+      url += `/${tableId}`;
+      if (recordId) {
+        url += `/${recordId}`;
+        if (columnId) {
+          url += `/${columnId}`;
+        }
+      }
     }
+
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', url);
+    }
+  };
+
+  static isWorkbookFilePage = (pathname: string): boolean => {
+    return pathname.startsWith('/workbooks-md');
   };
 }

@@ -14,6 +14,8 @@ export const SUGGESTED_FIELDS_COLUMN = '__suggested_values';
 // Connector specific optional per record metadata
 export const METADATA_COLUMN = '__metadata';
 export const ORIGINAL_COLUMN = '__original';
+// JSON representation of all regular postgres fields - mirrors the individual columns
+export const FIELDS_COLUMN = '__fields';
 
 // Flags
 export const DIRTY_COLUMN = '__dirty';
@@ -39,6 +41,7 @@ export const SNAPSHOT_META_COLUMNS = [
   SUGGESTED_FIELDS_COLUMN,
   METADATA_COLUMN,
   ORIGINAL_COLUMN,
+  FIELDS_COLUMN,
   DIRTY_COLUMN,
   SEEN_COLUMN,
 ];

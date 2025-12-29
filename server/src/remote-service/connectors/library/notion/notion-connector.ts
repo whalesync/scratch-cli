@@ -130,6 +130,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       slug: id.wsId,
       name: sanitizeForTableWsId(tableTitle),
       columns,
+      // Auto-set the page content column as the main content column for Notion tables
+      mainContentColumnRemoteId: [PAGE_CONTENT_COLUMN_ID],
     };
   }
 

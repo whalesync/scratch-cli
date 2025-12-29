@@ -8,6 +8,7 @@ import {
   DIRTY_COLUMN,
   EDITED_FIELDS_COLUMN,
   ERRORS_COLUMN,
+  FIELDS_COLUMN,
   METADATA_COLUMN,
   OLD_REMOTE_ID_COLUMN,
   ORIGINAL_COLUMN,
@@ -77,6 +78,7 @@ type DbRecord = {
   [DIRTY_COLUMN]: boolean;
   [SEEN_COLUMN]: boolean;
   [ORIGINAL_COLUMN]: Record<string, unknown> | null;
+  [FIELDS_COLUMN]: Record<string, unknown>;
   [OLD_REMOTE_ID_COLUMN]: string | null;
   [ERRORS_COLUMN]: RecordErrorsMetadata;
   [key: string]: unknown;
@@ -204,6 +206,7 @@ export class SnapshotDb {
             t.boolean(DIRTY_COLUMN).defaultTo(false);
             t.boolean(SEEN_COLUMN).defaultTo(true);
             t.jsonb(ORIGINAL_COLUMN).nullable();
+            t.jsonb(FIELDS_COLUMN).defaultTo('{}');
             t.text(OLD_REMOTE_ID_COLUMN).nullable();
             t.jsonb(ERRORS_COLUMN).defaultTo('{}');
           });
@@ -241,6 +244,7 @@ export class SnapshotDb {
           DIRTY_COLUMN,
           SEEN_COLUMN,
           ORIGINAL_COLUMN,
+          FIELDS_COLUMN,
           OLD_REMOTE_ID_COLUMN,
           ERRORS_COLUMN,
         ]) {
@@ -257,12 +261,29 @@ export class SnapshotDb {
                   t.boolean(SEEN_COLUMN).defaultTo(true);
                 } else if (col === ORIGINAL_COLUMN) {
                   t.jsonb(ORIGINAL_COLUMN).nullable();
+                } else if (col === FIELDS_COLUMN) {
+                  t.jsonb(FIELDS_COLUMN).defaultTo('{}');
                 } else if (col === OLD_REMOTE_ID_COLUMN) {
                   t.text(OLD_REMOTE_ID_COLUMN).nullable();
                 } else if (col === ERRORS_COLUMN) {
                   t.jsonb(ERRORS_COLUMN).defaultTo('{}');
                 }
               });
+
+            // Data migration: populate __fields from existing columns
+            if (col === FIELDS_COLUMN) {
+              // Build a jsonb_build_object call with all column fields
+              const columnPairs = table.columns
+                .filter((c) => c.id.wsId !== REMOTE_ID_COLUMN)
+                .map((c) => `'${c.id.wsId}', "${c.id.wsId}"`)
+                .join(', ');
+
+              if (columnPairs.length > 0) {
+                await this.getKnex().raw(
+                  `UPDATE "${workbookId}"."${tableName}" SET "${FIELDS_COLUMN}" = jsonb_build_object(${columnPairs})`,
+                );
+              }
+            }
           }
         }
       }
@@ -344,6 +365,7 @@ export class SnapshotDb {
         t.boolean(SEEN_COLUMN).defaultTo(true);
         t.boolean(DIRTY_COLUMN).defaultTo(true);
         t.jsonb(ORIGINAL_COLUMN).nullable();
+        t.jsonb(FIELDS_COLUMN).defaultTo('{}');
         t.text(OLD_REMOTE_ID_COLUMN).nullable();
         t.jsonb(ERRORS_COLUMN).defaultTo('{}');
       });
@@ -419,6 +441,7 @@ export class SnapshotDb {
           [EDITED_FIELDS_COLUMN]: existingDirtyRecord[EDITED_FIELDS_COLUMN], // Keep edited fields
           [SUGGESTED_FIELDS_COLUMN]: existingDirtyRecord[SUGGESTED_FIELDS_COLUMN], // Keep suggestions
           [ORIGINAL_COLUMN]: JSON.stringify(originalValues),
+          [FIELDS_COLUMN]: JSON.stringify(mergedFields), // JSON representation of all fields
           [OLD_REMOTE_ID_COLUMN]: existingDirtyRecord[OLD_REMOTE_ID_COLUMN],
           [ERRORS_COLUMN]: r.errors,
         };
@@ -437,6 +460,7 @@ export class SnapshotDb {
           [EDITED_FIELDS_COLUMN]: '{}',
           [SUGGESTED_FIELDS_COLUMN]: '{}',
           [ORIGINAL_COLUMN]: JSON.stringify(sanitizedFields), // Store original values from remote
+          [FIELDS_COLUMN]: JSON.stringify(sanitizedFields), // JSON representation of all fields
           [OLD_REMOTE_ID_COLUMN]: null,
           [ERRORS_COLUMN]: r.errors,
         };
@@ -452,6 +476,7 @@ export class SnapshotDb {
       EDITED_FIELDS_COLUMN,
       SUGGESTED_FIELDS_COLUMN,
       ORIGINAL_COLUMN,
+      FIELDS_COLUMN,
       OLD_REMOTE_ID_COLUMN,
       ERRORS_COLUMN,
     ];
@@ -564,6 +589,7 @@ export class SnapshotDb {
       __old_remote_id,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       __original,
+      __fields,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       __seen,
       __errors,
@@ -609,6 +635,7 @@ export class SnapshotDb {
       fields,
       __edited_fields: editedFields,
       __suggested_values: suggestedValues,
+      __fields: __fields || {},
       __metadata: metadata,
       __dirty,
       __old_remote_id,
@@ -658,13 +685,31 @@ export class SnapshotDb {
     type: 'suggested' | 'accepted',
     tableSpec: AnyTableSpec,
   ): Promise<void> {
-    const readOnlyColumns = new Set(tableSpec.columns.filter((c) => c.readonly).map((c) => c.id.wsId));
+    // const readOnlyColumns = new Set(tableSpec.columns.filter((c) => c.readonly).map((c) => c.id.wsId));
 
     // Create a map of column ID to column type for proper parsing
     const columnTypes = new Map<string, PostgresColumnType>();
     for (const column of tableSpec.columns) {
       columnTypes.set(column.id.wsId, column.pgType);
     }
+
+    // Set of all schema column IDs (for filtering extra fields)
+    const schemaColumnIds = new Set(tableSpec.columns.map((c) => c.id.wsId));
+
+    // Helper to separate schema fields (for postgres) from extra fields (for __fields only)
+    const separateFields = (
+      data: Record<string, unknown> | undefined,
+    ): { schemaFields: Record<string, unknown>; allFields: Record<string, unknown> } => {
+      if (!data) return { schemaFields: {}, allFields: {} };
+      const schemaFields: Record<string, unknown> = {};
+      const allFields = { ...data };
+      for (const [key, value] of Object.entries(data)) {
+        if (schemaColumnIds.has(key)) {
+          schemaFields[key] = value;
+        }
+      }
+      return { schemaFields, allFields };
+    };
 
     // Helper to parse JSON strings into objects/arrays for Knex to handle efficiently
     const parseJsonFields = (data: Record<string, unknown> | undefined): Record<string, unknown> => {
@@ -699,20 +744,20 @@ export class SnapshotDb {
         // Parse JSON strings to objects so Knex can handle them efficiently
         op.data = parseJsonFields(op.data);
 
-        for (const field of Object.keys(op.data)) {
-          if (readOnlyColumns.has(field)) {
-            if (type === 'accepted') {
-              if (!op.data[field]) {
-                // Drop nulls and undefiened
-                delete op.data[field];
-              } else {
-                throw new BadRequestException(`Cannot modify read-only column: ${field}`);
-              }
-            } else {
-              delete op.data[field];
-            }
-          }
-        }
+        // for (const field of Object.keys(op.data)) {
+        //   if (readOnlyColumns.has(field)) {
+        //     if (type === 'accepted') {
+        //       if (!op.data[field]) {
+        //         // Drop nulls and undefiened
+        //         delete op.data[field];
+        //       } else {
+        //         throw new BadRequestException(`Cannot modify read-only column: ${field}`);
+        //       }
+        //     } else {
+        //       delete op.data[field];
+        //     }
+        //   }
+        // }
       }
     }
     const now = new Date().toISOString();
@@ -723,6 +768,8 @@ export class SnapshotDb {
             // Generate a temporary remote ID for new records until they're pushed
             const snapshotRecordId = createSnapshotRecordId();
             const tempRemoteId = `${UNPUBLISHED_PREFIX}${snapshotRecordId}`;
+            // Separate schema fields (for postgres columns) from all fields (for __fields JSON)
+            const { schemaFields, allFields } = separateFields(op.data);
             await trx(tableName)
               .withSchema(workbookId)
               .insert({
@@ -732,10 +779,11 @@ export class SnapshotDb {
                   ? // Set the fields that were edited.
                     // Set the dirty column to true.
                     // Set timestamps in __edited_fields.
-                    // op.data already has parsed JSON objects, Knex will handle serialization
+                    // Only schema fields go to postgres columns, all fields go to __fields
                     {
-                      ...op.data,
+                      ...schemaFields,
                       [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
+                      [FIELDS_COLUMN]: JSON.stringify(allFields), // JSON representation of all fields
                       [DIRTY_COLUMN]: true,
                     }
                   : // No fields actually edited
@@ -744,13 +792,16 @@ export class SnapshotDb {
                       [EDITED_FIELDS_COLUMN]: JSON.stringify({ __created: now }),
                       [SUGGESTED_FIELDS_COLUMN]: JSON.stringify({
                         __created: now,
-                        ...op.data,
+                        ...allFields,
                       }),
                     }),
               });
             break;
           }
           case 'update': {
+            // Separate schema fields (for postgres columns) from all fields (for __fields JSON)
+            const { schemaFields, allFields } = separateFields(op.data);
+
             if (type === 'accepted') {
               const newFields = Object.keys(op.data || {}).reduce(
                 (acc, key) => {
@@ -761,8 +812,8 @@ export class SnapshotDb {
               );
 
               const updatePayload: Record<string, any> = {
-                // op.data already has parsed JSON objects, Knex will handle serialization
-                ...op.data,
+                // Only schema fields go to postgres columns
+                ...schemaFields,
                 [DIRTY_COLUMN]: true,
               };
 
@@ -774,6 +825,14 @@ export class SnapshotDb {
                 ]);
               }
 
+              // Merge ALL fields (including extra fields) into __fields JSON
+              if (Object.keys(allFields).length > 0) {
+                updatePayload[FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
+                  FIELDS_COLUMN,
+                  JSON.stringify(allFields),
+                ]);
+              }
+
               if (Object.keys(updatePayload).length > 0) {
                 await trx(tableName).withSchema(workbookId).where(SCRATCH_ID_COLUMN, op.wsId).update(updatePayload);
               }
@@ -781,7 +840,7 @@ export class SnapshotDb {
               const updatePayload: Record<string, any> = {};
               updatePayload[SUGGESTED_FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || ?::jsonb`, [
                 SUGGESTED_FIELDS_COLUMN,
-                JSON.stringify(op.data),
+                JSON.stringify(allFields),
               ]);
               await trx(tableName).withSchema(workbookId).where(SCRATCH_ID_COLUMN, op.wsId).update(updatePayload);
             }
@@ -972,6 +1031,19 @@ export class SnapshotDb {
           JSON.stringify(editedFields),
         ]);
 
+        // Update __fields with the accepted values from suggestions
+        // Filter to only actual column IDs (not __deleted, __created)
+        const actualColumnIds = columnIds.filter((c) => c !== DELETED_FIELD && c !== CREATED_FIELD);
+        if (actualColumnIds.length > 0) {
+          // Build a jsonb object from the suggested values for these columns
+          // We use jsonb_build_object with the key-value pairs extracted from __suggested_values
+          const jsonbPairs = actualColumnIds.map((colId) => `'${colId}', ??->>'${colId}'`).join(', ');
+          updatePayload[FIELDS_COLUMN] = trx.raw(`COALESCE(??, '{}'::jsonb) || jsonb_build_object(${jsonbPairs})`, [
+            FIELDS_COLUMN,
+            ...actualColumnIds.map(() => SUGGESTED_FIELDS_COLUMN),
+          ]);
+        }
+
         // Mark as dirty
         updatePayload[DIRTY_COLUMN] = true;
 
@@ -1158,6 +1230,7 @@ export class SnapshotDb {
                 __edited_fields,
                 __dirty,
                 __suggested_values,
+                __fields,
                 __metadata,
                 __seen,
                 __original,
@@ -1170,6 +1243,7 @@ export class SnapshotDb {
                 __dirty,
                 __seen,
                 __suggested_values: __suggested_values ?? {},
+                __fields: __fields ?? {},
                 fields,
                 __metadata,
                 __original,

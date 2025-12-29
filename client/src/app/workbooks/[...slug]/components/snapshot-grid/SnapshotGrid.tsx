@@ -36,6 +36,7 @@ import { SnapshotTableGridProps } from '../types';
 import { AG, ID_COLUMN_FIELD } from './ag-grid-constants';
 import { getComparatorFunctionForColumnSpec } from './comparators';
 import RecordDetailsOverlay from './RecordDetailsOverlay';
+import RecordMdOverlay from './RecordMdOverlay';
 import { RecordJsonModal } from './RecordJsonModal';
 import styles from './SelectionCorners.module.css';
 import { TableContextMenu } from './TableContextMenu';
@@ -341,6 +342,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       }
 
       // Handle Enter key to open record view with current focused cell
+      // Shift+Enter opens MD view, Enter opens details view
       if (event.key === 'Enter' && !activeCells?.recordId && gridApi) {
         event.preventDefault();
         const focusedCell = gridApi.getFocusedCell();
@@ -352,18 +354,17 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
           if (record && record.id?.wsId) {
             // Find the column definition to get the proper column ID
             const column = table.tableSpec.columns.find((col) => col.id.wsId === columnId);
+            const viewType = event.shiftKey ? 'md' : 'details';
 
             console.debug('Enter key pressed - opening record view:', {
               recordId: record.id.wsId,
               columnId: column?.id.wsId,
+              viewType,
             });
 
             recalculateOverlayWidth();
 
-            setActiveCells({ recordId: record.id.wsId, columnId: column?.id.wsId });
-            // setSelectedRecordId(record.id.wsId);
-            // setSelectedColumnId(column?.id.wsId);
-            // showRecordDetails();
+            setActiveCells({ recordId: record.id.wsId, columnId: column?.id.wsId, viewType });
           }
         }
         return;
@@ -792,7 +793,7 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
       {showSuggestionToolbar && <GridSuggestionToolbar table={table} />}
 
       {/* Record Details Panel Overlay (only shown when showRecordDetails is true) */}
-      {activeCells?.recordId && selectedRecord && (
+      {activeCells?.recordId && selectedRecord && activeCells.viewType !== 'md' && (
         <RecordDetailsOverlay
           width={overlayWidth}
           workbookId={workbook.id}
@@ -811,6 +812,17 @@ export const SnapshotGrid = ({ workbook, table, limited = false }: SnapshotTable
               setTimeout(() => setLastKeyPressed(null), 50);
             }
           }}
+        />
+      )}
+
+      {/* Record MD Overlay (shown when viewType is 'md') */}
+      {activeCells?.recordId && selectedRecord && activeCells.viewType === 'md' && (
+        <RecordMdOverlay
+          width={overlayWidth}
+          workbookId={workbook.id}
+          selectedRecord={selectedRecord}
+          table={table}
+          onClose={handleCloseRecordDetails}
         />
       )}
 

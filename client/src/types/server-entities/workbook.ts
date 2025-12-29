@@ -66,6 +66,7 @@ export type SnapshotRecord = {
 
   __edited_fields?: EditedFieldsMetadata;
   __suggested_values?: Record<string, unknown>;
+  __fields?: Record<string, unknown>;
   __dirty: boolean;
   __errors: RecordErrorsMetadata;
 };
@@ -162,7 +163,7 @@ export function buildRecordTitle(record: SnapshotRecord): string {
   if (record.fields) {
     for (const key of Object.keys(record.fields)) {
       if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        const value = truncate(record.fields[key] as string, { length: 40 });
+        const value = truncate(record.fields[key] as string, { length: 25 });
         if (value) {
           return value;
         }

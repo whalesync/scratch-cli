@@ -30,6 +30,8 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   columns: ColumnType[];
   // The remoteId of the column that should be used as the title/header column for visualizing records
   titleColumnRemoteId?: EntityId['remoteId'];
+  // The remoteId of the column that should be used as the main content/body in MD view
+  mainContentColumnRemoteId?: EntityId['remoteId'];
 };
 
 /** This is being passed to the agent as a string.
@@ -116,6 +118,7 @@ export type SnapshotRecord = {
   // Per field meta information.
   __edited_fields: EditedFieldsMetadata;
   __suggested_values: Record<string, unknown>;
+  __fields: Record<string, unknown>;
   __metadata: Record<string, unknown>;
   __errors: RecordErrorsMetadata;
 

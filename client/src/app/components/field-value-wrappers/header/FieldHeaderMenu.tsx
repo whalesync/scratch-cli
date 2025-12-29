@@ -7,7 +7,7 @@ import { ColumnSpec, SnapshotColumnSettingsMap, Workbook } from '@spinner/shared
 import { Menu } from '@mantine/core';
 import { SnapshotTableId } from '@spinner/shared-types';
 import capitalize from 'lodash/capitalize';
-import { CheckIcon, EyeOffIcon, MoreVerticalIcon, StarIcon, TrashIcon, XIcon } from 'lucide-react';
+import { CheckIcon, EyeOffIcon, FileTextIcon, MoreVerticalIcon, StarIcon, TrashIcon, XIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { IconButtonInline } from '../../base/buttons';
 
@@ -26,6 +26,7 @@ interface HeaderMenuProps {
   isColumnHidden: boolean;
   isScratchColumn: boolean;
   isTitleColumn: boolean;
+  isContentColumn: boolean;
   currentDataConverter: string;
 
   // Actions/Objects from hooks
@@ -51,6 +52,7 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
   isColumnHidden,
   isScratchColumn,
   isTitleColumn,
+  isContentColumn,
   currentDataConverter,
   workbook,
   updateColumnSettings,
@@ -228,6 +230,36 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
     }
   };
 
+  const handleSetContentColumn = async () => {
+    try {
+      setIsProcessing(true);
+
+      if (!workbook || !tableId) {
+        ScratchpadNotifications.error({
+          title: 'Error',
+          message: 'Missing workbook or table information',
+        });
+        return;
+      }
+
+      // Call the API to set the content column
+      await workbookApi.setContentColumn(workbook.id, tableId, columnId);
+
+      ScratchpadNotifications.success({
+        title: 'Content Column Set',
+        message: `Column "${columnName}" is now the content column for this table`,
+      });
+    } catch (error) {
+      console.error('Error setting content column:', error);
+      ScratchpadNotifications.error({
+        title: 'Error setting content column',
+        message: error instanceof Error ? error.message : 'Failed to set content column',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleRemoveScratchColumn = async () => {
     try {
       setIsProcessing(true);
@@ -337,6 +369,13 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
           disabled={isProcessing || isTitleColumn}
         >
           Use as title
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<FileTextIcon size={14} fill={isContentColumn ? 'currentColor' : 'none'} />}
+          onClick={handleSetContentColumn}
+          disabled={isProcessing || isContentColumn}
+        >
+          Use as content
         </Menu.Item>
         {!isColumnHidden && (
           <Menu.Item

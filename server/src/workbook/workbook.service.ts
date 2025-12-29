@@ -1061,12 +1061,8 @@ export class WorkbookService {
         for (const [field, value] of Object.entries(op.data)) {
           const columnSpec = columnMap.get(field);
 
+          // Extra fields not in schema are allowed - they will only be stored in __fields JSON
           if (field !== 'id' && !columnSpec) {
-            errors.push({
-              wsId: 'wsId' in op ? op.wsId : undefined,
-              field,
-              message: `Field '${field}' not found in table`,
-            });
             continue;
           }
 
@@ -2279,6 +2275,56 @@ export class WorkbookService {
       actor,
       eventType: 'update',
       message: `Set title column for table ${tableSpec.name} to ${column.name}`,
+      entityId: workbookId,
+      context: {
+        tableId,
+        columnId,
+        columnName: column.name,
+      },
+    });
+  }
+
+  async setContentColumn(workbookId: WorkbookId, tableId: string, columnId: string, actor: Actor): Promise<void> {
+    const workbook = await this.findOneOrThrow(workbookId, actor);
+    const snapshotTable = getSnapshotTableById(workbook, tableId);
+    if (!snapshotTable) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${workbookId}`);
+    }
+
+    if (!snapshotTable.tableSpec) {
+      throw new NotFoundException(`Table ${tableId} not found in snapshot ${workbookId}`);
+    }
+
+    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
+    // Verify the column exists in the table
+    const column = tableSpec.columns.find((c) => c.id.wsId === columnId);
+    if (!column) {
+      throw new NotFoundException('Column not found in table');
+    }
+
+    // Update the table spec with the new content column
+    const updatedTableSpec = {
+      ...tableSpec,
+      mainContentColumnRemoteId: [columnId],
+    };
+
+    // Update the snapshot with the new table specs
+    await this.db.client.snapshotTable.update({
+      where: { id: snapshotTable.id },
+      data: {
+        tableSpec: updatedTableSpec as InputJsonObject,
+      },
+    });
+
+    this.snapshotEventService.sendSnapshotEvent(workbookId, {
+      type: 'snapshot-updated',
+      data: { source: 'user', tableId },
+    });
+
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'update',
+      message: `Set content column for table ${tableSpec.name} to ${column.name}`,
       entityId: workbookId,
       context: {
         tableId,
