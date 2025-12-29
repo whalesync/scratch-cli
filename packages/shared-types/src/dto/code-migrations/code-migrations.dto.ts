@@ -15,7 +15,8 @@ export class RunMigrationDto {
   ids?: string[];
 }
 
-export type ValidatedRunMigrationDto = Required<Pick<RunMigrationDto, 'migration'>> & Pick<RunMigrationDto, 'qty' | 'ids'>;
+export type ValidatedRunMigrationDto = Required<Pick<RunMigrationDto, 'migration'>> &
+  Pick<RunMigrationDto, 'qty' | 'ids'>;
 
 export interface AvailableMigrationsResponse {
   migrations: string[];

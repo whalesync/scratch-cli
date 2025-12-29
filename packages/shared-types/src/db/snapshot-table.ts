@@ -1,6 +1,6 @@
-import { EntityId, PostgresColumnType } from '../connector-types';
 import { Service, SnapshotTableId, WorkbookId } from '../';
-import { SnapshotColumnSettings, SnapshotColumnSettingsMap } from '../workbook-types';
+import { EntityId, PostgresColumnType } from '../connector-types';
+import { SnapshotColumnSettingsMap } from '../workbook-types';
 
 export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';

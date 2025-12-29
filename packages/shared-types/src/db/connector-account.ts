@@ -1,5 +1,4 @@
-import { AuthType, ConnectorHealthStatus } from '../enums';
-import { Service } from '../enums';
+import { AuthType, ConnectorHealthStatus, Service } from '../enums';
 
 ///
 /// NOTE: Keep this in sync with server/prisma/schema.prisma ConnectorAccount model
