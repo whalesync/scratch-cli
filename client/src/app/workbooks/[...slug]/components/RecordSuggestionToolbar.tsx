@@ -17,6 +17,7 @@ type RecordSuggestionToolbarProps = {
   table: SnapshotTable;
   record: SnapshotRecord;
   columnId?: string; // if provided, only work with suggestions for this column
+  onSuggestionHandled?: () => void;
 } & BoxProps;
 
 interface SuggestionItem {
@@ -27,7 +28,7 @@ interface SuggestionItem {
 }
 
 export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JSX.Element | null => {
-  const { table, record, columnId, ...boxProps } = props;
+  const { table, record, columnId, onSuggestionHandled, ...boxProps } = props;
   const { workbook } = useActiveWorkbook();
   const { acceptCellValues, rejectCellValues, refreshRecords } = useSnapshotTableRecords({
     workbookId: workbook?.id ?? null,
@@ -63,6 +64,8 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
         message: `Accepted ${itemsToAccept.length} ${pluralize('change', itemsToAccept.length)}`,
       });
       await refreshRecords();
+      // Reset side by side mode after accepting suggestions
+      onSuggestionHandled?.();
     } catch (error) {
       console.error('Error accepting suggestions:', error);
       ScratchpadNotifications.error({
@@ -89,6 +92,8 @@ export const RecordSuggestionToolbar = (props: RecordSuggestionToolbarProps): JS
         message: `Rejected ${itemsToReject.length} ${pluralize('change', itemsToReject.length)}`,
       });
       await refreshRecords();
+      // Reset side by side mode after rejecting suggestions
+      onSuggestionHandled?.();
     } catch (error) {
       console.error('Error rejecting suggestions:', error);
       ScratchpadNotifications.error({

@@ -63,6 +63,10 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
     setMode((prev: RecordDetailsMode) => (isSideBySideMode(prev) ? 'default' : 'sideBySide'));
   }, []);
 
+  const resetToDefaultMode = useCallback(() => {
+    setMode('default');
+  }, []);
+
   // Helper function to focus the input and position cursor at the end
   const focusInput = useCallback(() => {
     const ref = focusTargetRef.current;
@@ -396,6 +400,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
                     onFocusOnField={handleFieldFocus}
                     onRecordUpdate={handleRecordUpdate}
                     focusTargetRef={setFocusTargetRef}
+                    onSuggestionHandled={resetToDefaultMode}
                   />
                 </ScrollArea>
               </Box>
@@ -408,6 +413,7 @@ export const RecordDetailsOverlay: FC<Props> = (props) => {
           record={recordWithTransformedSuggestion}
           table={table}
           columnId={activeCells.columnId}
+          onSuggestionHandled={resetToDefaultMode}
           style={{
             position: 'absolute',
             bottom: 0,

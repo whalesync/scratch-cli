@@ -1,9 +1,8 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { SnapshotTable, TableSpec } from '@spinner/shared-types';
 import { Box, Group, Loader, Stack } from '@mantine/core';
-import { WorkbookId } from '@spinner/shared-types';
+import { SnapshotTable, TableSpec, WorkbookId } from '@spinner/shared-types';
 import { FC, useCallback, useMemo, useState } from 'react';
 import { useUpdateRecordsContext } from '../contexts/update-records-context';
 import { getGridOrderedColumnSpecs } from '../snapshot-grid/header-column-utils';
@@ -19,6 +18,7 @@ interface RecordDetailsProps {
   onFocusOnField?: (columnId: string | undefined) => void;
   onRecordUpdate?: (recordId: string, field: string, value: string | number | boolean) => void;
   focusTargetRef?: (element: FocusableElement | null) => void;
+  onSuggestionHandled?: () => void;
 }
 
 export const RecordDetails: FC<RecordDetailsProps> = (props) => {
@@ -32,6 +32,7 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
     onFocusOnField,
     onRecordUpdate,
     focusTargetRef,
+    onSuggestionHandled,
   } = props;
   const { addPendingChange, savingPendingChanges } = useUpdateRecordsContext();
   const [savingSuggestions, setSavingSuggestions] = useState(false);
@@ -94,6 +95,8 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
             title: 'Suggestion Accepted',
             message: `Accepted suggestion for ${column.name}`,
           });
+          // Reset side by side mode after accepting suggestion
+          onSuggestionHandled?.();
           // Refresh the records to get updated state
           // window.location.reload();
         } catch (e) {
@@ -118,6 +121,8 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
             title: 'Suggestion Rejected',
             message: `Rejected suggestion for ${column.name}`,
           });
+          // Reset side by side mode after rejecting suggestion
+          onSuggestionHandled?.();
           // Refresh the records to get updated state
           // window.location.reload();
         } catch (e) {
@@ -157,6 +162,7 @@ export const RecordDetails: FC<RecordDetailsProps> = (props) => {
       rejectCellValues,
       handleFocusOnField,
       focusTargetRef,
+      onSuggestionHandled,
     ],
   );
 
