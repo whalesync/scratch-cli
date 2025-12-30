@@ -11,6 +11,8 @@ import { UserModule } from 'src/users/users.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { AiSnapshotController } from './ai-snapshot.controller';
+import { FilesController } from './files.controller';
+import { FilesService } from './files.service';
 import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotDataGateway } from './snapshot.gateway';
@@ -35,8 +37,8 @@ import { WorkbookService } from './workbook.service';
     UploadsModule,
     AuditLogModule,
   ],
-  controllers: [WorkbookController, AiSnapshotController, WorkbookPublicController],
-  providers: [WorkbookService, SnapshotEventService, SnapshotDataGateway],
+  controllers: [WorkbookController, AiSnapshotController, WorkbookPublicController, FilesController],
+  providers: [WorkbookService, SnapshotEventService, SnapshotDataGateway, FilesService],
   exports: [WorkbookService, SnapshotEventService],
 })
 export class WorkbookModule {}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import {
   createSnapshotRecordId,
   RecordOperation,
@@ -195,6 +196,18 @@ export class WorkbookDb {
       skip,
       take,
     };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async listFilesAndFolders(workbookId: WorkbookId, parentFolderPath: string): Promise<FileDbRecord[]> {
+    // TODO:
+    throw new Error('Not yet implemented');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getFileByPath(workbookId: WorkbookId, fullPath: string): Promise<FileDbRecord | null> {
+    // TODO:
+    throw new Error('Not yet implemented');
   }
 
   private async getFileRecord(workbookId: WorkbookId, fileId: string): Promise<FileDbRecord | undefined> {
@@ -415,6 +428,39 @@ export class WorkbookDb {
       });
 
     return newScratchId;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async createFileByPath(workbookId: WorkbookId, fullPath: string, content: string | null): Promise<string> {
+    // TODO:
+    throw new Error('Not yet implemented');
+  }
+
+  async updateFileByPath(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    workbookId: WorkbookId,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    currentPath: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    updates: {
+      newPath?: string; // If provided, rename/move the file
+      content?: string | null;
+    },
+  ): Promise<void> {
+    // TODO:
+    throw new Error('Not yet implemented');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async deleteFileByPath(workbookId: WorkbookId, filePath: string): Promise<void> {
+    // TODO:
+    throw new Error('Not yet implemented');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async renameFolder(workbookId: WorkbookId, oldFolderPath: string, newFolderPath: string): Promise<number> {
+    // TODO:
+    throw new Error('Not yet implemented');
   }
 
   /**
