@@ -17,7 +17,6 @@ import type { WorkbookId } from '@spinner/shared-types';
 import {
   CreateFileDto,
   FileDetailsResponseDto,
-  ListFileDto,
   ListFilesResponseDto,
   UpdateFileDto,
   ValidatedCreateFileDto,
@@ -35,35 +34,65 @@ export class FilesController {
 
   /**
    * List files and folders in a directory (tree structure)
-   * GET /workbooks/:workbookId/files/list or /workbooks/:workbookId/files/list/path/to/folder
+   * GET /workbooks/:workbookId/files/list?path=path/to/folder
    */
-  @Get(['list', 'list/*'])
+  @Get('list')
+  // eslint-disable-next-line @typescript-eslint/require-await
   async listFiles(
     @Param('workbookId') workbookId: WorkbookId,
-    @Param('*') folderPath: string,
-    @Query() query: ListFileDto,
+    @Query('path') folderPath: string = '',
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
-    // Default to empty string for root if no path provided
-    const cleanPath = folderPath || query.folderPath || '';
-
-    const result = await this.filesService.listFilesAndFolders(workbookId, cleanPath, userToActor(req.user));
-
-    return result;
-  }
-
-  /**
-   * Get a single file by path
-   * GET /workbooks/:workbookId/files/path/to/file.md
-   */
-  @Get('*')
-  async getFile(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('*') filePath: string,
-    @Req() req: RequestWithUser,
-  ): Promise<FileDetailsResponseDto> {
-    const result = await this.filesService.getFileByPath(workbookId, filePath, userToActor(req.user));
-    return result;
+    console.log('\n\n\n\nRYDER FOLDER PATH', folderPath);
+    // Hardcoded fake data: 3 levels with 10 files total
+    return {
+      root: {
+        type: 'folder',
+        path: folderPath || '',
+        name: 'root',
+        children: [
+          {
+            type: 'folder',
+            path: 'docs',
+            name: 'docs',
+            children: [
+              { type: 'file', id: 'fil_1', path: 'docs/readme.md', name: 'readme.md' },
+              { type: 'file', id: 'fil_2', path: 'docs/guide.md', name: 'guide.md' },
+              {
+                type: 'folder',
+                path: 'docs/api',
+                name: 'api',
+                children: [
+                  { type: 'file', id: 'fil_3', path: 'docs/api/endpoints.md', name: 'endpoints.md' },
+                  { type: 'file', id: 'fil_4', path: 'docs/api/auth.md', name: 'auth.md' },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'folder',
+            path: 'src',
+            name: 'src',
+            children: [
+              { type: 'file', id: 'fil_5', path: 'src/index.ts', name: 'index.ts' },
+              { type: 'file', id: 'fil_6', path: 'src/app.ts', name: 'app.ts' },
+              {
+                type: 'folder',
+                path: 'src/utils',
+                name: 'utils',
+                children: [
+                  { type: 'file', id: 'fil_7', path: 'src/utils/helper.ts', name: 'helper.ts' },
+                  { type: 'file', id: 'fil_8', path: 'src/utils/logger.ts', name: 'logger.ts' },
+                ],
+              },
+            ],
+          },
+          { type: 'file', id: 'fil_9', path: 'package.json', name: 'package.json' },
+          { type: 'file', id: 'fil_10', path: 'tsconfig.json', name: 'tsconfig.json' },
+        ],
+      },
+    };
   }
 
   /**
@@ -79,35 +108,6 @@ export class FilesController {
     const dto = createFileDto as ValidatedCreateFileDto;
     const path = await this.filesService.createFile(workbookId, dto, userToActor(req.user));
     return { path };
-  }
-
-  /**
-   * Update a file by path
-   * PATCH /workbooks/:workbookId/files/path/to/file.md
-   */
-  @Patch('*')
-  @HttpCode(204)
-  async updateFile(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('*') filePath: string,
-    @Body() updateFileDto: UpdateFileDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.filesService.updateFileByPath(workbookId, filePath, updateFileDto, userToActor(req.user));
-  }
-
-  /**
-   * Delete a file by path
-   * DELETE /workbooks/:workbookId/files/path/to/file.md
-   */
-  @Delete('*')
-  @HttpCode(204)
-  async deleteFile(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('*') filePath: string,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.filesService.deleteFileByPath(workbookId, filePath, userToActor(req.user));
   }
 
   /**
@@ -127,5 +127,62 @@ export class FilesController {
       userToActor(req.user),
     );
     return { filesUpdated };
+  }
+
+  /**
+   * Get a single file by path
+   * GET /workbooks/:workbookId/files/file?path=path/to/file.md
+   */
+  @Get('file')
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getFile(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') filePath: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @Req() req: RequestWithUser,
+  ): Promise<FileDetailsResponseDto> {
+    console.log('\n\n\n\nRYDER FILE PATH', filePath);
+    // Hardcoded fake data with 1-word content
+    const fileName = filePath.split('/').pop() || 'unknown';
+    return {
+      file: {
+        ref: {
+          type: 'file',
+          id: 'fil_fake',
+          path: filePath,
+          name: fileName,
+        },
+        content: 'placeholder',
+      },
+    };
+  }
+
+  /**
+   * Update a file by path
+   * PATCH /workbooks/:workbookId/files/file?path=path/to/file.md
+   */
+  @Patch('file')
+  @HttpCode(204)
+  async updateFile(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') filePath: string,
+    @Body() updateFileDto: UpdateFileDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.filesService.updateFileByPath(workbookId, filePath, updateFileDto, userToActor(req.user));
+  }
+
+  /**
+   * Delete a file by path
+   * DELETE /workbooks/:workbookId/files/file?path=path/to/file.md
+   */
+  @Delete('file')
+  @HttpCode(204)
+  async deleteFile(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') filePath: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.filesService.deleteFileByPath(workbookId, filePath, userToActor(req.user));
   }
 }

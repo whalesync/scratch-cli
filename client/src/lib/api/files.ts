@@ -1,7 +1,6 @@
 import {
   CreateFileDto,
   FileDetailsResponseDto,
-  ListFileDto,
   ListFilesResponseDto,
   UpdateFileDto,
   WorkbookId,
@@ -16,19 +15,13 @@ import { handleAxiosError } from './error';
 export const filesApi = {
   /**
    * List files and folders in a directory (tree structure)
-   * GET /workbooks/:workbookId/files/list or /workbooks/:workbookId/files/list/path/to/folder
+   * GET /workbooks/:workbookId/files/list?path=path/to/folder
    */
-  listFilesAndFolders: async (
-    workbookId: WorkbookId,
-    folderPath?: string,
-    params?: ListFileDto,
-  ): Promise<ListFilesResponseDto> => {
+  listFilesAndFolders: async (workbookId: WorkbookId, folderPath?: string): Promise<ListFilesResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const endpoint = folderPath
-        ? `/workbooks/${workbookId}/files/list/${folderPath}`
-        : `/workbooks/${workbookId}/files/list`;
-      const res = await axios.get<ListFilesResponseDto>(endpoint, { params });
+      const params = folderPath ? { path: folderPath } : {};
+      const res = await axios.get<ListFilesResponseDto>(`/workbooks/${workbookId}/files/list`, { params });
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list files and folders');
@@ -37,12 +30,14 @@ export const filesApi = {
 
   /**
    * Get a single file by path
-   * GET /workbooks/:workbookId/files/path/to/file.md
+   * GET /workbooks/:workbookId/files/file?path=path/to/file.md
    */
   getFile: async (workbookId: WorkbookId, filePath: string): Promise<FileDetailsResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<FileDetailsResponseDto>(`/workbooks/${workbookId}/files/${filePath}`);
+      const res = await axios.get<FileDetailsResponseDto>(`/workbooks/${workbookId}/files/file`, {
+        params: { path: filePath },
+      });
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch file');
@@ -65,12 +60,14 @@ export const filesApi = {
 
   /**
    * Update an existing file by path
-   * PATCH /workbooks/:workbookId/files/path/to/file.md
+   * PATCH /workbooks/:workbookId/files/file?path=path/to/file.md
    */
   updateFile: async (workbookId: WorkbookId, filePath: string, dto: UpdateFileDto): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbooks/${workbookId}/files/${filePath}`, dto);
+      await axios.patch(`/workbooks/${workbookId}/files/file`, dto, {
+        params: { path: filePath },
+      });
     } catch (error) {
       handleAxiosError(error, 'Failed to update file');
     }
@@ -78,12 +75,14 @@ export const filesApi = {
 
   /**
    * Delete a file by path
-   * DELETE /workbooks/:workbookId/files/path/to/file.md
+   * DELETE /workbooks/:workbookId/files/file?path=path/to/file.md
    */
   deleteFile: async (workbookId: WorkbookId, filePath: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.delete(`/workbooks/${workbookId}/files/${filePath}`);
+      await axios.delete(`/workbooks/${workbookId}/files/file`, {
+        params: { path: filePath },
+      });
     } catch (error) {
       handleAxiosError(error, 'Failed to delete file');
     }
