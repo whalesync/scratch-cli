@@ -5,9 +5,11 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
+import { useAuth } from '@clerk/nextjs';
 import { Box, Center, Group, Stack, Tooltip } from '@mantine/core';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
+import { redirect } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
 import { usePayments } from '../../../hooks/use-payments';
 
@@ -18,6 +20,7 @@ interface PlanCardProps {
 
 export const PlanCard = ({ plan, onError }: PlanCardProps) => {
   const { subscription, isFreePlan } = useSubscription();
+  const { isSignedIn } = useAuth();
   const {
     redirectToUpdateSubscription,
     redirectToCancelSubscription,
@@ -35,6 +38,10 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
     redirectToCancelSubscription(RouteUrls.billingPageUrl);
   }, [redirectToCancelSubscription]);
 
+  const handleSignUp = useCallback(() => {
+    redirect(RouteUrls.signUpPageUrl);
+  }, []);
+
   const handleCheckout = useCallback(() => {
     if (isFreePlan) {
       // user doesn't have a subscription, so redirect to the checkout page
@@ -47,7 +54,13 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
   }, [plan.planType, redirectToUpdateSubscription, redirectToPlanCheckout, isFreePlan]);
 
   let actionButton = null;
-  if (isCurrentPlan) {
+  if (!isSignedIn) {
+    actionButton = (
+      <ButtonPrimaryLight onClick={handleSignUp} loading={portalRedirectInProgress}>
+        Sign up
+      </ButtonPrimaryLight>
+    );
+  } else if (isCurrentPlan) {
     actionButton = (
       <Center w="100%" h="36px" bg="var(--bg-panel)" className={customBordersClasses.cornerBorders}>
         <Text13Regular c="dimmed">Current Plan</Text13Regular>

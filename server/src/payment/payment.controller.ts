@@ -3,7 +3,6 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
-  Get,
   InternalServerErrorException,
   Param,
   Post,
@@ -22,8 +21,7 @@ import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { isErr } from 'src/types/results';
-import { SubscriptionPlanEntity } from './entities/subscription-plan';
-import { getPlans, getPlanTypeFromString } from './plans';
+import { getPlanTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
 
 const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
@@ -92,18 +90,5 @@ export class StripePaymentController {
       });
     }
     return { url: result.v };
-  }
-
-  /**
-   * Called by an authenticated user to get a list of available plans.
-   * Returns a list of plans that the user can subscribe to.
-   */
-  @Get('plans')
-  listPlans(@Req() req: RequestWithUser): SubscriptionPlanEntity[] {
-    if (!req.user) {
-      throw new UnauthorizedException();
-    }
-    const plans = getPlans(this.configService.getScratchpadEnvironment());
-    return plans.filter((plan) => !plan.hidden).map((plan) => new SubscriptionPlanEntity(plan));
   }
 }

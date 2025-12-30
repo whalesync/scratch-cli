@@ -1,6 +1,7 @@
 export class RouteUrls {
   // Public routes
   static healthEndpoint = '/api/health';
+  static pricingPageUrl = '/pricing';
 
   // Not implemented yet, just placeholder for future use
   static signInPageUrl = '/sign-in';
@@ -38,7 +39,7 @@ export class RouteUrls {
 
   /** Utils */
 
-  static publicRoutePatterns = [this.healthEndpoint, this.signInPageUrl, this.signUpPageUrl];
+  static publicRoutePatterns = [this.healthEndpoint, this.pricingPageUrl, this.signInPageUrl, this.signUpPageUrl];
 
   /**
    * Public routes are endpoints that don't require any authentication, user identification or JWT tokens

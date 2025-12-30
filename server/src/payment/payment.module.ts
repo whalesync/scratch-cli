@@ -7,6 +7,7 @@ import { PosthogModule } from 'src/posthog/posthog.module';
 import { SlackNotificationModule } from 'src/slack/slack-notification.module';
 import { StripePaymentController } from './payment.controller';
 import { StripePaymentWebhookController } from './payment.webook.controller';
+import { PaymentsPublicController } from './payments-public.controller';
 import { StripePaymentService } from './stripe-payment.service';
 
 @Module({
@@ -20,6 +21,6 @@ import { StripePaymentService } from './stripe-payment.service';
     AuditLogModule,
   ],
   exports: [StripePaymentService], //export this service to use in other modules
-  controllers: [StripePaymentController, StripePaymentWebhookController],
+  controllers: [StripePaymentController, StripePaymentWebhookController, PaymentsPublicController],
 })
 export class PaymentModule {}
