@@ -9,6 +9,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { WorkbookDb } from 'src/workbook/workbook-db';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from '../../../workbook/types';
@@ -44,6 +45,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDb: SnapshotDb,
+    private readonly workbookDb: WorkbookDb,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
   ) {}
@@ -52,10 +54,12 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
    * Resets the 'seen' flag to false for all records in a table before starting a download
    * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
-  private async resetSeenFlags(workbookId: WorkbookId, tableName: string) {
+  private async resetSeenFlags(workbookId: WorkbookId, { tableId, tableName }: { tableId: string; tableName: string }) {
     await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
       __seen: false,
     });
+
+    await this.workbookDb.resetSeenFlagForFolder(workbookId, tableId);
   }
 
   async run(params: {
@@ -163,7 +167,10 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
       });
 
       // Reset the 'seen' flag to false for all records before starting the download
-      await this.resetSeenFlags(workbook.id as WorkbookId, snapshotTable.tableName);
+      await this.resetSeenFlags(workbook.id as WorkbookId, {
+        tableId: snapshotTable.id,
+        tableName: snapshotTable.tableName,
+      });
 
       // Get connector for this specific table
       const service = snapshotTable.connectorService;
@@ -192,6 +199,13 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           workbook.id as WorkbookId,
           { spec: tableSpec, tableName: snapshotTable.tableName },
           records,
+        );
+
+        await this.workbookDb.upsertFilesFromConnectorRecords(
+          workbook.id as WorkbookId,
+          snapshotTable.id,
+          records,
+          tableSpec,
         );
 
         currentTable.records += records.length;

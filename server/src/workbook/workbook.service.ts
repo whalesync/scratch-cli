@@ -64,6 +64,7 @@ import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
 import { getSnapshotTableById, getTableSpecById } from './util';
+import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
 export class WorkbookService {
@@ -72,6 +73,7 @@ export class WorkbookService {
     private readonly configService: ScratchpadConfigService,
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly workbookDbService: WorkbookDbService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
@@ -165,6 +167,9 @@ export class WorkbookService {
       tableSpecs,
       tableSpecToIdMap,
     );
+
+    // New version that creates the single files table for the workbook.
+    await this.workbookDbService.workbookDb.createForWorkbook(newWorkbook.id as WorkbookId);
 
     if (this.configService.getUseJobs()) {
       await this.bullEnqueuerService.enqueueDownloadRecordsJob(newWorkbook.id as WorkbookId, actor);

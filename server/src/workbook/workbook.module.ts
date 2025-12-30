@@ -14,6 +14,7 @@ import { AiSnapshotController } from './ai-snapshot.controller';
 import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotDataGateway } from './snapshot.gateway';
+import { WorkbookDbModule } from './workbook-db.module';
 import { WorkbookPublicController } from './workbook-public.controller';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
@@ -30,6 +31,7 @@ import { WorkbookService } from './workbook.service';
     RedisModule,
     WorkerEnqueuerModule,
     SnapshotDbModule,
+    WorkbookDbModule,
     UploadsModule,
     AuditLogModule,
   ],

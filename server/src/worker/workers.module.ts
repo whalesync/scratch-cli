@@ -4,6 +4,7 @@ import { ConnectorAccountModule } from 'src/remote-service/connector-account/con
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { UserModule } from 'src/users/users.module';
 import { SnapshotDbModule } from 'src/workbook/snapshot-db.module';
+import { WorkbookDbModule } from 'src/workbook/workbook-db.module';
 import { WorkbookModule } from 'src/workbook/workbook.module';
 import { JobModule } from '../job/job.module';
 import { WorkerEnqueuerModule } from '../worker-enqueuer/worker-enqueuer.module';
@@ -19,6 +20,7 @@ import { WorkersController } from './test/workers.controller';
     WorkerEnqueuerModule,
     ConnectorsModule,
     SnapshotDbModule,
+    WorkbookDbModule,
     WorkbookModule,
     JobModule,
     ConnectorAccountModule,

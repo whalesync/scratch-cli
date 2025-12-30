@@ -5,6 +5,7 @@ import { ConnectorsService } from 'src/remote-service/connectors/connectors.serv
 import { OnboardingService } from 'src/users/onboarding.service';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
+import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
@@ -18,6 +19,7 @@ export class JobHandlerService {
   constructor(
     private readonly connectorService: ConnectorsService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly workbookDbService: WorkbookDbService,
     private readonly config: ScratchpadConfigService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
@@ -40,6 +42,7 @@ export class JobHandlerService {
           prisma,
           this.connectorService,
           this.snapshotDbService.snapshotDb,
+          this.workbookDbService.workbookDb,
           this.connectorAccountService,
           this.snapshotEventService,
         ) as JobHandler<JobDefinition>;
