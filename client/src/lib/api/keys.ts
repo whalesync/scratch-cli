@@ -75,4 +75,14 @@ export const SWR_KEYS = {
   agentPricing: {
     list: () => ['agent-pricing', 'list'],
   },
+  files: {
+    list: (workbookId: WorkbookId, folderPath?: string) => ['files', 'list', workbookId, folderPath ?? '/'] as const,
+    detail: (workbookId: WorkbookId, filePath: string) => ['files', 'detail', workbookId, filePath] as const,
+    // Matches all file list keys for a workbook
+    listKeyMatcher: (workbookId: WorkbookId) => (key: Arguments) =>
+      Array.isArray(key) && key[0] === 'files' && key[1] === 'list' && key[2] === workbookId,
+    // Matches all file keys for a workbook
+    allKeyMatcher: (workbookId: WorkbookId) => (key: Arguments) =>
+      Array.isArray(key) && key[0] === 'files' && key[2] === workbookId,
+  },
 };

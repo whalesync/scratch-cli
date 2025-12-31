@@ -44,7 +44,6 @@ export class FilesController {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
-    console.log('\n\n\n\nRYDER FOLDER PATH', folderPath);
     // Hardcoded fake data: 3 levels with 10 files total
     return {
       root: {
@@ -141,7 +140,6 @@ export class FilesController {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Req() req: RequestWithUser,
   ): Promise<FileDetailsResponseDto> {
-    console.log('\n\n\n\nRYDER FILE PATH', filePath);
     // Hardcoded fake data with 1-word content
     const fileName = filePath.split('/').pop() || 'unknown';
     return {
@@ -152,7 +150,7 @@ export class FilesController {
           path: filePath,
           name: fileName,
         },
-        content: 'placeholder',
+        content: `Placeholder content for ${filePath}`,
       },
     };
   }

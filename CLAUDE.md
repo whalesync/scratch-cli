@@ -12,6 +12,14 @@ This is a monorepo with three main components:
 
 Each component has its own CLAUDE.md with instructions specific to the project.
 
+## Package Manager
+
+**IMPORTANT**: This project uses **`yarn`** as the package manager, NOT `npm`.
+
+- Always use `yarn` for installing dependencies (e.g., `yarn add`, `yarn install`)
+- Always use `yarn` for running scripts (e.g., `yarn build`, `yarn dev`)
+- Never use `npm install` or `npm` commands
+
 ## NVM
 
 When running commands that depend on Node, first run `nvm use` in whichever directory you're working in (e.g.
