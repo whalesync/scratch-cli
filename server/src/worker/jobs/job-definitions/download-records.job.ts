@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { Service, SnapshotTableId, type WorkbookId } from '@spinner/shared-types';
+import { Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
@@ -54,12 +54,12 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
    * Resets the 'seen' flag to false for all records in a table before starting a download
    * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
-  private async resetSeenFlags(workbookId: WorkbookId, { tableId, tableName }: { tableId: string; tableName: string }) {
+  private async resetSeenFlags(workbookId: WorkbookId, { path, tableName }: { path: string; tableName: string }) {
     await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
       __seen: false,
     });
 
-    await this.workbookDb.resetSeenFlagForFolder(workbookId, tableId);
+    await this.workbookDb.resetSeenFlagForFolder(workbookId, path);
   }
 
   async run(params: {
@@ -168,7 +168,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       // Reset the 'seen' flag to false for all records before starting the download
       await this.resetSeenFlags(workbook.id as WorkbookId, {
-        tableId: snapshotTable.id,
+        path: snapshotTable.path ?? '/' + snapshotTable.id,
         tableName: snapshotTable.tableName,
       });
 
@@ -201,9 +201,11 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           records,
         );
 
+        const folderPath = snapshotTable.path ? snapshotTable.path : '/' + snapshotTable.id;
+
         await this.workbookDb.upsertFilesFromConnectorRecords(
           workbook.id as WorkbookId,
-          [snapshotTable.id as SnapshotTableId],
+          folderPath,
           records,
           tableSpec,
         );

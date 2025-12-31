@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import {
-  createSnapshotRecordId,
+  createFileId,
+  FileId,
   SnapshotRecordId,
   SnapshotTableId,
   UNPUBLISHED_PREFIX,
@@ -28,7 +29,7 @@ export const SCRATCH_ID_COLUMN = 'id';
 // The remote identifier for the file if linked to a remote source
 export const REMOTE_ID_COLUMN = 'remote_id';
 
-// The folder the file belongs to
+// The folder the file belongs to, used to perform folder-scoped operations on files without needind to string-match the path
 export const FOLDER_ID_COLUMN = 'folder_id';
 
 // The full path of the file in the folder hierarchy including all of the folders and ending with the file name
@@ -36,6 +37,7 @@ export const PATH_COLUMN = 'path';
 
 // A generated value based on the path, providing the name of the folder this file belongs to.
 // Until we implement folder slugs, this will be the same as the folder_id
+// NOTE: this might be redundant give we could pull the value from the path column instead
 export const FOLDER_NAME_COLUMN = 'folder';
 
 // A generated value based on the path, providing the name of the file
@@ -129,7 +131,7 @@ export class WorkbookDb {
     const tableExists = await this.getKnex().schema.withSchema(workbookId).hasTable(FILES_TABLE);
 
     if (!tableExists) {
-      // Create the files table
+      // Create the central files table
       await this.getKnex()
         .schema.withSchema(workbookId)
         .createTable(FILES_TABLE, (t) => {
@@ -159,15 +161,16 @@ export class WorkbookDb {
    */
   async listFiles(
     workbookId: WorkbookId,
-    folderId: string,
+    folderPath: string,
     skip: number,
     take: number,
     sqlFilter?: string | null,
   ): Promise<{ files: SnapshotRecord[]; count: number; filteredCount: number; skip: number; take: number }> {
+    const folderId = getFolderIdFromPath(folderPath);
     const query = this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
-      .orderBy(SCRATCH_ID_COLUMN, 'asc')
+      .orderBy(PATH_COLUMN, 'asc')
       .limit(take)
       .offset(skip);
 
@@ -219,32 +222,39 @@ export class WorkbookDb {
     throw new Error('Not yet implemented');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getFileByPath(workbookId: WorkbookId, fullPath: string): Promise<FileDbRecord | null> {
-    // TODO:
-    throw new Error('Not yet implemented');
-  }
-
-  private async getFileRecord(workbookId: WorkbookId, fileId: string): Promise<FileDbRecord | undefined> {
-    return this.getKnex()<FileDbRecord>(FILES_TABLE)
+  /**
+   * Returns a single FileDbRecord for a unique ID
+   */
+  async getFileById(workbookId: WorkbookId, fileId: FileId): Promise<FileDbRecord | null> {
+    const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(SCRATCH_ID_COLUMN, fileId)
       .select('*')
       .first();
+
+    return result ?? null;
   }
 
   /**
-   * Returns a single FileDbRecord for a unique ID
+   * Finds a file using its full path
+   * @param workbookId - The workbook ID
+   * @param fullPath - The full path of the file
+   * @returns The FileDbRecord if found, otherwise null
    */
-  async getFile(workbookId: WorkbookId, fileId: string): Promise<SnapshotRecord | null> {
-    const result = await this.getFileRecord(workbookId, fileId);
-    return result ? convertFileDbRecordToSnapshotRecord(result) : null;
+  async getFileByPath(workbookId: WorkbookId, fullPath: string): Promise<FileDbRecord | null> {
+    const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(PATH_COLUMN, fullPath)
+      .select('*')
+      .first();
+
+    return result ?? null;
   }
 
   /**
-   * Returns FileDbRecords for a list of scratch IDs
+   * Returns FileDbRecords for a list of file IDs
    */
-  async getFilesById(workbookId: WorkbookId, fileIds: string[]): Promise<FileDbRecord[]> {
+  async getFilesByIds(workbookId: WorkbookId, fileIds: FileId[]): Promise<FileDbRecord[]> {
     if (fileIds.length === 0) {
       return [];
     }
@@ -262,7 +272,7 @@ export class WorkbookDb {
    * Copies the suggested column value to content, sets suggested to null, and updates the timestamp
    * Only updates files where suggested is not null
    */
-  async acceptSuggestions(workbookId: WorkbookId, fileIds: string[]): Promise<number> {
+  async acceptSuggestions(workbookId: WorkbookId, fileIds: FileId[]): Promise<number> {
     if (fileIds.length === 0) {
       return 0;
     }
@@ -287,7 +297,7 @@ export class WorkbookDb {
    * Sets the suggested column to null and clears the suggested_delete flag without updating content
    * Only updates files where suggested is not null
    */
-  async rejectSuggestions(workbookId: WorkbookId, fileIds: string[]): Promise<number> {
+  async rejectSuggestions(workbookId: WorkbookId, fileIds: FileId[]): Promise<number> {
     if (fileIds.length === 0) {
       return 0;
     }
@@ -309,9 +319,10 @@ export class WorkbookDb {
    * Copies the suggested column value to content, sets suggested to null, and updates the timestamp
    * Only updates files where suggested is not null
    */
-  async acceptSuggestionsForFolder(workbookId: WorkbookId, folderId: string): Promise<number> {
+  async acceptSuggestionsForFolder(workbookId: WorkbookId, folderPath: string): Promise<number> {
     // TODO: this needs to handle the suggested creates/deletes properly, setting the appropriate columns and timestamps
 
+    const folderId = getFolderIdFromPath(folderPath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -330,7 +341,8 @@ export class WorkbookDb {
    * Sets the suggested column to null and clears the suggested_delete flag without updating content
    * Only updates files where suggested is not null
    */
-  async rejectSuggestionsForFolder(workbookId: WorkbookId, folderId: string): Promise<number> {
+  async rejectSuggestionsForFolder(workbookId: WorkbookId, folderPath: string): Promise<number> {
+    const folderId = getFolderIdFromPath(folderPath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -348,21 +360,19 @@ export class WorkbookDb {
    */
   async createFile(
     workbookId: WorkbookId,
-    folderPath: SnapshotTableId[], // a list of folder ids with the last element being the folder that owns the file
+    folderPath: string, // a list of folder ids with the last element being the folder that owns the file
     fileName: string, // the name of the file
     content: string,
     isSuggestion: boolean,
   ): Promise<void> {
-    assertPathIsNotEmpty(folderPath);
+    assertPathIsValid(folderPath);
 
-    const scratchId = createSnapshotRecordId();
+    const scratchId = createFileId();
     const tempRemoteId = `${UNPUBLISHED_PREFIX}${scratchId}`;
 
     // Generate the path
-    const fullPath = buildFullPath(folderPath, fileName);
-
-    // The file is owned by the last folder in the path
-    const folderId = folderPath[folderPath.length - 1];
+    const folderId = getFolderIdFromPath(folderPath);
+    const fullPath = folderPath + '/' + fileName;
 
     if (isSuggestion) {
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
@@ -405,7 +415,7 @@ export class WorkbookDb {
    * If the file is a suggestion, sets the suggested column to empty string and sets the suggested_delete flag
    * If the file is not a suggestion, checks if the record has original content, if so flags it for deletion, otherwise deletes from table
    */
-  async deleteFile(workbookId: WorkbookId, fileId: SnapshotRecordId, isSuggestion: boolean): Promise<void> {
+  async deleteFile(workbookId: WorkbookId, fileId: FileId, isSuggestion: boolean): Promise<void> {
     if (isSuggestion) {
       // Suggested delete: set suggested column to empty string and set suggested_delete flag
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
@@ -448,7 +458,7 @@ export class WorkbookDb {
    * @param fileId - The file ID
    * @returns Promise that resolves when the file has been undeleted
    */
-  async undeleteFile(workbookId: WorkbookId, fileId: SnapshotRecordId): Promise<void> {
+  async undeleteFile(workbookId: WorkbookId, fileId: FileId): Promise<void> {
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(SCRATCH_ID_COLUMN, fileId)
@@ -494,12 +504,7 @@ export class WorkbookDb {
    * Bulk update files with create, update, delete, and undelete operations
    * The data in RecordOperation will have a single property named 'content'
    */
-  async bulkUpdateFiles(
-    workbookId: WorkbookId,
-    fileId: SnapshotRecordId,
-    content: string,
-    isSuggestion: boolean,
-  ): Promise<void> {
+  async bulkUpdateFiles(workbookId: WorkbookId, fileId: FileId, content: string, isSuggestion: boolean): Promise<void> {
     if (isSuggestion) {
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
@@ -525,7 +530,8 @@ export class WorkbookDb {
   /**
    * Deletes all of the files related to a specific folder
    */
-  async deleteFolderContents(workbookId: WorkbookId, folderId: SnapshotTableId): Promise<void> {
+  async deleteFolderContents(workbookId: WorkbookId, folderPath: string): Promise<void> {
+    const folderId = getFolderIdFromPath(folderPath);
     await this.getKnex()<FileDbRecord>(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId).delete();
   }
 
@@ -543,19 +549,22 @@ export class WorkbookDb {
    */
   async upsertFilesFromConnectorRecords<T extends BaseColumnSpec>(
     workbookId: WorkbookId,
-    folderPath: SnapshotTableId[],
+    folderPath: string,
     records: ConnectorRecord[],
     tableSpec: BaseTableSpec<T>,
   ): Promise<void> {
-    assertPathIsNotEmpty(folderPath);
+    assertPathIsValid(folderPath);
 
     await this.getKnex().transaction(async (trx) => {
       for (const record of records) {
         // Convert to Front Matter markdown format
-        const frontMatterContent = convertConnectorRecordToFrontMatter(record, tableSpec);
+        const { content: frontMatterContent, metadata: frontMatterMetadata } = convertConnectorRecordToFrontMatter(
+          record,
+          tableSpec,
+        );
 
         // Generate a scratch ID for new records
-        const scratchId = createSnapshotRecordId();
+        const scratchId = createFileId();
 
         // Determine the file name - use title column if available, otherwise use the record ID
         let fileName = record.id;
@@ -570,9 +579,9 @@ export class WorkbookDb {
 
         fileName = slugifyFileName(fileName) + '.md';
 
-        const folderId = folderPath[folderPath.length - 1];
+        const folderId = getFolderIdFromPath(folderPath);
         const folderName = folderId;
-        const fullPath = buildFullPath(folderPath, fileName);
+        const fullPath = folderPath + '/' + fileName;
 
         // Check if file with this remote_id already exists
         const existingFile = await trx<FileDbRecord>(FILES_TABLE)
@@ -589,7 +598,7 @@ export class WorkbookDb {
             .update({
               [ORIGINAL_COLUMN]: frontMatterContent, // this resets the original content new value from the connector
               [CONTENT_COLUMN]: frontMatterContent,
-
+              [METADATA_COLUMN]: frontMatterMetadata,
               [DIRTY_COLUMN]: false, // Reset dirty flag since content matches remote
               [ERRORS_COLUMN]: record.errors || {},
               [UPDATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
@@ -608,6 +617,7 @@ export class WorkbookDb {
               [CONTENT_COLUMN]: frontMatterContent,
               [ORIGINAL_COLUMN]: frontMatterContent,
               [SUGGESTED_COLUMN]: null,
+              [METADATA_COLUMN]: frontMatterMetadata,
               [CREATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
               [UPDATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
               [DELETED_COLUMN]: false,
@@ -619,7 +629,8 @@ export class WorkbookDb {
     });
   }
 
-  async resetSeenFlagForFolder(workbookId: WorkbookId, folderId: string): Promise<void> {
+  async resetSeenFlagForFolder(workbookId: WorkbookId, folderPath: string): Promise<void> {
+    const folderId = getFolderIdFromPath(folderPath);
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -652,7 +663,7 @@ export class WorkbookDb {
 export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
   record: ConnectorRecord,
   tableSpec: BaseTableSpec<T>,
-): string {
+): { content: string; metadata: Record<string, unknown> } {
   // Determine the main content column key
   let mainContentKey: string | undefined;
   if (tableSpec.mainContentColumnRemoteId) {
@@ -676,7 +687,7 @@ export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
   }
 
   // Convert to Front Matter markdown format
-  return matter.stringify(bodyContent, metadata);
+  return { content: matter.stringify(bodyContent, metadata), metadata };
 }
 
 /**
@@ -751,16 +762,18 @@ export function slugifyFileName(text: string): string {
     .replace(/-+/g, '-'); // Replace multiple hyphens with a single hyphen
 }
 
-export function buildFullPath(folderPath: SnapshotTableId[], fileName: string): string {
-  assertPathIsNotEmpty(folderPath);
-  return FILE_PATH_PREFIX + [...folderPath, fileName].join('/');
+export function getFolderIdFromPath(path: string): SnapshotTableId {
+  return path.split('/')[1] as SnapshotTableId;
 }
 
-function assertPathIsNotEmpty(path: unknown): asserts path is string[] {
-  if (!Array.isArray(path)) {
-    throw new Error('Path must be a string array');
+function assertPathIsValid(path: unknown): asserts path is string {
+  if (typeof path !== 'string') {
+    throw new Error(`Path must be a string, but got ${typeof path}: ${path as string}`);
   }
   if (path.length === 0) {
-    throw new Error('Path cannot be empty');
+    throw new Error('Path must not be empty');
+  }
+  if (!path.startsWith('/')) {
+    throw new Error('Path must start with a slash');
   }
 }

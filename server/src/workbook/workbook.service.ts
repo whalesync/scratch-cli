@@ -251,6 +251,7 @@ export class WorkbookService {
     // 5. Create the snapshotTableId first
     const snapshotTableId = createSnapshotTableId();
     const snapshotDataTableName = `${snapshotTableId}_${tableSpec.slug}`;
+    const folderPath = '/' + snapshotTableId;
 
     // 5. Create the new SnapshotTable record
     const createdSnapshotTable = await this.db.client.snapshotTable.create({
@@ -264,6 +265,7 @@ export class WorkbookService {
         columnSettings: {},
         version: 'v1',
         lock: 'download',
+        path: folderPath,
       },
       include: {
         connectorAccount: true,

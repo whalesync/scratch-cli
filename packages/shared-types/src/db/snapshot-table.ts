@@ -66,6 +66,7 @@ export interface SnapshotTable {
   hiddenColumns: string[];
   lastSyncTime: string | null;
   dirty: boolean;
+  path: string | null;
 }
 
 ///

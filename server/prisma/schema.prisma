@@ -245,9 +245,13 @@ model SnapshotTable {
   // Whether the table has any dirty records (records with local changes)
   dirty Boolean @default(false)
 
+  // Path of the table in the workbook folder structure, separated by '/'
+  path String?
+
   @@index([workbookId])
   @@index([connectorAccountId])
   @@index([version])
+  @@index([path])
 }
 
 ///

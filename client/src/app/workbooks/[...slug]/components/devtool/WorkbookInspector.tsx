@@ -1,13 +1,21 @@
 import { CopyText } from '@/app/components/CopyText';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { Badge, BadgeOK } from '@/app/components/base/badge';
 import { Text12Regular, Text13Regular, TextTitle3 } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
-import { ColumnSpec, SnapshotColumnSettings, SnapshotColumnSettingsMap, SnapshotTable, TableSpec } from '@spinner/shared-types';
 import { formatDate } from '@/utils/helpers';
 import { Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
+import {
+  ColumnSpec,
+  SnapshotColumnSettings,
+  SnapshotColumnSettingsMap,
+  SnapshotTable,
+  TableSpec,
+} from '@spinner/shared-types';
+import { FileTextIcon } from 'lucide-react';
 
 export const WorkbookInspector = (props: ModalProps) => {
   const { isDevToolsEnabled } = useDevTools();
@@ -81,7 +89,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
   const columnSettings = table.columnSettings as SnapshotColumnSettingsMap;
   return (
     <Stack gap="md">
-      <Group gap="lg">
+      <Group gap="lg" align="flex-start">
         <Stack gap="xs">
           <LabelValuePair label="Snapshot Table ID" value={table.id} canCopy />
           <LabelValuePair label="Name" value={tableSpec.name} />
@@ -96,6 +104,14 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
               </Text13Regular>
             }
           />
+          <LabelValuePair
+            label="Title Column Remote ID"
+            value={tableSpec.titleColumnRemoteId ? tableSpec.titleColumnRemoteId.join(', ') : 'N/A'}
+          />
+          <LabelValuePair
+            label="Content Column Remote ID"
+            value={tableSpec.mainContentColumnRemoteId ? tableSpec.mainContentColumnRemoteId.join(', ') : 'N/A'}
+          />
         </Stack>
         <Stack gap="xs">
           <LabelValuePair label="Hidden" value={String(table.hidden)} />
@@ -108,11 +124,6 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
           <LabelValuePair label="Lock" value={String(table.lock)} />
           <LabelValuePair label="Page Size" value={String(table.pageSize)} />
           <LabelValuePair label="Active SQL Filter" value={<code>{table.activeRecordSqlFilter ?? ''}</code>} />
-
-          <LabelValuePair
-            label="Title Column Remote ID"
-            value={tableSpec.titleColumnRemoteId ? tableSpec.titleColumnRemoteId.join(', ') : 'N/A'}
-          />
         </Stack>
       </Group>
 
@@ -149,6 +160,7 @@ const TableDetails = ({ table }: { table: SnapshotTable }) => {
                   settings={columnSettings[column.id.wsId]}
                   isHidden={table.hiddenColumns.includes(column.id.wsId)}
                   titleColumnRemoteId={tableSpec.titleColumnRemoteId}
+                  mainContentColumnRemoteId={tableSpec.mainContentColumnRemoteId}
                 />
               ))}
           </Table.Tbody>
@@ -163,16 +175,23 @@ const ColumnSpecDetails = ({
   settings,
   isHidden,
   titleColumnRemoteId,
+  mainContentColumnRemoteId,
 }: {
   column: ColumnSpec;
   settings?: SnapshotColumnSettings;
   isHidden: boolean;
   titleColumnRemoteId?: string[];
+  mainContentColumnRemoteId?: string[];
 }) => {
   const isTitleColumn =
     titleColumnRemoteId &&
     column.id.remoteId.length === titleColumnRemoteId.length &&
     column.id.remoteId.every((val, idx) => val === titleColumnRemoteId[idx]);
+
+  const isMainContentColumn =
+    mainContentColumnRemoteId &&
+    column.id.remoteId.length === mainContentColumnRemoteId.length &&
+    column.id.remoteId.every((val, idx) => val === mainContentColumnRemoteId[idx]);
   const tags: string[] = [];
   if (column.readonly) {
     tags.push('Readonly');
@@ -193,6 +212,7 @@ const ColumnSpecDetails = ({
             ★
           </Text>
         )}
+        {isMainContentColumn && <StyledLucideIcon Icon={FileTextIcon} size="sm" c="blue" ml={4} />}
       </Table.Td>
       <Table.Td>
         <CopyText value={column.id.wsId} />
