@@ -76,14 +76,12 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    const fullPath = `${file.folder_id ? file.folder_id + '/' : ''}${file.name}`;
-
     return {
       file: {
         ref: {
           type: 'file',
           id: file.id as FileId,
-          path: fullPath,
+          path: file.path,
           name: file.name,
         },
         content: file.content,

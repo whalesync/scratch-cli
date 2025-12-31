@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { Service, type WorkbookId } from '@spinner/shared-types';
+import { Service, SnapshotTableId, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
@@ -203,7 +203,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
         await this.workbookDb.upsertFilesFromConnectorRecords(
           workbook.id as WorkbookId,
-          snapshotTable.id,
+          [snapshotTable.id as SnapshotTableId],
           records,
           tableSpec,
         );

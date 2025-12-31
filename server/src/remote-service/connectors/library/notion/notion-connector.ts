@@ -124,6 +124,17 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       },
     });
 
+    let titleColumnRemoteId: string[] | undefined = undefined;
+
+    const titleColumn = columns.find((c) => c.notionDataType === 'title');
+    if (titleColumn) {
+      titleColumnRemoteId = titleColumn.id.remoteId;
+    } else {
+      // look for the first column named title or name
+      titleColumnRemoteId = columns.find((c) => c.name.toLowerCase() === 'title' || c.name.toLowerCase() === 'name')?.id
+        .remoteId;
+    }
+
     const tableTitle = database.title.map((t) => t.plain_text).join('');
     return {
       id,
@@ -132,6 +143,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       columns,
       // Auto-set the page content column as the main content column for Notion tables
       mainContentColumnRemoteId: [PAGE_CONTENT_COLUMN_ID],
+      titleColumnRemoteId: titleColumnRemoteId ? titleColumnRemoteId : undefined,
     };
   }
 
