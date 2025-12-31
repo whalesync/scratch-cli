@@ -1,21 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, ScrollArea, Stack, Text } from '@mantine/core';
-import type { FileRefEntity, FolderRefEntity } from '@spinner/shared-types';
-import {
-  BookOpenIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  FileTextIcon,
-  FolderIcon,
-  PlusIcon,
-} from 'lucide-react';
-import { useState } from 'react';
+import { DndProvider, getBackendOptions, MultiBackend, Tree, type NodeModel } from '@minoru/react-dnd-treeview';
+import type { FileRefEntity } from '@spinner/shared-types';
+import { BookOpenIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, PlusIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 
 interface WorkbookFileBrowserProps {
   openTabs: string[];
@@ -25,76 +19,63 @@ interface WorkbookFileBrowserProps {
   refreshWorkbook?: () => Promise<void>;
 }
 
-// Helper function to recursively render folders and files
-function renderFileTree(
-  entity: FileRefEntity | FolderRefEntity,
-  level: number,
-  expandedFolders: Set<string>,
-  setExpandedFolders: React.Dispatch<React.SetStateAction<Set<string>>>,
-  activeTabId: string | null,
-  onFileClick: (filePath: string) => void,
-): React.ReactNode {
-  const indent = level * 18;
+interface TreeNodeData {
+  name: string;
+  path: string;
+  isFile: boolean;
+}
 
-  if (entity.type === 'folder') {
-    const isExpanded = expandedFolders.has(entity.path);
+interface TreeNodeRendererProps {
+  node: NodeModel<TreeNodeData>;
+  depth: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  activeTabId: string | null;
+  onFileClick: (filePath: string) => void;
+}
 
+function TreeNodeRenderer({ node, depth, isOpen, onToggle, activeTabId, onFileClick }: TreeNodeRendererProps) {
+  const nodeData = node.data;
+  if (!nodeData) return <></>;
+
+  const isSelected = activeTabId === nodeData.path;
+  const indent = depth * 18;
+
+  if (!nodeData.isFile) {
+    // Folder node
     return (
-      <Box key={entity.path}>
-        <Group
-          gap="xs"
-          h={24}
-          pl={indent + 6}
-          pr="xs"
-          onClick={() => {
-            setExpandedFolders((prev) => {
-              const next = new Set(prev);
-              if (next.has(entity.path)) {
-                next.delete(entity.path);
-              } else {
-                next.add(entity.path);
-              }
-              return next;
-            });
-          }}
-          style={{
-            cursor: 'pointer',
-            borderRadius: '4px',
-          }}
-          bg="transparent"
-        >
-          {isExpanded ? (
-            <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          ) : (
-            <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          )}
-          <FolderIcon size={14} color="var(--fg-secondary)" />
-          <Text size="sm" c="var(--fg-secondary)" truncate>
-            {entity.name}
-          </Text>
-        </Group>
-
-        {isExpanded && (
-          <Stack gap={0}>
-            {entity.children.map((child) =>
-              renderFileTree(child, level + 1, expandedFolders, setExpandedFolders, activeTabId, onFileClick),
-            )}
-          </Stack>
+      <Group
+        gap="xs"
+        h={24}
+        pl={indent + 6}
+        pr="xs"
+        onClick={onToggle}
+        style={{
+          cursor: 'pointer',
+          borderRadius: '4px',
+        }}
+        bg="transparent"
+      >
+        {isOpen ? (
+          <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+        ) : (
+          <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
         )}
-      </Box>
+        <FolderIcon size={14} color="var(--fg-secondary)" />
+        <Text size="sm" c="var(--fg-secondary)" truncate>
+          {nodeData.name}
+        </Text>
+      </Group>
     );
   } else {
     // File node
-    const isSelected = activeTabId === entity.path;
-
     return (
       <Group
-        key={entity.path}
         h={24}
         pl={indent + 6}
         pr="xs"
         gap="xs"
-        onClick={() => onFileClick(entity.path)}
+        onClick={() => onFileClick(nodeData.path)}
         bg={isSelected ? 'var(--bg-selected)' : 'transparent'}
         style={{
           cursor: 'pointer',
@@ -104,18 +85,46 @@ function renderFileTree(
         <Box w={14} style={{ flexShrink: 0 }} />
         <FileTextIcon size={12} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
         <Text size="sm" truncate c={isSelected ? 'var(--fg-primary)' : 'var(--fg-secondary)'}>
-          {entity.name}
+          {nodeData.name}
         </Text>
       </Group>
     );
   }
 }
 
-export function WorkbookFileBrowser({
-  setOpenTabs,
-  activeTabId,
-  setActiveTabId,
-}: WorkbookFileBrowserProps) {
+// Convert file/folder tree to react-dnd-treeview format
+function convertToTreeNode(entity: FileRefEntity): NodeModel<TreeNodeData> {
+  console.log('convertToTreeNode', entity);
+  if (entity.type === 'folder') {
+    // Add folder node
+    return {
+      id: entity.path,
+      parent: entity.parentPath,
+      droppable: true,
+      text: entity.name,
+      data: {
+        name: entity.name,
+        path: entity.path,
+        isFile: false,
+      },
+    };
+  } else {
+    // Add file node
+    return {
+      id: entity.path,
+      parent: entity.parentPath,
+      droppable: false,
+      text: entity.name,
+      data: {
+        name: entity.name,
+        path: entity.path,
+        isFile: true,
+      },
+    };
+  }
+}
+
+export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }: WorkbookFileBrowserProps) {
   const router = useRouter();
   const { workbook } = useActiveWorkbook();
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
@@ -124,11 +133,12 @@ export function WorkbookFileBrowser({
   // Use the file list hook
   const { files, isLoading } = useFileList(workbook?.id ?? null);
 
-  // State for workbook tree expansion
-  const [workbookExpanded, setWorkbookExpanded] = useState(true);
+  // Convert files to tree data format
+  const treeData = useMemo(() => {
+    if (!files?.files) return [];
 
-  // State for folder expansion (track which folders are expanded)
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+    return files.files.map((f) => convertToTreeNode(f));
+  }, [files]);
 
   const handleFileClick = (filePath: string) => {
     // Add to open tabs if not already open
@@ -150,68 +160,66 @@ export function WorkbookFileBrowser({
     });
   };
 
+  const handleDrop = () => {
+    // Handle tree reordering if needed
+    // For now, we'll just prevent modifications since the tree is read-only from the server
+  };
+
   if (!workbook) {
     return null;
   }
 
+  console.log('treeData', treeData);
   return (
-    <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
-      {/* Tree Header */}
-      <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
-        <Text fw={500} size="sm">
-          Explorer
-        </Text>
-        <Group gap={4}>
-          <Button
-            size="compact-xs"
-            variant="subtle"
-            color="gray"
-            leftSection={<PlusIcon size={12} />}
-            onClick={() => router.push(RouteUrls.workbooksPageUrl)}
-          >
-            WB
-          </Button>
-          <Button
-            size="compact-xs"
-            variant="subtle"
-            color="gray"
-            leftSection={<PlusIcon size={12} />}
-            onClick={() => router.push(RouteUrls.workbookNewTabPageUrl(workbook.id))}
-          >
-            Table
-          </Button>
-        </Group>
-      </Group>
-
-      <ScrollArea style={{ flex: 1 }}>
-        <Stack gap={0} p="xs">
-          {/* Workbook Node (Top Level) */}
-          <Box>
-            <Group
-              gap="xs"
-              h={24}
-              px="sm"
-              onClick={() => setWorkbookExpanded(!workbookExpanded)}
-              style={{
-                cursor: 'pointer',
-                borderRadius: '4px',
-              }}
-              bg="transparent"
+    <DndProvider backend={MultiBackend} options={getBackendOptions()}>
+      <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
+        {/* Tree Header */}
+        <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
+          <Text fw={500} size="sm">
+            Explorer
+          </Text>
+          <Group gap={4}>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<PlusIcon size={12} />}
+              onClick={() => router.push(RouteUrls.workbooksPageUrl)}
             >
-              {workbookExpanded ? (
-                <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-              ) : (
-                <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-              )}
-              <BookOpenIcon size={14} color="var(--fg-secondary)" />
-              <Text size="sm" fw={500} c="var(--fg-primary)" truncate>
-                {workbook.name || 'Untitled Workbook'}
-              </Text>
-            </Group>
+              WB
+            </Button>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<PlusIcon size={12} />}
+              onClick={() => router.push(RouteUrls.workbookNewTabPageUrl(workbook.id))}
+            >
+              Table
+            </Button>
+          </Group>
+        </Group>
 
-            {/* Files and Folders */}
-            {workbookExpanded && (
-              <Stack gap={0} ml={6} style={{ borderLeft: '1px solid var(--fg-divider)' }}>
+        <ScrollArea style={{ flex: 1 }}>
+          <Stack gap={0} p="xs">
+            {/* Workbook Node (Top Level) */}
+            <Box>
+              <Group
+                gap="xs"
+                h={24}
+                style={{
+                  borderRadius: '4px',
+                }}
+                bg="transparent"
+              >
+                <BookOpenIcon size={14} color="var(--fg-secondary)" />
+                <Text size="sm" fw={500} c="var(--fg-primary)" truncate>
+                  {workbook.name || 'Untitled Workbook'}
+                </Text>
+              </Group>
+
+              {/* Files and Folders */}
+              <Box ml={6} style={{ borderLeft: '1px solid var(--fg-divider)' }}>
                 {isLoading && (
                   <Box pl={18} py="xs">
                     <Text size="xs" c="dimmed">
@@ -219,23 +227,35 @@ export function WorkbookFileBrowser({
                     </Text>
                   </Box>
                 )}
-                {!isLoading && !files?.root && (
+                {!isLoading && treeData.length === 0 && (
                   <Box pl={18} py="xs">
                     <Text size="xs" c="dimmed">
                       No files
                     </Text>
                   </Box>
                 )}
-                {!isLoading &&
-                  files?.root &&
-                  files.root.children.map((child) =>
-                    renderFileTree(child, 1, expandedFolders, setExpandedFolders, activeTabId, handleFileClick),
-                  )}
-              </Stack>
-            )}
-          </Box>
-        </Stack>
-      </ScrollArea>
-    </Stack>
+                {!isLoading && treeData.length > 0 && (
+                  <Tree
+                    tree={treeData}
+                    rootId=""
+                    onDrop={handleDrop}
+                    render={(node, { depth, isOpen, onToggle }) => (
+                      <TreeNodeRenderer
+                        node={node}
+                        depth={depth}
+                        isOpen={isOpen}
+                        onToggle={onToggle}
+                        activeTabId={activeTabId}
+                        onFileClick={handleFileClick}
+                      />
+                    )}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Stack>
+        </ScrollArea>
+      </Stack>
+    </DndProvider>
   );
 }

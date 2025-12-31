@@ -40,57 +40,54 @@ export class FilesController {
   // eslint-disable-next-line @typescript-eslint/require-await
   async listFiles(
     @Param('workbookId') workbookId: WorkbookId,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Query('path') folderPath: string = '',
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
     // Hardcoded fake data: 3 levels with 10 files total
     return {
-      root: {
-        type: 'folder',
-        path: folderPath || '',
-        name: 'root',
-        children: [
-          {
-            type: 'folder',
-            path: 'docs',
-            name: 'docs',
-            children: [
-              { type: 'file', id: 'fil_1', path: 'docs/readme.md', name: 'readme.md' },
-              { type: 'file', id: 'fil_2', path: 'docs/guide.md', name: 'guide.md' },
-              {
-                type: 'folder',
-                path: 'docs/api',
-                name: 'api',
-                children: [
-                  { type: 'file', id: 'fil_3', path: 'docs/api/endpoints.md', name: 'endpoints.md' },
-                  { type: 'file', id: 'fil_4', path: 'docs/api/auth.md', name: 'auth.md' },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'folder',
-            path: 'src',
-            name: 'src',
-            children: [
-              { type: 'file', id: 'fil_5', path: 'src/index.ts', name: 'index.ts' },
-              { type: 'file', id: 'fil_6', path: 'src/app.ts', name: 'app.ts' },
-              {
-                type: 'folder',
-                path: 'src/utils',
-                name: 'utils',
-                children: [
-                  { type: 'file', id: 'fil_7', path: 'src/utils/helper.ts', name: 'helper.ts' },
-                  { type: 'file', id: 'fil_8', path: 'src/utils/logger.ts', name: 'logger.ts' },
-                ],
-              },
-            ],
-          },
-          { type: 'file', id: 'fil_9', path: 'package.json', name: 'package.json' },
-          { type: 'file', id: 'fil_10', path: 'tsconfig.json', name: 'tsconfig.json' },
-        ],
-      },
+      files: [
+        {
+          type: 'folder',
+          id: 'fil_fold_1',
+          path: 'docs',
+          name: 'docs',
+          parentPath: '',
+        },
+        { type: 'file', id: 'fil_1', path: 'docs/readme.md', name: 'readme.md', parentPath: 'docs' },
+        { type: 'file', id: 'fil_2', path: 'docs/guide.md', name: 'guide.md', parentPath: 'docs' },
+        {
+          type: 'folder',
+          id: 'fil_fold_2',
+          path: 'docs/api',
+          name: 'api',
+          parentPath: 'docs',
+        },
+        { type: 'file', id: 'fil_3', path: 'docs/api/endpoints.md', name: 'endpoints.md', parentPath: 'docs/api' },
+        { type: 'file', id: 'fil_4', path: 'docs/api/auth.md', name: 'auth.md', parentPath: 'docs/api' },
+
+        {
+          type: 'folder',
+          id: 'fil_fold_3',
+          path: 'src',
+          name: 'src',
+          parentPath: '',
+        },
+        { type: 'file', id: 'fil_5', path: 'src/index.ts', name: 'index.ts', parentPath: 'src' },
+        { type: 'file', id: 'fil_6', path: 'src/app.ts', name: 'app.ts', parentPath: 'src' },
+        {
+          type: 'folder',
+          id: 'fil_fold_4',
+          path: 'src/utils',
+          name: 'utils',
+          parentPath: 'src',
+        },
+        { type: 'file', id: 'fil_7', path: 'src/utils/helper.ts', name: 'helper.ts', parentPath: 'src/utils' },
+        { type: 'file', id: 'fil_8', path: 'src/utils/logger.ts', name: 'logger.ts', parentPath: 'src/utils' },
+        { type: 'file', id: 'fil_9', path: 'package.json', name: 'package.json', parentPath: '' },
+        { type: 'file', id: 'fil_10', path: 'tsconfig.json', name: 'tsconfig.json', parentPath: '' },
+      ],
     };
   }
 
@@ -149,6 +146,7 @@ export class FilesController {
           id: 'fil_fake',
           path: filePath,
           name: fileName,
+          parentPath: filePath.split('/').slice(0, -1).join('/'),
         },
         content: `Placeholder content for ${filePath}`,
       },

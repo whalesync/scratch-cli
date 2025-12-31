@@ -1,5 +1,5 @@
 import { IsOptional } from 'class-validator';
-import { FolderRefEntity } from '../../file-types';
+import { FileRefEntity } from '../../file-types';
 
 export class ListFileDto {
   // Defaults to root folder.
@@ -10,7 +10,8 @@ export class ListFileDto {
 export type ValidatedListFileDto = ListFileDto;
 
 export interface ListFilesResponseDto {
-  root: FolderRefEntity;
+  /** Flat list of all files and folders under the root. */
+  files: FileRefEntity[];
 }
 
 export type ValidatedListFilesResponseDto = Required<ListFilesResponseDto>;

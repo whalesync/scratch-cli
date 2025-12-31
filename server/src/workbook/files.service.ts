@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { FileId, WorkbookId } from '@spinner/shared-types';
+import type { FileId, FileRefEntity, WorkbookId } from '@spinner/shared-types';
 import {
   FileDetailsResponseDto,
-  FileRefEntity,
-  FolderRefEntity,
   ListFilesResponseDto,
   ValidatedCreateFileDto,
   ValidatedUpdateFileDto,
@@ -43,25 +41,17 @@ export class FilesService {
 
     const result = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
 
-    // TODO: Build into tree structure once return type is updated.
-    const children: (FileRefEntity | FolderRefEntity)[] = [];
-    for (const file of result) {
-      children.push({
+    const files = result.map(
+      (f): FileRefEntity => ({
         type: 'file',
-        id: file.id as FileId, // TODO: Type the DB record properly.
-        path: 'NOT_IMPLEMENTED',
-        name: file.name,
-      });
-    }
+        id: f.id as FileId, // TODO: Type the DB record properly.
+        path: f.path,
+        name: f.name,
+        parentPath: f.path.split('/').slice(0, -1).join('/'),
+      }),
+    );
 
-    return {
-      root: {
-        type: 'folder',
-        path: folderPath,
-        name: folderPath ? folderPath.split('/').pop() || folderPath : '',
-        children,
-      },
-    };
+    return { files };
   }
 
   /**
@@ -83,6 +73,7 @@ export class FilesService {
           id: file.id as FileId,
           path: file.path,
           name: file.name,
+          parentPath: file.path.split('/').slice(0, -1).join('/'),
         },
         content: file.content,
       },
