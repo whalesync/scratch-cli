@@ -10,6 +10,7 @@ import type { FileRefEntity } from '@spinner/shared-types';
 import { BookOpenIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
+import styles from './WorkbookFileBrowser.module.css';
 
 interface WorkbookFileBrowserProps {
   openTabs: string[];
@@ -94,7 +95,6 @@ function TreeNodeRenderer({ node, depth, isOpen, onToggle, activeTabId, onFileCl
 
 // Convert file/folder tree to react-dnd-treeview format
 function convertToTreeNode(entity: FileRefEntity): NodeModel<TreeNodeData> {
-  console.log('convertToTreeNode', entity);
   if (entity.type === 'folder') {
     // Add folder node
     return {
@@ -169,7 +169,6 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
     return null;
   }
 
-  console.log('treeData', treeData);
   return (
     <DndProvider backend={MultiBackend} options={getBackendOptions()}>
       <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
@@ -239,6 +238,7 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
                     tree={treeData}
                     rootId=""
                     onDrop={handleDrop}
+                    classes={{ listItem: styles.listItem }}
                     render={(node, { depth, isOpen, onToggle }) => (
                       <TreeNodeRenderer
                         node={node}

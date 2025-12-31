@@ -1,7 +1,7 @@
 'use client';
 
 import { useFile } from '@/hooks/use-file';
-import { Box, Button, Text } from '@mantine/core';
+import { Box, Button, Group, Text } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
 import { SaveIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -71,25 +71,26 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
   }
 
   return (
-    <Box style={{ position: 'relative', height: '100%' }}>
-      {/* Save button - absolutely positioned */}
-      {hasChanges && (
-        <Box
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 10,
-          }}
-        >
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Toolbar */}
+      <Group
+        h={32}
+        px="xs"
+        justify="flex-end"
+        style={{
+          borderBottom: '0.5px solid var(--fg-divider)',
+          flexShrink: 0,
+        }}
+      >
+        {hasChanges && (
           <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
             Save
           </Button>
-        </Box>
-      )}
+        )}
+      </Group>
 
       {/* CodeMirror markdown editor */}
-      <Box style={{ height: '100%', overflow: 'auto' }}>
+      <Box style={{ flex: 1, overflow: 'auto' }}>
         <CodeMirror
           value={content}
           onChange={handleContentChange}
