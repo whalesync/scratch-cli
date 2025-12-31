@@ -1,22 +1,11 @@
 /* eslint-disable @typescript-eslint/require-await */
-import {
-  createFileId,
-  FileId,
-  SnapshotRecordId,
-  SnapshotTableId,
-  UNPUBLISHED_PREFIX,
-  WorkbookId,
-} from '@spinner/shared-types';
+import { createFileId, FileId, SnapshotTableId, UNPUBLISHED_PREFIX, WorkbookId } from '@spinner/shared-types';
 import matter from 'gray-matter';
 import { Knex } from 'knex';
 import _ from 'lodash';
-import {
-  BaseColumnSpec,
-  BaseTableSpec,
-  ConnectorRecord,
-  RecordErrorsMetadata,
-  SnapshotRecord,
-} from '../remote-service/connectors/types';
+import path from 'path';
+import { WSLogger } from 'src/logger';
+import { BaseColumnSpec, BaseTableSpec, ConnectorRecord } from '../remote-service/connectors/types';
 
 // Table name constant
 export const FILES_TABLE = 'files';
@@ -24,7 +13,7 @@ export const FILES_TABLE = 'files';
 // Column name constants for the files table
 
 // The internal unique identifier for the file
-export const SCRATCH_ID_COLUMN = 'id';
+export const FILE_ID_COLUMN = 'id';
 
 // The remote identifier for the file if linked to a remote source
 export const REMOTE_ID_COLUMN = 'remote_id';
@@ -81,11 +70,11 @@ export const FILE_PATH_PREFIX = '/';
 
 /**
  * Different states of a file record
- * - new file (suggestion): suggested content <> null, original content === null
- * - new file (accepted): content <> null, original content === null
+ * - new file (suggestion): suggested <> null, original === null
+ * - new file (accepted): content <> null, original === null
  * - deleted: deleted === true
- * - deleted (suggested): suggested_delete === true, suggested content <> null (i.e. set to '')
- * - modified: content <> original content
+ * - deleted (suggested): suggested_delete === true, suggested  === ''
+ * - modified: content <> original
  * - pending change: suggested <> null && suggested <> content
  * - dirty: the file record has changed since the original content was set. Just a quick filter flag
  */
@@ -94,7 +83,7 @@ export const FILE_PATH_PREFIX = '/';
  * Represents a single file record from the files table
  */
 export type FileDbRecord = {
-  [SCRATCH_ID_COLUMN]: string;
+  [FILE_ID_COLUMN]: string;
   [REMOTE_ID_COLUMN]: string | null;
   [FOLDER_ID_COLUMN]: string;
   [PATH_COLUMN]: string;
@@ -135,7 +124,7 @@ export class WorkbookDb {
       await this.getKnex()
         .schema.withSchema(workbookId)
         .createTable(FILES_TABLE, (t) => {
-          t.text(SCRATCH_ID_COLUMN).primary();
+          t.text(FILE_ID_COLUMN).primary();
           t.text(REMOTE_ID_COLUMN).nullable().index();
           t.text(FOLDER_ID_COLUMN).index();
           t.text(PATH_COLUMN).unique();
@@ -156,70 +145,15 @@ export class WorkbookDb {
     }
   }
 
-  /**
-   * Returns all files for a specific folder
-   */
-  async listFiles(
-    workbookId: WorkbookId,
-    folderPath: string,
-    skip: number,
-    take: number,
-    sqlFilter?: string | null,
-  ): Promise<{ files: SnapshotRecord[]; count: number; filteredCount: number; skip: number; take: number }> {
-    const folderId = getFolderIdFromPath(folderPath);
-    const query = this.getKnex()<FileDbRecord>(FILES_TABLE)
-      .withSchema(workbookId)
-      .where(FOLDER_ID_COLUMN, folderId)
-      .orderBy(PATH_COLUMN, 'asc')
-      .limit(take)
-      .offset(skip);
-
-    // Apply SQL filter if provided
-    if (sqlFilter && sqlFilter.trim() !== '') {
-      query.whereRaw(sqlFilter);
-    }
-
-    query.select('*');
-
-    const result = await query;
-
-    // Calculate counts
-    let count: number;
-    let filteredCount: number;
-
-    if (sqlFilter && sqlFilter.trim() !== '') {
-      // Count total files in folder without filter
-      const totalQuery = this.getKnex()(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId);
-      const totalFiles = await totalQuery.count('* as count');
-      count = parseInt(String(totalFiles[0].count), 10);
-
-      // Count filtered files with filter
-      const filteredQuery = this.getKnex()(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId);
-      filteredQuery.whereRaw(sqlFilter);
-      const filteredFiles = await filteredQuery.count('* as count');
-      filteredCount = parseInt(String(filteredFiles[0].count), 10);
-    } else {
-      // No filter, so both counts are the same
-      const totalQuery = this.getKnex()(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId);
-      const totalFiles = await totalQuery.count('* as count');
-      count = parseInt(String(totalFiles[0].count), 10);
-      filteredCount = count;
-    }
-
-    const files = result.map((r) => convertFileDbRecordToSnapshotRecord(r));
-    return {
-      files,
-      count,
-      filteredCount,
-      skip,
-      take,
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async listFilesAndFolders(workbookId: WorkbookId, parentFolderPath: string): Promise<FileDbRecord[]> {
-    // TODO:
-    throw new Error('Not yet implemented');
+    assertFolderPathIsValid(parentFolderPath);
+    const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(PATH_COLUMN, 'like', `${parentFolderPath}%`)
+      .orderBy(PATH_COLUMN, 'asc')
+      .select('*');
+
+    return result;
   }
 
   /**
@@ -228,7 +162,7 @@ export class WorkbookDb {
   async getFileById(workbookId: WorkbookId, fileId: FileId): Promise<FileDbRecord | null> {
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .where(SCRATCH_ID_COLUMN, fileId)
+      .where(FILE_ID_COLUMN, fileId)
       .select('*')
       .first();
 
@@ -261,50 +195,77 @@ export class WorkbookDb {
 
     const results = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .whereIn(SCRATCH_ID_COLUMN, fileIds)
+      .whereIn(FILE_ID_COLUMN, fileIds)
       .select('*');
 
     return results;
   }
 
   /**
-   * Accepts suggestions for a list of file IDs
+   * Accepts suggestions for a file by path
    * Copies the suggested column value to content, sets suggested to null, and updates the timestamp
    * Only updates files where suggested is not null
    */
-  async acceptSuggestions(workbookId: WorkbookId, fileIds: FileId[]): Promise<number> {
-    if (fileIds.length === 0) {
+  async acceptSuggestionByPath(workbookId: WorkbookId, filePath: string): Promise<number> {
+    assertFilePathIsValid(filePath);
+
+    const file = await this.getFileByPath(workbookId, filePath);
+
+    if (!file) {
+      throw new FileNotFoundError(filePath, workbookId);
+    }
+
+    if (file.suggested === null && file.suggested_delete === false) {
       return 0;
     }
 
-    // TODO: this needs to handle the suggested creates/deletes properly, setting the appropriate columns and timestamps
+    // check the suggested delete first
+    if (file.suggested_delete === true) {
+      // accept the suggestion and delete the file
+      await this.deleteFileByPath(workbookId, filePath, true);
+      return 1;
+    }
+
+    // this is an update operation, so we need to recalculate the metadata
+    let metadata: Record<string, unknown> = {};
+
+    if (file.suggested && file.suggested.length > 0) {
+      try {
+        const parsed = matter(file.suggested);
+        metadata = parsed.data as Record<string, unknown>;
+      } catch (error) {
+        WSLogger.error({
+          source: 'WorkbookDb',
+          message: `Failed to parse suggested content as frontmatter`,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
+    }
 
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .whereIn(SCRATCH_ID_COLUMN, fileIds)
-      .whereNotNull(SUGGESTED_COLUMN)
+      .where(PATH_COLUMN, filePath)
       .update({
         [CONTENT_COLUMN]: this.getKnex().raw('??', [SUGGESTED_COLUMN]),
         [SUGGESTED_COLUMN]: null,
+        [METADATA_COLUMN]: metadata,
         [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
+        [DIRTY_COLUMN]: true,
       });
 
-    return result;
+    return result ?? 0;
   }
 
   /**
-   * Rejects suggestions for a list of file IDs
+   * Rejects suggestions for a file by path
    * Sets the suggested column to null and clears the suggested_delete flag without updating content
    * Only updates files where suggested is not null
    */
-  async rejectSuggestions(workbookId: WorkbookId, fileIds: FileId[]): Promise<number> {
-    if (fileIds.length === 0) {
-      return 0;
-    }
-
+  async rejectSuggestionByPath(workbookId: WorkbookId, filePath: string): Promise<number> {
+    assertFilePathIsValid(filePath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .whereIn(SCRATCH_ID_COLUMN, fileIds)
+      .where(PATH_COLUMN, filePath)
       .whereNotNull(SUGGESTED_COLUMN)
       .update({
         [SUGGESTED_COLUMN]: null,
@@ -320,7 +281,9 @@ export class WorkbookDb {
    * Only updates files where suggested is not null
    */
   async acceptSuggestionsForFolder(workbookId: WorkbookId, folderPath: string): Promise<number> {
-    // TODO: this needs to handle the suggested creates/deletes properly, setting the appropriate columns and timestamps
+    assertFolderPathIsValid(folderPath);
+    // TODO: this needs to to be rewriten to handle suggestions one at a time, inside of a transaction in order
+    // to handle the deletes, updates and metadata recalculations properly
 
     const folderId = getFolderIdFromPath(folderPath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
@@ -362,23 +325,23 @@ export class WorkbookDb {
     workbookId: WorkbookId,
     folderPath: string, // a list of folder ids with the last element being the folder that owns the file
     fileName: string, // the name of the file
-    content: string,
+    content: string | null,
     isSuggestion: boolean,
-  ): Promise<void> {
-    assertPathIsValid(folderPath);
+  ): Promise<FileDbRecord> {
+    assertFilePathIsValid(folderPath);
 
-    const scratchId = createFileId();
-    const tempRemoteId = `${UNPUBLISHED_PREFIX}${scratchId}`;
+    const fileId = createFileId();
+    const tempRemoteId = `${UNPUBLISHED_PREFIX}${fileId}`;
 
     // Generate the path
     const folderId = getFolderIdFromPath(folderPath);
-    const fullPath = folderPath + '/' + fileName;
+    const fullPath = path.posix.join(folderPath, fileName);
 
     if (isSuggestion) {
-      await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      return await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
         .insert({
-          [SCRATCH_ID_COLUMN]: scratchId,
+          [FILE_ID_COLUMN]: fileId,
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
           [PATH_COLUMN]: fullPath,
@@ -391,10 +354,24 @@ export class WorkbookDb {
           [CREATED_AT_COLUMN]: this.getKnex().fn.now(),
         });
     } else {
-      await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      let metadata: Record<string, unknown> = {};
+      if (content) {
+        try {
+          const parsed = matter(content);
+          metadata = parsed.data as Record<string, unknown>;
+        } catch (error) {
+          WSLogger.error({
+            source: 'WorkbookDb',
+            message: `Failed to parse content as frontmatter`,
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+        }
+      }
+
+      return await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
         .insert({
-          [SCRATCH_ID_COLUMN]: scratchId,
+          [FILE_ID_COLUMN]: fileId,
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
           [PATH_COLUMN]: fullPath,
@@ -403,6 +380,7 @@ export class WorkbookDb {
           [CONTENT_COLUMN]: content,
           [ORIGINAL_COLUMN]: null,
           [SUGGESTED_COLUMN]: null,
+          [METADATA_COLUMN]: metadata,
           [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
           [CREATED_AT_COLUMN]: this.getKnex().fn.now(),
           [DIRTY_COLUMN]: true,
@@ -415,12 +393,12 @@ export class WorkbookDb {
    * If the file is a suggestion, sets the suggested column to empty string and sets the suggested_delete flag
    * If the file is not a suggestion, checks if the record has original content, if so flags it for deletion, otherwise deletes from table
    */
-  async deleteFile(workbookId: WorkbookId, fileId: FileId, isSuggestion: boolean): Promise<void> {
+  async deleteFileById(workbookId: WorkbookId, fileId: FileId, isSuggestion: boolean): Promise<void> {
     if (isSuggestion) {
       // Suggested delete: set suggested column to empty string and set suggested_delete flag
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
-        .where(SCRATCH_ID_COLUMN, fileId)
+        .where(FILE_ID_COLUMN, fileId)
         .update({
           [SUGGESTED_COLUMN]: '',
           [SUGGESTED_DELETE_COLUMN]: true,
@@ -429,98 +407,167 @@ export class WorkbookDb {
     } else {
       const record = await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
-        .where(SCRATCH_ID_COLUMN, fileId)
+        .where(FILE_ID_COLUMN, fileId)
         .first<{ [ORIGINAL_COLUMN]: string | null }>();
 
       if (record?.[ORIGINAL_COLUMN] !== null) {
-        // Record has original content, flag it for deletion
+        // Record has original content, flag it for deletion instead of hard deleting
         await this.getKnex()<FileDbRecord>(FILES_TABLE)
           .withSchema(workbookId)
-          .where(SCRATCH_ID_COLUMN, fileId)
+          .where(FILE_ID_COLUMN, fileId)
           .update({
             [DELETED_COLUMN]: true,
             [DIRTY_COLUMN]: true,
             [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
           });
       } else {
-        // No original content, delete from table
-        await this.getKnex()<FileDbRecord>(FILES_TABLE)
-          .withSchema(workbookId)
-          .where(SCRATCH_ID_COLUMN, fileId)
-          .delete();
+        // No original content, harddelete from table
+        await this.getKnex()<FileDbRecord>(FILES_TABLE).withSchema(workbookId).where(FILE_ID_COLUMN, fileId).delete();
       }
     }
   }
 
   /**
-   * Undeletes a file from the database. This only works for files that have been deleted by the user and does not support suggested deletes.
-   * @param workbookId - The workbook ID
-   * @param fileId - The file ID
-   * @returns Promise that resolves when the file has been undeleted
+   * Clears the delete flag on a file
    */
-  async undeleteFile(workbookId: WorkbookId, fileId: FileId): Promise<void> {
+  async undeleteFileByPath(workbookId: WorkbookId, filePath: string): Promise<void> {
+    assertFilePathIsValid(filePath);
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .where(SCRATCH_ID_COLUMN, fileId)
+      .where(PATH_COLUMN, filePath)
       .update({
         [DELETED_COLUMN]: false,
       });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async createFileByPath(workbookId: WorkbookId, fullPath: string, content: string | null): Promise<string> {
-    // TODO:
-    throw new Error('Not yet implemented');
+  async createFileByPath(
+    workbookId: WorkbookId,
+    fullPath: string,
+    content: string | null,
+    isSuggestion: boolean = false,
+  ): Promise<string> {
+    assertFilePathIsValid(fullPath);
+    const parts = fullPath.split('/');
+    const folderPath = parts.slice(0, -1).join('/');
+    const fileName = getFileNameFromPath(fullPath);
+
+    if (!fileName) {
+      throw new Error(`No filename found on path: ${fullPath}`);
+    }
+    const newFile = await this.createFile(workbookId, folderPath, fileName, content, isSuggestion);
+    return newFile.path;
   }
 
-  async updateFileByPath(
+  async moveFile(
+    workbookId: WorkbookId,
+
+    filePath: FileId,
+
+    newPath: string,
+  ): Promise<void> {
+    assertFilePathIsValid(filePath);
+    assertFilePathIsValid(newPath);
+    const file = await this.getFileByPath(workbookId, filePath);
+    if (!file) {
+      throw new FileNotFoundError(filePath, workbookId);
+    }
+    // update the path of the file and potentially the name
+    // TODO: implement this
+  }
+
+  async copyFile(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     workbookId: WorkbookId,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    currentPath: string,
+    filePath: FileId,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    newPath: string,
+  ): Promise<void> {
+    // TODO: this should create a new file with the same content and metadata
+    // TODO: implement this
+  }
+
+  async updateFileByPath(
+    workbookId: WorkbookId,
+    currentPath: string,
     updates: {
       newPath?: string; // If provided, rename/move the file
       content?: string | null;
     },
   ): Promise<void> {
-    // TODO:
-    throw new Error('Not yet implemented');
+    const file = await this.getFileByPath(workbookId, currentPath);
+    if (!file) {
+      throw new FileNotFoundError(currentPath, workbookId);
+    }
+
+    await this.updateFile(workbookId, file.id as FileId, updates.content ?? null, false);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async deleteFileByPath(workbookId: WorkbookId, filePath: string): Promise<void> {
-    // TODO:
-    throw new Error('Not yet implemented');
+  async deleteFileByPath(workbookId: WorkbookId, filePath: string, isSuggestion: boolean = false): Promise<void> {
+    const file = await this.getFileByPath(workbookId, filePath);
+
+    if (!file) {
+      throw new FileNotFoundError(filePath, workbookId);
+    }
+
+    await this.deleteFileById(workbookId, file.id as FileId, isSuggestion);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async renameFolder(workbookId: WorkbookId, oldFolderPath: string, newFolderPath: string): Promise<number> {
-    // TODO:
+    // TODO: This is actually pretty complex and just handles the files side of things.  The SnapshotTable path also needs to be updated
+    // For each file on the path we need to update:
+    // - the path column
+    // If the folder a file belongs to is changes, need to update these as well:
+    // - the folder_id column
+    // - the folder_name column
+
     throw new Error('Not yet implemented');
   }
 
   /**
-   * Bulk update files with create, update, delete, and undelete operations
-   * The data in RecordOperation will have a single property named 'content'
+   * Updates the content of a file
    */
-  async bulkUpdateFiles(workbookId: WorkbookId, fileId: FileId, content: string, isSuggestion: boolean): Promise<void> {
+  async updateFile(
+    workbookId: WorkbookId,
+    fileId: FileId,
+    content: string | null,
+    isSuggestion: boolean,
+  ): Promise<void> {
     if (isSuggestion) {
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
-        .where(SCRATCH_ID_COLUMN, fileId)
+        .where(FILE_ID_COLUMN, fileId)
         .update({
           [SUGGESTED_COLUMN]: content,
           [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
         });
     } else {
-      // TODO : parse the content into a frontmatter object and extract the metadata to save to the database
+      // Parse the content into a frontmatter object and extract the metadata to save to the database
+      let metadata: Record<string, unknown> = {};
+
+      if (content) {
+        try {
+          const parsed = matter(content);
+          metadata = parsed.data as Record<string, unknown>;
+        } catch (error) {
+          WSLogger.error({
+            source: 'WorkbookDb',
+            message: `Failed to parse content as frontmatter`,
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+
+          // If parsing fails, just use empty metadata
+          metadata = {};
+        }
+      }
 
       await this.getKnex()<FileDbRecord>(FILES_TABLE)
         .withSchema(workbookId)
-        .where(SCRATCH_ID_COLUMN, fileId)
+        .where(FILE_ID_COLUMN, fileId)
         .update({
           [CONTENT_COLUMN]: content,
+          [METADATA_COLUMN]: metadata,
           [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
           [DIRTY_COLUMN]: true,
         });
@@ -532,6 +579,8 @@ export class WorkbookDb {
    */
   async deleteFolderContents(workbookId: WorkbookId, folderPath: string): Promise<void> {
     const folderId = getFolderIdFromPath(folderPath);
+
+    // NOTE: this should probably be done in batches with a progress callback
     await this.getKnex()<FileDbRecord>(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId).delete();
   }
 
@@ -553,7 +602,7 @@ export class WorkbookDb {
     records: ConnectorRecord[],
     tableSpec: BaseTableSpec<T>,
   ): Promise<void> {
-    assertPathIsValid(folderPath);
+    assertFolderPathIsValid(folderPath);
 
     await this.getKnex().transaction(async (trx) => {
       for (const record of records) {
@@ -564,7 +613,7 @@ export class WorkbookDb {
         );
 
         // Generate a scratch ID for new records
-        const scratchId = createFileId();
+        const fileId = createFileId();
 
         // Determine the file name - use title column if available, otherwise use the record ID
         let fileName = record.id;
@@ -594,7 +643,7 @@ export class WorkbookDb {
           // Update existing file
           await trx(FILES_TABLE)
             .withSchema(workbookId)
-            .where(SCRATCH_ID_COLUMN, existingFile[SCRATCH_ID_COLUMN])
+            .where(FILE_ID_COLUMN, existingFile[FILE_ID_COLUMN])
             .update({
               [ORIGINAL_COLUMN]: frontMatterContent, // this resets the original content new value from the connector
               [CONTENT_COLUMN]: frontMatterContent,
@@ -608,7 +657,7 @@ export class WorkbookDb {
           await trx(FILES_TABLE)
             .withSchema(workbookId)
             .insert({
-              [SCRATCH_ID_COLUMN]: scratchId,
+              [FILE_ID_COLUMN]: fileId,
               [REMOTE_ID_COLUMN]: record.id,
               [FOLDER_ID_COLUMN]: folderId,
               [FOLDER_NAME_COLUMN]: folderName,
@@ -645,11 +694,11 @@ export class WorkbookDb {
   }
 }
 
-/************************
+/* * * * * * * * * * * * * * * * * * * * * * * *
  *
  * Utility functions
  *
- * *************************/
+ * * * * * * * * * * * * * * * * * * * * * * * */
 
 /**
  * Converts a ConnectorRecord to Front Matter markdown format.
@@ -690,66 +739,6 @@ export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
   return { content: matter.stringify(bodyContent, metadata), metadata };
 }
 
-/**
- * Updates a metadata field in frontmatter content.
- *
- * @param frontmatterContent - The current frontmatter markdown content
- * @param fieldName - The name of the metadata field to update
- * @param newValue - The new value for the field
- * @returns Updated frontmatter markdown string
- */
-export function updateFrontmatterMetadata(
-  frontmatterContent: string | null,
-  fieldName: string,
-  newValue: unknown,
-): string {
-  if (!frontmatterContent) {
-    // If no content, create new frontmatter with just the field
-    return matter.stringify('', { [fieldName]: newValue });
-  }
-
-  // Parse existing frontmatter
-  const parsed = matter(frontmatterContent);
-  const metadata = parsed.data as Record<string, unknown>;
-
-  // Update the specific field
-  metadata[fieldName] = newValue;
-
-  // Reconstruct frontmatter
-  return matter.stringify(parsed.content, metadata);
-}
-
-/**
- * Converts a FileDbRecord into a SnapshotRecord.
- * The content column value is mapped to a single property in the fields object.
- * If the suggested column is not null, it is included in __suggested_values.
- *
- * @param fileRecord - The FileDbRecord to convert
- * @returns A SnapshotRecord
- */
-export function convertFileDbRecordToSnapshotRecord(fileRecord: FileDbRecord): SnapshotRecord {
-  const fields: Record<string, unknown> = { content: fileRecord[CONTENT_COLUMN] };
-  const suggestedValues: Record<string, unknown> = { content: fileRecord[SUGGESTED_COLUMN] ?? undefined };
-  if (fileRecord[SUGGESTED_DELETE_COLUMN]) {
-    suggestedValues['__deleted'] = fileRecord.updated_at;
-  }
-
-  return {
-    id: {
-      wsId: fileRecord[SCRATCH_ID_COLUMN] as SnapshotRecordId,
-      remoteId: fileRecord[REMOTE_ID_COLUMN],
-    },
-    fields,
-    __edited_fields: {},
-    __suggested_values: suggestedValues,
-    __fields: {},
-    __metadata: {},
-    __errors: (fileRecord[ERRORS_COLUMN] as RecordErrorsMetadata) || {},
-    __dirty: fileRecord[DIRTY_COLUMN],
-    __old_remote_id: null,
-  };
-}
-
 export function slugifyFileName(text: string): string {
   return text
     .toString() // Ensure the input is a string
@@ -762,11 +751,42 @@ export function slugifyFileName(text: string): string {
     .replace(/-+/g, '-'); // Replace multiple hyphens with a single hyphen
 }
 
-export function getFolderIdFromPath(path: string): SnapshotTableId {
-  return path.split('/')[1] as SnapshotTableId;
+export function getFolderIdFromPath(filePath: string): SnapshotTableId {
+  const { dir, base, ext } = path.posix.parse(filePath);
+
+  if (!ext || ext === '') {
+    // this is a folder path, with no file at the end
+    // the base will be the last part of the path, which is the folder name
+    return base as SnapshotTableId;
+  }
+
+  // this is a file path, so we need to parse the folder from the dir
+  const directoryParts = dir.split('/');
+  return directoryParts[directoryParts.length - 1] as SnapshotTableId;
 }
 
-function assertPathIsValid(path: unknown): asserts path is string {
+export function getFolderPathFromPath(filePath: string): string {
+  const { dir, base, ext } = path.posix.parse(filePath);
+
+  if (!ext || ext === '') {
+    // this is a folder path, with no file at the end
+    // the base will be the last part of the path, which is a directory and we need to add it back to the dir
+    return path.posix.join(dir, base);
+  }
+
+  // the end of the path is a file, so the whole `dir` value is the folder path
+  return dir;
+}
+
+export function getFileNameFromPath(filePath: string): string {
+  const { base, ext } = path.posix.parse(filePath);
+  if (!ext || ext === '') {
+    return '';
+  }
+  return base;
+}
+
+function assertFolderPathIsValid(path: unknown): asserts path is string {
   if (typeof path !== 'string') {
     throw new Error(`Path must be a string, but got ${typeof path}: ${path as string}`);
   }
@@ -775,5 +795,34 @@ function assertPathIsValid(path: unknown): asserts path is string {
   }
   if (!path.startsWith('/')) {
     throw new Error('Path must start with a slash');
+  }
+}
+
+function assertFilePathIsValid(path: unknown): asserts path is string {
+  if (typeof path !== 'string') {
+    throw new Error(`Path must be a string, but got ${typeof path}: ${path as string}`);
+  }
+  if (path.length === 0) {
+    throw new Error('Path must not be empty');
+  }
+  if (!path.startsWith('/')) {
+    throw new Error('Path must start with a slash');
+  }
+
+  const file = getFileNameFromPath(path);
+  if (!file || file.length === 0) {
+    throw new Error('Path must contain a file name');
+  }
+}
+
+export class FileNotFoundError extends Error {
+  public readonly filePath: string;
+  public readonly workbookId: WorkbookId;
+
+  constructor(filePath: string, workbookId: WorkbookId, cause?: Error) {
+    super(`File not found: ${filePath} in workbook ${workbookId}`, { cause });
+    this.name = 'FileNotFoundError';
+    this.filePath = filePath;
+    this.workbookId = workbookId;
   }
 }

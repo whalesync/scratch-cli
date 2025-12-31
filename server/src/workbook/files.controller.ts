@@ -37,58 +37,61 @@ export class FilesController {
    * GET /workbooks/:workbookId/files/list?path=path/to/folder
    */
   @Get('list')
-  // eslint-disable-next-line @typescript-eslint/require-await
   async listFiles(
     @Param('workbookId') workbookId: WorkbookId,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    @Query('path') folderPath: string = '',
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+    @Query('path') folderPath: string = '/',
+
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
+    const filesAndFolders = await this.filesService.listFilesAndFolders(workbookId, folderPath, userToActor(req.user));
+    return filesAndFolders;
     // Hardcoded fake data: 3 levels with 10 files total
+    /*
     return {
       files: [
         {
           type: 'folder',
           id: 'fil_fold_1',
-          path: 'docs',
+          path: '/docs',
           name: 'docs',
-          parentPath: '',
+          parentPath: '/',
         },
-        { type: 'file', id: 'fil_1', path: 'docs/readme.md', name: 'readme.md', parentPath: 'docs' },
-        { type: 'file', id: 'fil_2', path: 'docs/guide.md', name: 'guide.md', parentPath: 'docs' },
+        { type: 'file', id: 'fil_1', path: '/docs/readme.md', name: 'readme.md', parentPath: '/docs' },
+        { type: 'file', id: 'fil_2', path: '/docs/guide.md', name: 'guide.md', parentPath: '/docs' },
         {
           type: 'folder',
           id: 'fil_fold_2',
-          path: 'docs/api',
+          path: '/docs/api',
           name: 'api',
-          parentPath: 'docs',
+          parentPath: '/docs',
         },
-        { type: 'file', id: 'fil_3', path: 'docs/api/endpoints.md', name: 'endpoints.md', parentPath: 'docs/api' },
-        { type: 'file', id: 'fil_4', path: 'docs/api/auth.md', name: 'auth.md', parentPath: 'docs/api' },
+        { type: 'file', id: 'fil_3', path: '/docs/api/endpoints.md', name: 'endpoints.md', parentPath: '/docs/api' },
+        { type: 'file', id: 'fil_4', path: '/docs/api/auth.md', name: 'auth.md', parentPath: '/docs/api' },
 
         {
           type: 'folder',
           id: 'fil_fold_3',
-          path: 'src',
+          path: '/src',
           name: 'src',
-          parentPath: '',
+          parentPath: '/',
         },
-        { type: 'file', id: 'fil_5', path: 'src/index.ts', name: 'index.ts', parentPath: 'src' },
-        { type: 'file', id: 'fil_6', path: 'src/app.ts', name: 'app.ts', parentPath: 'src' },
+        { type: 'file', id: 'fil_5', path: '/src/index.ts', name: 'index.ts', parentPath: '/src' },
+        { type: 'file', id: 'fil_6', path: '/src/app.ts', name: 'app.ts', parentPath: '/src' },
         {
           type: 'folder',
           id: 'fil_fold_4',
-          path: 'src/utils',
+          path: '/src/utils',
           name: 'utils',
-          parentPath: 'src',
+          parentPath: '/src',
         },
-        { type: 'file', id: 'fil_7', path: 'src/utils/helper.ts', name: 'helper.ts', parentPath: 'src/utils' },
-        { type: 'file', id: 'fil_8', path: 'src/utils/logger.ts', name: 'logger.ts', parentPath: 'src/utils' },
-        { type: 'file', id: 'fil_9', path: 'package.json', name: 'package.json', parentPath: '' },
-        { type: 'file', id: 'fil_10', path: 'tsconfig.json', name: 'tsconfig.json', parentPath: '' },
+        { type: 'file', id: 'fil_7', path: '/src/utils/helper.ts', name: 'helper.ts', parentPath: '/src/utils' },
+        { type: 'file', id: 'fil_8', path: '/src/utils/logger.ts', name: 'logger.ts', parentPath: '/src/utils' },
+        { type: 'file', id: 'fil_9', path: '/package.json', name: 'package.json', parentPath: '/' },
+        { type: 'file', id: 'fil_10', path: '/tsconfig.json', name: 'tsconfig.json', parentPath: '/' },
       ],
     };
+    */
   }
 
   /**
@@ -130,14 +133,15 @@ export class FilesController {
    * GET /workbooks/:workbookId/files/file?path=path/to/file.md
    */
   @Get('file')
-  // eslint-disable-next-line @typescript-eslint/require-await
   async getFile(
     @Param('workbookId') workbookId: WorkbookId,
     @Query('path') filePath: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     @Req() req: RequestWithUser,
   ): Promise<FileDetailsResponseDto> {
     // Hardcoded fake data with 1-word content
+    return await this.filesService.getFileByPath(workbookId, filePath, userToActor(req.user));
+    /*
     const fileName = filePath.split('/').pop() || 'unknown';
     return {
       file: {
@@ -151,6 +155,7 @@ export class FilesController {
         content: `Placeholder content for ${filePath}`,
       },
     };
+    */
   }
 
   /**

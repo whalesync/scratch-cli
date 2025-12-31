@@ -236,7 +236,7 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
                 {!isLoading && treeData.length > 0 && (
                   <Tree
                     tree={treeData}
-                    rootId=""
+                    rootId="/"
                     onDrop={handleDrop}
                     classes={{ listItem: styles.listItem }}
                     render={(node, { depth, isOpen, onToggle }) => (

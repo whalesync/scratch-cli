@@ -6,8 +6,10 @@ import {
   ValidatedCreateFileDto,
   ValidatedUpdateFileDto,
 } from '@spinner/shared-types';
+import path from 'path';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
+import { getFolderIdFromPath, getFolderPathFromPath } from './workbook-db';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -41,17 +43,38 @@ export class FilesService {
 
     const result = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
 
+    // preprocess the list of files to create the appropriate folder entities
+    const folderEntities: FileRefEntity[] = [];
+    const uniqueFolderPaths = new Set<string>();
+    for (const file of result) {
+      const folderPath = getFolderPathFromPath(file.path);
+      if (!uniqueFolderPaths.has(folderPath)) {
+        uniqueFolderPaths.add(folderPath);
+        const { dir, base } = path.posix.parse(folderPath);
+        const folderId = getFolderIdFromPath(folderPath);
+        folderEntities.push({
+          type: 'folder',
+          id: `fil_fold_${folderId}`,
+          name: base,
+          parentPath: dir,
+          path: folderPath,
+        });
+      }
+    }
+
     const files = result.map(
       (f): FileRefEntity => ({
         type: 'file',
         id: f.id as FileId, // TODO: Type the DB record properly.
         path: f.path,
         name: f.name,
-        parentPath: f.path.split('/').slice(0, -1).join('/'),
+        parentPath: getFolderPathFromPath(f.path),
       }),
     );
 
-    return { files };
+    const sortedFiles = [...folderEntities, ...files];
+    sortedFiles.sort((a, b) => a.path.localeCompare(b.path));
+    return { files: sortedFiles };
   }
 
   /**
@@ -73,7 +96,7 @@ export class FilesService {
           id: file.id as FileId,
           path: file.path,
           name: file.name,
-          parentPath: file.path.split('/').slice(0, -1).join('/'),
+          parentPath: getFolderPathFromPath(file.path),
         },
         content: file.content,
       },
