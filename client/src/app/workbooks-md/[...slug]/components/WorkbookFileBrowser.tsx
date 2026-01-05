@@ -5,11 +5,12 @@ import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, ScrollArea, Stack, Text } from '@mantine/core';
+import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, getBackendOptions, MultiBackend, Tree, type NodeModel } from '@minoru/react-dnd-treeview';
 import type { FileRefEntity } from '@spinner/shared-types';
 import { BookOpenIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './WorkbookFileBrowser.module.css';
 
 interface WorkbookFileBrowserProps {
@@ -31,19 +32,31 @@ interface TreeNodeRendererProps {
   depth: number;
   isOpen: boolean;
   onToggle: () => void;
-  activeTabId: string | null;
+  isSelected: boolean;
+  isDropTarget: boolean;
   onFileClick: (filePath: string) => void;
+  onExternalFileDrop: (folderPath: string, files: FileWithPath[]) => void;
 }
 
-function TreeNodeRenderer({ node, depth, isOpen, onToggle, activeTabId, onFileClick }: TreeNodeRendererProps) {
+function TreeNodeRenderer({
+  node,
+  depth,
+  isOpen,
+  onToggle,
+  isSelected,
+  isDropTarget,
+  onFileClick,
+  onExternalFileDrop,
+}: TreeNodeRendererProps) {
   const nodeData = node.data;
+  const [isExternalDragOver, setIsExternalDragOver] = useState(false);
   if (!nodeData) return <></>;
 
-  const isSelected = activeTabId === nodeData.path;
   const indent = depth * 18;
+  const showDropHighlight = isDropTarget || isExternalDragOver;
 
   if (!nodeData.isFile) {
-    // Folder node
+    // Folder node with native drag events for external file drops
     return (
       <Group
         gap="xs"
@@ -51,19 +64,48 @@ function TreeNodeRenderer({ node, depth, isOpen, onToggle, activeTabId, onFileCl
         pl={indent + 6}
         pr="xs"
         onClick={onToggle}
+        onDragOver={(e) => {
+          // Only handle external file drags
+          if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExternalDragOver(true);
+          }
+        }}
+        onDragEnter={(e) => {
+          if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            setIsExternalDragOver(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsExternalDragOver(false);
+        }}
+        onDrop={(e) => {
+          if (e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExternalDragOver(false);
+            // Convert FileList to FileWithPath[]
+            const files = Array.from(e.dataTransfer.files) as FileWithPath[];
+            onExternalFileDrop(nodeData.path, files);
+          }
+        }}
         style={{
           cursor: 'pointer',
           borderRadius: '4px',
+          border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
+          backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
         }}
-        bg="transparent"
       >
         {isOpen ? (
           <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
         ) : (
           <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
         )}
-        <FolderIcon size={14} color="var(--fg-secondary)" />
-        <Text size="sm" c="var(--fg-secondary)" truncate>
+        <FolderIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
+        <Text size="sm" c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-secondary)'} truncate>
           {nodeData.name}
         </Text>
       </Group>
@@ -133,11 +175,14 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
   // Use the file list hook
   const { files, isLoading } = useFileList(workbook?.id ?? null);
 
-  // Convert files to tree data format
-  const treeData = useMemo(() => {
-    if (!files?.files) return [];
+  // Local state for tree data (required for drag-and-drop to work)
+  const [treeData, setTreeData] = useState<NodeModel<TreeNodeData>[]>([]);
 
-    return files.files.map((f) => convertToTreeNode(f));
+  // Sync server data to local state
+  useEffect(() => {
+    if (files?.files) {
+      setTreeData(files.files.map((f) => convertToTreeNode(f)));
+    }
   }, [files]);
 
   const handleFileClick = (filePath: string) => {
@@ -160,10 +205,27 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
     });
   };
 
-  const handleDrop = () => {
-    // Handle tree reordering if needed
-    // For now, we'll just prevent modifications since the tree is read-only from the server
+  const handleDrop = (newTree: NodeModel<TreeNodeData>[]) => {
+    console.log('DROP!', newTree);
+    setTreeData(newTree);
+    // TODO: Call API to persist the file move
   };
+
+  const handleDragStart = (node: NodeModel<TreeNodeData>) => {
+    console.log('DRAG START:', node);
+  };
+
+  const handleDragEnd = (node: NodeModel<TreeNodeData>) => {
+    console.log('DRAG END:', node);
+  };
+
+  const handleExternalFileDrop = (folderPath: string, files: FileWithPath[]) => {
+    console.log('EXTERNAL FILE DROP:', folderPath, files);
+    // TODO: Upload files to the folder
+  };
+
+  // Debug: log tree data
+  console.log('treeData:', treeData);
 
   if (!workbook) {
     return null;
@@ -238,15 +300,19 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
                     tree={treeData}
                     rootId="/"
                     onDrop={handleDrop}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
                     classes={{ listItem: styles.listItem }}
-                    render={(node, { depth, isOpen, onToggle }) => (
+                    render={(node, { depth, isOpen, onToggle, isDropTarget }) => (
                       <TreeNodeRenderer
                         node={node}
                         depth={depth}
                         isOpen={isOpen}
                         onToggle={onToggle}
-                        activeTabId={activeTabId}
+                        isSelected={activeTabId === node.data?.path}
+                        isDropTarget={isDropTarget}
                         onFileClick={handleFileClick}
+                        onExternalFileDrop={handleExternalFileDrop}
                       />
                     )}
                   />
