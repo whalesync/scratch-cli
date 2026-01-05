@@ -31,8 +31,9 @@ import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Group, Stack, Text } from '@mantine/core';
 import { ArrowLeftIcon, FileTextIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { WorkbookFileBrowser } from './components/WorkbookFileBrowser';
 import { FileEditor } from './components/FileEditor';
+import { FolderDetailViewer } from './components/FolderDetailViewer';
+import { WorkbookFileBrowser } from './components/WorkbookFileBrowser';
 
 const DEFAULT_CHAT_WIDTH = '360px';
 const MIN_CHAT_WIDTH = 300;
@@ -63,6 +64,7 @@ function WorkbookNewPageContent() {
   const [showManageTablesModal, setShowManageTablesModal] = useState(false);
 
   // State for open tabs (array of file paths)
+  // TODO: move this into workbook editor UI store
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
@@ -216,7 +218,16 @@ function WorkbookNewPageContent() {
 
                   {/* Editor Content */}
                   <Box flex={1} style={{ overflow: 'hidden' }}>
-                    <FileEditor workbookId={workbook.id} filePath={activeTabId} />
+                    {activeTabId === null || (activeTabId && activeTabId.endsWith('.md')) ? (
+                      <FileEditor workbookId={workbook.id} filePath={activeTabId} />
+                    ) : (
+                      <FolderDetailViewer
+                        workbookId={workbook.id}
+                        folderPath={activeTabId}
+                        setOpenTabs={setOpenTabs}
+                        setActiveTabId={setActiveTabId}
+                      />
+                    )}
                   </Box>
                 </Stack>
               </Split.Pane>

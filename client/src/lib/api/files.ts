@@ -1,6 +1,7 @@
 import {
   CreateFileDto,
   FileDetailsResponseDto,
+  ListFilesDetailsResponseDto,
   ListFilesResponseDto,
   UpdateFileDto,
   WorkbookId,
@@ -25,6 +26,23 @@ export const filesApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list files and folders');
+    }
+  },
+
+  /**
+   * List all of the files in a folder including full file content.
+   * GET /workbooks/:workbookId/files/list/details?path=path/to/folder
+   */
+  listFilesDetails: async (workbookId: WorkbookId, folderPath?: string): Promise<ListFilesDetailsResponseDto> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const params = folderPath ? { path: folderPath } : {};
+      const res = await axios.get<ListFilesDetailsResponseDto>(`/workbooks/${workbookId}/files/list/details`, {
+        params,
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list files details');
     }
   },
 

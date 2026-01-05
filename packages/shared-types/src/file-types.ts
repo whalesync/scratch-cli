@@ -15,4 +15,8 @@ export interface FileRefEntity {
 export interface FileDetailsEntity {
   ref: FileRefEntity & { type: 'file' };
   content: string | null;
+  originalContent: string | null;
+  suggestedContent: string | null;
+  createdAt: string; // ISO-8601 string
+  updatedAt: string; // ISO-8601 string
 }

@@ -1,14 +1,23 @@
 'use client';
 
+import { ActionIconThreeDots } from '@/app/components/base/action-icons';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
-import { Box, Button, Group, ScrollArea, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, Menu, ScrollArea, Stack, Text } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, getBackendOptions, MultiBackend, Tree, type NodeModel } from '@minoru/react-dnd-treeview';
 import type { FileRefEntity } from '@spinner/shared-types';
-import { BookOpenIcon, ChevronDownIcon, ChevronRightIcon, FileTextIcon, FolderIcon, PlusIcon } from 'lucide-react';
+import {
+  BookOpenIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FileTextIcon,
+  FolderIcon,
+  InfoIcon,
+  PlusIcon,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from './WorkbookFileBrowser.module.css';
@@ -36,6 +45,7 @@ interface TreeNodeRendererProps {
   isDropTarget: boolean;
   onFileClick: (filePath: string) => void;
   onExternalFileDrop: (folderPath: string, files: FileWithPath[]) => void;
+  onFolderDetailsClick: (folderPath: string) => void;
 }
 
 function TreeNodeRenderer({
@@ -47,9 +57,12 @@ function TreeNodeRenderer({
   isDropTarget,
   onFileClick,
   onExternalFileDrop,
+  onFolderDetailsClick,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [isExternalDragOver, setIsExternalDragOver] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [menuOpened, setMenuOpened] = useState(false);
   if (!nodeData) return <></>;
 
   const indent = depth * 18;
@@ -63,7 +76,10 @@ function TreeNodeRenderer({
         h={24}
         pl={indent + 6}
         pr="xs"
+        justify="space-between"
         onClick={onToggle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onDragOver={(e) => {
           // Only handle external file drags
           if (e.dataTransfer.types.includes('Files')) {
@@ -99,15 +115,41 @@ function TreeNodeRenderer({
           backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
         }}
       >
-        {isOpen ? (
-          <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-        ) : (
-          <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+        <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+          {isOpen ? (
+            <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+          ) : (
+            <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+          )}
+          <FolderIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
+          <Text size="sm" c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-secondary)'} truncate>
+            {nodeData.name}
+          </Text>
+        </Group>
+        {(isHovered || menuOpened) && (
+          <Box
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <Menu opened={menuOpened} onChange={setMenuOpened}>
+              <Menu.Target>
+                <ActionIconThreeDots />
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<InfoIcon size={16} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFolderDetailsClick(nodeData.path);
+                  }}
+                >
+                  View Details...
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Box>
         )}
-        <FolderIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
-        <Text size="sm" c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-secondary)'} truncate>
-          {nodeData.name}
-        </Text>
       </Group>
     );
   } else {
@@ -224,6 +266,18 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
     // TODO: Upload files to the folder
   };
 
+  const handleFolderDetailsClick = (folderPath: string) => {
+    setOpenTabs((prev) => {
+      if (!prev.includes(folderPath)) {
+        return [...prev, folderPath];
+      }
+      return prev;
+    });
+
+    // Set as active tab
+    setActiveTabId(folderPath);
+  };
+
   // Debug: log tree data
   console.log('treeData:', treeData);
 
@@ -313,6 +367,7 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
                         isDropTarget={isDropTarget}
                         onFileClick={handleFileClick}
                         onExternalFileDrop={handleExternalFileDrop}
+                        onFolderDetailsClick={handleFolderDetailsClick}
                       />
                     )}
                   />

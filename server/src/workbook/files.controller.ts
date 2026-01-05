@@ -13,7 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { WorkbookId } from '@spinner/shared-types';
+import type { ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
 import {
   CreateFileDto,
   FileDetailsResponseDto,
@@ -39,9 +39,7 @@ export class FilesController {
   @Get('list')
   async listFiles(
     @Param('workbookId') workbookId: WorkbookId,
-
     @Query('path') folderPath: string = '/',
-
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
     const filesAndFolders = await this.filesService.listFilesAndFolders(workbookId, folderPath, userToActor(req.user));
@@ -94,6 +92,19 @@ export class FilesController {
     */
   }
 
+  /**
+   * List all of the files in a folder including full file content.
+   * GET /workbooks/:workbookId/files/list/details?path=path/to/folder
+   */
+  @Get('list/details')
+  async listFilesDetails(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') folderPath: string = '/',
+    @Req() req: RequestWithUser,
+  ): Promise<ListFilesDetailsResponseDto> {
+    const filesMetadata = await this.filesService.getFilesByPath(workbookId, folderPath, userToActor(req.user));
+    return filesMetadata;
+  }
   /**
    * Create a new file
    * POST /workbooks/:workbookId/files with path in body

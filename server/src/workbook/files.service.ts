@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { FileId, FileRefEntity, WorkbookId } from '@spinner/shared-types';
+import type { FileId, FileRefEntity, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
 import {
   FileDetailsResponseDto,
   ListFilesResponseDto,
@@ -78,6 +78,33 @@ export class FilesService {
   }
 
   /**
+   * Lists all of the files in a folder including full file content.
+   */
+  async getFilesByPath(workbookId: WorkbookId, folderPath: string, actor: Actor): Promise<ListFilesDetailsResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    const result = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
+
+    const files = result.map((f) => ({
+      ref: {
+        type: 'file' as const,
+        id: f.id as FileId,
+        path: f.path,
+        name: f.name,
+        parentPath: extractFolderPath(f.path),
+      },
+      content: f.content,
+      originalContent: f.original,
+      suggestedContent: f.suggested,
+      createdAt: f.created_at.toISOString(),
+      updatedAt: f.updated_at.toISOString(),
+    }));
+
+    files.sort((a, b) => a.ref.path.localeCompare(b.ref.path));
+    return { files };
+  }
+
+  /**
    * Get a single file by path
    */
   async getFileByPath(workbookId: WorkbookId, filePath: string, actor: Actor): Promise<FileDetailsResponseDto> {
@@ -99,6 +126,10 @@ export class FilesService {
           parentPath: extractFolderPath(file.path),
         },
         content: file.content,
+        originalContent: file.original,
+        suggestedContent: file.suggested,
+        createdAt: file.created_at.toISOString(),
+        updatedAt: file.updated_at.toISOString(),
       },
     };
   }

@@ -77,6 +77,8 @@ export const SWR_KEYS = {
   },
   files: {
     list: (workbookId: WorkbookId, folderPath?: string) => ['files', 'list', workbookId, folderPath ?? '/'] as const,
+    listDetails: (workbookId: WorkbookId, folderPath?: string) =>
+      ['files', 'listDetails', workbookId, folderPath ?? '/'] as const,
     detail: (workbookId: WorkbookId, filePath: string) => ['files', 'detail', workbookId, filePath] as const,
     // Matches all file list keys for a workbook
     listKeyMatcher: (workbookId: WorkbookId) => (key: Arguments) =>
