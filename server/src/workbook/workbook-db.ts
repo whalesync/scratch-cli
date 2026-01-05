@@ -102,6 +102,8 @@ export type FileDbRecord = {
   [SEEN_COLUMN]: boolean;
 };
 
+const MAX_UNIQUE_FILE_NAME_ATTEMPTS = 20;
+
 export class WorkbookDb {
   public knex!: Knex;
 
@@ -285,7 +287,7 @@ export class WorkbookDb {
     // TODO: this needs to to be rewriten to handle suggestions one at a time, inside of a transaction in order
     // to handle the deletes, updates and metadata recalculations properly
 
-    const folderId = getFolderIdFromPath(folderPath);
+    const folderId = extractFolderId(folderPath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -305,7 +307,7 @@ export class WorkbookDb {
    * Only updates files where suggested is not null
    */
   async rejectSuggestionsForFolder(workbookId: WorkbookId, folderPath: string): Promise<number> {
-    const folderId = getFolderIdFromPath(folderPath);
+    const folderId = extractFolderId(folderPath);
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -328,13 +330,13 @@ export class WorkbookDb {
     content: string | null,
     isSuggestion: boolean,
   ): Promise<FileDbRecord> {
-    assertFilePathIsValid(folderPath);
+    assertFolderPathIsValid(folderPath);
 
     const fileId = createFileId();
     const tempRemoteId = `${UNPUBLISHED_PREFIX}${fileId}`;
 
     // Generate the path
-    const folderId = getFolderIdFromPath(folderPath);
+    const folderId = extractFolderId(folderPath);
     const fullPath = path.posix.join(folderPath, fileName);
 
     if (isSuggestion) {
@@ -447,9 +449,8 @@ export class WorkbookDb {
     isSuggestion: boolean = false,
   ): Promise<string> {
     assertFilePathIsValid(fullPath);
-    const parts = fullPath.split('/');
-    const folderPath = parts.slice(0, -1).join('/');
-    const fileName = getFileNameFromPath(fullPath);
+    const folderPath = extractFolderPath(fullPath);
+    const fileName = extractFileName(fullPath);
 
     if (!fileName) {
       throw new Error(`No filename found on path: ${fullPath}`);
@@ -578,7 +579,7 @@ export class WorkbookDb {
    * Deletes all of the files related to a specific folder
    */
   async deleteFolderContents(workbookId: WorkbookId, folderPath: string): Promise<void> {
-    const folderId = getFolderIdFromPath(folderPath);
+    const folderId = extractFolderId(folderPath);
 
     // NOTE: this should probably be done in batches with a progress callback
     await this.getKnex()<FileDbRecord>(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId).delete();
@@ -615,22 +616,45 @@ export class WorkbookDb {
         // Generate a scratch ID for new records
         const fileId = createFileId();
 
+        const folderId = extractFolderId(folderPath);
+        const folderName = folderId;
+
         // Determine the file name - use title column if available, otherwise use the record ID
         let fileName = record.id;
-
-        if (tableSpec.titleColumnRemoteId) {
-          const column = tableSpec.columns.find((c) => _.isEqual(c.id.remoteId, tableSpec.titleColumnRemoteId));
-          const titleValue = record.fields[column?.id.wsId ?? ''];
-          if (titleValue && typeof titleValue === 'string') {
-            fileName = titleValue;
+        let fullPath = path.posix.join(folderPath, fileName);
+        let attempts = 0;
+        while (attempts < MAX_UNIQUE_FILE_NAME_ATTEMPTS) {
+          if (tableSpec.titleColumnRemoteId) {
+            const column = tableSpec.columns.find((c) => _.isEqual(c.id.remoteId, tableSpec.titleColumnRemoteId));
+            const titleValue = record.fields[column?.id.wsId ?? ''];
+            if (titleValue && typeof titleValue === 'string') {
+              fileName = titleValue;
+            }
           }
+
+          if (attempts > 0) {
+            fileName = slugifyFileName(fileName) + '-' + attempts + '.md';
+          }
+
+          fileName = slugifyFileName(fileName) + '.md';
+          fullPath = folderPath + '/' + fileName;
+
+          const existingFileWithPath = await trx<FileDbRecord>(FILES_TABLE)
+            .withSchema(workbookId)
+            .where(PATH_COLUMN, fullPath)
+            .first();
+
+          if (!existingFileWithPath) {
+            break;
+          }
+          attempts++;
         }
 
-        fileName = slugifyFileName(fileName) + '.md';
-
-        const folderId = getFolderIdFromPath(folderPath);
-        const folderName = folderId;
-        const fullPath = folderPath + '/' + fileName;
+        if (attempts >= MAX_UNIQUE_FILE_NAME_ATTEMPTS) {
+          throw new Error(
+            `Failed to generate a unique file name for record ${record.id} after 20 attempts: ${fullPath}`,
+          );
+        }
 
         // Check if file with this remote_id already exists
         const existingFile = await trx<FileDbRecord>(FILES_TABLE)
@@ -679,7 +703,7 @@ export class WorkbookDb {
   }
 
   async resetSeenFlagForFolder(workbookId: WorkbookId, folderPath: string): Promise<void> {
-    const folderId = getFolderIdFromPath(folderPath);
+    const folderId = extractFolderId(folderPath);
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)
@@ -751,7 +775,12 @@ export function slugifyFileName(text: string): string {
     .replace(/-+/g, '-'); // Replace multiple hyphens with a single hyphen
 }
 
-export function getFolderIdFromPath(filePath: string): SnapshotTableId {
+/**
+ * Extracts the folder ID from a file path. Currently this is the last folder in the path
+ * @param filePath - The file path to extract the folder ID from
+ * @returns The folder ID
+ */
+export function extractFolderId(filePath: string): SnapshotTableId {
   const { dir, base, ext } = path.posix.parse(filePath);
 
   if (!ext || ext === '') {
@@ -765,7 +794,12 @@ export function getFolderIdFromPath(filePath: string): SnapshotTableId {
   return directoryParts[directoryParts.length - 1] as SnapshotTableId;
 }
 
-export function getFolderPathFromPath(filePath: string): string {
+/**
+ * Extracts the folder path from a file path, removing the file name and extension
+ * @param filePath - The file path to extract the folder path from
+ * @returns The folder path
+ */
+export function extractFolderPath(filePath: string): string {
   const { dir, base, ext } = path.posix.parse(filePath);
 
   if (!ext || ext === '') {
@@ -778,7 +812,12 @@ export function getFolderPathFromPath(filePath: string): string {
   return dir;
 }
 
-export function getFileNameFromPath(filePath: string): string {
+/**
+ * Extracts the file name from a file path, including the extension
+ * @param filePath - The file path to extract the file name from
+ * @returns The file name including the extension or an empty string if there is no file on this path
+ */
+export function extractFileName(filePath: string): string {
   const { base, ext } = path.posix.parse(filePath);
   if (!ext || ext === '') {
     return '';
@@ -809,7 +848,7 @@ function assertFilePathIsValid(path: unknown): asserts path is string {
     throw new Error('Path must start with a slash');
   }
 
-  const file = getFileNameFromPath(path);
+  const file = extractFileName(path);
   if (!file || file.length === 0) {
     throw new Error('Path must contain a file name');
   }

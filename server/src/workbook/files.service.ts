@@ -9,7 +9,7 @@ import {
 import path from 'path';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
-import { getFolderIdFromPath, getFolderPathFromPath } from './workbook-db';
+import { extractFolderId, extractFolderPath } from './workbook-db';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -47,11 +47,11 @@ export class FilesService {
     const folderEntities: FileRefEntity[] = [];
     const uniqueFolderPaths = new Set<string>();
     for (const file of result) {
-      const folderPath = getFolderPathFromPath(file.path);
+      const folderPath = extractFolderPath(file.path);
       if (!uniqueFolderPaths.has(folderPath)) {
         uniqueFolderPaths.add(folderPath);
         const { dir, base } = path.posix.parse(folderPath);
-        const folderId = getFolderIdFromPath(folderPath);
+        const folderId = extractFolderId(folderPath);
         folderEntities.push({
           type: 'folder',
           id: `fil_fold_${folderId}`,
@@ -68,7 +68,7 @@ export class FilesService {
         id: f.id as FileId, // TODO: Type the DB record properly.
         path: f.path,
         name: f.name,
-        parentPath: getFolderPathFromPath(f.path),
+        parentPath: extractFolderPath(f.path),
       }),
     );
 
@@ -96,7 +96,7 @@ export class FilesService {
           id: file.id as FileId,
           path: file.path,
           name: file.name,
-          parentPath: getFolderPathFromPath(file.path),
+          parentPath: extractFolderPath(file.path),
         },
         content: file.content,
       },
