@@ -46,6 +46,11 @@ export class WebflowSchemaParser {
     const nameField = collection.fields.find((f) => f.slug === 'name');
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
+    // Find the RichText field which is typically the main content column
+    // TODO: Improve this to prioritize the main content column based on keywods in the field name. e.g. content, body, etc.
+    const richTextField = collection.fields.find((f) => f.type === 'RichText');
+    const mainContentColumnRemoteId: string[] | undefined = richTextField ? [richTextField.id] : undefined;
+
     // Parse all collection fields
     const columns = collection.fields.map((field) => this.parseColumn(field, titleColumnSlug?.[0]));
 
@@ -107,6 +112,7 @@ export class WebflowSchemaParser {
       name: `${site.displayName} - ${collection.displayName}`,
       columns,
       titleColumnRemoteId: titleColumnSlug,
+      mainContentColumnRemoteId,
     };
   }
 
