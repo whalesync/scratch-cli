@@ -132,7 +132,7 @@ function TreeNodeRenderer({
               e.stopPropagation();
             }}
           >
-            <Menu opened={menuOpened} onChange={setMenuOpened}>
+            <Menu opened={menuOpened} onChange={setMenuOpened} offset={0} withArrow={false} position="bottom-start">
               <Menu.Target>
                 <ActionIconThreeDots />
               </Menu.Target>

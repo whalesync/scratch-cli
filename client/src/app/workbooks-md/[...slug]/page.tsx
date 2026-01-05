@@ -29,7 +29,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Group, Stack, Text } from '@mantine/core';
-import { ArrowLeftIcon, FileTextIcon, XIcon } from 'lucide-react';
+import { ArrowLeftIcon, FileTextIcon, FolderIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FileEditor } from './components/FileEditor';
 import { FolderDetailViewer } from './components/FolderDetailViewer';
@@ -140,6 +140,7 @@ function WorkbookNewPageContent() {
                     <Group gap={0} h={32} style={{ borderBottom: '0.5px solid var(--fg-divider)', overflow: 'auto' }}>
                       {openTabs.map((tabFilePath) => {
                         const fileName = tabFilePath.split('/').pop() || tabFilePath;
+                        const isFolder = !fileName.endsWith('.md');
                         const isActiveTab = activeTabId === tabFilePath;
 
                         return (
@@ -163,7 +164,12 @@ function WorkbookNewPageContent() {
                               borderBottom: isActiveTab ? '2px solid var(--mantine-color-blue-6)' : 'none',
                             }}
                           >
-                            <FileTextIcon size={12} color="var(--fg-secondary)" />
+                            {}
+                            {isFolder ? (
+                              <FolderIcon size={12} color="var(--fg-secondary)" />
+                            ) : (
+                              <FileTextIcon size={12} color="var(--fg-secondary)" />
+                            )}
                             <Text size="xs" truncate style={{ maxWidth: '120px' }}>
                               {fileName}
                             </Text>

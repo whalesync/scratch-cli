@@ -1,24 +1,24 @@
 /* Always visible scrollbars for AG Grid */
-.agGridContainer {
+.ag-grid-container {
   /* Force scrollbars to always be visible */
   scrollbar-width: thin;
   scrollbar-color: #666 #333;
 }
 
-.agGridContainer .ag-body-viewport::-webkit-scrollbar {
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.agGridContainer .ag-body-viewport::-webkit-scrollbar-track {
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-track {
   background: #333;
 }
 
-.agGridContainer .ag-body-viewport::-webkit-scrollbar-thumb {
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb {
   background: #666;
   border-radius: 4px;
 }
 
-.agGridContainer .ag-body-viewport::-webkit-scrollbar-thumb:hover {
+.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb:hover {
   background: #888;
 }

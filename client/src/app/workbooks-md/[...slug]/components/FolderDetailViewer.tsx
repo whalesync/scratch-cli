@@ -1,15 +1,25 @@
 'use client';
 
 import '@/ag-grid-css';
+import { Text13Regular, TextMono12Regular } from '@/app/components/base/text';
+import { ErrorInfo } from '@/app/components/InfoPanel';
+import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useFileDetailsList } from '@/hooks/use-file-details-list';
-import { Box, Center, Text, useMantineColorScheme } from '@mantine/core';
+import { Box, Center, Group, Text, useMantineColorScheme } from '@mantine/core';
 import { FileDetailsEntity, WorkbookId } from '@spinner/shared-types';
-import { AllCommunityModule, ColDef, ModuleRegistry, RowClickedEvent } from 'ag-grid-community';
+import {
+  AllCommunityModule,
+  ColDef,
+  ICellRendererParams,
+  IHeaderParams,
+  ModuleRegistry,
+  RowClickedEvent,
+} from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
 import matter from 'gray-matter';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './FolderDetailViewer.module.css';
 
 // Register AG Grid modules
@@ -34,6 +44,126 @@ interface FolderDetailViewerProps {
   setOpenTabs: React.Dispatch<React.SetStateAction<string[]>>;
   setActiveTabId: React.Dispatch<React.SetStateAction<string | null>>;
 }
+
+// Minimal cell renderer matching FieldValueWrapper styling
+const cellRenderer = (params: ICellRendererParams) => {
+  const value = params.value;
+  const formattedValue = value !== null && value !== undefined ? String(value) : '';
+
+  return (
+    <Group
+      style={{
+        height: '100%',
+        alignItems: 'center',
+        paddingLeft: '8px',
+        paddingRight: '8px',
+        gap: '8px',
+      }}
+    >
+      <Box
+        style={{
+          flex: 1,
+          minWidth: 0,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <TextMono12Regular
+          c="var(--fg-primary)"
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {formattedValue}
+        </TextMono12Regular>
+      </Box>
+    </Group>
+  );
+};
+
+// Custom header component matching SnapshotGrid header styling
+const CustomHeaderComponent = (props: IHeaderParams) => {
+  const [currentSort, setCurrentSort] = useState(props.column.getSort());
+
+  // Monitor sort changes and update local state
+  useEffect(() => {
+    const sortState = props.column.getSort();
+    setCurrentSort(sortState);
+  }, [props.column]);
+
+  // Listen for sort changes from grid API
+  useEffect(() => {
+    if (props.api) {
+      const handleSortChanged = () => {
+        const actualSort = props.column.getSort();
+        setCurrentSort(actualSort);
+      };
+
+      props.api.addEventListener('sortChanged', handleSortChanged);
+
+      return () => {
+        props.api?.removeEventListener('sortChanged', handleSortChanged);
+      };
+    }
+  }, [props.api, props.column]);
+
+  const handleHeaderClick = () => {
+    if (!props.enableSorting) return;
+
+    // Toggle sort when clicking on header text
+    let newSort: 'asc' | 'desc' | null;
+    if (currentSort === 'asc') {
+      newSort = 'desc';
+    } else if (currentSort === 'desc') {
+      newSort = null;
+    } else {
+      newSort = 'asc';
+    }
+
+    props.setSort(newSort);
+    setCurrentSort(newSort);
+  };
+
+  return (
+    <Group
+      wrap="nowrap"
+      gap="xs"
+      onClick={handleHeaderClick}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        height: '100%',
+        width: '100%',
+        alignItems: 'center',
+        paddingLeft: '8px',
+        paddingRight: '8px',
+        gap: '8px',
+        flex: 1,
+        cursor: props.enableSorting ? 'pointer' : 'default',
+      }}
+    >
+      <Text13Regular
+        c="var(--fg-secondary)"
+        style={{
+          overflow: 'hidden',
+          minWidth: 0,
+          flexShrink: 1,
+          flexGrow: 0,
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {props.displayName}
+      </Text13Regular>
+
+      {props.enableSorting && (currentSort === 'asc' || currentSort === 'desc') && (
+        <Box c="var(--fg-secondary)" style={{ flexShrink: 0 }}>
+          {currentSort === 'asc' && '↑'}
+          {currentSort === 'desc' && '↓'}
+        </Box>
+      )}
+    </Group>
+  );
+};
 
 export const FolderDetailViewer = ({
   workbookId,
@@ -111,26 +241,8 @@ export const FolderDetailViewer = ({
         headerName: 'File Name',
         minWidth: AG.grid.defaultMinWidth,
         flex: AG.grid.defaultFlex,
-      },
-      {
-        field: 'updatedAt',
-        headerName: 'Updated Date',
-        minWidth: AG.grid.defaultMinWidth,
-        flex: AG.grid.defaultFlex,
-        valueFormatter: (params) => {
-          if (!params.value) return '';
-          return new Date(params.value).toLocaleString();
-        },
-      },
-      {
-        field: 'createdAt',
-        headerName: 'Created Date',
-        minWidth: AG.grid.defaultMinWidth,
-        flex: AG.grid.defaultFlex,
-        valueFormatter: (params) => {
-          if (!params.value) return '';
-          return new Date(params.value).toLocaleString();
-        },
+        cellRenderer: cellRenderer,
+        headerComponent: CustomHeaderComponent,
       },
     ];
 
@@ -139,6 +251,8 @@ export const FolderDetailViewer = ({
       headerName: key.charAt(0).toUpperCase() + key.slice(1),
       minWidth: AG.grid.defaultMinWidth,
       flex: AG.grid.defaultFlex,
+      cellRenderer: cellRenderer,
+      headerComponent: CustomHeaderComponent,
       valueGetter: (params) => {
         return params.data?.metadata?.[key];
       },
@@ -163,7 +277,7 @@ export const FolderDetailViewer = ({
   if (error) {
     return (
       <Center h="100%">
-        <Text>Error: {error.message}</Text>
+        <ErrorInfo title="Error loading folder details" description={error.message} />
       </Center>
     );
   }
@@ -171,7 +285,7 @@ export const FolderDetailViewer = ({
   if (isLoading) {
     return (
       <Center h="100%">
-        <Text>Loading...</Text>
+        <LoaderWithMessage message="Loading folder details..." centered />
       </Center>
     );
   }
@@ -187,7 +301,7 @@ export const FolderDetailViewer = ({
   return (
     <Box h="100%" w="100%" style={{ position: 'relative' }}>
       <div
-        className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles.agGridContainer}`}
+        className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{
           height: '100%',
           width: '100%',
