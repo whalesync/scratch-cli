@@ -213,23 +213,43 @@ export class FilesService {
   ): Promise<void> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    // Verify parent folder exists if being changed
-    if (updateFileDto.parentFolderId !== undefined && updateFileDto.parentFolderId !== null) {
-      const folder = await this.db.client.folder.findFirst({
-        where: {
-          id: updateFileDto.parentFolderId,
-          workbookId,
-        },
-      });
-      if (!folder) {
-        throw new NotFoundException('Parent folder not found');
+    let newPath: string | undefined;
+
+    // If we are renaming or moving, we likely need to recompute the path
+    if (updateFileDto.name || updateFileDto.parentFolderId !== undefined) {
+      // 1. Fetch current file to know what's missing (e.g. current name if only moving, current folder if only renaming)
+      const currentFile = await this.workbookDbService.workbookDb.getFileById(workbookId, fileId);
+      if (!currentFile) {
+        throw new NotFoundException('File not found');
       }
+
+      const effectiveName = updateFileDto.name ?? currentFile.name;
+      const effectiveFolderId =
+        updateFileDto.parentFolderId !== undefined ? updateFileDto.parentFolderId : currentFile.folder_id;
+
+      // 2. Fetch parent folder path
+      let parentPath = '';
+      if (effectiveFolderId) {
+        const folder = await this.db.client.folder.findFirst({
+          where: { id: effectiveFolderId, workbookId },
+          select: { path: true },
+        });
+
+        if (!folder) {
+          throw new NotFoundException('Parent folder not found');
+        }
+        parentPath =
+          folder.path ?? (await this.folderService.computeFolderPath(workbookId, effectiveFolderId as FolderId));
+      }
+
+      newPath = (parentPath === '/' ? '' : parentPath) + '/' + effectiveName;
     }
 
     await this.workbookDbService.workbookDb.updateFileById(workbookId, fileId, {
       name: updateFileDto.name,
       folderId: updateFileDto.parentFolderId,
       content: updateFileDto.content,
+      path: newPath,
     });
   }
 

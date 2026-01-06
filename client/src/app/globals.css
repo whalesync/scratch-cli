@@ -7,6 +7,7 @@
   --bg-base: var(--mantine-color-body);
   --bg-panel: var(--mantine-color-gray-0);
   --bg-selected: var(--mantine-color-gray-1);
+  --bg-hover: var(--mantine-color-gray-0);
 
   /* Foreground/Text */
   --fg-primary: var(--mantine-color-gray-9);
@@ -50,6 +51,7 @@
   --bg-base: black;
   --bg-panel: var(--mantine-color-dark-7);
   --bg-selected: var(--mantine-color-dark-6);
+  --bg-hover: var(--mantine-color-dark-5);
   --tooltip-bg: black;
 
   /* Override actual text color for Mantine components */

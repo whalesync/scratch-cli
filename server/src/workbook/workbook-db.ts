@@ -473,6 +473,7 @@ export class WorkbookDb {
       name?: string;
       folderId?: string | null;
       content?: string | null;
+      path?: string;
     },
   ): Promise<void> {
     const file = await this.getFileById(workbookId, fileId);
@@ -486,18 +487,14 @@ export class WorkbookDb {
 
     if (updates.name !== undefined) {
       updateData[FILE_NAME_COLUMN] = updates.name;
-      // Update path to reflect new name
-      // const currentFolderId = file.folder_id;
-      // const newPath = currentFolderId ? `/${currentFolderId}/${updates.name}` : `/${updates.name}`;
-      // updateData[PATH_COLUMN] = newPath;
     }
 
     if (updates.folderId !== undefined) {
       updateData[FOLDER_ID_COLUMN] = updates.folderId ?? '';
-      // Update path to reflect new folder
-      // const fileName = updates.name ?? file.name;
-      // const newPath = updates.folderId ? `/${updates.folderId}/${fileName}` : `/${fileName}`;
-      // updateData[PATH_COLUMN] = newPath;
+    }
+
+    if (updates.path !== undefined) {
+      updateData[PATH_COLUMN] = updates.path;
     }
 
     if (updates.content !== undefined) {

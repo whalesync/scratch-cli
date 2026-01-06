@@ -61,7 +61,12 @@ interface TreeNodeRendererProps {
   isSelected: boolean;
   isDropTarget: boolean;
   isAdmin: boolean;
-  onFileClick: (fileId: FileId, fileName: string) => void;
+  onNodeSelect: (
+    nodeId: string,
+    modifiers: { shift: boolean; ctrl: boolean; meta: boolean },
+    shouldOpen?: boolean,
+  ) => void;
+  onFileDoubleClick: (fileId: FileId, fileName: string) => void;
   onExternalFileDrop: (folderId: FolderId | null, files: FileWithPath[]) => void;
   onFolderDetailsClick: (folderId: FolderId) => void;
   onFileRename: (fileId: FileId, currentName: string) => void;
@@ -73,6 +78,7 @@ interface TreeNodeRendererProps {
   getNodePath: (nodeId: string) => string;
   onCreateFolderInFolder: (parentFolderId: FolderId) => void;
   onCreateFileInFolder: (parentFolderId: FolderId) => void;
+  selectedCount: number;
 }
 
 function TreeNodeRenderer({
@@ -83,7 +89,8 @@ function TreeNodeRenderer({
   isSelected,
   isDropTarget,
   isAdmin,
-  onFileClick,
+  onNodeSelect,
+  onFileDoubleClick,
   onExternalFileDrop,
   onFolderDetailsClick,
   onFileRename,
@@ -95,6 +102,7 @@ function TreeNodeRenderer({
   getNodePath,
   onCreateFolderInFolder,
   onCreateFileInFolder,
+  selectedCount,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [isExternalDragOver, setIsExternalDragOver] = useState(false);
@@ -104,12 +112,47 @@ function TreeNodeRenderer({
 
   const indent = depth * 18;
   const showDropHighlight = isDropTarget || isExternalDragOver;
+  const canShowContextMenu = selectedCount === 1 && isSelected;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // If not selected, select it first (without opening)
+    if (!isSelected) {
+      onNodeSelect(nodeData.id, { shift: false, ctrl: false, meta: false }, false);
+    }
+
     setMenuPosition({ x: e.clientX, y: e.clientY });
     setMenuOpened(true);
+  };
+
+  const handleNodeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // For folders, clicking the chevron area should still toggle
+    // For files, clicking anywhere selects
+    const modifiers = {
+      shift: e.shiftKey,
+      ctrl: e.ctrlKey,
+      meta: e.metaKey,
+    };
+    if (nodeData.isFile) {
+      onNodeSelect(nodeData.id, modifiers);
+    } else {
+      // For folders, clicking the text area selects, clicking chevron toggles
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-chevron]')) {
+        // Chevron click handled separately, don't select
+        return;
+      } else {
+        onNodeSelect(nodeData.id, modifiers);
+      }
+    }
+  };
+
+  const handleChevronClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle();
   };
 
   const handleShowInfo = () => {
@@ -131,7 +174,7 @@ function TreeNodeRenderer({
           pl={indent + 6}
           pr="xs"
           wrap="nowrap"
-          onClick={onToggle}
+          onClick={handleNodeClick}
           onContextMenu={handleContextMenu}
           onDragOver={(e) => {
             // Only handle external file drags
@@ -163,18 +206,25 @@ function TreeNodeRenderer({
           }}
           className={styles.treeNode}
           data-drop-target={showDropHighlight ? 'true' : 'false'}
+          data-selected={isSelected ? 'true' : 'false'}
+          bg={isSelected ? 'var(--bg-selected)' : showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent'}
           style={{
             cursor: 'pointer',
             borderRadius: '4px',
             border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
-            backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
           }}
         >
-          {isOpen ? (
-            <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          ) : (
-            <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          )}
+          <Box
+            data-chevron
+            onClick={handleChevronClick}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            {isOpen ? (
+              <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+            ) : (
+              <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+            )}
+          </Box>
           <FolderIcon
             size={14}
             color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'}
@@ -182,82 +232,90 @@ function TreeNodeRenderer({
           />
           <Text
             size="sm"
-            c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-secondary)'}
+            c={
+              showDropHighlight
+                ? 'var(--mantine-color-blue-7)'
+                : isSelected
+                  ? 'var(--fg-primary)'
+                  : 'var(--fg-secondary)'
+            }
             truncate
             style={{ flex: 1, minWidth: 0 }}
           >
             {nodeData.name}
           </Text>
         </Group>
-        <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
-          <Menu.Target>
-            <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<FilePlusIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateFileInFolder(nodeData.id as FolderId);
-              }}
-            >
-              New File
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<FolderPlusIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateFolderInFolder(nodeData.id as FolderId);
-              }}
-            >
-              New Folder
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              leftSection={<InfoIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFolderDetailsClick(nodeData.id as FolderId);
-              }}
-            >
-              View Details...
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<PencilIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFolderRename(nodeData.id as FolderId, nodeData.name);
-              }}
-            >
-              Rename
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              leftSection={<Trash2Icon size={16} />}
-              color="red"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFolderDelete(nodeData.id as FolderId);
-              }}
-            >
-              Delete
-            </Menu.Item>
-            {isAdmin && (
-              <>
-                <Menu.Divider />
-                <Menu.Item
-                  leftSection={<InfoIcon size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShowInfo();
-                  }}
-                >
-                  Show Info
-                </Menu.Item>
-              </>
-            )}
-          </Menu.Dropdown>
-        </Menu>
+        {canShowContextMenu && (
+          <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
+            <Menu.Target>
+              <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<FilePlusIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateFileInFolder(nodeData.id as FolderId);
+                }}
+              >
+                New File
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<FolderPlusIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateFolderInFolder(nodeData.id as FolderId);
+                }}
+              >
+                New Folder
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<InfoIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFolderDetailsClick(nodeData.id as FolderId);
+                }}
+              >
+                View Details...
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<PencilIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFolderRename(nodeData.id as FolderId, nodeData.name);
+                }}
+              >
+                Rename
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<Trash2Icon size={16} />}
+                color="red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFolderDelete(nodeData.id as FolderId);
+                }}
+              >
+                Delete
+              </Menu.Item>
+              {isAdmin && (
+                <>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<InfoIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShowInfo();
+                    }}
+                  >
+                    Show Info
+                  </Menu.Item>
+                </>
+              )}
+            </Menu.Dropdown>
+          </Menu>
+        )}
       </>
     );
   } else {
@@ -270,7 +328,8 @@ function TreeNodeRenderer({
           pr="xs"
           gap="xs"
           wrap="nowrap"
-          onClick={() => onFileClick(nodeData.id as FileId, nodeData.name)}
+          onClick={handleNodeClick}
+          onDoubleClick={() => onFileDoubleClick(nodeData.id as FileId, nodeData.name)}
           onContextMenu={handleContextMenu}
           bg={isSelected ? 'var(--bg-selected)' : 'transparent'}
           className={styles.treeNode}
@@ -291,56 +350,58 @@ function TreeNodeRenderer({
             {nodeData.name}
           </Text>
         </Group>
-        <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
-          <Menu.Target>
-            <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<DownloadIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFileDownload(nodeData.id as FileId);
-              }}
-            >
-              Download
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<PencilIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFileRename(nodeData.id as FileId, nodeData.name);
-              }}
-            >
-              Rename
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              leftSection={<Trash2Icon size={16} />}
-              color="red"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFileDelete(nodeData.id as FileId);
-              }}
-            >
-              Delete
-            </Menu.Item>
-            {isAdmin && (
-              <>
-                <Menu.Divider />
-                <Menu.Item
-                  leftSection={<InfoIcon size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShowInfo();
-                  }}
-                >
-                  Show Info
-                </Menu.Item>
-              </>
-            )}
-          </Menu.Dropdown>
-        </Menu>
+        {canShowContextMenu && (
+          <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
+            <Menu.Target>
+              <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<DownloadIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileDownload(nodeData.id as FileId);
+                }}
+              >
+                Download
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<PencilIcon size={16} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileRename(nodeData.id as FileId, nodeData.name);
+                }}
+              >
+                Rename
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<Trash2Icon size={16} />}
+                color="red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileDelete(nodeData.id as FileId);
+                }}
+              >
+                Delete
+              </Menu.Item>
+              {isAdmin && (
+                <>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<InfoIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShowInfo();
+                    }}
+                  >
+                    Show Info
+                  </Menu.Item>
+                </>
+              )}
+            </Menu.Dropdown>
+          </Menu>
+        )}
       </>
     );
   }
@@ -386,13 +447,17 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
-  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
 
   // Use the file list hook
   const { files, isLoading, refreshFiles } = useFileList(workbook?.id ?? null);
 
   // Local state for tree data (required for drag-and-drop to work)
   const [treeData, setTreeData] = useState<NodeModel<TreeNodeData>[]>([]);
+
+  // State for selected nodes (multiple selection)
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  // Anchor node for range selection (shift-click)
+  const [lastSelectedNodeId, setLastSelectedNodeId] = useState<string | null>(null);
 
   // State for info modal
   const [infoModalData, setInfoModalData] = useState<NodeInfoData | null>(null);
@@ -406,6 +471,12 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     if (files?.items) {
       setTreeData(files.items.map((f) => convertToTreeNode(f)));
     }
+  }, [files]);
+
+  // Clear selection when files refresh
+  useEffect(() => {
+    setSelectedNodes(new Set());
+    setLastSelectedNodeId(null);
   }, [files]);
 
   // Build path for a node by traversing up the tree
@@ -432,17 +503,104 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     setInfoModalData(info);
   }, []);
 
-  const handleFileClick = (fileId: FileId, fileName: string) => {
-    // Add to open tabs if not already open, and set as active
-    openFileTab({ id: fileId, type: 'file', title: fileName });
+  const handleSingleSelect = useCallback(
+    (nodeId: string, shouldOpen: boolean = true) => {
+      setSelectedNodes(new Set([nodeId]));
+      setLastSelectedNodeId(nodeId);
 
-    // Update activeCells for compatibility
-    setActiveCells({
-      recordId: fileId,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
-  };
+      if (!shouldOpen) return;
+
+      // Also open if it's a file
+      const node = treeData.find((n) => n.id === nodeId);
+      if (node?.data?.isFile) {
+        openFileTab({ id: nodeId as FileId, type: 'file', title: node.data.name });
+
+        // Also set active cells for compatibility
+        setActiveCells({
+          recordId: nodeId,
+          columnId: activeCells?.columnId,
+          viewType: 'md',
+        });
+      }
+    },
+    [treeData, openFileTab, setActiveCells, activeCells],
+  );
+
+  const handleNodeSelect = useCallback(
+    (nodeId: string, modifiers: { shift: boolean; ctrl: boolean; meta: boolean }, shouldOpen: boolean = true) => {
+      const isMultiSelect = modifiers.ctrl || modifiers.meta;
+      const isRangeSelect = modifiers.shift;
+
+      const targetNode = treeData.find((n) => n.id === nodeId);
+      if (!targetNode) return;
+
+      // Ensure we are operating within the same context (same parent, roughly same type if needed)
+      // The user requested: "shift and control click for files within the same folder only"
+      // "once a click is done on an entity of different type or different parent treat it as a select of that entity only"
+
+      // We need to check against the "anchor" or the existing selection set.
+      // For simplicity, let's check against the anchor (lastSelectedNodeId) if it exists.
+      const anchorNode = lastSelectedNodeId ? treeData.find((n) => n.id === lastSelectedNodeId) : null;
+
+      const isSameParent = anchorNode && anchorNode.parent === targetNode.parent;
+      const isSameType = anchorNode && anchorNode.data?.isFile === targetNode.data?.isFile;
+
+      // If we are trying to multi-select but the criteria don't match, fall back to single select
+      if ((isMultiSelect || isRangeSelect) && (!isSameParent || !isSameType)) {
+        // Reset to single select of the new target
+        handleSingleSelect(nodeId, shouldOpen);
+        return;
+      }
+
+      if (isRangeSelect && lastSelectedNodeId && treeData.length > 0) {
+        // Range select (Shift+Click)
+        const startIndex = treeData.findIndex((n) => n.id === lastSelectedNodeId);
+        const endIndex = treeData.findIndex((n) => n.id === nodeId);
+
+        if (startIndex !== -1 && endIndex !== -1) {
+          const [start, end] = startIndex < endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+          // Filter range to only include items with the same parent
+          const rangeIds = treeData
+            .slice(start, end + 1)
+            .filter((n) => n.parent === targetNode.parent && n.data?.isFile === targetNode.data?.isFile)
+            .map((n) => n.id as string);
+
+          setSelectedNodes(new Set(rangeIds));
+        }
+      } else if (isMultiSelect) {
+        // Toggle select (Ctrl/Cmd+Click)
+        setSelectedNodes((prev) => {
+          const next = new Set(prev);
+          if (next.has(nodeId)) {
+            next.delete(nodeId);
+          } else {
+            next.add(nodeId);
+          }
+          return next;
+        });
+        // Update anchor to the latest clicked node
+        setLastSelectedNodeId(nodeId);
+      } else {
+        handleSingleSelect(nodeId, shouldOpen);
+      }
+    },
+    [treeData, lastSelectedNodeId, handleSingleSelect],
+  );
+
+  const handleFileDoubleClick = useCallback(
+    (fileId: FileId, fileName: string) => {
+      // Add to open tabs if not already open, and set as active
+      openFileTab({ id: fileId, type: 'file', title: fileName });
+
+      // Update activeCells for compatibility
+      setActiveCells({
+        recordId: fileId,
+        columnId: activeCells?.columnId,
+        viewType: 'md',
+      });
+    },
+    [openFileTab, setActiveCells, activeCells],
+  );
 
   const handleDrop = async (newTree: NodeModel<TreeNodeData>[], options: DropOptions<TreeNodeData>) => {
     console.log('DROP!', newTree);
@@ -713,10 +871,11 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         depth={depth}
                         isOpen={isOpen}
                         onToggle={onToggle}
-                        isSelected={activeFileTabId === node.data?.id}
+                        isSelected={selectedNodes.has(node.id as string)}
                         isDropTarget={isDropTarget}
                         isAdmin={!!isAdmin}
-                        onFileClick={handleFileClick}
+                        onNodeSelect={handleNodeSelect}
+                        onFileDoubleClick={handleFileDoubleClick}
                         onExternalFileDrop={handleExternalFileDrop}
                         onFolderDetailsClick={handleFolderDetailsClick}
                         onFileRename={handleFileRename}
@@ -728,6 +887,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         getNodePath={getNodePath}
                         onCreateFolderInFolder={handleCreateFolderInFolder}
                         onCreateFileInFolder={handleCreateFileInFolder}
+                        selectedCount={selectedNodes.size}
                       />
                     )}
                   />
