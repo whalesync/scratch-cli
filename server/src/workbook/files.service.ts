@@ -444,24 +444,22 @@ export class FilesService {
    * Download a file as markdown with front matter (public, no auth required)
    * Security relies on workbook IDs being unguessable
    */
-  async downloadFileAsMarkdownPublic(workbookId: WorkbookId, filePath: string): Promise<string> {
-    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, filePath);
+  async downloadFileAsMarkdownPublic(
+    workbookId: WorkbookId,
+    fileId: FileId,
+  ): Promise<{ content: string; name: string }> {
+    const file = await this.workbookDbService.workbookDb.getFileById(workbookId, fileId);
 
     if (!file) {
       throw new NotFoundException('File not found');
     }
 
-    // If there's no content, return empty string
-    if (!file.content) {
-      return '';
-    }
+    let content = file.content || '';
 
-    // If there's metadata, reconstruct the markdown with YAML front matter
     if (file.metadata && Object.keys(file.metadata).length > 0) {
-      return matter.stringify(file.content, file.metadata);
+      content = matter.stringify(content, file.metadata);
     }
 
-    // Otherwise, just return the content
-    return file.content;
+    return { content, name: file.name };
   }
 }

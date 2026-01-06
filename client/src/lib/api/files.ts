@@ -174,14 +174,13 @@ export const foldersApi = {
    * Security relies on workbook IDs being unguessable
    * GET /workbook/public/:workbookId/files/download?path=path/to/file.md
    */
-  downloadFile: (workbookId: WorkbookId, filePath: string): void => {
-    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbookId}/files/download?path=${encodeURIComponent(filePath)}`;
-    const filename = filePath.split('/').pop() || 'file.md';
+  downloadFile: (workbookId: WorkbookId, fileId: FileId): void => {
+    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbookId}/files/download?fileId=${fileId}`;
 
     // Create a temporary link element to trigger download
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = '';
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();

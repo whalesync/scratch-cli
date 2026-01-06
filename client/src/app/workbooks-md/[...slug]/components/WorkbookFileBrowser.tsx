@@ -161,6 +161,8 @@ function TreeNodeRenderer({
               onExternalFileDrop(nodeData.id as FolderId, files);
             }
           }}
+          className={styles.treeNode}
+          data-drop-target={showDropHighlight ? 'true' : 'false'}
           style={{
             cursor: 'pointer',
             borderRadius: '4px',
@@ -271,6 +273,8 @@ function TreeNodeRenderer({
           onClick={() => onFileClick(nodeData.id as FileId, nodeData.name)}
           onContextMenu={handleContextMenu}
           bg={isSelected ? 'var(--bg-selected)' : 'transparent'}
+          className={styles.treeNode}
+          data-selected={isSelected ? 'true' : 'false'}
           style={{
             cursor: 'pointer',
             borderRadius: '4px',
@@ -508,12 +512,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const handleFileDownload = useCallback(
     (fileId: FileId) => {
       if (!workbook) return;
-      // Find the file in tree data to get its name
-      const fileNode = treeData.find((n) => n.id === fileId);
-      const fileName = fileNode?.data?.name || 'file.md';
-      foldersApi.downloadFile(workbook.id, fileName);
+      foldersApi.downloadFile(workbook.id, fileId);
     },
-    [workbook, treeData],
+    [workbook],
   );
 
   const handleFolderRename = useCallback((folderId: FolderId, currentName: string) => {

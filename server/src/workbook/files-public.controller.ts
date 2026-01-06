@@ -8,7 +8,7 @@ import {
   Res,
   UseInterceptors,
 } from '@nestjs/common';
-import type { WorkbookId } from '@spinner/shared-types';
+import type { FileId, WorkbookId } from '@spinner/shared-types';
 import type { Response } from 'express';
 import { WSLogger } from 'src/logger';
 import { FilesService } from './files.service';
@@ -25,22 +25,20 @@ export class FilesPublicController {
   @Get(':id/files/download')
   async downloadFile(
     @Param('id') workbookId: WorkbookId,
-    @Query('path') filePath: string,
+    @Query('fileId') fileId: string,
     @Res() res: Response,
   ): Promise<void> {
     try {
-      const fileContent = await this.filesService.downloadFileAsMarkdownPublic(workbookId, filePath);
+      const { content, name } = await this.filesService.downloadFileAsMarkdownPublic(workbookId, fileId as FileId);
 
-      // Extract filename from path
-      const fileName = filePath.split('/').pop() || 'file.md';
-      const encodedFilename = encodeURIComponent(fileName);
+      const encodedFilename = encodeURIComponent(name);
 
       // Set headers for markdown download
       res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFilename}`);
+      res.setHeader('Content-Disposition', `attachment; filename="${name}"; filename*=UTF-8''${encodedFilename}`);
 
       // Send the content
-      res.send(fileContent);
+      res.send(content);
     } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         res.status(404).send('File not found');
@@ -50,7 +48,7 @@ export class FilesPublicController {
           message: 'Failed to download file',
           error: error,
           workbookId: workbookId,
-          filePath: filePath,
+          fileId: fileId,
         });
         res.status(500).send('Failed to download file');
       }
