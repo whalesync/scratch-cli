@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
-import { createFileId, FileId, SnapshotTableId, UNPUBLISHED_PREFIX, WorkbookId } from '@spinner/shared-types';
+import { createFileId, FileId, FolderId, SnapshotTableId, UNPUBLISHED_PREFIX, WorkbookId } from '@spinner/shared-types';
 import matter from 'gray-matter';
 import { Knex } from 'knex';
 import _ from 'lodash';
@@ -870,6 +870,171 @@ export class WorkbookDb {
       .update({ [SEEN_COLUMN]: false });
   }
 
+  /**
+   * Updates the remote ID for a file.
+   * Also marks the file as clean (not dirty).
+   *
+   * @param workbookId - The workbook ID
+   * @param fileId - The file ID to update
+   * @param remoteId - The remote ID from the connector
+   * @param trx - Optional Knex transaction. If not provided, uses knex directly
+   */
+  async updateFileRemoteId(
+    workbookId: WorkbookId,
+    fileId: FileId,
+    remoteId: string,
+    trx?: Knex.Transaction,
+  ): Promise<void> {
+    const db = trx || this.getKnex();
+    await db(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FILE_ID_COLUMN, fileId)
+      .update({
+        [REMOTE_ID_COLUMN]: remoteId,
+        [DIRTY_COLUMN]: false,
+      });
+  }
+
+  /**
+   * Hard deletes files from the database.
+   *
+   * @param workbookId - The workbook ID
+   * @param fileIds - Array of file IDs to delete
+   * @param trx - Optional Knex transaction. If not provided, uses knex directly
+   */
+  async hardDeleteFiles(workbookId: WorkbookId, fileIds: FileId[], trx?: Knex.Transaction): Promise<void> {
+    const db = trx || this.getKnex();
+    await db(FILES_TABLE).withSchema(workbookId).whereIn(FILE_ID_COLUMN, fileIds).delete();
+  }
+
+  /**
+   * Marks files as clean (not dirty).
+   *
+   * @param workbookId - The workbook ID
+   * @param fileIds - Array of file IDs to mark as clean
+   * @param trx - Optional Knex transaction. If not provided, uses knex directly
+   */
+  async markFilesAsClean(workbookId: WorkbookId, fileIds: FileId[], trx?: Knex.Transaction): Promise<void> {
+    const db = trx || this.getKnex();
+    await db(FILES_TABLE)
+      .withSchema(workbookId)
+      .whereIn(FILE_ID_COLUMN, fileIds)
+      .update({
+        [DIRTY_COLUMN]: false,
+      });
+  }
+
+  /**
+   * Iterates over all dirty files matching a specific operation type.
+   * Processes files in batches and executes a callback for each batch.
+   *
+   * @param workbookId - The workbook ID
+   * @param operation - The type of operation: 'create', 'update', or 'delete'
+   * @param batchSize - Number of files to process per batch
+   * @param callback - Function to execute for each batch of files
+   * @param markAsClean - Whether to mark processed files as clean (not dirty)
+   * @returns Total number of files processed
+   */
+  async forAllDirtyFiles(
+    workbookId: WorkbookId,
+    operation: 'create' | 'update' | 'delete',
+    batchSize: number,
+    callback: (files: FileDbRecord[], trx: Knex.Transaction) => Promise<void>,
+    markAsClean: boolean,
+  ): Promise<number> {
+    let processedCount = 0;
+    const knex = this.getKnex();
+
+    await knex.transaction(async (trx) => {
+      const query = trx<FileDbRecord>(FILES_TABLE)
+        .withSchema(workbookId)
+        .select('*')
+        .where(DIRTY_COLUMN, true)
+        .orderBy('id')
+        .forUpdate()
+        .skipLocked();
+
+      // Filter by operation type
+      switch (operation) {
+        case 'create':
+          // New files: no original content
+          query.whereNull(ORIGINAL_COLUMN);
+          break;
+        case 'update':
+          // Modified files: has original, not deleted
+          query.whereNotNull(ORIGINAL_COLUMN).where(DELETED_COLUMN, false);
+          break;
+        case 'delete':
+          // Deleted files
+          query.where(DELETED_COLUMN, true);
+          break;
+      }
+
+      const allFiles = await query;
+      processedCount = allFiles.length;
+
+      if (allFiles.length > 0) {
+        // Process files in batches
+        for (let i = 0; i < allFiles.length; i += batchSize) {
+          const batch = allFiles.slice(i, i + batchSize);
+          await callback(batch, trx);
+
+          // Mark files as clean if requested
+          if (markAsClean) {
+            const fileIds = batch.map((f) => f.id as FileId);
+            await this.markFilesAsClean(workbookId, fileIds, trx);
+          }
+        }
+      }
+    });
+
+    return processedCount;
+  }
+
+  /**
+   * Counts the expected number of create, update, and delete operations for files in a folder.
+   *
+   * @param workbookId - The workbook ID
+   * @param folderId - The folder ID to count operations for
+   * @returns Object with counts for creates, updates, and deletes
+   */
+  async countExpectedOperations(
+    workbookId: WorkbookId,
+    folderId: FolderId,
+  ): Promise<{ creates: number; updates: number; deletes: number }> {
+    const knex = this.getKnex();
+
+    const result = await knex.transaction(async (trx) => {
+      // Query files in this folder that are dirty
+      const query = trx<FileDbRecord>(FILES_TABLE)
+        .withSchema(workbookId)
+        .where(FOLDER_ID_COLUMN, folderId)
+        .where(DIRTY_COLUMN, true);
+
+      // Use a single query with conditional sums similar to snapshot-db
+      const counts = await query
+        .sum({
+          creates: trx.raw(`CASE WHEN ?? IS NULL THEN 1 ELSE 0 END`, [ORIGINAL_COLUMN]),
+          deletes: trx.raw(`CASE WHEN ?? = true THEN 1 ELSE 0 END`, [DELETED_COLUMN]),
+          updates: trx.raw(`CASE WHEN ?? IS NOT NULL AND ?? = false AND ?? != ?? THEN 1 ELSE 0 END`, [
+            ORIGINAL_COLUMN,
+            DELETED_COLUMN,
+            ORIGINAL_COLUMN,
+            CONTENT_COLUMN,
+          ]),
+        })
+        .first();
+
+      return {
+        creates: parseInt((counts?.creates as string) || '0', 10),
+        updates: parseInt((counts?.updates as string) || '0', 10),
+        deletes: parseInt((counts?.deletes as string) || '0', 10),
+      };
+    });
+
+    return result;
+  }
+
   public getKnex(): Knex {
     if (!this.knex) {
       throw new Error('Expected knex to not be undefined');
@@ -921,6 +1086,60 @@ export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
 
   // Convert to Front Matter markdown format
   return { content: matter.stringify(bodyContent, metadata), metadata };
+}
+
+/**
+ * Converts a file database record to a connector record format.
+ * Parses the file content as markdown with front matter and extracts fields.
+ *
+ * @param file - The file database record
+ * @param tableSpec - Table specification for field mapping
+ * @returns ConnectorRecord ready for publishing
+ */
+export function convertFileToConnectorRecord<T extends BaseColumnSpec>(
+  workbookId: WorkbookId,
+  file: FileDbRecord,
+  tableSpec: BaseTableSpec<T>,
+): ConnectorRecord {
+  const fields: Record<string, unknown> = {};
+
+  // Parse the file content to extract front matter metadata
+  if (file.content) {
+    try {
+      const parsed = matter(file.content);
+
+      // Add metadata fields
+      Object.assign(fields, parsed.data);
+
+      // Add the main content to the main content field if specified
+      if (tableSpec.mainContentColumnRemoteId && tableSpec.mainContentColumnRemoteId[0]) {
+        fields[tableSpec.mainContentColumnRemoteId[0]] = parsed.content;
+      }
+    } catch (error) {
+      WSLogger.error({
+        source: 'WorkbookDb',
+        message: `Failed to parse file content as frontmatter`,
+        stack: error instanceof Error ? error.stack : undefined,
+        fileId: file.id,
+        workbookId,
+      });
+      // If parsing fails, use content as-is for main content field
+      if (tableSpec.mainContentColumnRemoteId && tableSpec.mainContentColumnRemoteId[0]) {
+        fields[tableSpec.mainContentColumnRemoteId[0]] = file.content;
+      }
+    }
+  }
+
+  // Include metadata from the metadata column
+  if (file.metadata && typeof file.metadata === 'object') {
+    Object.assign(fields, file.metadata);
+  }
+
+  return {
+    id: file.id as FileId,
+    fields,
+    errors: file.errors || {},
+  };
 }
 
 export function slugifyFileName(text: string): string {

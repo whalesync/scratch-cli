@@ -32,3 +32,11 @@ For NestJS DTOs, we use the pattern:
 - `class` definitions with 'class-validator' decorators for validation
 - All properties are optional (in TypeScript, "?") to pass strict build rules
 - A corresponding `Validated...` type where required fields are declared as required, using `Required<>` and `Pick<>`
+
+## Infrastructure
+
+The **`/terraform`** folder defines infrastructure for the application.
+
+- shell scripts and utilities for managing the application
+- Terraform files defining the infrastructure for the TEST and Production environnments on GCP
+- Documentation on system architecture

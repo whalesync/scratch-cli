@@ -5,6 +5,7 @@ import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
 import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
+import { PublishFilesJobDefinition } from 'src/worker/jobs/job-definitions/publish-files.job';
 import { PublishRecordsJobDefinition } from 'src/worker/jobs/job-definitions/publish-records.job';
 import { JobData } from 'src/worker/jobs/union-types';
 
@@ -79,6 +80,25 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       snapshotTableIds,
       type: 'publish-records',
+      initialPublicProgress,
+    };
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueuePublishFilesJob(
+    workbookId: WorkbookId,
+    actor: Actor,
+    snapshotTableIds?: string[],
+    initialPublicProgress?: PublishFilesJobDefinition['publicProgress'],
+  ): Promise<Job> {
+    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
+    const id = `publish-files-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PublishFilesJobDefinition['data'] = {
+      workbookId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      snapshotTableIds,
+      type: 'publish-files',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

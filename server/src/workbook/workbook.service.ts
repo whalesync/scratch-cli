@@ -11,6 +11,7 @@ import {
   DELETED_FIELD,
   DIRTY_COLUMN,
   EDITED_FIELDS_COLUMN,
+  FolderId,
   ImportSuggestionsResponseDto,
   METADATA_COLUMN,
   PublishSummaryDto,
@@ -47,6 +48,7 @@ import { Actor } from 'src/users/types';
 import { createCsvStream } from 'src/utils/csv-stream.helper';
 import { validateWhereClause } from 'src/utils/sql-validator';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
+import { PublishFilesPublicProgress } from 'src/worker/jobs/job-definitions/publish-files.job';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -1422,6 +1424,92 @@ export class WorkbookService {
       id,
       actor,
       snapshotTableIds,
+      initialPublicProgress,
+    );
+
+    // Set lock='publish' for all tables immediately after enqueuing
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        id: { in: snapshotTablesToProcess.map((t) => t.id) },
+      },
+      data: {
+        lock: 'publish',
+      },
+    });
+
+    // Track analytics and audit log when job is enqueued
+    this.posthogService.trackPublishWorkbook(actor.userId, workbook);
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'publish',
+      message: `Publishing workbook ${workbook.name}`,
+      entityId: workbook.id as WorkbookId,
+    });
+
+    return {
+      jobId: job.id as string,
+    };
+  }
+
+  /**
+   * New publish function that uses the new file data model
+   */
+  async publishNew(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    // Check publish limit for the organization
+    if (actor.subscriptionStatus) {
+      const plan = getPlan(actor.subscriptionStatus.planType);
+      if (plan && plan.features.publishingLimit > 0) {
+        const monthlyPublishCount = await this.subscriptionService.countMonthlyPublishActions(actor.organizationId);
+        if (monthlyPublishCount >= plan.features.publishingLimit) {
+          throw new BadRequestException(
+            `Publishing limit reached. Your plan allows ${plan.features.publishingLimit} publishes per month.`,
+          );
+        }
+      }
+    }
+
+    // Construct initial public progress
+    const workbook = await this.findOneOrThrow(id, actor);
+    let snapshotTablesToProcess = workbook.snapshotTables || [];
+    if (snapshotTableIds && snapshotTableIds.length > 0) {
+      snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
+    }
+
+    const initialPublicProgressTables: PublishFilesPublicProgress['tables'] = [];
+    for (const st of snapshotTablesToProcess) {
+      if (st.folderId === null) {
+        WSLogger.warn({
+          source: 'WorkbookService',
+          message: 'Skipping table because it has no folder ID',
+          tableId: st.id,
+          workbookId: id,
+        });
+        continue;
+      }
+
+      const counts = await this.workbookDbService.workbookDb.countExpectedOperations(id, st.folderId as FolderId);
+      initialPublicProgressTables.push({
+        id: (st.tableSpec as AnyTableSpec).id.wsId,
+        name: (st.tableSpec as AnyTableSpec).name,
+        connector: st.connectorService,
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        expectedCreates: counts.creates,
+        expectedUpdates: counts.updates,
+        expectedDeletes: counts.deletes,
+        status: 'pending' as const,
+      });
+    }
+
+    const initialPublicProgress: PublishFilesPublicProgress = {
+      totalFilesPublished: 0,
+      tables: initialPublicProgressTables,
+    };
+    const job = await this.bullEnqueuerService.enqueuePublishFilesJob(
+      id,
+      actor,
+      snapshotTablesToProcess.map((t) => t.id),
       initialPublicProgress,
     );
 
