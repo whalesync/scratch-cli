@@ -1,9 +1,10 @@
 'use client';
 
 import { useFile } from '@/hooks/use-file';
+import { filesApi } from '@/lib/api/files';
 import { Box, Button, Group, Text } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
-import { SaveIcon } from 'lucide-react';
+import { DownloadIcon, SaveIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
@@ -46,6 +47,11 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
     }
   }, [filePath, hasChanges, content, updateFile]);
 
+  const handleDownload = useCallback(() => {
+    if (!filePath) return;
+    filesApi.downloadFile(workbookId, filePath);
+  }, [workbookId, filePath]);
+
   if (!filePath) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -82,6 +88,14 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
           flexShrink: 0,
         }}
       >
+        <Button
+          size="compact-xs"
+          variant="subtle"
+          leftSection={<DownloadIcon size={12} />}
+          onClick={handleDownload}
+        >
+          Download
+        </Button>
         {hasChanges && (
           <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
             Save

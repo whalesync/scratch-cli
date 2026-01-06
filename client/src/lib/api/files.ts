@@ -122,4 +122,23 @@ export const filesApi = {
       handleAxiosError(error, 'Failed to rename folder');
     }
   },
+
+  /**
+   * Download a file as markdown (public endpoint, no auth required)
+   * Security relies on workbook IDs being unguessable
+   * GET /workbook/public/:workbookId/files/download?path=path/to/file.md
+   */
+  downloadFile: (workbookId: WorkbookId, filePath: string): void => {
+    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbookId}/files/download?path=${encodeURIComponent(filePath)}`;
+    const filename = filePath.split('/').pop() || 'file.md';
+
+    // Create a temporary link element to trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  },
 };

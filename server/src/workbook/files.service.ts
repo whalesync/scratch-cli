@@ -6,6 +6,7 @@ import {
   ValidatedCreateFileDto,
   ValidatedUpdateFileDto,
 } from '@spinner/shared-types';
+import matter from 'gray-matter';
 import path from 'path';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
@@ -192,5 +193,30 @@ export class FilesService {
     await this.verifyWorkbookAccess(workbookId, actor);
 
     return this.workbookDbService.workbookDb.renameFolder(workbookId, oldFolderPath, newFolderPath);
+  }
+
+  /**
+   * Download a file as markdown with front matter (public, no auth required)
+   * Security relies on workbook IDs being unguessable
+   */
+  async downloadFileAsMarkdownPublic(workbookId: WorkbookId, filePath: string): Promise<string> {
+    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, filePath);
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    // If there's no content, return empty string
+    if (!file.content) {
+      return '';
+    }
+
+    // If there's metadata, reconstruct the markdown with YAML front matter
+    if (file.metadata && Object.keys(file.metadata).length > 0) {
+      return matter.stringify(file.content, file.metadata);
+    }
+
+    // Otherwise, just return the content
+    return file.content;
   }
 }
