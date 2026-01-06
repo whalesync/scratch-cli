@@ -278,6 +278,7 @@ export class WorkbookService {
         workbookId,
         name: snapshotTableId,
         parentId: null,
+        path: folderPath,
       },
     });
 

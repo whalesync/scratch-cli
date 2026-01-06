@@ -21,6 +21,7 @@ import {
 import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
+import { FolderService } from './folder.service';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class FilesService {
   constructor(
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
+    private readonly folderService: FolderService,
   ) {}
 
   /**
@@ -165,6 +167,7 @@ export class FilesService {
   ): Promise<FileRefEntity> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
+    let parentPath = '';
     // Verify parent folder exists if specified
     if (createFileDto.parentFolderId) {
       const folder = await this.db.client.folder.findFirst({
@@ -172,16 +175,22 @@ export class FilesService {
           id: createFileDto.parentFolderId,
           workbookId,
         },
+        select: { path: true },
       });
       if (!folder) {
         throw new NotFoundException('Parent folder not found');
       }
+      parentPath =
+        folder.path ?? (await this.folderService.computeFolderPath(workbookId, createFileDto.parentFolderId));
     }
+
+    const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + createFileDto.name;
 
     const fileId = await this.workbookDbService.workbookDb.createFileWithFolderId(
       workbookId,
       createFileDto.name,
       createFileDto.parentFolderId ?? null,
+      fullPath,
       createFileDto.content ?? null,
     );
 
@@ -268,12 +277,26 @@ export class FilesService {
       throw new BadRequestException('A folder with this name already exists at this location');
     }
 
+    let parentPath = '';
+    if (createFolderDto.parentFolderId) {
+      const parent = await this.db.client.folder.findFirst({
+        where: { id: createFolderDto.parentFolderId, workbookId },
+        select: { path: true },
+      });
+      // If parent path isn't populated for some reason, compute it
+      parentPath =
+        parent?.path ?? (await this.folderService.computeFolderPath(workbookId, createFolderDto.parentFolderId));
+    }
+
+    const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + createFolderDto.name;
+
     const folder = await this.db.client.folder.create({
       data: {
         id: createFolderId(),
         name: createFolderDto.name,
         workbookId,
         parentId: createFolderDto.parentFolderId ?? null,
+        path: fullPath,
       },
     });
 
@@ -357,6 +380,9 @@ export class FilesService {
         parentId: updateFolderDto.parentFolderId !== undefined ? updateFolderDto.parentFolderId : undefined,
       },
     });
+
+    // Update paths recursively for the moved folder
+    await this.folderService.updateFolderPathRecursive(workbookId, folderId);
 
     return {
       folder: {

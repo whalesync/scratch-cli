@@ -65,6 +65,9 @@ export class FolderService {
       data: { parentId: newParentId },
     });
 
+    // 6. Update paths recursively
+    await this.updateFolderPathRecursive(workbookId, folderId);
+
     WSLogger.info({
       source: 'FolderService',
       message: 'Moved folder',
@@ -106,5 +109,73 @@ export class FolderService {
     }
 
     return false;
+  }
+
+  /**
+   * Computes the full path of a folder by traversing up the hierarchy.
+   */
+  async computeFolderPath(workbookId: WorkbookId, folderId: FolderId): Promise<string> {
+    let currentId: string | null = folderId;
+    const parts: string[] = [];
+
+    // Safety limit
+    let depth = 0;
+    const MAX_DEPTH = 50;
+
+    while (currentId && depth < MAX_DEPTH) {
+      const folder: { name: string; parentId: string | null } | null = await this.db.client.folder.findFirst({
+        where: { id: currentId, workbookId },
+        select: { name: true, parentId: true },
+      });
+
+      if (!folder) {
+        // If a parent is missing, we might be at a detached subtree or error.
+        // For now, assume it's an error or just stop.
+        break;
+      }
+
+      // If we found the folder, add its name
+      parts.unshift(folder.name);
+      currentId = folder.parentId;
+      depth++;
+    }
+
+    return '/' + parts.join('/');
+  }
+
+  /**
+   * Recursively updates the cached path for a folder and all its descendants.
+   * If parentPath is provided, it is used to construct the path instead of re-computing it.
+   */
+  async updateFolderPathRecursive(workbookId: WorkbookId, folderId: FolderId, parentPath?: string): Promise<void> {
+    let currentPath: string;
+
+    if (parentPath !== undefined) {
+      const folder = await this.db.client.folder.findFirst({
+        where: { id: folderId, workbookId },
+        select: { name: true },
+      });
+      if (!folder) return;
+
+      const prefix = parentPath === '/' ? '' : parentPath;
+      currentPath = `${prefix}/${folder.name}`;
+    } else {
+      currentPath = await this.computeFolderPath(workbookId, folderId);
+    }
+
+    await this.db.client.folder.update({
+      where: { id: folderId },
+      data: { path: currentPath },
+    });
+
+    // Find all children
+    const children = await this.db.client.folder.findMany({
+      where: { parentId: folderId, workbookId },
+      select: { id: true },
+    });
+
+    for (const child of children) {
+      await this.updateFolderPathRecursive(workbookId, child.id as FolderId, currentPath);
+    }
   }
 }

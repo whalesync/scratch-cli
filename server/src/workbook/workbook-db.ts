@@ -24,11 +24,6 @@ export const FOLDER_ID_COLUMN = 'folder_id';
 // The full path of the file in the folder hierarchy including all of the folders and ending with the file name
 export const PATH_COLUMN = 'path';
 
-// A generated value based on the path, providing the name of the folder this file belongs to.
-// Until we implement folder slugs, this will be the same as the folder_id
-// NOTE: this might be redundant give we could pull the value from the path column instead
-export const FOLDER_NAME_COLUMN = 'folder';
-
 // A generated value based on the path, providing the name of the file
 // File name is managed by scratch though the initial value may be sourced from a title or name field in the connector record
 export const FILE_NAME_COLUMN = 'name';
@@ -86,8 +81,7 @@ export type FileDbRecord = {
   [FILE_ID_COLUMN]: string;
   [REMOTE_ID_COLUMN]: string | null;
   [FOLDER_ID_COLUMN]: string;
-  [PATH_COLUMN]?: string; // Deprecated and optional
-  [FOLDER_NAME_COLUMN]: string;
+  [PATH_COLUMN]: string; // Cached full path
   [FILE_NAME_COLUMN]: string;
   [CONTENT_COLUMN]: string | null;
   [ORIGINAL_COLUMN]: string | null;
@@ -129,8 +123,7 @@ export class WorkbookDb {
           t.text(FILE_ID_COLUMN).primary();
           t.text(REMOTE_ID_COLUMN).nullable().index();
           t.text(FOLDER_ID_COLUMN).index();
-          // t.text(PATH_COLUMN).unique(); // Deprecated and removed
-          t.text(FOLDER_NAME_COLUMN);
+          t.text(PATH_COLUMN).unique(); // Cached path
           t.text(FILE_NAME_COLUMN);
           t.text(CONTENT_COLUMN).nullable();
           t.text(ORIGINAL_COLUMN).nullable();
@@ -170,7 +163,7 @@ export class WorkbookDb {
         FILE_ID_COLUMN,
         REMOTE_ID_COLUMN,
         FOLDER_ID_COLUMN,
-        FOLDER_NAME_COLUMN,
+        PATH_COLUMN,
         FILE_NAME_COLUMN,
         CONTENT_COLUMN,
         ORIGINAL_COLUMN,
@@ -367,7 +360,7 @@ export class WorkbookDb {
 
     // Generate the path -- DEPRECATED/UNUSED
     const folderId = extractFolderId(folderPath);
-    // const fullPath = path.posix.join(folderPath, fileName);
+    const fullPath = path.posix.join(folderPath, fileName);
 
     if (isSuggestion) {
       return await this.getKnex()<FileDbRecord>(FILES_TABLE)
@@ -377,7 +370,7 @@ export class WorkbookDb {
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
           // [PATH_COLUMN]: fullPath, // Deprecated/Removed
-          [FOLDER_NAME_COLUMN]: folderId,
+
           [FILE_NAME_COLUMN]: fileName,
           [CONTENT_COLUMN]: null, // Content null for suggestion until populated?
           // Actually original code had CONTENT_COLUMN: null.
@@ -407,8 +400,8 @@ export class WorkbookDb {
           [FILE_ID_COLUMN]: fileId,
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
-          // [PATH_COLUMN]: fullPath, // Deprecated/Removed
-          [FOLDER_NAME_COLUMN]: folderId,
+          [PATH_COLUMN]: fullPath,
+
           [FILE_NAME_COLUMN]: fileName,
           [CONTENT_COLUMN]: content,
           [ORIGINAL_COLUMN]: null,
@@ -429,14 +422,12 @@ export class WorkbookDb {
     workbookId: WorkbookId,
     fileName: string,
     folderId: string | null,
+    path: string,
     content: string | null,
     isSuggestion: boolean = false,
   ): Promise<FileId> {
     const fileId = createFileId();
     const tempRemoteId = `${UNPUBLISHED_PREFIX}${fileId}`;
-
-    // For backwards compatibility, generate a path from folderId (unused in DB if column dropped)
-    // const fullPath = folderId ? `/${folderId}/${fileName}` : `/${fileName}`;
 
     let metadata: Record<string, unknown> = {};
     if (content && !isSuggestion) {
@@ -458,8 +449,7 @@ export class WorkbookDb {
         [FILE_ID_COLUMN]: fileId,
         [REMOTE_ID_COLUMN]: tempRemoteId,
         [FOLDER_ID_COLUMN]: folderId ?? '',
-        // [PATH_COLUMN]: fullPath, // Deprecated
-        [FOLDER_NAME_COLUMN]: folderId ?? '',
+        [PATH_COLUMN]: path,
         [FILE_NAME_COLUMN]: fileName,
         [CONTENT_COLUMN]: isSuggestion ? null : content,
         [ORIGINAL_COLUMN]: null,
@@ -504,7 +494,6 @@ export class WorkbookDb {
 
     if (updates.folderId !== undefined) {
       updateData[FOLDER_ID_COLUMN] = updates.folderId ?? '';
-      updateData[FOLDER_NAME_COLUMN] = updates.folderId ?? '';
       // Update path to reflect new folder
       // const fileName = updates.name ?? file.name;
       // const newPath = updates.folderId ? `/${updates.folderId}/${fileName}` : `/${fileName}`;
@@ -755,14 +744,15 @@ export class WorkbookDb {
   async upsertFilesFromConnectorRecords<T extends BaseColumnSpec>(
     workbookId: WorkbookId,
     folderId: string,
+    parentPath: string,
     records: ConnectorRecord[],
     tableSpec: BaseTableSpec<T>,
   ): Promise<void> {
     const trx = await this.getKnex().transaction();
 
     try {
-      // Get folder name if folderId is provided
-      const folderName = folderId || '';
+      // Get prefix
+      const prefix = parentPath === '/' ? '' : parentPath;
 
       /* 
          Legacy comments about folder name resolution...
@@ -785,9 +775,9 @@ export class WorkbookDb {
 
         // Determine the file name - use title column if available, otherwise use the record ID
         let fileName = record.id;
-        let fullPath = path.posix.join(folderId, fileName); // Use folderId as part of path for uniqueness
-
+        let fullPath = '';
         let attempts = 0;
+
         while (attempts < MAX_UNIQUE_FILE_NAME_ATTEMPTS) {
           if (tableSpec.titleColumnRemoteId) {
             const column = tableSpec.columns.find((c) => _.isEqual(c.id.remoteId, tableSpec.titleColumnRemoteId));
@@ -801,8 +791,11 @@ export class WorkbookDb {
             fileName = slugifyFileName(fileName) + '-' + attempts + '.md';
           }
 
-          fileName = slugifyFileName(fileName) + '.md';
-          fullPath = folderId + '/' + fileName;
+          if (!fileName.endsWith('.md')) {
+            fileName += '.md';
+          }
+
+          fullPath = `${prefix}/${fileName}`;
 
           const existingFileWithPath = await trx<FileDbRecord>(FILES_TABLE)
             .withSchema(workbookId)
@@ -850,10 +843,8 @@ export class WorkbookDb {
               [FILE_ID_COLUMN]: fileId,
               [REMOTE_ID_COLUMN]: record.id,
               [FOLDER_ID_COLUMN]: folderId,
-              [FOLDER_NAME_COLUMN]: folderName,
+              [PATH_COLUMN]: fullPath,
               [FILE_NAME_COLUMN]: fileName,
-              // [PATH_COLUMN]: fullPath, // Kept to satisfy non-null/unique constraint if exists
-              // ERROR: Column path does not exist in new schema. Removing.
               [CONTENT_COLUMN]: frontMatterContent,
               [ORIGINAL_COLUMN]: frontMatterContent,
               [SUGGESTED_COLUMN]: null,

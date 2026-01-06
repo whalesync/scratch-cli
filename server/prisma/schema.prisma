@@ -266,6 +266,7 @@ model Folder {
   updatedAt DateTime @updatedAt
 
   name String
+  path String? // Cached full path, e.g. "/parent/child"
 
   workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
   workbookId String

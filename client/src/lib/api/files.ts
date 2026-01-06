@@ -144,6 +144,19 @@ export const foldersApi = {
   },
 
   /**
+   * Rename a folder by ID
+   */
+  renameFolder: async (workbookId: WorkbookId, folderId: FolderId, name: string): Promise<FolderResponseDto> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.patch<FolderResponseDto>(`/workbooks/${workbookId}/folders/${folderId}`, { name });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to rename folder');
+    }
+  },
+
+  /**
    * Delete a folder by ID
    * DELETE /workbooks/:workbookId/folders/:folderId
    */

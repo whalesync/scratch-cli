@@ -86,6 +86,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         snapshotTables: {
           include: {
             connectorAccount: true,
+            folder: true,
           },
         },
       },
@@ -209,6 +210,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
         await this.workbookDb.upsertFilesFromConnectorRecords(
           workbook.id as WorkbookId,
           snapshotTable.folderId ?? '',
+          snapshotTable.folder?.path ?? '',
           records,
           tableSpec,
         );
