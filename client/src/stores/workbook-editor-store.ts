@@ -58,6 +58,10 @@ export interface WorkbookEditorUIState {
 
   tabs: (TableTabState | NewTabState)[];
 
+  // UI state for file tabs (markdown files and folders)
+  openFileTabs: string[];
+  activeFileTabId: string | null;
+
   // UI state for the dev tools panel.
   devToolsOpen: boolean;
 
@@ -87,6 +91,12 @@ type Actions = {
   closeTab: (id: TabId) => void;
   closeNewTabs: () => void;
 
+  // File tab management
+  openFileTab: (filePath: string) => void;
+  closeFileTab: (filePath: string) => void;
+  setActiveFileTab: (filePath: string | null) => void;
+  openFolderDetailsTab: (folderPath: string) => void;
+
   openDevTools: () => void;
   closeDevTools: () => void;
 
@@ -108,6 +118,8 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   activeCells: null,
   recordDetailsVisible: false,
   tabs: [],
+  openFileTabs: [],
+  activeFileTabId: null,
   devToolsOpen: false,
   chatOpen: true,
   publishConfirmationOpen: false,
@@ -154,6 +166,46 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     const tabs = get().tabs.filter((tab) => tab.type !== 'new-tab');
     set({ tabs });
     RouteUrls.updateWorkbookPath(get().workbookId ?? '', tabs.length > 0 ? tabs[0].id : undefined);
+  },
+
+  openFileTab: (filePath: string) => {
+    const current = get();
+    if (!current.openFileTabs.includes(filePath)) {
+      set({ openFileTabs: [...current.openFileTabs, filePath], activeFileTabId: filePath });
+    } else {
+      set({ activeFileTabId: filePath });
+    }
+  },
+
+  closeFileTab: (filePath: string) => {
+    const current = get();
+    const newOpenFileTabs = current.openFileTabs.filter((id) => id !== filePath);
+    let newActiveFileTabId = current.activeFileTabId;
+
+    // If closing the active tab, switch to another tab
+    if (current.activeFileTabId === filePath) {
+      const currentIndex = current.openFileTabs.indexOf(filePath);
+      if (newOpenFileTabs.length > 0) {
+        // Switch to previous tab or first tab
+        newActiveFileTabId = newOpenFileTabs[Math.max(0, currentIndex - 1)];
+      } else {
+        newActiveFileTabId = null;
+      }
+    }
+
+    set({ openFileTabs: newOpenFileTabs, activeFileTabId: newActiveFileTabId });
+  },
+
+  openFolderDetailsTab: (folderPath: string) => {
+    const current = get();
+    if (!current.openFileTabs.includes(folderPath)) {
+      set({ openFileTabs: [...current.openFileTabs, folderPath], activeFileTabId: folderPath });
+    } else {
+      set({ activeFileTabId: folderPath });
+    }
+  },
+  setActiveFileTab: (filePath: string | null) => {
+    set({ activeFileTabId: filePath });
   },
 
   openDevTools: () => set({ devToolsOpen: true }),

@@ -23,10 +23,6 @@ import { useEffect, useState } from 'react';
 import styles from './WorkbookFileBrowser.module.css';
 
 interface WorkbookFileBrowserProps {
-  openTabs: string[];
-  setOpenTabs: React.Dispatch<React.SetStateAction<string[]>>;
-  activeTabId: string | null;
-  setActiveTabId: React.Dispatch<React.SetStateAction<string | null>>;
   refreshWorkbook?: () => Promise<void>;
 }
 
@@ -208,11 +204,14 @@ function convertToTreeNode(entity: FileRefEntity): NodeModel<TreeNodeData> {
   }
 }
 
-export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }: WorkbookFileBrowserProps) {
+export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const router = useRouter();
   const { workbook } = useActiveWorkbook();
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
+  const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
+  const openFolderDetailsTab = useWorkbookEditorUIStore((state) => state.openFolderDetailsTab);
 
   // Use the file list hook
   const { files, isLoading } = useFileList(workbook?.id ?? null);
@@ -228,16 +227,8 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
   }, [files]);
 
   const handleFileClick = (filePath: string) => {
-    // Add to open tabs if not already open
-    setOpenTabs((prev) => {
-      if (!prev.includes(filePath)) {
-        return [...prev, filePath];
-      }
-      return prev;
-    });
-
-    // Set as active tab
-    setActiveTabId(filePath);
+    // Add to open tabs if not already open, and set as active
+    openFileTab(filePath);
 
     // Update activeCells for compatibility
     setActiveCells({
@@ -267,15 +258,7 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
   };
 
   const handleFolderDetailsClick = (folderPath: string) => {
-    setOpenTabs((prev) => {
-      if (!prev.includes(folderPath)) {
-        return [...prev, folderPath];
-      }
-      return prev;
-    });
-
-    // Set as active tab
-    setActiveTabId(folderPath);
+    openFolderDetailsTab(folderPath);
   };
 
   // Debug: log tree data
@@ -363,7 +346,7 @@ export function WorkbookFileBrowser({ setOpenTabs, activeTabId, setActiveTabId }
                         depth={depth}
                         isOpen={isOpen}
                         onToggle={onToggle}
-                        isSelected={activeTabId === node.data?.path}
+                        isSelected={activeFileTabId === node.data?.path}
                         isDropTarget={isDropTarget}
                         onFileClick={handleFileClick}
                         onExternalFileDrop={handleExternalFileDrop}

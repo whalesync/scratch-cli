@@ -43,7 +43,7 @@ const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 600;
 
-function WorkbookNewPageContent() {
+function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId: pathTableId } = useWorkbookParams();
   // const activeTab = useWorkbookEditorUIStore((state) => state.activeTab); // Unused
@@ -52,21 +52,17 @@ function WorkbookNewPageContent() {
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
-
-  // NOTE: In this view, we always show chat. But let's respect the user preference if we wanted to.
-  // The requirements say "Exact same agent section", implying likely the same toggle behavior or just always separate.
-  // "on the right the EXACT SAME agent section"
-  // const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen); // Unused
+  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
+  // File tab state is now managed in the store
+  const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
+  const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
+  const setActiveFileTab = useWorkbookEditorUIStore((state) => state.setActiveFileTab);
 
   const router = useRouter();
   const { workbook, activeTable, isLoading, refreshWorkbook } = useActiveWorkbook();
 
   const [showManageTablesModal, setShowManageTablesModal] = useState(false);
-
-  // State for open tabs (array of file paths)
-  // TODO: move this into workbook editor UI store
-  const [openTabs, setOpenTabs] = useState<string[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeTable) {
@@ -121,13 +117,7 @@ function WorkbookNewPageContent() {
             <Split h="100%">
               {/* Left Pane: Tree View */}
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
-                <WorkbookFileBrowser
-                  openTabs={openTabs}
-                  setOpenTabs={setOpenTabs}
-                  activeTabId={activeTabId}
-                  setActiveTabId={setActiveTabId}
-                  refreshWorkbook={refreshWorkbook}
-                />
+                <WorkbookFileBrowser refreshWorkbook={refreshWorkbook} />
               </Split.Pane>
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />
@@ -136,12 +126,12 @@ function WorkbookNewPageContent() {
               <Split.Pane grow>
                 <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
                   {/* Tab Bar */}
-                  {openTabs.length > 0 && (
+                  {openFileTabs.length > 0 && (
                     <Group gap={0} h={32} style={{ borderBottom: '0.5px solid var(--fg-divider)', overflow: 'auto' }}>
-                      {openTabs.map((tabFilePath) => {
+                      {openFileTabs.map((tabFilePath) => {
                         const fileName = tabFilePath.split('/').pop() || tabFilePath;
                         const isFolder = !fileName.endsWith('.md');
-                        const isActiveTab = activeTabId === tabFilePath;
+                        const isActiveTab = activeFileTabId === tabFilePath;
 
                         return (
                           <Group
@@ -150,7 +140,7 @@ function WorkbookNewPageContent() {
                             px="sm"
                             h={32}
                             onClick={() => {
-                              setActiveTabId(tabFilePath);
+                              setActiveFileTab(tabFilePath);
                               setActiveCells({
                                 recordId: tabFilePath,
                                 columnId: activeCells?.columnId,
@@ -176,30 +166,15 @@ function WorkbookNewPageContent() {
                             <Box
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Close tab
-                                setOpenTabs((prev) => prev.filter((id) => id !== tabFilePath));
-                                // If closing active tab, switch to another tab or null
-                                if (activeTabId === tabFilePath) {
-                                  const currentIndex = openTabs.indexOf(tabFilePath);
-                                  const newTabs = openTabs.filter((id) => id !== tabFilePath);
-                                  if (newTabs.length > 0) {
-                                    // Switch to previous tab or first tab
-                                    const newActiveId = newTabs[Math.max(0, currentIndex - 1)];
-                                    setActiveTabId(newActiveId);
-                                    setActiveCells({
-                                      recordId: newActiveId,
-                                      columnId: activeCells?.columnId,
-                                      viewType: 'md',
-                                    });
-                                  } else {
-                                    setActiveTabId(null);
-                                    setActiveCells({
-                                      recordId: undefined,
-                                      columnId: activeCells?.columnId,
-                                      viewType: 'md',
-                                    });
-                                  }
-                                }
+                                // Close tab and handle active tab switching
+                                closeFileTab(tabFilePath);
+                                // Update activeCells based on new active tab
+                                const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
+                                setActiveCells({
+                                  recordId: newActiveId ?? undefined,
+                                  columnId: activeCells?.columnId,
+                                  viewType: 'md',
+                                });
                               }}
                               style={{
                                 display: 'flex',
@@ -224,15 +199,10 @@ function WorkbookNewPageContent() {
 
                   {/* Editor Content */}
                   <Box flex={1} style={{ overflow: 'hidden' }}>
-                    {activeTabId === null || (activeTabId && activeTabId.endsWith('.md')) ? (
-                      <FileEditor workbookId={workbook.id} filePath={activeTabId} />
+                    {activeFileTabId === null || (activeFileTabId && activeFileTabId.endsWith('.md')) ? (
+                      <FileEditor workbookId={workbook.id} filePath={activeFileTabId} />
                     ) : (
-                      <FolderDetailViewer
-                        workbookId={workbook.id}
-                        folderPath={activeTabId}
-                        setOpenTabs={setOpenTabs}
-                        setActiveTabId={setActiveTabId}
-                      />
+                      <FolderDetailViewer workbookId={workbook.id} folderPath={activeFileTabId} />
                     )}
                   </Box>
                 </Stack>
@@ -240,10 +210,12 @@ function WorkbookNewPageContent() {
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />
 
-              {/* Right Pane: Agent Chat */}
-              <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
-                <AIChatPanel />
-              </Split.Pane>
+              {/* Optional Right Pane: Agent Chat */}
+              {chatOpen && (
+                <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
+                  <AIChatPanel />
+                </Split.Pane>
+              )}
             </Split>
           </Box>
 
@@ -315,7 +287,7 @@ export default function WorkbookNewPage() {
     <AgentChatContextProvider workbookId={params.workbookId}>
       <AIAgentSessionManagerProvider workbookId={params.workbookId}>
         <UpdateRecordsProvider>
-          <WorkbookNewPageContent />
+          <WorkbookFilesPageContent />
           <PublishWorkbookWorkflow />
           <WorkbookEditorModals />
         </UpdateRecordsProvider>

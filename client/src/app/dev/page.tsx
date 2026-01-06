@@ -3,56 +3,15 @@
 import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
-import { Group, Stack, Title } from '@mantine/core';
-import { Tree, type NodeModel } from '@minoru/react-dnd-treeview';
+import { Group, Stack } from '@mantine/core';
 import { DatabaseZap, GalleryVerticalIcon, Grid2x2Icon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
 import { DevToolButton } from '../components/base/buttons';
 import { Text13Book } from '../components/base/text';
 import { StyledLucideIcon } from '../components/Icons/StyledLucideIcon';
 import MainContent from '../components/layouts/MainContent';
 
-const initialData = [
-  {
-    id: 1,
-    parent: 0,
-    droppable: true,
-    text: 'Folder 1',
-  },
-  {
-    id: 2,
-    parent: 1,
-    text: 'File 1-1',
-  },
-  {
-    id: 3,
-    parent: 1,
-    text: 'File 1-2',
-  },
-  {
-    id: 4,
-    parent: 0,
-    droppable: true,
-    text: 'Folder 2',
-  },
-  {
-    id: 5,
-    parent: 4,
-    droppable: true,
-    text: 'Folder 2-1',
-  },
-  {
-    id: 6,
-    parent: 5,
-    text: 'File 2-1-1',
-  },
-];
-
 export default function DevListPage() {
-  const [treeData, setTreeData] = useState(initialData);
-  const handleDrop = (newTreeData: NodeModel[]) => setTreeData(newTreeData as typeof initialData);
-
   return (
     <MainContent>
       <MainContent.BasicHeader title="Dev tools" />
@@ -97,19 +56,6 @@ export default function DevListPage() {
             Migrations
           </DevToolButton>
         </Stack>
-
-        <Title>RYDER</Title>
-        <Tree
-          tree={treeData}
-          rootId={0}
-          onDrop={handleDrop}
-          render={(node, { depth, isOpen, onToggle }) => (
-            <div style={{ marginLeft: depth * 10 }}>
-              {node.droppable && <span onClick={onToggle}>{isOpen ? '[-]' : '[+]'}</span>}
-              {node.text}
-            </div>
-          )}
-        />
       </MainContent.Body>
       <MainContent.Footer h={28}>
         <Group justify="center">

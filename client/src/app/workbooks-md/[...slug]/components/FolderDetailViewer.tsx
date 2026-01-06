@@ -5,6 +5,7 @@ import { Text13Regular, TextMono12Regular } from '@/app/components/base/text';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useFileDetailsList } from '@/hooks/use-file-details-list';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Center, Group, Text, useMantineColorScheme } from '@mantine/core';
 import { FileDetailsEntity, WorkbookId } from '@spinner/shared-types';
 import {
@@ -40,9 +41,6 @@ interface FileWithMetadata extends FileDetailsEntity {
 interface FolderDetailViewerProps {
   workbookId: WorkbookId;
   folderPath: string;
-  // NOTE: these should all go into the workbook editor UI store
-  setOpenTabs: React.Dispatch<React.SetStateAction<string[]>>;
-  setActiveTabId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 // Minimal cell renderer matching FieldValueWrapper styling
@@ -165,15 +163,11 @@ const CustomHeaderComponent = (props: IHeaderParams) => {
   );
 };
 
-export const FolderDetailViewer = ({
-  workbookId,
-  folderPath,
-  setOpenTabs,
-  setActiveTabId,
-}: FolderDetailViewerProps) => {
+export const FolderDetailViewer = ({ workbookId, folderPath }: FolderDetailViewerProps) => {
   const { files, isLoading, error } = useFileDetailsList(workbookId, folderPath);
   const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
+  const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
 
   // Parse front matter from all files and extract metadata
   const { processedFiles, metadataColumns } = useMemo(() => {
@@ -222,15 +216,9 @@ export const FolderDetailViewer = ({
 
   const handleFileClick = useCallback(
     (filePath: string) => {
-      setOpenTabs((prev) => {
-        if (!prev.includes(filePath)) {
-          return [...prev, filePath];
-        }
-        return prev;
-      });
-      setActiveTabId(filePath);
+      openFileTab(filePath);
     },
-    [setOpenTabs, setActiveTabId],
+    [openFileTab],
   );
 
   // Create column definitions for AGGrid
