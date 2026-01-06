@@ -7,6 +7,7 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadApiError } from '@/lib/api/error';
 import { getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
+import { INTERNAL_SERVICES } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import {
   Alert,
@@ -46,7 +47,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
   const [showOAuthCustom, setShowOAuthCustom] = useState(false);
-  const { user } = useScratchPadUser();
+  const { user, isAdmin } = useScratchPadUser();
   const { canCreateDataSource } = useSubscription();
 
   const { createConnectorAccount } = useConnectorAccounts();
@@ -221,8 +222,10 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     }
   };
 
-  const availableServices = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
+  const connectorListFromFlags = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
 
+  // For admins show all services.
+  const availableServices = isAdmin ? [...connectorListFromFlags, ...INTERNAL_SERVICES] : connectorListFromFlags;
   return (
     <ModalWrapper
       title="Create Connection"
