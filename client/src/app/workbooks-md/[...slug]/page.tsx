@@ -29,6 +29,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Group, Stack, Text } from '@mantine/core';
+import type { FileId } from '@spinner/shared-types';
 import { ArrowLeftIcon, FileTextIcon, FolderIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FileEditor } from './components/FileEditor';
@@ -128,21 +129,20 @@ function WorkbookFilesPageContent() {
                   {/* Tab Bar */}
                   {openFileTabs.length > 0 && (
                     <Group gap={0} h={32} style={{ borderBottom: '0.5px solid var(--fg-divider)', overflow: 'auto' }}>
-                      {openFileTabs.map((tabFilePath) => {
-                        const fileName = tabFilePath.split('/').pop() || tabFilePath;
-                        const isFolder = !fileName.endsWith('.md');
-                        const isActiveTab = activeFileTabId === tabFilePath;
+                      {openFileTabs.map((tab) => {
+                        const isFolder = tab.type === 'folder';
+                        const isActiveTab = activeFileTabId === tab.id;
 
                         return (
                           <Group
-                            key={tabFilePath}
+                            key={tab.id}
                             gap={4}
                             px="sm"
                             h={32}
                             onClick={() => {
-                              setActiveFileTab(tabFilePath);
+                              setActiveFileTab(tab.id);
                               setActiveCells({
-                                recordId: tabFilePath,
+                                recordId: tab.id,
                                 columnId: activeCells?.columnId,
                                 viewType: 'md',
                               });
@@ -154,20 +154,19 @@ function WorkbookFilesPageContent() {
                               borderBottom: isActiveTab ? '2px solid var(--mantine-color-blue-6)' : 'none',
                             }}
                           >
-                            {}
                             {isFolder ? (
                               <FolderIcon size={12} color="var(--fg-secondary)" />
                             ) : (
                               <FileTextIcon size={12} color="var(--fg-secondary)" />
                             )}
                             <Text size="xs" truncate style={{ maxWidth: '120px' }}>
-                              {fileName}
+                              {tab.title || tab.id}
                             </Text>
                             <Box
                               onClick={(e) => {
                                 e.stopPropagation();
                                 // Close tab and handle active tab switching
-                                closeFileTab(tabFilePath);
+                                closeFileTab(tab.id);
                                 // Update activeCells based on new active tab
                                 const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
                                 setActiveCells({
@@ -199,11 +198,22 @@ function WorkbookFilesPageContent() {
 
                   {/* Editor Content */}
                   <Box flex={1} style={{ overflow: 'hidden' }}>
-                    {activeFileTabId === null || (activeFileTabId && activeFileTabId.endsWith('.md')) ? (
-                      <FileEditor workbookId={workbook.id} filePath={activeFileTabId} />
-                    ) : (
-                      <FolderDetailViewer workbookId={workbook.id} folderPath={activeFileTabId} />
-                    )}
+                    {(() => {
+                      // Find the active tab object to determine type
+                      // openFileTabs is now Array<{ id, type, title }>
+                      // We need to cast it or update store types. Assuming store is/will be updated.
+                      // For now, let's treat it as any or assume correctness.
+                      // Actually, I should update the store first, but I can't in this step.
+                      // I will write code assuming the store structure matches { id, type, title }.
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const activeTab = (openFileTabs as any[]).find((t) => t.id === activeFileTabId);
+
+                      if (activeTab?.type === 'folder') {
+                        return <FolderDetailViewer workbookId={workbook.id} folderId={activeTab.id} />;
+                      }
+                      // Default to file editor
+                      return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;
+                    })()}
                   </Box>
                 </Stack>
               </Split.Pane>

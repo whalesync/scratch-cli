@@ -1,16 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import type { FileId, FileRefEntity, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type {
+  FileId,
+  FileOrFolderRefEntity,
+  FileRefEntity,
+  FolderId,
+  FolderRefEntity,
+  WorkbookId,
+} from '@spinner/shared-types';
 import {
+  createFolderId,
   FileDetailsResponseDto,
+  FolderResponseDto,
+  ListFilesDetailsResponseDto,
   ListFilesResponseDto,
   ValidatedCreateFileDto,
+  ValidatedCreateFolderDto,
   ValidatedUpdateFileDto,
+  ValidatedUpdateFolderDto,
 } from '@spinner/shared-types';
 import matter from 'gray-matter';
-import path from 'path';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
-import { extractFolderId, extractFolderPath } from './workbook-db';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -37,62 +47,71 @@ export class FilesService {
   }
 
   /**
-   * Lists files and folders in tree structure for file browser UI
+   * Lists all files and folders in a workbook
+   * Returns a flat list that can be rendered as a tree by the client
    */
-  async listFilesAndFolders(workbookId: WorkbookId, folderPath: string, actor: Actor): Promise<ListFilesResponseDto> {
+  async listFilesAndFolders(workbookId: WorkbookId, actor: Actor): Promise<ListFilesResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    const result = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
+    // Get all folders in the workbook
+    const folders = await this.db.client.folder.findMany({
+      where: { workbookId },
+      orderBy: { name: 'asc' },
+    });
 
-    // preprocess the list of files to create the appropriate folder entities
-    const folderEntities: FileRefEntity[] = [];
-    const uniqueFolderPaths = new Set<string>();
-    for (const file of result) {
-      const folderPath = extractFolderPath(file.path);
-      if (!uniqueFolderPaths.has(folderPath)) {
-        uniqueFolderPaths.add(folderPath);
-        const { dir, base } = path.posix.parse(folderPath);
-        const folderId = extractFolderId(folderPath);
-        folderEntities.push({
-          type: 'folder',
-          id: `fil_fold_${folderId}`,
-          name: base,
-          parentPath: dir,
-          path: folderPath,
-        });
-      }
-    }
+    // Get all files in the workbook
+    const files = await this.workbookDbService.workbookDb.listAllFiles(workbookId);
 
-    const files = result.map(
-      (f): FileRefEntity => ({
-        type: 'file',
-        id: f.id as FileId, // TODO: Type the DB record properly.
-        path: f.path,
-        name: f.name,
-        parentPath: extractFolderPath(f.path),
-      }),
-    );
+    // Convert folders to FolderRefEntity
+    const folderEntities: FolderRefEntity[] = folders.map((f) => ({
+      type: 'folder' as const,
+      id: f.id as FolderId,
+      name: f.name,
+      parentFolderId: f.parentId as FolderId | null,
+    }));
 
-    const sortedFiles = [...folderEntities, ...files];
-    sortedFiles.sort((a, b) => a.path.localeCompare(b.path));
-    return { files: sortedFiles };
+    // Convert files to FileRefEntity
+    const fileEntities: FileRefEntity[] = files.map((f) => ({
+      type: 'file' as const,
+      id: f.id as FileId,
+      name: f.name,
+      parentFolderId: (f.folder_id || null) as FolderId | null,
+    }));
+
+    // Combine and return
+    const items: FileOrFolderRefEntity[] = [...folderEntities, ...fileEntities];
+
+    return { items };
   }
 
   /**
    * Lists all of the files in a folder including full file content.
    */
-  async getFilesByPath(workbookId: WorkbookId, folderPath: string, actor: Actor): Promise<ListFilesDetailsResponseDto> {
+  async getFilesByFolderId(
+    workbookId: WorkbookId,
+    folderId: FolderId | null,
+    actor: Actor,
+  ): Promise<ListFilesDetailsResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    const result = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
+    // Get all files in the workbook
+    const files = await this.workbookDbService.workbookDb.listAllFiles(workbookId);
 
-    const files = result.map((f) => ({
+    // Filter by folderId
+    const filteredFiles = files.filter((f) => {
+      // Handle root folder (null or empty string)
+      if (!folderId) {
+        return !f.folder_id;
+      }
+      return f.folder_id === folderId;
+    });
+
+    const mappedFiles = filteredFiles.map((f) => ({
       ref: {
         type: 'file' as const,
         id: f.id as FileId,
-        path: f.path,
         name: f.name,
-        parentPath: extractFolderPath(f.path),
+        parentFolderId: f.folder_id as FolderId | null,
       },
       content: f.content,
       originalContent: f.original,
@@ -101,17 +120,19 @@ export class FilesService {
       updatedAt: f.updated_at.toISOString(),
     }));
 
-    files.sort((a, b) => a.ref.path.localeCompare(b.ref.path));
-    return { files };
+    // Sort by name
+    mappedFiles.sort((a, b) => a.ref.name.localeCompare(b.ref.name));
+
+    return { files: mappedFiles };
   }
 
   /**
-   * Get a single file by path
+   * Get a single file by ID
    */
-  async getFileByPath(workbookId: WorkbookId, filePath: string, actor: Actor): Promise<FileDetailsResponseDto> {
+  async getFileById(workbookId: WorkbookId, fileId: FileId, actor: Actor): Promise<FileDetailsResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, filePath);
+    const file = await this.workbookDbService.workbookDb.getFileById(workbookId, fileId);
 
     if (!file) {
       throw new NotFoundException('File not found');
@@ -122,9 +143,8 @@ export class FilesService {
         ref: {
           type: 'file',
           id: file.id as FileId,
-          path: file.path,
           name: file.name,
-          parentPath: extractFolderPath(file.path),
+          parentFolderId: file.folder_id as FolderId | null,
         },
         content: file.content,
         originalContent: file.original,
@@ -136,63 +156,262 @@ export class FilesService {
   }
 
   /**
-   * Create a new file with full path
+   * Create a new file
    */
-  async createFile(workbookId: WorkbookId, createFileDto: ValidatedCreateFileDto, actor: Actor): Promise<string> {
+  async createFile(
+    workbookId: WorkbookId,
+    createFileDto: ValidatedCreateFileDto,
+    actor: Actor,
+  ): Promise<FileRefEntity> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    if (!createFileDto.path) {
-      throw new NotFoundException('File path is required');
+    // Verify parent folder exists if specified
+    if (createFileDto.parentFolderId) {
+      const folder = await this.db.client.folder.findFirst({
+        where: {
+          id: createFileDto.parentFolderId,
+          workbookId,
+        },
+      });
+      if (!folder) {
+        throw new NotFoundException('Parent folder not found');
+      }
     }
 
-    const filePath = await this.workbookDbService.workbookDb.createFileByPath(
+    const fileId = await this.workbookDbService.workbookDb.createFileWithFolderId(
       workbookId,
-      createFileDto.path,
+      createFileDto.name,
+      createFileDto.parentFolderId ?? null,
       createFileDto.content ?? null,
     );
 
-    return filePath;
+    return {
+      type: 'file',
+      id: fileId,
+      name: createFileDto.name,
+      parentFolderId: createFileDto.parentFolderId ?? null,
+    };
   }
 
   /**
-   * Update an existing file by path
+   * Update an existing file
    */
-  async updateFileByPath(
+  async updateFile(
     workbookId: WorkbookId,
-    currentPath: string,
+    fileId: FileId,
     updateFileDto: ValidatedUpdateFileDto,
     actor: Actor,
   ): Promise<void> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    await this.workbookDbService.workbookDb.updateFileByPath(workbookId, currentPath, {
-      newPath: updateFileDto.newPath,
+    // Verify parent folder exists if being changed
+    if (updateFileDto.parentFolderId !== undefined && updateFileDto.parentFolderId !== null) {
+      const folder = await this.db.client.folder.findFirst({
+        where: {
+          id: updateFileDto.parentFolderId,
+          workbookId,
+        },
+      });
+      if (!folder) {
+        throw new NotFoundException('Parent folder not found');
+      }
+    }
+
+    await this.workbookDbService.workbookDb.updateFileById(workbookId, fileId, {
+      name: updateFileDto.name,
+      folderId: updateFileDto.parentFolderId,
       content: updateFileDto.content,
     });
   }
 
   /**
-   * Delete a file by path (soft delete)
+   * Delete a file (soft delete)
    */
-  async deleteFileByPath(workbookId: WorkbookId, filePath: string, actor: Actor): Promise<void> {
+  async deleteFile(workbookId: WorkbookId, fileId: FileId, actor: Actor): Promise<void> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    await this.workbookDbService.workbookDb.deleteFileByPath(workbookId, filePath);
+    await this.workbookDbService.workbookDb.deleteFileById(workbookId, fileId, false);
   }
 
   /**
-   * Rename a folder by updating all files within it
-   * Returns the number of files updated
+   * Create a new folder
    */
-  async renameFolder(
+  async createFolder(
     workbookId: WorkbookId,
-    oldFolderPath: string,
-    newFolderPath: string,
+    createFolderDto: ValidatedCreateFolderDto,
     actor: Actor,
-  ): Promise<number> {
+  ): Promise<FolderResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    return this.workbookDbService.workbookDb.renameFolder(workbookId, oldFolderPath, newFolderPath);
+    // Verify parent folder exists if specified
+    if (createFolderDto.parentFolderId) {
+      const parentFolder = await this.db.client.folder.findFirst({
+        where: {
+          id: createFolderDto.parentFolderId,
+          workbookId,
+        },
+      });
+      if (!parentFolder) {
+        throw new NotFoundException('Parent folder not found');
+      }
+    }
+
+    // Check for duplicate folder name at same level
+    const existingFolder = await this.db.client.folder.findFirst({
+      where: {
+        workbookId,
+        parentId: createFolderDto.parentFolderId ?? null,
+        name: createFolderDto.name,
+      },
+    });
+    if (existingFolder) {
+      throw new BadRequestException('A folder with this name already exists at this location');
+    }
+
+    const folder = await this.db.client.folder.create({
+      data: {
+        id: createFolderId(),
+        name: createFolderDto.name,
+        workbookId,
+        parentId: createFolderDto.parentFolderId ?? null,
+      },
+    });
+
+    return {
+      folder: {
+        id: folder.id as FolderId,
+        name: folder.name,
+        parentId: folder.parentId as FolderId | null,
+      },
+    };
+  }
+
+  /**
+   * Update a folder (rename or move)
+   */
+  async updateFolder(
+    workbookId: WorkbookId,
+    folderId: FolderId,
+    updateFolderDto: ValidatedUpdateFolderDto,
+    actor: Actor,
+  ): Promise<FolderResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Verify folder exists
+    const folder = await this.db.client.folder.findFirst({
+      where: {
+        id: folderId,
+        workbookId,
+      },
+    });
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    // Verify new parent folder exists if specified
+    if (updateFolderDto.parentFolderId !== undefined && updateFolderDto.parentFolderId !== null) {
+      // Prevent moving folder into itself or a descendant
+      if (updateFolderDto.parentFolderId === folderId) {
+        throw new BadRequestException('Cannot move folder into itself');
+      }
+
+      const newParent = await this.db.client.folder.findFirst({
+        where: {
+          id: updateFolderDto.parentFolderId,
+          workbookId,
+        },
+      });
+      if (!newParent) {
+        throw new NotFoundException('New parent folder not found');
+      }
+
+      // Check if new parent is a descendant of this folder (would create a cycle)
+      const isDescendant = await this.isFolderDescendant(workbookId, updateFolderDto.parentFolderId, folderId);
+      if (isDescendant) {
+        throw new BadRequestException('Cannot move folder into its own descendant');
+      }
+    }
+
+    // Check for duplicate folder name at new level (if name or parent changed)
+    const newName = updateFolderDto.name ?? folder.name;
+    const newParentId = updateFolderDto.parentFolderId !== undefined ? updateFolderDto.parentFolderId : folder.parentId;
+
+    if (newName !== folder.name || newParentId !== folder.parentId) {
+      const existingFolder = await this.db.client.folder.findFirst({
+        where: {
+          workbookId,
+          parentId: newParentId,
+          name: newName,
+          NOT: { id: folderId },
+        },
+      });
+      if (existingFolder) {
+        throw new BadRequestException('A folder with this name already exists at this location');
+      }
+    }
+
+    const updatedFolder = await this.db.client.folder.update({
+      where: { id: folderId },
+      data: {
+        name: updateFolderDto.name ?? undefined,
+        parentId: updateFolderDto.parentFolderId !== undefined ? updateFolderDto.parentFolderId : undefined,
+      },
+    });
+
+    return {
+      folder: {
+        id: updatedFolder.id as FolderId,
+        name: updatedFolder.name,
+        parentId: updatedFolder.parentId as FolderId | null,
+      },
+    };
+  }
+
+  /**
+   * Delete a folder (and optionally its contents)
+   */
+  async deleteFolder(workbookId: WorkbookId, folderId: FolderId, actor: Actor): Promise<void> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Verify folder exists
+    const folder = await this.db.client.folder.findFirst({
+      where: {
+        id: folderId,
+        workbookId,
+      },
+    });
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    // Delete folder (cascade will handle children due to schema relation)
+    await this.db.client.folder.delete({
+      where: { id: folderId },
+    });
+  }
+
+  /**
+   * Check if a folder is a descendant of another folder
+   */
+  private async isFolderDescendant(
+    workbookId: WorkbookId,
+    potentialDescendantId: FolderId,
+    ancestorId: FolderId,
+  ): Promise<boolean> {
+    let currentId: FolderId | null = potentialDescendantId;
+
+    while (currentId) {
+      const folder = await this.db.client.folder.findFirst({
+        where: { id: currentId, workbookId },
+        select: { parentId: true },
+      });
+
+      if (!folder) return false;
+      if (folder.parentId === ancestorId) return true;
+      currentId = folder.parentId as FolderId | null;
+    }
+
+    return false;
   }
 
   /**

@@ -13,13 +13,18 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
+import type { FileId, FolderId, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
 import {
   CreateFileDto,
+  CreateFolderDto,
   FileDetailsResponseDto,
+  FileRefEntity,
+  FolderResponseDto,
   ListFilesResponseDto,
   UpdateFileDto,
+  UpdateFolderDto,
   ValidatedCreateFileDto,
+  ValidatedCreateFolderDto,
 } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
@@ -33,63 +38,16 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   /**
-   * List files and folders in a directory (tree structure)
-   * GET /workbooks/:workbookId/files/list?path=path/to/folder
+   * List all files and folders in a workbook
+   * GET /workbooks/:workbookId/files/list
    */
   @Get('list')
   async listFiles(
     @Param('workbookId') workbookId: WorkbookId,
-    @Query('path') folderPath: string = '/',
+
     @Req() req: RequestWithUser,
   ): Promise<ListFilesResponseDto> {
-    const filesAndFolders = await this.filesService.listFilesAndFolders(workbookId, folderPath, userToActor(req.user));
-    return filesAndFolders;
-    // Hardcoded fake data: 3 levels with 10 files total
-    /*
-    return {
-      files: [
-        {
-          type: 'folder',
-          id: 'fil_fold_1',
-          path: '/docs',
-          name: 'docs',
-          parentPath: '/',
-        },
-        { type: 'file', id: 'fil_1', path: '/docs/readme.md', name: 'readme.md', parentPath: '/docs' },
-        { type: 'file', id: 'fil_2', path: '/docs/guide.md', name: 'guide.md', parentPath: '/docs' },
-        {
-          type: 'folder',
-          id: 'fil_fold_2',
-          path: '/docs/api',
-          name: 'api',
-          parentPath: '/docs',
-        },
-        { type: 'file', id: 'fil_3', path: '/docs/api/endpoints.md', name: 'endpoints.md', parentPath: '/docs/api' },
-        { type: 'file', id: 'fil_4', path: '/docs/api/auth.md', name: 'auth.md', parentPath: '/docs/api' },
-
-        {
-          type: 'folder',
-          id: 'fil_fold_3',
-          path: '/src',
-          name: 'src',
-          parentPath: '/',
-        },
-        { type: 'file', id: 'fil_5', path: '/src/index.ts', name: 'index.ts', parentPath: '/src' },
-        { type: 'file', id: 'fil_6', path: '/src/app.ts', name: 'app.ts', parentPath: '/src' },
-        {
-          type: 'folder',
-          id: 'fil_fold_4',
-          path: '/src/utils',
-          name: 'utils',
-          parentPath: '/src',
-        },
-        { type: 'file', id: 'fil_7', path: '/src/utils/helper.ts', name: 'helper.ts', parentPath: '/src/utils' },
-        { type: 'file', id: 'fil_8', path: '/src/utils/logger.ts', name: 'logger.ts', parentPath: '/src/utils' },
-        { type: 'file', id: 'fil_9', path: '/package.json', name: 'package.json', parentPath: '/' },
-        { type: 'file', id: 'fil_10', path: '/tsconfig.json', name: 'tsconfig.json', parentPath: '/' },
-      ],
-    };
-    */
+    return await this.filesService.listFilesAndFolders(workbookId, userToActor(req.user));
   }
 
   /**
@@ -99,102 +57,121 @@ export class FilesController {
   @Get('list/details')
   async listFilesDetails(
     @Param('workbookId') workbookId: WorkbookId,
-    @Query('path') folderPath: string = '/',
+    @Query('folderId') folderId: string | null = null,
     @Req() req: RequestWithUser,
   ): Promise<ListFilesDetailsResponseDto> {
-    const filesMetadata = await this.filesService.getFilesByPath(workbookId, folderPath, userToActor(req.user));
+    const filesMetadata = await this.filesService.getFilesByFolderId(
+      workbookId,
+      folderId as FolderId | null,
+      userToActor(req.user),
+    );
     return filesMetadata;
   }
   /**
    * Create a new file
-   * POST /workbooks/:workbookId/files with path in body
+   * POST /workbooks/:workbookId/files
    */
   @Post()
   async createFile(
     @Param('workbookId') workbookId: WorkbookId,
     @Body() createFileDto: CreateFileDto,
     @Req() req: RequestWithUser,
-  ): Promise<{ path: string }> {
+  ): Promise<FileRefEntity> {
     const dto = createFileDto as ValidatedCreateFileDto;
-    const path = await this.filesService.createFile(workbookId, dto, userToActor(req.user));
-    return { path };
+    return await this.filesService.createFile(workbookId, dto, userToActor(req.user));
   }
 
   /**
-   * Rename a folder
-   * POST /workbooks/:workbookId/files/rename-folder
+   * Get a single file by ID
+   * GET /workbooks/:workbookId/files/:fileId
    */
-  @Post('rename-folder')
-  async renameFolder(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Body() body: { oldPath: string; newPath: string },
-    @Req() req: RequestWithUser,
-  ): Promise<{ filesUpdated: number }> {
-    const filesUpdated = await this.filesService.renameFolder(
-      workbookId,
-      body.oldPath,
-      body.newPath,
-      userToActor(req.user),
-    );
-    return { filesUpdated };
-  }
-
-  /**
-   * Get a single file by path
-   * GET /workbooks/:workbookId/files/file?path=path/to/file.md
-   */
-  @Get('file')
+  @Get(':fileId')
   async getFile(
     @Param('workbookId') workbookId: WorkbookId,
-    @Query('path') filePath: string,
-
+    @Param('fileId') fileId: FileId,
     @Req() req: RequestWithUser,
   ): Promise<FileDetailsResponseDto> {
-    // Hardcoded fake data with 1-word content
-    return await this.filesService.getFileByPath(workbookId, filePath, userToActor(req.user));
-    /*
-    const fileName = filePath.split('/').pop() || 'unknown';
-    return {
-      file: {
-        ref: {
-          type: 'file',
-          id: 'fil_fake',
-          path: filePath,
-          name: fileName,
-          parentPath: filePath.split('/').slice(0, -1).join('/'),
-        },
-        content: `Placeholder content for ${filePath}`,
-      },
-    };
-    */
+    return await this.filesService.getFileById(workbookId, fileId, userToActor(req.user));
   }
 
   /**
-   * Update a file by path
-   * PATCH /workbooks/:workbookId/files/file?path=path/to/file.md
+   * Update a file by ID
+   * PATCH /workbooks/:workbookId/files/:fileId
    */
-  @Patch('file')
+  @Patch(':fileId')
   @HttpCode(204)
   async updateFile(
     @Param('workbookId') workbookId: WorkbookId,
-    @Query('path') filePath: string,
+    @Param('fileId') fileId: FileId,
     @Body() updateFileDto: UpdateFileDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.filesService.updateFileByPath(workbookId, filePath, updateFileDto, userToActor(req.user));
+    await this.filesService.updateFile(workbookId, fileId, updateFileDto, userToActor(req.user));
   }
 
   /**
-   * Delete a file by path
-   * DELETE /workbooks/:workbookId/files/file?path=path/to/file.md
+   * Delete a file by ID
+   * DELETE /workbooks/:workbookId/files/:fileId
    */
-  @Delete('file')
+  @Delete(':fileId')
   @HttpCode(204)
   async deleteFile(
     @Param('workbookId') workbookId: WorkbookId,
-    @Query('path') filePath: string,
+    @Param('fileId') fileId: FileId,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.filesService.deleteFileByPath(workbookId, filePath, userToActor(req.user));
+    await this.filesService.deleteFile(workbookId, fileId, userToActor(req.user));
+  }
+}
+
+/**
+ * Separate controller for folder operations
+ */
+@Controller('workbooks/:workbookId/folders')
+@UseGuards(ScratchpadAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
+export class FoldersController {
+  constructor(private readonly filesService: FilesService) {}
+
+  /**
+   * Create a new folder
+   * POST /workbooks/:workbookId/folders
+   */
+  @Post()
+  async createFolder(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() createFolderDto: CreateFolderDto,
+    @Req() req: RequestWithUser,
+  ): Promise<FolderResponseDto> {
+    const dto = createFolderDto as ValidatedCreateFolderDto;
+    return await this.filesService.createFolder(workbookId, dto, userToActor(req.user));
+  }
+
+  /**
+   * Update a folder by ID (rename or move)
+   * PATCH /workbooks/:workbookId/folders/:folderId
+   */
+  @Patch(':folderId')
+  async updateFolder(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('folderId') folderId: FolderId,
+    @Body() updateFolderDto: UpdateFolderDto,
+    @Req() req: RequestWithUser,
+  ): Promise<FolderResponseDto> {
+    return await this.filesService.updateFolder(workbookId, folderId, updateFolderDto, userToActor(req.user));
+  }
+
+  /**
+   * Delete a folder by ID
+   * DELETE /workbooks/:workbookId/folders/:folderId
+   */
+  @Delete(':folderId')
+  @HttpCode(204)
+  async deleteFolder(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('folderId') folderId: FolderId,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.filesService.deleteFolder(workbookId, folderId, userToActor(req.user));
   }
 }

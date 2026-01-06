@@ -3,23 +3,26 @@
 import { ActionIconThreeDots } from '@/app/components/base/action-icons';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
+import { foldersApi } from '@/lib/api/files';
+import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, Menu, ScrollArea, Stack, Text } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
-import { DndProvider, getBackendOptions, MultiBackend, Tree, type NodeModel } from '@minoru/react-dnd-treeview';
-import type { FileRefEntity } from '@spinner/shared-types';
+import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
+import type { FileId, FileOrFolderRefEntity, FolderId } from '@spinner/shared-types';
 import {
   BookOpenIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   FileTextIcon,
   FolderIcon,
+  FolderPlusIcon,
   InfoIcon,
   PlusIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styles from './WorkbookFileBrowser.module.css';
 
 interface WorkbookFileBrowserProps {
@@ -27,8 +30,9 @@ interface WorkbookFileBrowserProps {
 }
 
 interface TreeNodeData {
+  id: string;
   name: string;
-  path: string;
+  parentFolderId: FolderId | null;
   isFile: boolean;
 }
 
@@ -39,9 +43,9 @@ interface TreeNodeRendererProps {
   onToggle: () => void;
   isSelected: boolean;
   isDropTarget: boolean;
-  onFileClick: (filePath: string) => void;
-  onExternalFileDrop: (folderPath: string, files: FileWithPath[]) => void;
-  onFolderDetailsClick: (folderPath: string) => void;
+  onFileClick: (fileId: FileId, fileName: string) => void;
+  onExternalFileDrop: (folderId: FolderId | null, files: FileWithPath[]) => void;
+  onFolderDetailsClick: (folderId: FolderId) => void;
 }
 
 function TreeNodeRenderer({
@@ -101,7 +105,7 @@ function TreeNodeRenderer({
             setIsExternalDragOver(false);
             // Convert FileList to FileWithPath[]
             const files = Array.from(e.dataTransfer.files) as FileWithPath[];
-            onExternalFileDrop(nodeData.path, files);
+            onExternalFileDrop(nodeData.id as FolderId, files);
           }
         }}
         style={{
@@ -137,7 +141,7 @@ function TreeNodeRenderer({
                   leftSection={<InfoIcon size={16} />}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFolderDetailsClick(nodeData.path);
+                    onFolderDetailsClick(nodeData.id as FolderId);
                   }}
                 >
                   View Details...
@@ -156,7 +160,7 @@ function TreeNodeRenderer({
         pl={indent + 6}
         pr="xs"
         gap="xs"
-        onClick={() => onFileClick(nodeData.path)}
+        onClick={() => onFileClick(nodeData.id as FileId, nodeData.name)}
         bg={isSelected ? 'var(--bg-selected)' : 'transparent'}
         style={{
           cursor: 'pointer',
@@ -173,31 +177,33 @@ function TreeNodeRenderer({
   }
 }
 
-// Convert file/folder tree to react-dnd-treeview format
-function convertToTreeNode(entity: FileRefEntity): NodeModel<TreeNodeData> {
+// Convert file/folder entity to react-dnd-treeview format
+function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeData> {
   if (entity.type === 'folder') {
-    // Add folder node
+    // Folder node
     return {
-      id: entity.path,
-      parent: entity.parentPath,
+      id: entity.id,
+      parent: entity.parentFolderId ?? 0, // 0 represents root
       droppable: true,
       text: entity.name,
       data: {
+        id: entity.id,
         name: entity.name,
-        path: entity.path,
+        parentFolderId: entity.parentFolderId,
         isFile: false,
       },
     };
   } else {
-    // Add file node
+    // File node
     return {
-      id: entity.path,
-      parent: entity.parentPath,
+      id: entity.id,
+      parent: entity.parentFolderId ?? 0, // 0 represents root
       droppable: false,
       text: entity.name,
       data: {
+        id: entity.id,
         name: entity.name,
-        path: entity.path,
+        parentFolderId: entity.parentFolderId,
         isFile: true,
       },
     };
@@ -211,37 +217,58 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
-  const openFolderDetailsTab = useWorkbookEditorUIStore((state) => state.openFolderDetailsTab);
 
   // Use the file list hook
-  const { files, isLoading } = useFileList(workbook?.id ?? null);
+  const { files, isLoading, refreshFiles } = useFileList(workbook?.id ?? null);
 
   // Local state for tree data (required for drag-and-drop to work)
   const [treeData, setTreeData] = useState<NodeModel<TreeNodeData>[]>([]);
 
   // Sync server data to local state
   useEffect(() => {
-    if (files?.files) {
-      setTreeData(files.files.map((f) => convertToTreeNode(f)));
+    if (files?.items) {
+      setTreeData(files.items.map((f) => convertToTreeNode(f)));
     }
   }, [files]);
 
-  const handleFileClick = (filePath: string) => {
+  const handleFileClick = (fileId: FileId, fileName: string) => {
     // Add to open tabs if not already open, and set as active
-    openFileTab(filePath);
+    openFileTab({ id: fileId, type: 'file', title: fileName });
 
     // Update activeCells for compatibility
     setActiveCells({
-      recordId: filePath,
+      recordId: fileId,
       columnId: activeCells?.columnId,
       viewType: 'md',
     });
   };
 
-  const handleDrop = (newTree: NodeModel<TreeNodeData>[]) => {
+  const handleDrop = async (newTree: NodeModel<TreeNodeData>[], options: DropOptions<TreeNodeData>) => {
     console.log('DROP!', newTree);
     setTreeData(newTree);
-    // TODO: Call API to persist the file move
+
+    const { dragSourceId, dropTargetId } = options;
+    const draggedNode = newTree.find((n) => n.id === dragSourceId);
+
+    if (!draggedNode || !workbook) return;
+
+    // Convert dropTargetId (which can be string or number 0) to our nullable parentId format
+    const newParentId = dropTargetId === 0 ? null : (dropTargetId as string);
+
+    if (draggedNode.data?.isFile === false) {
+      // It's a folder
+      try {
+        await workbookApi.moveFolder(workbook.id, dragSourceId as string, newParentId);
+      } catch (error) {
+        console.error('Failed to move folder:', error);
+        // Refresh to revert changes if failed
+        await refreshFiles();
+      }
+    } else {
+      // TODO: Handle file move API if needed
+      // For now just console log
+      console.log('Moved file', dragSourceId, 'to parent', newParentId);
+    }
   };
 
   const handleDragStart = (node: NodeModel<TreeNodeData>) => {
@@ -252,14 +279,28 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     console.log('DRAG END:', node);
   };
 
-  const handleExternalFileDrop = (folderPath: string, files: FileWithPath[]) => {
-    console.log('EXTERNAL FILE DROP:', folderPath, files);
+  const handleExternalFileDrop = (folderId: FolderId | null, droppedFiles: FileWithPath[]) => {
+    console.log('EXTERNAL FILE DROP:', folderId, droppedFiles);
     // TODO: Upload files to the folder
   };
 
-  const handleFolderDetailsClick = (folderPath: string) => {
-    openFolderDetailsTab(folderPath);
+  const handleFolderDetailsClick = (folderId: FolderId) => {
+    openFileTab({ id: folderId, type: 'folder', title: 'Folder' }); // Or get folder name
   };
+
+  const handleCreateFolder = useCallback(async () => {
+    if (!workbook) return;
+
+    const folderName = window.prompt('Enter folder name:');
+    if (!folderName?.trim()) return;
+
+    try {
+      await foldersApi.createFolder(workbook.id, { name: folderName.trim() });
+      await refreshFiles();
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+    }
+  }, [workbook, refreshFiles]);
 
   // Debug: log tree data
   console.log('treeData:', treeData);
@@ -277,6 +318,15 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             Explorer
           </Text>
           <Group gap={4}>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="gray"
+              leftSection={<FolderPlusIcon size={12} />}
+              onClick={handleCreateFolder}
+            >
+              Folder
+            </Button>
             <Button
               size="compact-xs"
               variant="subtle"
@@ -335,7 +385,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                 {!isLoading && treeData.length > 0 && (
                   <Tree
                     tree={treeData}
-                    rootId="/"
+                    rootId={0}
                     onDrop={handleDrop}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
@@ -346,7 +396,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         depth={depth}
                         isOpen={isOpen}
                         onToggle={onToggle}
-                        isSelected={activeFileTabId === node.data?.path}
+                        isSelected={activeFileTabId === node.data?.id}
                         isDropTarget={isDropTarget}
                         onFileClick={handleFileClick}
                         onExternalFileDrop={handleExternalFileDrop}

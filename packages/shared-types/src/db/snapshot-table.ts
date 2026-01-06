@@ -1,6 +1,8 @@
 import { Service, SnapshotTableId, WorkbookId } from '../';
 import { EntityId, PostgresColumnType } from '../connector-types';
+import { FolderId } from '../ids';
 import { SnapshotColumnSettingsMap } from '../workbook-types';
+import { Folder } from './folder';
 
 export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';
@@ -67,6 +69,8 @@ export interface SnapshotTable {
   lastSyncTime: string | null;
   dirty: boolean;
   path: string | null;
+  folderId: FolderId | null;
+  folder?: Folder | null;
 }
 
 ///

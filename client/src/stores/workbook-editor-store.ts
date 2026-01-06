@@ -23,6 +23,12 @@ export type TabState = NewTabState | TableTabState;
 
 export type RecordViewType = 'details' | 'md';
 
+export interface FileTab {
+  id: string; // FileId or FolderId
+  type: 'file' | 'folder';
+  title: string;
+}
+
 export type ActiveCells = {
   recordId: string | undefined;
   columnId: string | undefined;
@@ -59,7 +65,7 @@ export interface WorkbookEditorUIState {
   tabs: (TableTabState | NewTabState)[];
 
   // UI state for file tabs (markdown files and folders)
-  openFileTabs: string[];
+  openFileTabs: FileTab[];
   activeFileTabId: string | null;
 
   // UI state for the dev tools panel.
@@ -92,10 +98,10 @@ type Actions = {
   closeNewTabs: () => void;
 
   // File tab management
-  openFileTab: (filePath: string) => void;
-  closeFileTab: (filePath: string) => void;
-  setActiveFileTab: (filePath: string | null) => void;
-  openFolderDetailsTab: (folderPath: string) => void;
+  // File tab management
+  openFileTab: (tab: FileTab) => void;
+  closeFileTab: (tabId: string) => void;
+  setActiveFileTab: (tabId: string | null) => void;
 
   openDevTools: () => void;
   closeDevTools: () => void;
@@ -168,26 +174,26 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     RouteUrls.updateWorkbookPath(get().workbookId ?? '', tabs.length > 0 ? tabs[0].id : undefined);
   },
 
-  openFileTab: (filePath: string) => {
+  openFileTab: (tab: FileTab) => {
     const current = get();
-    if (!current.openFileTabs.includes(filePath)) {
-      set({ openFileTabs: [...current.openFileTabs, filePath], activeFileTabId: filePath });
+    if (!current.openFileTabs.find((t) => t.id === tab.id)) {
+      set({ openFileTabs: [...current.openFileTabs, tab], activeFileTabId: tab.id });
     } else {
-      set({ activeFileTabId: filePath });
+      set({ activeFileTabId: tab.id });
     }
   },
 
-  closeFileTab: (filePath: string) => {
+  closeFileTab: (tabId: string) => {
     const current = get();
-    const newOpenFileTabs = current.openFileTabs.filter((id) => id !== filePath);
+    const newOpenFileTabs = current.openFileTabs.filter((t) => t.id !== tabId);
     let newActiveFileTabId = current.activeFileTabId;
 
     // If closing the active tab, switch to another tab
-    if (current.activeFileTabId === filePath) {
-      const currentIndex = current.openFileTabs.indexOf(filePath);
+    if (current.activeFileTabId === tabId) {
+      const currentIndex = current.openFileTabs.findIndex((t) => t.id === tabId);
       if (newOpenFileTabs.length > 0) {
         // Switch to previous tab or first tab
-        newActiveFileTabId = newOpenFileTabs[Math.max(0, currentIndex - 1)];
+        newActiveFileTabId = newOpenFileTabs[Math.max(0, currentIndex - 1)].id;
       } else {
         newActiveFileTabId = null;
       }
@@ -196,16 +202,8 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     set({ openFileTabs: newOpenFileTabs, activeFileTabId: newActiveFileTabId });
   },
 
-  openFolderDetailsTab: (folderPath: string) => {
-    const current = get();
-    if (!current.openFileTabs.includes(folderPath)) {
-      set({ openFileTabs: [...current.openFileTabs, folderPath], activeFileTabId: folderPath });
-    } else {
-      set({ activeFileTabId: folderPath });
-    }
-  },
-  setActiveFileTab: (filePath: string | null) => {
-    set({ activeFileTabId: filePath });
+  setActiveFileTab: (tabId: string | null) => {
+    set({ activeFileTabId: tabId });
   },
 
   openDevTools: () => set({ devToolsOpen: true }),

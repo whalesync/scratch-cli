@@ -2,18 +2,37 @@
  * File system entity types for the file-based workbook database
  */
 
-import { FileId } from './ids';
+import { FileId, FolderId } from './ids';
 
+/**
+ * Reference to a file in the workbook
+ */
 export interface FileRefEntity {
-  type: 'file' | 'folder';
+  type: 'file';
   id: FileId;
-  path: string;
   name: string;
-  parentPath: string;
+  /** ID of the parent folder, or null if at workbook root */
+  parentFolderId: FolderId | null;
 }
 
+/**
+ * Reference to a folder in the workbook
+ */
+export interface FolderRefEntity {
+  type: 'folder';
+  id: FolderId;
+  name: string;
+  /** ID of the parent folder, or null if at workbook root */
+  parentFolderId: FolderId | null;
+}
+
+/**
+ * Either a file or folder reference
+ */
+export type FileOrFolderRefEntity = FileRefEntity | FolderRefEntity;
+
 export interface FileDetailsEntity {
-  ref: FileRefEntity & { type: 'file' };
+  ref: FileRefEntity;
   content: string | null;
   originalContent: string | null;
   suggestedContent: string | null;

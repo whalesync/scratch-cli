@@ -27,7 +27,7 @@ import { DbService } from '../db/db.service';
 import { sanitizeForTableWsId } from '../remote-service/connectors/ids';
 import { SnapshotDbService } from '../workbook/snapshot-db.service';
 
-const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1'];
+const AVAILABLE_MIGRATIONS = ['snapshot_table_v0_to_v1', 'drop_path_column_from_files'];
 
 @Controller('code-migrations')
 @UseGuards(ScratchpadAuthGuard)
@@ -68,6 +68,8 @@ export class CodeMigrationsController {
     switch (dto.migration) {
       case 'snapshot_table_v0_to_v1':
         return this.migrateSnapshotTableV0ToV1(dto.qty, dto.ids);
+      case 'drop_path_column_from_files':
+        return this.migrateDropPathColumnFromFiles(dto.qty, dto.ids);
       default:
         throw new BadRequestException(`Unknown migration: ${dto.migration}`);
     }
@@ -144,6 +146,71 @@ export class CodeMigrationsController {
     }
 
     return [];
+  }
+
+  private async fetchWorkbooks(qty?: number, ids?: string[]) {
+    if (ids && ids.length > 0) {
+      return this.db.client.workbook.findMany({
+        where: { id: { in: ids } },
+      });
+    } else if (qty) {
+      return this.db.client.workbook.findMany({
+        take: qty,
+      });
+    }
+    // If neither, fetching all might be dangerous/slow, but let's default to fetching all for now like the other one implicitly does if no filter?
+    // Actually fetchV0Tables returns [] if neither. But for this migration we probably want to support running on all.
+    // The previous implementation returns [] if neither qty nor ids. RWE: actually logic above in runMigration throws if neither is provided?
+    // "Must provide either qty or ids." - yes.
+    return [];
+  }
+
+  private async migrateDropPathColumnFromFiles(qty?: number, ids?: string[]): Promise<MigrationResult> {
+    const workbooks = await this.fetchWorkbooks(qty, ids);
+
+    if (workbooks.length === 0) {
+      this.logger.log('No workbooks found to migrate');
+      return {
+        migratedIds: [],
+        remainingCount: 0,
+        migrationName: 'drop_path_column_from_files',
+      };
+    }
+
+    this.logger.log(`Migrating ${workbooks.length} workbooks (dropping path column from files)`);
+    const migratedIds: string[] = [];
+
+    for (const workbook of workbooks) {
+      try {
+        const knex = this.snapshotDbService.snapshotDb.getKnex();
+        const hasTable = await knex.schema.withSchema(workbook.id).hasTable('files');
+        if (hasTable) {
+          const hasColumn = await knex.schema.withSchema(workbook.id).hasColumn('files', 'path');
+          if (hasColumn) {
+            await knex.schema.withSchema(workbook.id).table('files', (t) => {
+              t.dropColumn('path');
+            });
+            migratedIds.push(workbook.id);
+            this.logger.log(`✅ Dropped path column for workbook ${workbook.id}`);
+          } else {
+            this.logger.log(`Skipped workbook ${workbook.id}: path column not found`);
+          }
+        } else {
+          this.logger.log(`Skipped workbook ${workbook.id}: files table not found`);
+        }
+      } catch (error) {
+        this.logger.error(
+          `❌ Failed to migrate workbook ${workbook.id}: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+      }
+    }
+
+    return {
+      migratedIds,
+      remainingCount: 0, // Not easily countable without complex query, returning 0
+      migrationName: 'drop_path_column_from_files',
+    };
   }
 
   private async migrateTableV0ToV1(table: SnapshotTable) {

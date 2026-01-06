@@ -54,12 +54,15 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
    * Resets the 'seen' flag to false for all records in a table before starting a download
    * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
-  private async resetSeenFlags(workbookId: WorkbookId, { path, tableName }: { path: string; tableName: string }) {
+  private async resetSeenFlags(
+    workbookId: WorkbookId,
+    { folderId, tableName }: { folderId: string; tableName: string },
+  ) {
     await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
       __seen: false,
     });
 
-    await this.workbookDb.resetSeenFlagForFolder(workbookId, path);
+    await this.workbookDb.resetSeenFlagForFolder(workbookId, folderId);
   }
 
   async run(params: {
@@ -168,7 +171,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       // Reset the 'seen' flag to false for all records before starting the download
       await this.resetSeenFlags(workbook.id as WorkbookId, {
-        path: snapshotTable.path ?? '/' + snapshotTable.id,
+        folderId: snapshotTable.folderId ?? '',
         tableName: snapshotTable.tableName,
       });
 
@@ -201,11 +204,11 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
           records,
         );
 
-        const folderPath = snapshotTable.path ? snapshotTable.path : '/' + snapshotTable.id;
+        // const folderPath = snapshotTable.path ? snapshotTable.path : '/' + snapshotTable.id;
 
         await this.workbookDb.upsertFilesFromConnectorRecords(
           workbook.id as WorkbookId,
-          folderPath,
+          snapshotTable.folderId ?? '',
           records,
           tableSpec,
         );

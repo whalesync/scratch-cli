@@ -5,6 +5,7 @@ import { InputJsonObject } from '@prisma/client/runtime/library';
 import {
   BulkUpdateRecordsDto,
   CREATED_FIELD,
+  createFolderId,
   createSnapshotTableId,
   createWorkbookId,
   DELETED_FIELD,
@@ -59,6 +60,7 @@ import {
 import { DownloadRecordsPublicProgress } from '../worker/jobs/job-definitions/download-records.job';
 import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
+import { FolderService } from './folder.service';
 import { DEFAULT_COLUMNS } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
@@ -81,6 +83,7 @@ export class WorkbookService {
     private readonly auditLogService: AuditLogService,
     private readonly subscriptionService: SubscriptionService,
     private readonly onboardingService: OnboardingService,
+    private readonly folderService: FolderService,
   ) {}
 
   async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
@@ -114,6 +117,19 @@ export class WorkbookService {
           const newTableId = createSnapshotTableId();
           const wsId = sanitizeForTableWsId(tableSpec.name);
           const tableName = `${newTableId}_${wsId}`;
+          const tablePath = '/' + newTableId;
+
+          // Folder logic: ensure structure exists. The table itself is represented by this folder.
+          // Since this is a new table, we can just create the folder directly at the root.
+          const folderId = createFolderId();
+          await this.db.client.folder.create({
+            data: {
+              id: folderId,
+              workbookId,
+              name: newTableId,
+              parentId: null,
+            },
+          });
 
           tableSpecToIdMap.set(tableSpec, newTableId);
 
@@ -126,6 +142,8 @@ export class WorkbookService {
             tableName,
             version: 'v1',
             lock: 'download',
+            path: tablePath,
+            folderId,
           });
         } catch (error) {
           if (connector) {
@@ -253,6 +271,16 @@ export class WorkbookService {
     const snapshotDataTableName = `${snapshotTableId}_${tableSpec.slug}`;
     const folderPath = '/' + snapshotTableId;
 
+    const folderId = createFolderId();
+    await this.db.client.folder.create({
+      data: {
+        id: folderId,
+        workbookId,
+        name: snapshotTableId,
+        parentId: null,
+      },
+    });
+
     // 5. Create the new SnapshotTable record
     const createdSnapshotTable = await this.db.client.snapshotTable.create({
       data: {
@@ -266,6 +294,7 @@ export class WorkbookService {
         version: 'v1',
         lock: 'download',
         path: folderPath,
+        folderId,
       },
       include: {
         connectorAccount: true,
@@ -2634,6 +2663,16 @@ export class WorkbookService {
     });
 
     return { recordsProcessed };
+  }
+
+  async moveFolder(
+    workbookId: WorkbookId,
+    folderId: string, // Using string to avoid potential type import issues, cast inside if needed
+    newParentId: string | null,
+    actor: Actor,
+  ): Promise<void> {
+    await this.findOneOrThrow(workbookId, actor);
+    await this.folderService.moveFolder(workbookId, folderId as any, newParentId as any);
   }
 }
 

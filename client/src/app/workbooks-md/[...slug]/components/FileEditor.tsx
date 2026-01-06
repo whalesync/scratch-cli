@@ -1,21 +1,21 @@
 'use client';
 
 import { useFile } from '@/hooks/use-file';
-import { filesApi } from '@/lib/api/files';
+import { foldersApi } from '@/lib/api/files';
+import { markdown } from '@codemirror/lang-markdown';
 import { Box, Button, Group, Text } from '@mantine/core';
-import type { WorkbookId } from '@spinner/shared-types';
+import type { FileId, WorkbookId } from '@spinner/shared-types';
+import CodeMirror from '@uiw/react-codemirror';
 import { DownloadIcon, SaveIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
-import { markdown } from '@codemirror/lang-markdown';
 
 interface FileEditorProps {
   workbookId: WorkbookId;
-  filePath: string | null;
+  fileId: FileId | null;
 }
 
-export function FileEditor({ workbookId, filePath }: FileEditorProps) {
-  const { file: fileResponse, isLoading, updateFile } = useFile(workbookId, filePath);
+export function FileEditor({ workbookId, fileId }: FileEditorProps) {
+  const { file: fileResponse, isLoading, updateFile } = useFile(workbookId, fileId);
   const [content, setContent] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,7 +34,7 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!filePath || !hasChanges) return;
+    if (!fileId || !hasChanges) return;
 
     setIsSaving(true);
     try {
@@ -45,14 +45,14 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [filePath, hasChanges, content, updateFile]);
+  }, [fileId, hasChanges, content, updateFile]);
 
   const handleDownload = useCallback(() => {
-    if (!filePath) return;
-    filesApi.downloadFile(workbookId, filePath);
-  }, [workbookId, filePath]);
+    if (!fileId) return;
+    foldersApi.downloadFile(workbookId, fileId);
+  }, [workbookId, fileId]);
 
-  if (!filePath) {
+  if (!fileId) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Text c="dimmed">Select a file to view content</Text>
@@ -88,12 +88,7 @@ export function FileEditor({ workbookId, filePath }: FileEditorProps) {
           flexShrink: 0,
         }}
       >
-        <Button
-          size="compact-xs"
-          variant="subtle"
-          leftSection={<DownloadIcon size={12} />}
-          onClick={handleDownload}
-        >
+        <Button size="compact-xs" variant="subtle" leftSection={<DownloadIcon size={12} />} onClick={handleDownload}>
           Download
         </Button>
         {hasChanges && (

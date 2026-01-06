@@ -174,6 +174,7 @@ model Workbook {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   snapshotTables    SnapshotTable[]
+  folders           Folder[]
   onboardingForUser User?           @relation("OnboardingWorkbook")
 
   @@index([userId])
@@ -248,10 +249,38 @@ model SnapshotTable {
   // Path of the table in the workbook folder structure, separated by '/'
   path String?
 
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folderId String?
+
   @@index([workbookId])
   @@index([connectorAccountId])
   @@index([version])
   @@index([path])
+  @@index([folderId])
+}
+
+// Folder structure for organizing content within a workbook
+model Folder {
+  id        String   @id // type: FolderId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String
+
+  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  workbookId String
+
+  // Parent folder (null for top-level folders)
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String?
+  children Folder[] @relation("FolderHierarchy")
+
+  // Contents
+  snapshotTables SnapshotTable[]
+
+  @@unique([workbookId, parentId, name])
+  @@index([workbookId])
+  @@index([parentId])
 }
 
 ///

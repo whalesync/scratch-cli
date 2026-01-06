@@ -63,6 +63,7 @@ import {
   SetTitleColumnDto,
   SUGGESTED_FIELDS_COLUMN,
   UpdateColumnSettingsDto,
+  UpdateFolderDto,
   UpdateWorkbookDto,
 } from '@spinner/shared-types';
 import type { Response } from 'express';
@@ -721,5 +722,18 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.clearHiddenColumns(workbookId, tableId, userToActor(req.user));
+  }
+
+  @Patch(':id/folders/:folderId')
+  @HttpCode(204)
+  async moveFolder(
+    @Param('id') workbookId: WorkbookId,
+    @Param('folderId') folderId: string,
+    @Body() updateFolderDto: UpdateFolderDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    if (updateFolderDto.parentFolderId !== undefined) {
+      await this.service.moveFolder(workbookId, folderId, updateFolderDto.parentFolderId, userToActor(req.user));
+    }
   }
 }

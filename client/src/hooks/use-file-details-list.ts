@@ -16,15 +16,15 @@ export interface UseFileDetailsListReturn {
  * Hook for managing file details list operations within a workbook
  * Returns files with full content, original content, and suggested content
  * @param workbookId - The workbook ID to scope the file operations to
- * @param folderPath - Optional folder path to list files from
+ * @param folderId - Optional folder ID to list files from
  */
 export const useFileDetailsList = (
   workbookId: WorkbookId | null,
-  folderPath?: string,
+  folderId?: string | null,
 ): UseFileDetailsListReturn => {
   const { data, error, isLoading, mutate } = useSWR(
-    workbookId ? SWR_KEYS.files.listDetails(workbookId, folderPath) : null,
-    () => (workbookId ? filesApi.listFilesDetails(workbookId, folderPath) : undefined),
+    workbookId ? SWR_KEYS.files.listDetails(workbookId, folderId) : null,
+    () => (workbookId ? filesApi.listFilesDetails(workbookId, folderId) : undefined),
     {
       revalidateOnFocus: false,
     },
@@ -49,4 +49,3 @@ export const useFileDetailsList = (
     refreshFiles,
   };
 };
-

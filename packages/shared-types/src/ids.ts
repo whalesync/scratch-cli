@@ -32,6 +32,7 @@ export enum IdPrefixes {
   JOB = 'job_', // Job
   ACTION = 'act_', // Action
   FILE = 'fil_', // File
+  FOLDER = 'fld_', // Folder
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -282,4 +283,15 @@ export function isFileId(id: unknown): id is FileId {
 
 export function createFileId(): FileId {
   return createId(IdPrefixes.FILE) as FileId;
+}
+
+// ------- Folder -------
+export type FolderId = PrefixedId<IdPrefixes.FOLDER>;
+
+export function isFolderId(id: unknown): id is FolderId {
+  return isId(id, IdPrefixes.FOLDER);
+}
+
+export function createFolderId(): FolderId {
+  return createId(IdPrefixes.FOLDER) as FolderId;
 }

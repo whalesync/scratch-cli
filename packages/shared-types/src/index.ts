@@ -61,6 +61,7 @@ export * from './dto/workbook/create-workbook.dto';
 export * from './dto/workbook/deep-fetch-records.dto';
 export * from './dto/workbook/download-records.dto';
 export * from './dto/workbook/file-details.dto';
+export * from './dto/workbook/folder.dto';
 export * from './dto/workbook/import-suggestions.dto';
 export * from './dto/workbook/list-files.dto';
 export * from './dto/workbook/publish-records.dto';

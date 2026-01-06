@@ -10,18 +10,16 @@ export interface UseFileListReturn {
   isLoading: boolean;
   error: Error | undefined;
   refreshFiles: () => Promise<void>;
-  // Future: methods for moving files around the tree
 }
 
 /**
  * Hook for managing file list operations within a workbook
  * @param workbookId - The workbook ID to scope the file operations to
- * @param folderPath - Optional folder path to list files from
  */
-export const useFileList = (workbookId: WorkbookId | null, folderPath?: string): UseFileListReturn => {
+export const useFileList = (workbookId: WorkbookId | null): UseFileListReturn => {
   const { data, error, isLoading, mutate } = useSWR(
-    workbookId ? SWR_KEYS.files.list(workbookId, folderPath) : null,
-    () => (workbookId ? filesApi.listFilesAndFolders(workbookId, folderPath) : undefined),
+    workbookId ? SWR_KEYS.files.list(workbookId) : null,
+    () => (workbookId ? filesApi.listFilesAndFolders(workbookId) : undefined),
     {
       revalidateOnFocus: false,
     },

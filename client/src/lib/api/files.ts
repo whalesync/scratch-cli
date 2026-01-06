@@ -1,9 +1,15 @@
 import {
   CreateFileDto,
+  CreateFolderDto,
   FileDetailsResponseDto,
+  FileId,
+  FileRefEntity,
+  FolderId,
+  FolderResponseDto,
   ListFilesDetailsResponseDto,
   ListFilesResponseDto,
   UpdateFileDto,
+  UpdateFolderDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
@@ -11,18 +17,17 @@ import { handleAxiosError } from './error';
 
 /**
  * File API endpoints for file-based workbook operations
- * All operations now use full file paths instead of IDs
+ * All operations now use IDs instead of paths
  */
 export const filesApi = {
   /**
-   * List files and folders in a directory (tree structure)
-   * GET /workbooks/:workbookId/files/list?path=path/to/folder
+   * List all files and folders in a workbook
+   * GET /workbooks/:workbookId/files/list
    */
-  listFilesAndFolders: async (workbookId: WorkbookId, folderPath?: string): Promise<ListFilesResponseDto> => {
+  listFilesAndFolders: async (workbookId: WorkbookId): Promise<ListFilesResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const params = folderPath ? { path: folderPath } : {};
-      const res = await axios.get<ListFilesResponseDto>(`/workbooks/${workbookId}/files/list`, { params });
+      const res = await axios.get<ListFilesResponseDto>(`/workbooks/${workbookId}/files/list`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list files and folders');
@@ -30,13 +35,14 @@ export const filesApi = {
   },
 
   /**
+  /**
    * List all of the files in a folder including full file content.
-   * GET /workbooks/:workbookId/files/list/details?path=path/to/folder
+   * GET /workbooks/:workbookId/files/list/details?folderId=...
    */
-  listFilesDetails: async (workbookId: WorkbookId, folderPath?: string): Promise<ListFilesDetailsResponseDto> => {
+  listFilesDetails: async (workbookId: WorkbookId, folderId?: string | null): Promise<ListFilesDetailsResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const params = folderPath ? { path: folderPath } : {};
+      const params = folderId ? { folderId } : {};
       const res = await axios.get<ListFilesDetailsResponseDto>(`/workbooks/${workbookId}/files/list/details`, {
         params,
       });
@@ -47,15 +53,13 @@ export const filesApi = {
   },
 
   /**
-   * Get a single file by path
-   * GET /workbooks/:workbookId/files/file?path=path/to/file.md
+   * Get a single file by ID
+   * GET /workbooks/:workbookId/files/:fileId
    */
-  getFile: async (workbookId: WorkbookId, filePath: string): Promise<FileDetailsResponseDto> => {
+  getFile: async (workbookId: WorkbookId, fileId: FileId): Promise<FileDetailsResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<FileDetailsResponseDto>(`/workbooks/${workbookId}/files/file`, {
-        params: { path: filePath },
-      });
+      const res = await axios.get<FileDetailsResponseDto>(`/workbooks/${workbookId}/files/${fileId}`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch file');
@@ -64,12 +68,12 @@ export const filesApi = {
 
   /**
    * Create a new file
-   * POST /workbooks/:workbookId/files with path in body
+   * POST /workbooks/:workbookId/files
    */
-  createFile: async (workbookId: WorkbookId, dto: CreateFileDto): Promise<{ path: string }> => {
+  createFile: async (workbookId: WorkbookId, dto: CreateFileDto): Promise<FileRefEntity> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ path: string }>(`/workbooks/${workbookId}/files`, dto);
+      const res = await axios.post<FileRefEntity>(`/workbooks/${workbookId}/files`, dto);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to create file');
@@ -77,49 +81,78 @@ export const filesApi = {
   },
 
   /**
-   * Update an existing file by path
-   * PATCH /workbooks/:workbookId/files/file?path=path/to/file.md
+   * Update an existing file by ID
+   * PATCH /workbooks/:workbookId/files/:fileId
    */
-  updateFile: async (workbookId: WorkbookId, filePath: string, dto: UpdateFileDto): Promise<void> => {
+  updateFile: async (workbookId: WorkbookId, fileId: FileId, dto: UpdateFileDto): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbooks/${workbookId}/files/file`, dto, {
-        params: { path: filePath },
-      });
+      await axios.patch(`/workbooks/${workbookId}/files/${fileId}`, dto);
     } catch (error) {
       handleAxiosError(error, 'Failed to update file');
     }
   },
 
   /**
-   * Delete a file by path
-   * DELETE /workbooks/:workbookId/files/file?path=path/to/file.md
+   * Delete a file by ID
+   * DELETE /workbooks/:workbookId/files/:fileId
    */
-  deleteFile: async (workbookId: WorkbookId, filePath: string): Promise<void> => {
+  deleteFile: async (workbookId: WorkbookId, fileId: FileId): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.delete(`/workbooks/${workbookId}/files/file`, {
-        params: { path: filePath },
-      });
+      await axios.delete(`/workbooks/${workbookId}/files/${fileId}`);
     } catch (error) {
       handleAxiosError(error, 'Failed to delete file');
     }
   },
+};
 
+/**
+ * Folder API endpoints for folder operations
+ */
+export const foldersApi = {
   /**
-   * Rename a folder and update all files within it
-   * POST /workbooks/:workbookId/files/rename-folder
+   * Create a new folder
+   * POST /workbooks/:workbookId/folders
    */
-  renameFolder: async (workbookId: WorkbookId, oldPath: string, newPath: string): Promise<{ filesUpdated: number }> => {
+  createFolder: async (workbookId: WorkbookId, dto: CreateFolderDto): Promise<FolderResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ filesUpdated: number }>(`/workbooks/${workbookId}/files/rename-folder`, {
-        oldPath,
-        newPath,
-      });
+      const res = await axios.post<FolderResponseDto>(`/workbooks/${workbookId}/folders`, dto);
       return res.data;
     } catch (error) {
-      handleAxiosError(error, 'Failed to rename folder');
+      handleAxiosError(error, 'Failed to create folder');
+    }
+  },
+
+  /**
+   * Update a folder by ID (rename or move)
+   * PATCH /workbooks/:workbookId/folders/:folderId
+   */
+  updateFolder: async (
+    workbookId: WorkbookId,
+    folderId: FolderId,
+    dto: UpdateFolderDto,
+  ): Promise<FolderResponseDto> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.patch<FolderResponseDto>(`/workbooks/${workbookId}/folders/${folderId}`, dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update folder');
+    }
+  },
+
+  /**
+   * Delete a folder by ID
+   * DELETE /workbooks/:workbookId/folders/:folderId
+   */
+  deleteFolder: async (workbookId: WorkbookId, folderId: FolderId): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/workbooks/${workbookId}/folders/${folderId}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete folder');
     }
   },
 

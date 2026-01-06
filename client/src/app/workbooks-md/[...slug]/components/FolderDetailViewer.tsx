@@ -7,7 +7,7 @@ import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useFileDetailsList } from '@/hooks/use-file-details-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Center, Group, Text, useMantineColorScheme } from '@mantine/core';
-import { FileDetailsEntity, WorkbookId } from '@spinner/shared-types';
+import { FileDetailsEntity, FileId, FolderId, WorkbookId } from '@spinner/shared-types';
 import {
   AllCommunityModule,
   ColDef,
@@ -40,7 +40,7 @@ interface FileWithMetadata extends FileDetailsEntity {
 
 interface FolderDetailViewerProps {
   workbookId: WorkbookId;
-  folderPath: string;
+  folderId: FolderId | null;
 }
 
 // Minimal cell renderer matching FieldValueWrapper styling
@@ -163,8 +163,8 @@ const CustomHeaderComponent = (props: IHeaderParams) => {
   );
 };
 
-export const FolderDetailViewer = ({ workbookId, folderPath }: FolderDetailViewerProps) => {
-  const { files, isLoading, error } = useFileDetailsList(workbookId, folderPath);
+export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerProps) => {
+  const { files, isLoading, error } = useFileDetailsList(workbookId, folderId);
   const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
@@ -215,8 +215,8 @@ export const FolderDetailViewer = ({ workbookId, folderPath }: FolderDetailViewe
   };
 
   const handleFileClick = useCallback(
-    (filePath: string) => {
-      openFileTab(filePath);
+    (fileId: FileId, fileName: string) => {
+      openFileTab({ id: fileId, type: 'file', title: fileName });
     },
     [openFileTab],
   );
@@ -255,7 +255,7 @@ export const FolderDetailViewer = ({ workbookId, folderPath }: FolderDetailViewe
     return processedFiles.map((file) => ({
       id: file.ref.id,
       fileName: file.ref.name,
-      filePath: file.ref.path,
+      fileId: file.ref.id as FileId,
       updatedAt: file.updatedAt,
       createdAt: file.createdAt,
       metadata: file.metadata,
@@ -325,8 +325,8 @@ export const FolderDetailViewer = ({ workbookId, folderPath }: FolderDetailViewe
           maintainColumnOrder={true}
           stopEditingWhenCellsLoseFocus={false}
           onRowClicked={(event: RowClickedEvent) => {
-            if (event.data?.filePath) {
-              handleFileClick(event.data.filePath);
+            if (event.data?.fileId) {
+              handleFileClick(event.data.fileId, event.data.fileName);
             }
           }}
         />

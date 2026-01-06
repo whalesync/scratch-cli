@@ -1,17 +1,19 @@
-import { IsOptional } from 'class-validator';
-import { FileDetailsEntity, FileRefEntity } from '../../file-types';
+import { IsOptional, IsString } from 'class-validator';
+import { FileDetailsEntity, FileOrFolderRefEntity } from '../../file-types';
+import { FolderId } from '../../ids';
 
 export class ListFileDto {
-  // Defaults to root folder.
+  /** ID of the folder to list contents of. Defaults to workbook root (null). */
   @IsOptional()
-  folderPath?: string;
+  @IsString()
+  folderId?: FolderId;
 }
 
 export type ValidatedListFileDto = ListFileDto;
 
 export interface ListFilesResponseDto {
-  /** Flat list of all files and folders . */
-  files: FileRefEntity[];
+  /** Flat list of all files and folders within the workbook. */
+  items: FileOrFolderRefEntity[];
 }
 
 export type ValidatedListFilesResponseDto = Required<ListFilesResponseDto>;

@@ -1,4 +1,5 @@
 import { WorkbookId } from '../ids';
+import { Folder } from './folder';
 import { SnapshotTable } from './snapshot-table';
 
 ///
@@ -12,6 +13,7 @@ export interface Workbook {
   createdAt: string;
   updatedAt: string;
   snapshotTables?: SnapshotTable[];
+  folders?: Folder[];
   userId: string;
 }
 

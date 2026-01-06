@@ -1,5 +1,6 @@
 export * from './audit-log-event';
 export * from './connector-account';
+export * from './folder';
 export * from './organization';
 export * from './snapshot-table';
 export * from './style-guide';

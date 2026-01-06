@@ -86,7 +86,7 @@ export type FileDbRecord = {
   [FILE_ID_COLUMN]: string;
   [REMOTE_ID_COLUMN]: string | null;
   [FOLDER_ID_COLUMN]: string;
-  [PATH_COLUMN]: string;
+  [PATH_COLUMN]?: string; // Deprecated and optional
   [FOLDER_NAME_COLUMN]: string;
   [FILE_NAME_COLUMN]: string;
   [CONTENT_COLUMN]: string | null;
@@ -129,7 +129,7 @@ export class WorkbookDb {
           t.text(FILE_ID_COLUMN).primary();
           t.text(REMOTE_ID_COLUMN).nullable().index();
           t.text(FOLDER_ID_COLUMN).index();
-          t.text(PATH_COLUMN).unique();
+          // t.text(PATH_COLUMN).unique(); // Deprecated and removed
           t.text(FOLDER_NAME_COLUMN);
           t.text(FILE_NAME_COLUMN);
           t.text(CONTENT_COLUMN).nullable();
@@ -154,6 +154,36 @@ export class WorkbookDb {
       .where(PATH_COLUMN, 'like', `${parentFolderPath}%`)
       .orderBy(PATH_COLUMN, 'asc')
       .select('*');
+
+    return result;
+  }
+
+  /**
+   * Lists all files in a workbook (not filtered by path)
+   */
+  async listAllFiles(workbookId: WorkbookId): Promise<FileDbRecord[]> {
+    const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(DELETED_COLUMN, false)
+      .orderBy(FILE_NAME_COLUMN, 'asc')
+      .select(
+        FILE_ID_COLUMN,
+        REMOTE_ID_COLUMN,
+        FOLDER_ID_COLUMN,
+        FOLDER_NAME_COLUMN,
+        FILE_NAME_COLUMN,
+        CONTENT_COLUMN,
+        ORIGINAL_COLUMN,
+        SUGGESTED_COLUMN,
+        METADATA_COLUMN,
+        CREATED_AT_COLUMN,
+        UPDATED_AT_COLUMN,
+        DELETED_COLUMN,
+        SUGGESTED_DELETE_COLUMN,
+        DIRTY_COLUMN,
+        ERRORS_COLUMN,
+        SEEN_COLUMN,
+      );
 
     return result;
   }
@@ -335,9 +365,9 @@ export class WorkbookDb {
     const fileId = createFileId();
     const tempRemoteId = `${UNPUBLISHED_PREFIX}${fileId}`;
 
-    // Generate the path
+    // Generate the path -- DEPRECATED/UNUSED
     const folderId = extractFolderId(folderPath);
-    const fullPath = path.posix.join(folderPath, fileName);
+    // const fullPath = path.posix.join(folderPath, fileName);
 
     if (isSuggestion) {
       return await this.getKnex()<FileDbRecord>(FILES_TABLE)
@@ -346,10 +376,11 @@ export class WorkbookDb {
           [FILE_ID_COLUMN]: fileId,
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
-          [PATH_COLUMN]: fullPath,
+          // [PATH_COLUMN]: fullPath, // Deprecated/Removed
           [FOLDER_NAME_COLUMN]: folderId,
           [FILE_NAME_COLUMN]: fileName,
-          [CONTENT_COLUMN]: null,
+          [CONTENT_COLUMN]: null, // Content null for suggestion until populated?
+          // Actually original code had CONTENT_COLUMN: null.
           [ORIGINAL_COLUMN]: null,
           [SUGGESTED_COLUMN]: content,
           [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
@@ -376,7 +407,7 @@ export class WorkbookDb {
           [FILE_ID_COLUMN]: fileId,
           [REMOTE_ID_COLUMN]: tempRemoteId,
           [FOLDER_ID_COLUMN]: folderId,
-          [PATH_COLUMN]: fullPath,
+          // [PATH_COLUMN]: fullPath, // Deprecated/Removed
           [FOLDER_NAME_COLUMN]: folderId,
           [FILE_NAME_COLUMN]: fileName,
           [CONTENT_COLUMN]: content,
@@ -388,6 +419,121 @@ export class WorkbookDb {
           [DIRTY_COLUMN]: true,
         });
     }
+  }
+
+  /**
+   * Creates a new file in the database using a folder ID instead of path
+   * This is the new method that works with the folder entity
+   */
+  async createFileWithFolderId(
+    workbookId: WorkbookId,
+    fileName: string,
+    folderId: string | null,
+    content: string | null,
+    isSuggestion: boolean = false,
+  ): Promise<FileId> {
+    const fileId = createFileId();
+    const tempRemoteId = `${UNPUBLISHED_PREFIX}${fileId}`;
+
+    // For backwards compatibility, generate a path from folderId (unused in DB if column dropped)
+    // const fullPath = folderId ? `/${folderId}/${fileName}` : `/${fileName}`;
+
+    let metadata: Record<string, unknown> = {};
+    if (content && !isSuggestion) {
+      try {
+        const parsed = matter(content);
+        metadata = parsed.data as Record<string, unknown>;
+      } catch (error) {
+        WSLogger.error({
+          source: 'WorkbookDb',
+          message: `Failed to parse content as frontmatter`,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
+    }
+
+    await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .insert({
+        [FILE_ID_COLUMN]: fileId,
+        [REMOTE_ID_COLUMN]: tempRemoteId,
+        [FOLDER_ID_COLUMN]: folderId ?? '',
+        // [PATH_COLUMN]: fullPath, // Deprecated
+        [FOLDER_NAME_COLUMN]: folderId ?? '',
+        [FILE_NAME_COLUMN]: fileName,
+        [CONTENT_COLUMN]: isSuggestion ? null : content,
+        [ORIGINAL_COLUMN]: null,
+        [SUGGESTED_COLUMN]: isSuggestion ? content : null,
+        [METADATA_COLUMN]: metadata,
+        [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
+        [CREATED_AT_COLUMN]: this.getKnex().fn.now(),
+        [DIRTY_COLUMN]: !isSuggestion,
+      });
+
+    return fileId;
+  }
+
+  /**
+   * Updates a file by ID with optional name, folder, and content changes
+   */
+  async updateFileById(
+    workbookId: WorkbookId,
+    fileId: FileId,
+    updates: {
+      name?: string;
+      folderId?: string | null;
+      content?: string | null;
+    },
+  ): Promise<void> {
+    const file = await this.getFileById(workbookId, fileId);
+    if (!file) {
+      throw new FileNotFoundError(fileId, workbookId);
+    }
+
+    const updateData: Partial<FileDbRecord> = {
+      [UPDATED_AT_COLUMN]: this.getKnex().fn.now() as unknown as Date,
+    };
+
+    if (updates.name !== undefined) {
+      updateData[FILE_NAME_COLUMN] = updates.name;
+      // Update path to reflect new name
+      // const currentFolderId = file.folder_id;
+      // const newPath = currentFolderId ? `/${currentFolderId}/${updates.name}` : `/${updates.name}`;
+      // updateData[PATH_COLUMN] = newPath;
+    }
+
+    if (updates.folderId !== undefined) {
+      updateData[FOLDER_ID_COLUMN] = updates.folderId ?? '';
+      updateData[FOLDER_NAME_COLUMN] = updates.folderId ?? '';
+      // Update path to reflect new folder
+      // const fileName = updates.name ?? file.name;
+      // const newPath = updates.folderId ? `/${updates.folderId}/${fileName}` : `/${fileName}`;
+      // updateData[PATH_COLUMN] = newPath;
+    }
+
+    if (updates.content !== undefined) {
+      updateData[CONTENT_COLUMN] = updates.content;
+      updateData[DIRTY_COLUMN] = true;
+
+      // Parse metadata from content
+      if (updates.content) {
+        try {
+          const parsed = matter(updates.content);
+          updateData[METADATA_COLUMN] = parsed.data as Record<string, unknown>;
+        } catch (error) {
+          WSLogger.error({
+            source: 'WorkbookDb',
+            message: `Failed to parse content as frontmatter`,
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+        }
+      }
+    }
+
+    await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FILE_ID_COLUMN, fileId)
+      .update(updateData);
   }
 
   /**
@@ -434,9 +580,17 @@ export class WorkbookDb {
    */
   async undeleteFileByPath(workbookId: WorkbookId, filePath: string): Promise<void> {
     assertFilePathIsValid(filePath);
+    // Path column is deprecated. We try to reconstruct usage or throw.
+    // Since we can't reliably look up by path if folder structure changed to UUIDs,
+    // we should ideally use ID. But for now let's try to extract name/folderId.
+    const folderPath = extractFolderPath(filePath);
+    const fileName = extractFileName(filePath);
+    const folderId = extractFolderId(folderPath);
+
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
-      .where(PATH_COLUMN, filePath)
+      .where(FOLDER_ID_COLUMN, folderId)
+      .where(FILE_NAME_COLUMN, fileName)
       .update({
         [DELETED_COLUMN]: false,
       });
@@ -455,9 +609,10 @@ export class WorkbookDb {
     if (!fileName) {
       throw new Error(`No filename found on path: ${fullPath}`);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const newFile = await this.createFile(workbookId, folderPath, fileName, content, isSuggestion);
-    return newFile.path;
-  }
+    return fullPath;
+  } // Return the requested path even if DB doesn't store it
 
   async moveFile(
     workbookId: WorkbookId,
@@ -599,13 +754,22 @@ export class WorkbookDb {
    */
   async upsertFilesFromConnectorRecords<T extends BaseColumnSpec>(
     workbookId: WorkbookId,
-    folderPath: string,
+    folderId: string,
     records: ConnectorRecord[],
     tableSpec: BaseTableSpec<T>,
   ): Promise<void> {
-    assertFolderPathIsValid(folderPath);
+    const trx = await this.getKnex().transaction();
 
-    await this.getKnex().transaction(async (trx) => {
+    try {
+      // Get folder name if folderId is provided
+      const folderName = folderId || '';
+
+      /* 
+         Legacy comments about folder name resolution...
+         Folder name is now just the ID (UUID) or empty if root. 
+         Client resolves display name via Folder entity.
+      */
+
       for (const record of records) {
         // Convert to Front Matter markdown format
         const { content: frontMatterContent, metadata: frontMatterMetadata } = convertConnectorRecordToFrontMatter(
@@ -616,12 +780,13 @@ export class WorkbookDb {
         // Generate a scratch ID for new records
         const fileId = createFileId();
 
-        const folderId = extractFolderId(folderPath);
-        const folderName = folderId;
+        // const folderId = extractFolderId(folderPath);
+        // const folderName = folderId;
 
         // Determine the file name - use title column if available, otherwise use the record ID
         let fileName = record.id;
-        let fullPath = path.posix.join(folderPath, fileName);
+        let fullPath = path.posix.join(folderId, fileName); // Use folderId as part of path for uniqueness
+
         let attempts = 0;
         while (attempts < MAX_UNIQUE_FILE_NAME_ATTEMPTS) {
           if (tableSpec.titleColumnRemoteId) {
@@ -637,11 +802,12 @@ export class WorkbookDb {
           }
 
           fileName = slugifyFileName(fileName) + '.md';
-          fullPath = folderPath + '/' + fileName;
+          fullPath = folderId + '/' + fileName;
 
           const existingFileWithPath = await trx<FileDbRecord>(FILES_TABLE)
             .withSchema(workbookId)
-            .where(PATH_COLUMN, fullPath)
+            .where(FOLDER_ID_COLUMN, folderId)
+            .where(FILE_NAME_COLUMN, fileName)
             .first();
 
           if (!existingFileWithPath) {
@@ -686,7 +852,8 @@ export class WorkbookDb {
               [FOLDER_ID_COLUMN]: folderId,
               [FOLDER_NAME_COLUMN]: folderName,
               [FILE_NAME_COLUMN]: fileName,
-              [PATH_COLUMN]: fullPath,
+              // [PATH_COLUMN]: fullPath, // Kept to satisfy non-null/unique constraint if exists
+              // ERROR: Column path does not exist in new schema. Removing.
               [CONTENT_COLUMN]: frontMatterContent,
               [ORIGINAL_COLUMN]: frontMatterContent,
               [SUGGESTED_COLUMN]: null,
@@ -699,11 +866,16 @@ export class WorkbookDb {
             });
         }
       }
-    });
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
-  async resetSeenFlagForFolder(workbookId: WorkbookId, folderPath: string): Promise<void> {
-    const folderId = extractFolderId(folderPath);
+  async resetSeenFlagForFolder(workbookId: WorkbookId, folderId: string): Promise<void> {
+    // const folderId = extractFolderId(folderPath);
     await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(FOLDER_ID_COLUMN, folderId)

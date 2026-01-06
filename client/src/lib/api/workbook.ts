@@ -1,5 +1,14 @@
 import { PublishSummary } from '@/types/server-entities/publish-summary';
-import { AddScratchColumnDto, AddTableToWorkbookDto, CreateWorkbookDto, DownloadWorkbookResult, DownloadWorkbookWithoutJobResult, RemoveScratchColumnDto, UpdateColumnSettingsDto, UpdateWorkbookDto,  } from '@/types/server-entities/workbook';
+import {
+  AddScratchColumnDto,
+  AddTableToWorkbookDto,
+  CreateWorkbookDto,
+  DownloadWorkbookResult,
+  DownloadWorkbookWithoutJobResult,
+  RemoveScratchColumnDto,
+  UpdateColumnSettingsDto,
+  UpdateWorkbookDto,
+} from '@/types/server-entities/workbook';
 import { SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
@@ -261,5 +270,14 @@ export const workbookApi = {
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
+  },
+
+  moveFolder: async (workbookId: WorkbookId, folderId: string, parentFolderId: string | null): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.patch(`/workbook/${workbookId}/folders/${folderId}`, { parentFolderId });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to move folder');
+    }
   },
 };
