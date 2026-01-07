@@ -10,7 +10,11 @@ import { Connector } from '../../connector';
 import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';
 import { WEBFLOW_RICH_TEXT_TARGET, WebflowSchemaParser } from './webflow-schema-parser';
-import { WEBFLOW_METADATA_COLUMNS, WebflowItemMetadata } from './webflow-spec-types';
+import {
+  WEBFLOW_ECOMMERCE_COLLECTION_SLUGS,
+  WEBFLOW_METADATA_COLUMNS,
+  WebflowItemMetadata,
+} from './webflow-spec-types';
 
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
 
@@ -47,6 +51,10 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       const collections = collectionsResponse.collections || [];
 
       for (const collection of collections) {
+        // Skip ecommerce collections (Products, Categories, SKUs)
+        if (collection.slug && WEBFLOW_ECOMMERCE_COLLECTION_SLUGS.includes(collection.slug)) {
+          continue;
+        }
         tables.push(this.schemaParser.parseTablePreview(site, collection));
       }
     }
