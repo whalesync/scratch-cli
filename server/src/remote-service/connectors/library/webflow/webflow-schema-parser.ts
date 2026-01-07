@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { Webflow } from 'webflow-api';
-import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
+import { sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, ColumnOptions, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { WebflowColumnSpec, WebflowTableSpec } from '../custom-spec-registry';
 import {
@@ -46,13 +46,17 @@ export class WebflowSchemaParser {
     const nameField = collection.fields.find((f) => f.slug === 'name');
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
-    // Find the RichText field which is typically the main content column
-    // TODO: Improve this to prioritize the main content column based on keywods in the field name. e.g. content, body, etc.
-    const richTextField = collection.fields.find((f) => f.type === 'RichText');
-    const mainContentColumnRemoteId: string[] | undefined = richTextField ? [richTextField.id] : undefined;
-
+    let mainContentColumnRemoteId: string[] | undefined;
     // Parse all collection fields
-    const columns = collection.fields.map((field) => this.parseColumn(field, titleColumnSlug?.[0]));
+    const columns = collection.fields.map((field) => {
+      // Find the RichText field which is typically the main content column
+      // TODO: Improve this to prioritize the main content column based on keywods in the field name. e.g. content, body, etc.
+      const column = this.parseColumn(field, titleColumnSlug?.[0]);
+      if (column.webflowFieldType === Webflow.FieldType.RichText) {
+        mainContentColumnRemoteId = column.id.remoteId;
+      }
+      return column;
+    });
 
     // Add predefined metadata columns (readonly)
     columns.push(
@@ -121,8 +125,10 @@ export class WebflowSchemaParser {
 
     return {
       id: {
-        wsId: sanitizeForColumnWsId(field.id),
-        remoteId: [field.id],
+        // for some reason webflow defines the slug as possible undefined but most of the time it should be present.
+        // worse case we will use the id as the wsId.
+        wsId: field.slug ?? field.id,
+        remoteId: [field.slug ?? field.id, field.id], // we will need the field.id when we publish to webflow.
       },
       slug: field.slug,
       name: field.displayName,
