@@ -241,6 +241,16 @@ export class WorkbookController {
     return this.service.publish(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
+  @Post(':id/publish-files')
+  async publishFiles(
+    @Param('id') id: WorkbookId,
+    @Body() publishDto: PublishRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ jobId: string }> {
+    const dto = publishDto;
+    return await this.service.publishFiles(id, userToActor(req.user), dto.snapshotTableIds);
+  }
+
   @UseGuards(ScratchpadAuthGuard)
   @Post(':id/publish-summary')
   async getPublishSummary(
@@ -258,6 +268,14 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
     return this.service.getOperationCounts(id, userToActor(req.user));
+  }
+
+  @Get(':id/operation-counts-files')
+  async getOperationCountsFiles(
+    @Param('id') id: WorkbookId,
+    @Req() req: RequestWithUser,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    return this.service.getOperationCountsFiles(id, userToActor(req.user));
   }
 
   @Post(':id/download-without-job')

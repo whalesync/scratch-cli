@@ -1,4 +1,5 @@
 import { workbookApi } from '@/lib/api/workbook';
+import { WorkbookMode } from '@/stores/workbook-editor-store';
 import { WorkbookId } from '@spinner/shared-types';
 import useSWR from 'swr';
 import { SWR_KEYS } from '../lib/api/keys';
@@ -12,6 +13,7 @@ export type OperationCounts = {
 
 export const useOperationCounts = (
   workbookId: WorkbookId | null,
+  workbookMode: WorkbookMode = 'tables',
 ): {
   operationCounts: OperationCounts | undefined;
   isLoading: boolean;
@@ -19,7 +21,12 @@ export const useOperationCounts = (
 } => {
   const { data, error, isLoading } = useSWR(
     workbookId ? SWR_KEYS.operationCounts.get(workbookId) : null,
-    () => (workbookId ? workbookApi.getOperationCounts(workbookId) : undefined),
+    () =>
+      workbookId
+        ? workbookMode === 'files'
+          ? workbookApi.getOperationCountsFiles(workbookId)
+          : workbookApi.getOperationCounts(workbookId)
+        : undefined,
     {
       revalidateOnFocus: true,
     },

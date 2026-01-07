@@ -6,7 +6,8 @@ import { useWorkbookEditorUIStore } from '../../../../../../../stores/workbook-e
 import { ButtonSecondaryInline } from '../../../../../../components/base/buttons';
 
 export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable }) => {
-  const { operationCounts } = useOperationCounts(table.workbookId);
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
+  const { operationCounts } = useOperationCounts(table.workbookId, workbookMode);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
 
   const unpublishedCount = useMemo(() => {

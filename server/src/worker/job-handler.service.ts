@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { OnboardingService } from 'src/users/onboarding.service';
+import { FilePublishingService } from 'src/workbook/file-publishing.service';
 import { SnapshotDbService } from 'src/workbook/snapshot-db.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
@@ -11,6 +12,7 @@ import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { DownloadRecordsJobHandler } from './jobs/job-definitions/download-records.job';
+import { PublishFilesJobHandler } from './jobs/job-definitions/publish-files.job';
 import { PublishRecordsJobHandler } from './jobs/job-definitions/publish-records.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
@@ -25,6 +27,7 @@ export class JobHandlerService {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly workbookService: WorkbookService,
     private readonly onboardingService: OnboardingService,
+    private readonly filePublishingService: FilePublishingService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -53,6 +56,15 @@ export class JobHandlerService {
           this.connectorAccountService,
           this.snapshotEventService,
           this.workbookService,
+          this.onboardingService,
+        ) as JobHandler<JobDefinition>;
+      case 'publish-files':
+        return new PublishFilesJobHandler(
+          prisma,
+          this.connectorService,
+          this.connectorAccountService,
+          this.snapshotEventService,
+          this.filePublishingService,
           this.onboardingService,
         ) as JobHandler<JobDefinition>;
 

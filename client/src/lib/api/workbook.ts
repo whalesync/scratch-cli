@@ -158,16 +158,29 @@ export const workbookApi = {
     }
   },
 
-  async publish(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+  async publish(
+    id: WorkbookId,
+    snapshotTableIds?: string[],
+    mode: 'records' | 'files' = 'records',
+  ): Promise<{ jobId: string }> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/publish`, { snapshotTableIds });
+      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/publish`, { snapshotTableIds, mode });
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to start publish');
     }
   },
 
+  async publishFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/publish-files`, { snapshotTableIds });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to start publish files');
+    }
+  },
   async getPublishSummary(id: WorkbookId, snapshotTableIds?: string[]): Promise<PublishSummary> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
@@ -185,6 +198,20 @@ export const workbookApi = {
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.get<{ tableId: string; creates: number; updates: number; deletes: number }[]>(
         `/workbook/${id}/operation-counts`,
+      );
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get operation counts');
+    }
+  },
+
+  async getOperationCountsFiles(
+    id: WorkbookId,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<{ tableId: string; creates: number; updates: number; deletes: number }[]>(
+        `/workbook/${id}/operation-counts-files`,
       );
       return res.data;
     } catch (error) {

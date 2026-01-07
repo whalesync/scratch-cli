@@ -785,6 +785,31 @@ export class WorkbookService {
     return results;
   }
 
+  async getOperationCountsFiles(
+    workbookId: WorkbookId,
+    actor: Actor,
+  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
+    const workbook = await this.findOneOrThrow(workbookId, actor);
+    if (!workbook.snapshotTables) {
+      return [];
+    }
+
+    const results = await Promise.all(
+      workbook.snapshotTables.map(async (table) => {
+        const counts = await this.workbookDbService.workbookDb.countExpectedOperations(
+          workbookId,
+          table.folderId as FolderId,
+        );
+        return {
+          tableId: table.id,
+          ...counts,
+        };
+      }),
+    );
+
+    return results;
+  }
+
   async deepFetchRecords(
     workbookId: WorkbookId,
     tableId: string,
@@ -1454,7 +1479,7 @@ export class WorkbookService {
   /**
    * New publish function that uses the new file data model
    */
-  async publishNew(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+  async publishFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
     // Check publish limit for the organization
     if (actor.subscriptionStatus) {
       const plan = getPlan(actor.subscriptionStatus.planType);

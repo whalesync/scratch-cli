@@ -16,6 +16,7 @@ import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirma
  */
 export const PublishWorkbookWorkflow = () => {
   const { workbook, activeTable, refreshWorkbook } = useActiveWorkbook();
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const publishConfirmationOpen = useWorkbookEditorUIStore((state) => state.publishConfirmationOpen);
   const closePublishConfirmation = useWorkbookEditorUIStore((state) => state.closePublishConfirmation);
   const [showTableSelector, setShowTableSelector] = useState(false);
@@ -45,8 +46,11 @@ export const PublishWorkbookWorkflow = () => {
     }
     try {
       setShowPublishConfirmation(false);
-      // TODO: This should use useWorkbook().publish() instead to get shared logic.
-      const result = await workbookApi.publish(workbook.id, selectedPublishTableIds);
+
+      const result =
+        workbookMode === 'files'
+          ? await workbookApi.publishFiles(workbook.id, selectedPublishTableIds)
+          : await workbookApi.publish(workbook.id, selectedPublishTableIds);
       setPublishInProgress(result);
     } catch (e) {
       console.debug(e);
@@ -56,7 +60,7 @@ export const PublishWorkbookWorkflow = () => {
         autoClose: 5000,
       });
     }
-  }, [workbook, selectedPublishTableIds, canPublishWorkbook]);
+  }, [workbook, selectedPublishTableIds, canPublishWorkbook, workbookMode]);
 
   const handlePublishComplete = useCallback(async () => {
     setPublishInProgress(null);
