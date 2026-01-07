@@ -6,6 +6,7 @@ import { Badge, BadgeOK } from '@/app/components/base/badge';
 import { Text12Regular, Text13Regular, TextTitle3 } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { formatDate } from '@/utils/helpers';
 import { Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
 import {
@@ -20,6 +21,7 @@ import { FileTextIcon } from 'lucide-react';
 export const WorkbookInspector = (props: ModalProps) => {
   const { isDevToolsEnabled } = useDevTools();
   const { workbook, isLoading } = useActiveWorkbook();
+  const currentWorkbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
 
   if (!isDevToolsEnabled) {
     return (
@@ -51,6 +53,7 @@ export const WorkbookInspector = (props: ModalProps) => {
           <Stack gap="xs">
             <LabelValuePair label="Workbook ID" value={workbook.id} canCopy />
             <LabelValuePair label="Name" value={workbook.name || 'N/A'} />
+            <LabelValuePair label="Current Mode" value={currentWorkbookMode} />
             <LabelValuePair label="Created At" value={formatDate(workbook.createdAt)} />
             <LabelValuePair label="Updated At" value={formatDate(workbook.updatedAt)} />
           </Stack>

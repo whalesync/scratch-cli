@@ -43,6 +43,8 @@ export enum WorkbookModals {
   CONFIRM_REFRESH_SOURCE = 'confirm-refresh-source',
 }
 
+export type WorkbookMode = 'tables' | 'files';
+
 export type WorkbookModalParams =
   | { type: WorkbookModals.CREATE_SCRATCH_COLUMN; tableId: SnapshotTableId }
   | { type: WorkbookModals.KEYBOARD_SHORTCUT_HELP }
@@ -78,6 +80,8 @@ export interface WorkbookEditorUIState {
   publishConfirmationOpen: boolean;
 
   activeModal: WorkbookModalParams | null;
+
+  workbookMode: WorkbookMode;
 }
 
 type Actions = {
@@ -86,6 +90,7 @@ type Actions = {
     tableId?: SnapshotTableId;
     recordId?: string;
     columnId?: string;
+    mode?: WorkbookMode;
   }) => void;
   closeWorkbook: () => void;
   reconcileWithWorkbook: (workbook: Workbook) => void;
@@ -97,7 +102,6 @@ type Actions = {
   closeTab: (id: TabId) => void;
   closeNewTabs: () => void;
 
-  // File tab management
   // File tab management
   openFileTab: (tab: FileTab) => void;
   closeFileTab: (tabId: string) => void;
@@ -124,21 +128,30 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   activeCells: null,
   recordDetailsVisible: false,
   tabs: [],
+
   openFileTabs: [],
   activeFileTabId: null,
   devToolsOpen: false,
   chatOpen: true,
   publishConfirmationOpen: false,
   activeModal: null,
+  workbookMode: 'tables',
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openWorkbook: (params: { workbookId: WorkbookId; tableId?: TabId; recordId?: string; columnId?: string }) => {
+  openWorkbook: (params: {
+    workbookId: WorkbookId;
+    tableId?: TabId;
+    recordId?: string;
+    columnId?: string;
+    workbookMode?: WorkbookMode;
+  }) => {
     set({
       workbookId: params.workbookId,
       activeTab: params.tableId ?? null,
       activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
+      workbookMode: params.workbookMode ?? 'tables',
     });
   },
   closeWorkbook: () => {

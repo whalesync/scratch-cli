@@ -6,6 +6,7 @@ import type { AnyTableSpec } from '../../../remote-service/connectors/library/cu
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
+import { WorkbookCluster } from 'src/db/cluster-types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { OnboardingService } from 'src/users/onboarding.service';
@@ -71,13 +72,7 @@ export class PublishFilesJobHandler implements JobHandlerBuilder<PublishFilesJob
     // Fetch workbook with snapshot tables
     const workbook = await this.prisma.workbook.findUnique({
       where: { id: data.workbookId },
-      include: {
-        snapshotTables: {
-          include: {
-            connectorAccount: true,
-          },
-        },
-      },
+      include: WorkbookCluster._validator.include,
     });
 
     if (!workbook) {
