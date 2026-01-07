@@ -45,3 +45,12 @@ export class UpdateFileDto {
 }
 
 export type ValidatedUpdateFileDto = UpdateFileDto;
+
+export class CopyFileDto {
+  /** ID of the target folder, or null for workbook root */
+  @IsString()
+  @IsOptional()
+  targetFolderId?: FolderId | null;
+}
+
+export type ValidatedCopyFileDto = CopyFileDto;

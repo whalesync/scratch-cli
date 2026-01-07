@@ -15,10 +15,12 @@ import {
   BookOpenIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  CopyIcon,
   DownloadIcon,
   FilePlusIcon,
   FileTextIcon,
   FolderIcon,
+  FolderInputIcon,
   FolderPlusIcon,
   InfoIcon,
   PencilIcon,
@@ -27,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { FolderPickerModal } from './FolderPickerModal';
 import styles from './WorkbookFileBrowser.module.css';
 
 interface NodeInfoData {
@@ -40,7 +43,8 @@ type InputModalType =
   | { type: 'createFolder'; parentFolderId: FolderId | null }
   | { type: 'createFile'; parentFolderId: FolderId | null }
   | { type: 'renameFolder'; folderId: FolderId; currentName: string }
-  | { type: 'renameFile'; fileId: FileId; currentName: string };
+  | { type: 'renameFile'; fileId: FileId; currentName: string }
+  | { type: 'duplicateFile'; fileId: FileId; parentFolderId: FolderId | null; currentName: string };
 
 interface WorkbookFileBrowserProps {
   refreshWorkbook?: () => Promise<void>;
@@ -72,13 +76,20 @@ interface TreeNodeRendererProps {
   onFileRename: (fileId: FileId, currentName: string) => void;
   onFileDelete: (fileId: FileId) => void;
   onFileDownload: (fileId: FileId) => void;
+  onFileCopy: (fileId: FileId) => void;
+  onFileMove: (fileId: FileId) => void;
+  onFileDuplicate: (fileId: FileId, parentFolderId: FolderId | null, currentName: string) => void;
   onFolderRename: (folderId: FolderId, currentName: string) => void;
   onFolderDelete: (folderId: FolderId) => void;
+  onFolderDownload: (folderId: FolderId) => void;
   onShowInfo: (info: NodeInfoData) => void;
   getNodePath: (nodeId: string) => string;
   onCreateFolderInFolder: (parentFolderId: FolderId) => void;
   onCreateFileInFolder: (parentFolderId: FolderId) => void;
   selectedCount: number;
+  areAllSelectedFiles: boolean;
+  onBulkDelete: () => void;
+  onBulkMove: () => void;
 }
 
 function TreeNodeRenderer({
@@ -96,13 +107,20 @@ function TreeNodeRenderer({
   onFileRename,
   onFileDelete,
   onFileDownload,
+  onFileCopy,
+  onFileMove,
+  onFileDuplicate,
   onFolderRename,
   onFolderDelete,
+  onFolderDownload,
   onShowInfo,
   getNodePath,
   onCreateFolderInFolder,
   onCreateFileInFolder,
   selectedCount,
+  areAllSelectedFiles,
+  onBulkDelete,
+  onBulkMove,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [isExternalDragOver, setIsExternalDragOver] = useState(false);
@@ -112,7 +130,7 @@ function TreeNodeRenderer({
 
   const indent = depth * 18;
   const showDropHighlight = isDropTarget || isExternalDragOver;
-  const canShowContextMenu = selectedCount === 1 && isSelected;
+  const canShowContextMenu = isSelected;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -251,66 +269,92 @@ function TreeNodeRenderer({
               <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<FilePlusIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCreateFileInFolder(nodeData.id as FolderId);
-                }}
-              >
-                New File
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<FolderPlusIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCreateFolderInFolder(nodeData.id as FolderId);
-                }}
-              >
-                New Folder
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<InfoIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFolderDetailsClick(nodeData.id as FolderId);
-                }}
-              >
-                View Details...
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<PencilIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFolderRename(nodeData.id as FolderId, nodeData.name);
-                }}
-              >
-                Rename
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<Trash2Icon size={16} />}
-                color="red"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFolderDelete(nodeData.id as FolderId);
-                }}
-              >
-                Delete
-              </Menu.Item>
-              {isAdmin && (
+              {selectedCount > 1 ? (
                 <>
+                  <Menu.Item
+                    leftSection={<Trash2Icon size={16} />}
+                    color="red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onBulkDelete();
+                    }}
+                  >
+                    Delete {selectedCount} items
+                  </Menu.Item>
+                </>
+              ) : (
+                <>
+                  <Menu.Item
+                    leftSection={<FilePlusIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCreateFileInFolder(nodeData.id as FolderId);
+                    }}
+                  >
+                    New File
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<FolderPlusIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCreateFolderInFolder(nodeData.id as FolderId);
+                    }}
+                  >
+                    New Folder
+                  </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<InfoIcon size={16} />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShowInfo();
+                      onFolderDetailsClick(nodeData.id as FolderId);
                     }}
                   >
-                    Show Info
+                    View Details...
                   </Menu.Item>
+                  <Menu.Item
+                    leftSection={<PencilIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFolderRename(nodeData.id as FolderId, nodeData.name);
+                    }}
+                  >
+                    Rename
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<DownloadIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFolderDownload(nodeData.id as FolderId);
+                    }}
+                  >
+                    Download
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<Trash2Icon size={16} />}
+                    color="red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFolderDelete(nodeData.id as FolderId);
+                    }}
+                  >
+                    Delete
+                  </Menu.Item>
+                  {isAdmin && (
+                    <>
+                      <Menu.Divider />
+                      <Menu.Item
+                        leftSection={<InfoIcon size={16} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShowInfo();
+                        }}
+                      >
+                        Show Info
+                      </Menu.Item>
+                    </>
+                  )}
                 </>
               )}
             </Menu.Dropdown>
@@ -356,47 +400,103 @@ function TreeNodeRenderer({
               <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<DownloadIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileDownload(nodeData.id as FileId);
-                }}
-              >
-                Download
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<PencilIcon size={16} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileRename(nodeData.id as FileId, nodeData.name);
-                }}
-              >
-                Rename
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<Trash2Icon size={16} />}
-                color="red"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileDelete(nodeData.id as FileId);
-                }}
-              >
-                Delete
-              </Menu.Item>
-              {isAdmin && (
+              {selectedCount > 1 ? (
                 <>
-                  <Menu.Divider />
+                  {areAllSelectedFiles && (
+                    <Menu.Item
+                      leftSection={<FolderInputIcon size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBulkMove();
+                      }}
+                    >
+                      Move {selectedCount} items
+                    </Menu.Item>
+                  )}
                   <Menu.Item
-                    leftSection={<InfoIcon size={16} />}
+                    leftSection={<Trash2Icon size={16} />}
+                    color="red"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShowInfo();
+                      onBulkDelete();
                     }}
                   >
-                    Show Info
+                    Delete {selectedCount} items
                   </Menu.Item>
+                </>
+              ) : (
+                <>
+                  <Menu.Item
+                    leftSection={<DownloadIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileDownload(nodeData.id as FileId);
+                    }}
+                  >
+                    Download
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<PencilIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileRename(nodeData.id as FileId, nodeData.name);
+                    }}
+                  >
+                    Rename
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<CopyIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileDuplicate(nodeData.id as FileId, nodeData.parentFolderId, nodeData.name);
+                    }}
+                  >
+                    Duplicate
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<CopyIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileCopy(nodeData.id as FileId);
+                    }}
+                  >
+                    Copy to...
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<FolderInputIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileMove(nodeData.id as FileId);
+                    }}
+                  >
+                    Move to...
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    leftSection={<Trash2Icon size={16} />}
+                    color="red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFileDelete(nodeData.id as FileId);
+                    }}
+                  >
+                    Delete
+                  </Menu.Item>
+                  {isAdmin && (
+                    <>
+                      <Menu.Divider />
+                      <Menu.Item
+                        leftSection={<InfoIcon size={16} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShowInfo();
+                        }}
+                      >
+                        Show Info
+                      </Menu.Item>
+                    </>
+                  )}
                 </>
               )}
             </Menu.Dropdown>
@@ -465,6 +565,12 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   // State for input modal (create/rename)
   const [inputModal, setInputModal] = useState<InputModalType | null>(null);
   const [inputValue, setInputValue] = useState('');
+
+  // State for copy file modal
+  const [copyFileId, setCopyFileId] = useState<FileId | null>(null);
+
+  // State for move file modal
+  const [moveFileIds, setMoveFileIds] = useState<FileId[] | null>(null);
 
   // Sync server data to local state
   useEffect(() => {
@@ -603,30 +709,64 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   );
 
   const handleDrop = async (newTree: NodeModel<TreeNodeData>[], options: DropOptions<TreeNodeData>) => {
-    console.log('DROP!', newTree);
-    setTreeData(newTree);
-
     const { dragSourceId, dropTargetId } = options;
-    const draggedNode = newTree.find((n) => n.id === dragSourceId);
+    const draggedNode = treeData.find((n) => n.id === dragSourceId);
 
     if (!draggedNode || !workbook) return;
 
-    // Convert dropTargetId (which can be string or number 0) to our nullable parentId format
-    const newParentId = dropTargetId === 0 ? null : (dropTargetId as string);
-
-    if (draggedNode.data?.isFile === false) {
-      // It's a folder
-      try {
-        await workbookApi.moveFolder(workbook.id, dragSourceId as string, newParentId);
-      } catch (error) {
-        console.error('Failed to move folder:', error);
-        // Refresh to revert changes if failed
-        await refreshFiles();
-      }
+    // Determine nodes to move
+    // If the dragged node is part of the selection, move all selected nodes
+    // Otherwise, move only the dragged node
+    let nodesToMoveIds: string[] = [];
+    if (selectedNodes.has(dragSourceId as string)) {
+      nodesToMoveIds = Array.from(selectedNodes);
     } else {
-      // TODO: Handle file move API if needed
-      // For now just console log
-      console.log('Moved file', dragSourceId, 'to parent', newParentId);
+      nodesToMoveIds = [dragSourceId as string];
+    }
+
+    // Filter out the drop target itself to prevent moving a folder into itself
+    nodesToMoveIds = nodesToMoveIds.filter((id) => id !== dropTargetId);
+
+    if (nodesToMoveIds.length === 0) return;
+
+    // Convert dropTargetId (which can be string or number 0) to our nullable parentId format
+    const newParentId = dropTargetId === 0 ? null : (dropTargetId as FolderId);
+
+    // Optimistically update treeData for ALL moved nodes
+    const nextTree = treeData.map((node) => {
+      if (nodesToMoveIds.includes(node.id as string)) {
+        return {
+          ...node,
+          parent: dropTargetId,
+          data: {
+            ...node.data!,
+            parentFolderId: newParentId,
+          },
+        };
+      }
+      return node;
+    });
+
+    setTreeData(nextTree);
+
+    // Perform API calls
+    try {
+      const promises = nodesToMoveIds.map(async (id) => {
+        const node = treeData.find((n) => n.id === id);
+        if (!node) return;
+
+        if (node.data?.isFile) {
+          await filesApi.updateFile(workbook.id, id as FileId, { parentFolderId: newParentId });
+        } else {
+          await workbookApi.moveFolder(workbook.id, id as string, newParentId);
+        }
+      });
+
+      await Promise.all(promises);
+      await refreshFiles();
+    } catch (error) {
+      console.error('Failed to move items:', error);
+      await refreshFiles();
     }
   };
 
@@ -638,10 +778,28 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     console.log('DRAG END:', node);
   };
 
-  const handleExternalFileDrop = (folderId: FolderId | null, droppedFiles: FileWithPath[]) => {
-    console.log('EXTERNAL FILE DROP:', folderId, droppedFiles);
-    // TODO: Upload files to the folder
-  };
+  const handleExternalFileDrop = useCallback(
+    async (folderId: FolderId | null, droppedFiles: FileWithPath[]) => {
+      if (!workbook) return;
+
+      try {
+        const promises = droppedFiles.map(async (file) => {
+          const content = await file.text();
+          await filesApi.createFile(workbook.id, {
+            name: file.name,
+            parentFolderId: folderId,
+            content: content,
+          });
+        });
+
+        await Promise.all(promises);
+        await refreshFiles();
+      } catch (error) {
+        console.error('Failed to upload files:', error);
+      }
+    },
+    [workbook, refreshFiles],
+  );
 
   const handleFolderDetailsClick = (folderId: FolderId) => {
     openFileTab({ id: folderId, type: 'folder', title: 'Folder' }); // Or get folder name
@@ -675,6 +833,93 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     [workbook],
   );
 
+  const handleFileCopy = useCallback((fileId: FileId) => {
+    setCopyFileId(fileId);
+  }, []);
+
+  const handleFileCopyConfirm = useCallback(
+    async (targetFolderId: FolderId | null) => {
+      if (!workbook || !copyFileId) return;
+
+      try {
+        await filesApi.copyFile(workbook.id, copyFileId, targetFolderId);
+        await refreshFiles();
+        setCopyFileId(null);
+      } catch (error) {
+        console.error('Failed to copy file:', error);
+      }
+    },
+    [workbook, copyFileId, refreshFiles],
+  );
+
+  const handleFileMove = useCallback((fileId: FileId) => {
+    setMoveFileIds([fileId]);
+  }, []);
+
+  const handleBulkMove = useCallback(() => {
+    // Filter out folders just in case, though UI should prevent it
+    const fileIds = Array.from(selectedNodes).filter((id) => {
+      const node = treeData.find((n) => n.id === id);
+      return node?.data?.isFile;
+    }) as FileId[];
+
+    if (fileIds.length > 0) {
+      setMoveFileIds(fileIds);
+    }
+  }, [selectedNodes, treeData]);
+
+  const handleFileMoveConfirm = useCallback(
+    async (targetFolderId: FolderId | null) => {
+      if (!workbook || !moveFileIds) return;
+
+      try {
+        const promises = moveFileIds.map((id) =>
+          filesApi.updateFile(workbook.id, id, { parentFolderId: targetFolderId }),
+        );
+        await Promise.all(promises);
+        await refreshFiles();
+        setMoveFileIds(null);
+      } catch (error) {
+        console.error('Failed to move files:', error);
+      }
+    },
+    [workbook, moveFileIds, refreshFiles],
+  );
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!workbook || selectedNodes.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedNodes.size} items?`)) return;
+
+    try {
+      const promises = Array.from(selectedNodes).map(async (id) => {
+        const node = treeData.find((n) => n.id === id);
+        if (!node) return;
+        if (node.data?.isFile) {
+          await filesApi.deleteFile(workbook.id, id as FileId);
+        } else {
+          await foldersApi.deleteFolder(workbook.id, id as FolderId);
+        }
+      });
+      await Promise.all(promises);
+      await refreshFiles();
+    } catch (error) {
+      console.error('Failed to delete items:', error);
+    }
+  }, [workbook, selectedNodes, treeData, refreshFiles]);
+
+  const handleFileDuplicate = useCallback((fileId: FileId, parentFolderId: FolderId | null, currentName: string) => {
+    // Generate default duplicate name
+    const ext = currentName.lastIndexOf('.');
+    let duplicateName: string;
+    if (ext > 0) {
+      duplicateName = currentName.slice(0, ext) + ' copy' + currentName.slice(ext);
+    } else {
+      duplicateName = currentName + ' copy';
+    }
+    setInputModal({ type: 'duplicateFile', fileId, parentFolderId, currentName });
+    setInputValue(duplicateName);
+  }, []);
+
   const handleFolderRename = useCallback((folderId: FolderId, currentName: string) => {
     setInputModal({ type: 'renameFolder', folderId, currentName });
     setInputValue(currentName);
@@ -693,6 +938,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
       }
     },
     [workbook, refreshFiles],
+  );
+
+  const handleFolderDownload = useCallback(
+    (folderId: FolderId) => {
+      if (!workbook) return;
+      foldersApi.downloadFolder(workbook.id, folderId);
+    },
+    [workbook],
   );
 
   const handleCreateFolder = useCallback((parentFolderId: FolderId | null = null) => {
@@ -742,6 +995,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         case 'renameFile':
           await filesApi.updateFile(workbook.id, inputModal.fileId, { name: inputValue.trim() });
           break;
+        case 'duplicateFile':
+          // Copy file to same folder with new name
+          const newFile = await filesApi.copyFile(workbook.id, inputModal.fileId, inputModal.parentFolderId);
+          // If the name is different from what copyFile generated, rename it
+          if (newFile.name !== inputValue.trim()) {
+            await filesApi.updateFile(workbook.id, newFile.id, { name: inputValue.trim() });
+          }
+          break;
       }
       await refreshFiles();
       setInputModal(null);
@@ -762,6 +1023,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         return 'Rename Folder';
       case 'renameFile':
         return 'Rename File';
+      case 'duplicateFile':
+        return 'Duplicate File';
     }
   };
 
@@ -773,7 +1036,22 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         return 'Folder name';
       case 'createFile':
       case 'renameFile':
+      case 'duplicateFile':
         return 'File name';
+    }
+  };
+
+  const getInputModalButtonText = () => {
+    if (!inputModal) return '';
+    switch (inputModal.type) {
+      case 'createFolder':
+      case 'createFile':
+        return 'Create';
+      case 'renameFolder':
+      case 'renameFile':
+        return 'Rename';
+      case 'duplicateFile':
+        return 'Duplicate';
     }
   };
 
@@ -865,6 +1143,71 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     classes={{ listItem: styles.listItem }}
+                    dragPreviewRender={(monitorProps) => {
+                      const isMultiSelect = selectedNodes.has(monitorProps.item.id as string) && selectedNodes.size > 1;
+
+                      if (isMultiSelect) {
+                        return (
+                          <div
+                            style={{
+                              backgroundColor: 'var(--mantine-color-blue-6)',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 500,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              width: 'max-content',
+                            }}
+                          >
+                            <Box
+                              style={{
+                                background: 'white',
+                                color: 'var(--mantine-color-blue-6)',
+                                borderRadius: '50%',
+                                width: '16px',
+                                height: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {selectedNodes.size}
+                            </Box>
+                            Files
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          style={{
+                            backgroundColor: 'white', // var(--bg-base) might be transparent in some contexts or dark
+                            border: '1px solid var(--fg-divider)',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: 'max-content',
+                            color: 'var(--fg-primary)',
+                          }}
+                        >
+                          {monitorProps.item.data?.isFile ? (
+                            <FileTextIcon size={16} color="var(--fg-secondary)" />
+                          ) : (
+                            <FolderIcon size={16} color="var(--fg-secondary)" />
+                          )}
+                          <Text size="sm">{monitorProps.item.text}</Text>
+                        </div>
+                      );
+                    }}
                     render={(node, { depth, isOpen, onToggle, isDropTarget }) => (
                       <TreeNodeRenderer
                         node={node}
@@ -881,13 +1224,23 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         onFileRename={handleFileRename}
                         onFileDelete={handleFileDelete}
                         onFileDownload={handleFileDownload}
+                        onFileCopy={handleFileCopy}
+                        onFileMove={handleFileMove}
+                        onFileDuplicate={handleFileDuplicate}
                         onFolderRename={handleFolderRename}
                         onFolderDelete={handleFolderDelete}
+                        onFolderDownload={handleFolderDownload}
                         onShowInfo={handleShowInfo}
                         getNodePath={getNodePath}
                         onCreateFolderInFolder={handleCreateFolderInFolder}
                         onCreateFileInFolder={handleCreateFileInFolder}
                         selectedCount={selectedNodes.size}
+                        areAllSelectedFiles={
+                          selectedNodes.size > 0 &&
+                          Array.from(selectedNodes).every((id) => treeData.find((n) => n.id === id)?.data?.isFile)
+                        }
+                        onBulkDelete={handleBulkDelete}
+                        onBulkMove={handleBulkMove}
                       />
                     )}
                   />
@@ -967,11 +1320,39 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
               Cancel
             </Button>
             <Button onClick={handleInputModalSubmit} disabled={!inputValue.trim()}>
-              {inputModal?.type.startsWith('create') ? 'Create' : 'Rename'}
+              {getInputModalButtonText()}
             </Button>
           </Group>
         </Stack>
       </Modal>
+
+      {/* Copy File Modal */}
+      <FolderPickerModal
+        opened={!!copyFileId}
+        onClose={() => setCopyFileId(null)}
+        onSelect={handleFileCopyConfirm}
+        folders={
+          files?.items
+            .filter((item): item is typeof item & { type: 'folder' } => item.type === 'folder')
+            .map((f) => ({ type: 'folder' as const, id: f.id, name: f.name, parentFolderId: f.parentFolderId })) ?? []
+        }
+        title="Copy File To..."
+        confirmText="Copy Here"
+      />
+
+      {/* Move File Modal */}
+      <FolderPickerModal
+        opened={!!moveFileIds}
+        onClose={() => setMoveFileIds(null)}
+        onSelect={handleFileMoveConfirm}
+        folders={
+          files?.items
+            .filter((item): item is typeof item & { type: 'folder' } => item.type === 'folder')
+            .map((f) => ({ type: 'folder' as const, id: f.id, name: f.name, parentFolderId: f.parentFolderId })) ?? []
+        }
+        title="Move File To..."
+        confirmText="Move Here"
+      />
     </DndProvider>
   );
 }

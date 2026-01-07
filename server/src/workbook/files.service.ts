@@ -18,6 +18,7 @@ import {
   ValidatedUpdateFileDto,
   ValidatedUpdateFolderDto,
 } from '@spinner/shared-types';
+import * as archiver from 'archiver';
 import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
 import { Actor } from '../users/types';
@@ -481,5 +482,117 @@ export class FilesService {
     }
 
     return { content, name: file.name };
+  }
+
+  /**
+   * Download a folder as a zip file (public, no auth required)
+   */
+  async downloadFolderAsZipPublic(
+    workbookId: WorkbookId,
+    folderId: FolderId,
+  ): Promise<{ stream: NodeJS.ReadableStream; name: string }> {
+    const folder = await this.db.client.folder.findFirst({
+      where: {
+        id: folderId,
+        workbookId,
+      },
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    const folderPath = folder.path ?? (await this.folderService.computeFolderPath(workbookId, folderId));
+    // Get all files that start with this path
+    const files = await this.workbookDbService.workbookDb.listFilesAndFolders(workbookId, folderPath);
+
+    const archive = archiver.create('zip', {
+      zlib: { level: 9 }, // Sets the compression level.
+    });
+
+    for (const file of files) {
+      // Reconstruct content with frontmatter
+      let content = file.content || '';
+      if (file.metadata && Object.keys(file.metadata).length > 0) {
+        content = matter.stringify(content, file.metadata);
+      }
+
+      // Calculate relative path
+      // e.g. folderPath = '/foo', file.path = '/foo/bar.md' -> 'bar.md'
+      let relativePath = file.path.slice(folderPath.length);
+      if (relativePath.startsWith('/')) {
+        relativePath = relativePath.slice(1);
+      }
+
+      archive.append(content, { name: relativePath });
+    }
+
+    void archive.finalize();
+
+    return { stream: archive, name: folder.name };
+  }
+
+  /**
+   * Copy a file to a target folder
+   */
+  async copyFile(
+    workbookId: WorkbookId,
+    fileId: FileId,
+    targetFolderId: FolderId | null,
+    actor: Actor,
+  ): Promise<FileRefEntity> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Get the source file
+    const sourceFile = await this.workbookDbService.workbookDb.getFileById(workbookId, fileId);
+    if (!sourceFile) {
+      throw new NotFoundException('Source file not found');
+    }
+
+    // Verify target folder exists if specified
+    let targetPath = '';
+    if (targetFolderId) {
+      const folder = await this.db.client.folder.findFirst({
+        where: {
+          id: targetFolderId,
+          workbookId,
+        },
+        select: { path: true },
+      });
+      if (!folder) {
+        throw new NotFoundException('Target folder not found');
+      }
+      targetPath = folder.path ?? (await this.folderService.computeFolderPath(workbookId, targetFolderId));
+    }
+
+    // Generate new file name (append "copy" if in same folder)
+    let newFileName = sourceFile.name;
+    if ((sourceFile.folder_id || null) === targetFolderId) {
+      // Same folder, add "copy" suffix
+      const ext = newFileName.lastIndexOf('.');
+      if (ext > 0) {
+        newFileName = newFileName.slice(0, ext) + ' copy' + newFileName.slice(ext);
+      } else {
+        newFileName = newFileName + ' copy';
+      }
+    }
+
+    const fullPath = (targetPath === '/' ? '' : targetPath) + '/' + newFileName;
+
+    // Create the new file with the same content
+    const newFileId = await this.workbookDbService.workbookDb.createFileWithFolderId(
+      workbookId,
+      newFileName,
+      targetFolderId,
+      fullPath,
+      sourceFile.content,
+    );
+
+    return {
+      type: 'file',
+      id: newFileId,
+      name: newFileName,
+      parentFolderId: targetFolderId,
+    };
   }
 }

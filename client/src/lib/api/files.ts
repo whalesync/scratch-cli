@@ -105,6 +105,22 @@ export const filesApi = {
       handleAxiosError(error, 'Failed to delete file');
     }
   },
+
+  /**
+   * Copy a file to a target folder
+   * POST /workbooks/:workbookId/files/:fileId/copy
+   */
+  copyFile: async (workbookId: WorkbookId, fileId: FileId, targetFolderId: FolderId | null): Promise<FileRefEntity> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<FileRefEntity>(`/workbooks/${workbookId}/files/${fileId}/copy`, {
+        targetFolderId,
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to copy file');
+    }
+  },
 };
 
 /**
@@ -176,6 +192,23 @@ export const foldersApi = {
    */
   downloadFile: (workbookId: WorkbookId, fileId: FileId): void => {
     const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbookId}/files/download?fileId=${fileId}`;
+
+    // Create a temporary link element to trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  },
+
+  /**
+   * Download a folder as a zip file (public endpoint, no auth required)
+   * GET /workbook/public/:workbookId/folders/download?folderId=...
+   */
+  downloadFolder: (workbookId: WorkbookId, folderId: FolderId): void => {
+    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbookId}/folders/download?folderId=${folderId}`;
 
     // Create a temporary link element to trigger download
     const a = document.createElement('a');

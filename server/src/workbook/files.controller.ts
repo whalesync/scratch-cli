@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import type { FileId, FolderId, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
 import {
+  CopyFileDto,
   CreateFileDto,
   CreateFolderDto,
   FileDetailsResponseDto,
@@ -121,6 +122,21 @@ export class FilesController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.filesService.deleteFile(workbookId, fileId, userToActor(req.user));
+  }
+
+  /**
+   * Copy a file to a target folder
+   * POST /workbooks/:workbookId/files/:fileId/copy
+   */
+  @Post(':fileId/copy')
+  async copyFile(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('fileId') fileId: FileId,
+    @Body() copyFileDto: CopyFileDto,
+    @Req() req: RequestWithUser,
+  ): Promise<FileRefEntity> {
+    const dto = copyFileDto;
+    return await this.filesService.copyFile(workbookId, fileId, dto.targetFolderId ?? null, userToActor(req.user));
   }
 }
 
