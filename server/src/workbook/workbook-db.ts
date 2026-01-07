@@ -1080,12 +1080,13 @@ export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
         typeof value === 'string' ? value : value === null || value === undefined ? '' : JSON.stringify(value, null, 2);
     } else {
       // All other fields go to metadata
-      metadata[key] = value;
+      metadata[key] = value === null || value === undefined ? '' : value;
     }
   }
+  const contentYaml = matter.stringify(bodyContent, metadata);
 
   // Convert to Front Matter markdown format
-  return { content: matter.stringify(bodyContent, metadata), metadata };
+  return { content: contentYaml, metadata };
 }
 
 /**

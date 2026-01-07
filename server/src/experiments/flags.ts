@@ -19,6 +19,7 @@ export enum UserFlag {
   ENABLE_TOKEN_LIMIT_WARNINGS = 'ENABLE_TOKEN_LIMIT_WARNINGS',
   ENABLE_WEBFLOW_OAUTH = 'ENABLE_WEBFLOW_OAUTH',
   ENABLE_CREATE_BUG_REPORT = 'ENABLE_CREATE_BUG_REPORT',
+  DEFAULT_WORKBOOK_MODE = 'DEFAULT_WORKBOOK_MODE',
 }
 
 /**
@@ -42,4 +43,5 @@ export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   [UserFlag.ENABLE_TOKEN_LIMIT_WARNINGS]: 'boolean',
   [UserFlag.ENABLE_WEBFLOW_OAUTH]: 'boolean',
   [UserFlag.ENABLE_CREATE_BUG_REPORT]: 'boolean',
+  [UserFlag.DEFAULT_WORKBOOK_MODE]: 'string',
 };

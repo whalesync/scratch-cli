@@ -1,10 +1,13 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi, WorkbookSortBy, WorkbookSortOrder } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { CreateWorkbookDto, UpdateWorkbookDto } from '@/types/server-entities/workbook';
+import { RouteUrls } from '@/utils/route-urls';
 import { Workbook, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+import { useScratchPadUser } from './useScratchpadUser';
 
 export interface UseWorkbooksOptions {
   connectorAccountId?: string;
@@ -20,9 +23,12 @@ export interface UseWorkbooksReturn {
   updateWorkbook: (id: WorkbookId, updateDto: UpdateWorkbookDto) => Promise<Workbook>;
   deleteWorkbook: (id: WorkbookId) => Promise<void>;
   refreshWorkbooks: () => Promise<void>;
+  getWorkbookPageUrl: (id: WorkbookId) => string;
 }
 
 export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksReturn => {
+  const user = useScratchPadUser();
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const { connectorAccountId, sortBy = 'createdAt', sortOrder = 'desc' } = options;
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(
@@ -72,6 +78,15 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
     return error?.message;
   }, [error]);
 
+  const getWorkbookPageUrl = useCallback(
+    (id: WorkbookId) => {
+      if (user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE === 'files' || workbookMode === 'files') {
+        return RouteUrls.workbookFilePageUrl(id);
+      }
+      return RouteUrls.workbookPageUrl(id);
+    },
+    [workbookMode, user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE],
+  );
   return {
     workbooks: data,
     isLoading,
@@ -80,5 +95,6 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
     updateWorkbook,
     deleteWorkbook,
     refreshWorkbooks,
+    getWorkbookPageUrl,
   };
 };

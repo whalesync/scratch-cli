@@ -9,16 +9,15 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { getConnectorsWithStatus } from '@/types/server-entities/workbook';
-import { RouteUrls } from '@/utils/route-urls';
-import { Workbook } from '@spinner/shared-types';
 import { Group, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Workbook } from '@spinner/shared-types';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
   const router = useRouter();
-  const { deleteWorkbook, updateWorkbook } = useWorkbooks();
+  const { deleteWorkbook, updateWorkbook, getWorkbookPageUrl } = useWorkbooks();
   const [saving, setSaving] = useState(false);
   const [workbookName, setWorkbookName] = useState(workbook.name ?? undefined);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
@@ -103,7 +102,7 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
       </ModalWrapper>
       <Table.Tr
         key={workbook.id}
-        onClick={() => router.push(RouteUrls.workbookPageUrl(workbook.id))}
+        onClick={() => router.push(getWorkbookPageUrl(workbook.id))}
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>

@@ -8,8 +8,6 @@ import { useWorkbooks } from '@/hooks/use-workbooks';
 import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { tableName, tablesName } from '@/service-naming-conventions';
 import { TablePreview } from '@/types/server-entities/table-list';
-import { ConnectorAccount } from '@spinner/shared-types';
-import { RouteUrls } from '@/utils/route-urls';
 import {
   Center,
   Group,
@@ -24,6 +22,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { ConnectorAccount } from '@spinner/shared-types';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -49,7 +48,7 @@ export const CreateWorkbookModal = ({
   const [channelId, setChannelId] = useState<string>('');
   const [isAddingChannel, setIsAddingChannel] = useState(false);
 
-  const { createWorkbook } = useWorkbooks({ connectorAccountId: connectorAccount.id });
+  const { createWorkbook, getWorkbookPageUrl } = useWorkbooks({ connectorAccountId: connectorAccount.id });
 
   const tableTerm = tableName(connectorAccount.service);
   const tableTermPlural = tablesName(connectorAccount.service);
@@ -109,7 +108,7 @@ export const CreateWorkbookModal = ({
         ],
       });
       props.onClose?.();
-      router.push(RouteUrls.workbookPageUrl(workbook.id));
+      router.push(getWorkbookPageUrl(workbook.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
