@@ -51,11 +51,15 @@ interface WorkbookFileBrowserProps {
   refreshWorkbook?: () => Promise<void>;
 }
 
+// Special ID for the workbook root node in the tree
+const WORKBOOK_ROOT_ID = 'workbook-root';
+
 interface TreeNodeData {
   id: string;
   name: string;
   parentFolderId: FolderId | null;
   isFile: boolean;
+  isWorkbookRoot?: boolean;
   connectorService?: Service | null;
 }
 
@@ -183,6 +187,64 @@ function TreeNodeRenderer({
       type: nodeData.isFile ? 'file' : 'folder',
     });
   };
+
+  // Workbook root node - special rendering
+  if (nodeData.isWorkbookRoot) {
+    return (
+      <Group
+        gap="xs"
+        h={24}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsExternalDragOver(true);
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setIsExternalDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsExternalDragOver(false);
+        }}
+        onDrop={(e) => {
+          if (e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExternalDragOver(false);
+            const files = Array.from(e.dataTransfer.files) as FileWithPath[];
+            onExternalFileDrop(null, files);
+          }
+        }}
+        style={{
+          borderRadius: '4px',
+          border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
+          backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
+        }}
+      >
+        <Box
+          data-chevron
+          onClick={handleChevronClick}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+        >
+          {isOpen ? (
+            <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+          ) : (
+            <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+          )}
+        </Box>
+        <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
+        <Text
+          size="sm"
+          fw={500}
+          c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'}
+          truncate
+        >
+          {nodeData.name}
+        </Text>
+      </Group>
+    );
+  }
 
   if (!nodeData.isFile) {
     // Folder node with native drag events for external file drops
@@ -521,7 +583,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
     // Folder node
     return {
       id: entity.id,
-      parent: entity.parentFolderId ?? 0, // 0 represents root
+      parent: entity.parentFolderId ?? WORKBOOK_ROOT_ID, // WORKBOOK_ROOT_ID represents root
       droppable: true,
       text: entity.name,
       data: {
@@ -536,7 +598,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
     // File node
     return {
       id: entity.id,
-      parent: entity.parentFolderId ?? 0, // 0 represents root
+      parent: entity.parentFolderId ?? WORKBOOK_ROOT_ID, // WORKBOOK_ROOT_ID represents root
       droppable: false,
       text: entity.name,
       data: {
@@ -547,93 +609,6 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
       },
     };
   }
-}
-
-interface WorkbookRootDropTargetProps {
-  workbookName: string;
-  onFileDrop: (files: FileWithPath[]) => void;
-  onInternalDrop: (draggedIds: string[]) => void;
-  selectedNodes: Set<string>;
-}
-
-function WorkbookRootDropTarget({
-  workbookName,
-  onFileDrop,
-  onInternalDrop,
-  selectedNodes,
-}: WorkbookRootDropTargetProps) {
-  const [isExternalDragOver, setIsExternalDragOver] = useState(false);
-  const [isInternalDragOver, setIsInternalDragOver] = useState(false);
-
-  const showDropHighlight = isExternalDragOver || isInternalDragOver;
-
-  return (
-    <Group
-      gap="xs"
-      h={24}
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (e.dataTransfer.types.includes('Files')) {
-          setIsExternalDragOver(true);
-        } else {
-          setIsInternalDragOver(true);
-        }
-      }}
-      onDragEnter={(e) => {
-        e.preventDefault();
-        if (e.dataTransfer.types.includes('Files')) {
-          setIsExternalDragOver(true);
-        } else {
-          setIsInternalDragOver(true);
-        }
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        setIsExternalDragOver(false);
-        setIsInternalDragOver(false);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsExternalDragOver(false);
-        setIsInternalDragOver(false);
-
-        if (e.dataTransfer.files.length > 0) {
-          const files = Array.from(e.dataTransfer.files) as FileWithPath[];
-          onFileDrop(files);
-        } else {
-          const dragData = e.dataTransfer.getData('text/plain');
-          if (dragData) {
-            try {
-              const draggedId = dragData;
-              if (selectedNodes.has(draggedId)) {
-                onInternalDrop(Array.from(selectedNodes));
-              } else {
-                onInternalDrop([draggedId]);
-              }
-            } catch {
-              // Ignore parse errors
-            }
-          }
-        }
-      }}
-      style={{
-        borderRadius: '4px',
-        border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
-        backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
-      }}
-    >
-      <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
-      <Text
-        size="sm"
-        fw={500}
-        c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'}
-        truncate
-      >
-        {workbookName}
-      </Text>
-    </Group>
-  );
 }
 
 export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
@@ -677,10 +652,25 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
   // Sync server data to local state
   useEffect(() => {
-    if (files?.items) {
-      setTreeData(files.items.map((f) => convertToTreeNode(f)));
+    if (files?.items && workbook) {
+      // Create workbook root node
+      const workbookRootNode: NodeModel<TreeNodeData> = {
+        id: WORKBOOK_ROOT_ID,
+        parent: 0, // The actual tree root
+        droppable: true,
+        text: workbook.name || 'Untitled Workbook',
+        data: {
+          id: WORKBOOK_ROOT_ID,
+          name: workbook.name || 'Untitled Workbook',
+          parentFolderId: null,
+          isFile: false,
+          isWorkbookRoot: true,
+        },
+      };
+      // Add workbook root as first item, then all files/folders
+      setTreeData([workbookRootNode, ...files.items.map((f) => convertToTreeNode(f))]);
     }
-  }, [files]);
+  }, [files, workbook]);
 
   // Clear selection when files refresh
   useEffect(() => {
@@ -817,6 +807,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
     if (!draggedNode || !workbook) return;
 
+    // Don't allow dropping the workbook root
+    if (dragSourceId === WORKBOOK_ROOT_ID) return;
+
     // Determine nodes to move
     // If the dragged node is part of the selection, move all selected nodes
     // Otherwise, move only the dragged node
@@ -827,13 +820,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
       nodesToMoveIds = [dragSourceId as string];
     }
 
-    // Filter out the drop target itself to prevent moving a folder into itself
-    nodesToMoveIds = nodesToMoveIds.filter((id) => id !== dropTargetId);
+    // Filter out the drop target itself and workbook root to prevent invalid moves
+    nodesToMoveIds = nodesToMoveIds.filter((id) => id !== dropTargetId && id !== WORKBOOK_ROOT_ID);
 
     if (nodesToMoveIds.length === 0) return;
 
-    // Convert dropTargetId (which can be string or number 0) to our nullable parentId format
-    const newParentId = dropTargetId === 0 ? null : (dropTargetId as FolderId);
+    // Convert dropTargetId to our nullable parentId format
+    // WORKBOOK_ROOT_ID means root level (null parentFolderId)
+    const newParentId = dropTargetId === WORKBOOK_ROOT_ID ? null : (dropTargetId as FolderId);
 
     // Optimistically update treeData for ALL moved nodes
     const nextTree = treeData.map((node) => {
@@ -1214,48 +1208,21 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
         <ScrollArea style={{ flex: 1 }}>
           <Stack gap={0} p="xs">
-            {/* Workbook Node (Top Level) - Drop target for root */}
-            <WorkbookRootDropTarget
-              workbookName={workbook.name || 'Untitled Workbook'}
-              onFileDrop={(files) => handleExternalFileDrop(null, files)}
-              onInternalDrop={async (draggedIds) => {
-                if (!workbook) return;
-                try {
-                  const promises = draggedIds.map(async (id) => {
-                    const node = treeData.find((n) => n.id === id);
-                    if (!node) return;
-                    if (node.data?.isFile) {
-                      await filesApi.updateFile(workbook.id, id as FileId, { parentFolderId: null });
-                    } else {
-                      await foldersApi.updateFolder(workbook.id, id as FolderId, { parentFolderId: null });
-                    }
-                  });
-                  await Promise.all(promises);
-                  await refreshFiles();
-                } catch (error) {
-                  console.error('Failed to move to root:', error);
-                  await refreshFiles();
-                }
-              }}
-              selectedNodes={selectedNodes}
-            />
-            {/* Files and Folders */}
-            <Box ml={6} style={{ borderLeft: '1px solid var(--fg-divider)' }}>
-                {isLoading && (
-                  <Box pl={18} py="xs">
-                    <Text size="xs" c="dimmed">
-                      Loading files...
-                    </Text>
-                  </Box>
-                )}
-                {!isLoading && treeData.length === 0 && (
-                  <Box pl={18} py="xs">
-                    <Text size="xs" c="dimmed">
-                      No files
-                    </Text>
-                  </Box>
-                )}
-                {!isLoading && treeData.length > 0 && (
+            {isLoading && (
+              <Box pl={18} py="xs">
+                <Text size="xs" c="dimmed">
+                  Loading files...
+                </Text>
+              </Box>
+            )}
+            {!isLoading && treeData.length === 0 && (
+              <Box pl={18} py="xs">
+                <Text size="xs" c="dimmed">
+                  No files
+                </Text>
+              </Box>
+            )}
+            {!isLoading && treeData.length > 0 && (
                   <Tree
                     tree={treeData}
                     rootId={0}
@@ -1263,10 +1230,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     canDrop={(_tree, { dragSource, dropTargetId }) => {
+                      // Prevent dragging the workbook root
+                      if (dragSource?.id === WORKBOOK_ROOT_ID) {
+                        return false;
+                      }
                       // Prevent dropping folders into linked folders (folders with connectorService)
                       if (!dragSource?.data?.isFile) {
-                        // dragging a folder
-                        if (dropTargetId !== 0) {
+                        // dragging a folder - check if target is a linked folder
+                        if (dropTargetId !== 0 && dropTargetId !== WORKBOOK_ROOT_ID) {
                           const targetFolder = treeData.find((n) => n.id === dropTargetId);
                           if (targetFolder?.data?.connectorService) {
                             return false;
@@ -1380,7 +1351,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     )}
                   />
                 )}
-              </Box>
           </Stack>
         </ScrollArea>
       </Stack>
