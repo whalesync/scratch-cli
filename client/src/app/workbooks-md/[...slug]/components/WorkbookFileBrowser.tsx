@@ -7,7 +7,19 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { filesApi, foldersApi } from '@/lib/api/files';
 import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { Box, Button, Group, Menu, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Group,
+  Menu,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
 import type { FileId, FileOrFolderRefEntity, FolderId, FolderRefEntity, Service } from '@spinner/shared-types';
@@ -16,15 +28,17 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CopyIcon,
+  CopyMinusIcon,
   DownloadIcon,
   FilePlusIcon,
   FileTextIcon,
   FolderIcon,
   FolderInputIcon,
   FolderPlusIcon,
+  FolderSyncIcon,
   InfoIcon,
   PencilIcon,
-  PlusIcon,
+  RefreshCwIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -578,6 +592,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   // State for move file modal
   const [moveFileIds, setMoveFileIds] = useState<FileId[] | null>(null);
 
+  // State to force tree re-render for collapse all
+  const [treeKey, setTreeKey] = useState(0);
+
   // State for confirmation modal
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
@@ -1121,24 +1138,39 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             Explorer
           </Text>
           <Group gap={4}>
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="gray"
-              leftSection={<FolderPlusIcon size={12} />}
-              onClick={() => handleCreateFolder(null)}
-            >
-              Folder
-            </Button>
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="gray"
-              leftSection={<PlusIcon size={12} />}
-              onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table' })}
-            >
-              Table
-            </Button>
+            <Tooltip label="New File" openDelay={500}>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => handleCreateFile(null)}>
+                <FilePlusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="New Folder" openDelay={500}>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => handleCreateFolder(null)}>
+                <FolderPlusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="New Linked Folder" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table' })}
+              >
+                <FolderSyncIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+
+            <Tooltip label="Collapse All" openDelay={500}>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setTreeKey((k) => k + 1)}>
+                <CopyMinusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Refresh" openDelay={500}>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => refreshFiles()} loading={isLoading}>
+                <RefreshCwIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
           </Group>
         </Group>
 
@@ -1160,6 +1192,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             )}
             {!isLoading && treeData.length > 0 && (
               <Tree
+                key={treeKey}
+                initialOpen={[WORKBOOK_ROOT_ID]}
                 tree={treeData}
                 rootId={0}
                 extraAcceptTypes={[NativeTypes.FILE]}
