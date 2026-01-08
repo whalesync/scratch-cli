@@ -41,6 +41,8 @@ export class WebflowSchemaParser {
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
     let mainContentColumnRemoteId: string[] | undefined;
+    let titleColumnRemoteId: string[] | undefined;
+
     // Parse all collection fields
     const columns = collection.fields.map((field) => {
       // Find the RichText field which is typically the main content column
@@ -48,6 +50,9 @@ export class WebflowSchemaParser {
       const column = this.parseColumn(field, titleColumnSlug?.[0]);
       if (column.webflowFieldType === Webflow.FieldType.RichText) {
         mainContentColumnRemoteId = column.id.remoteId;
+      }
+      if (column.slug === titleColumnSlug?.[0]) {
+        titleColumnRemoteId = column.id.remoteId;
       }
       return column;
     });
@@ -109,7 +114,7 @@ export class WebflowSchemaParser {
       slug: id.wsId,
       name: `${site.displayName} - ${collection.displayName}`,
       columns,
-      titleColumnRemoteId: titleColumnSlug,
+      titleColumnRemoteId,
       mainContentColumnRemoteId,
     };
   }

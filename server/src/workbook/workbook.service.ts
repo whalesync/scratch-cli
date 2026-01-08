@@ -440,17 +440,19 @@ export class WorkbookService {
       // Continue with deletion even if DB table drop fails
     }
 
-    // 3b. Delete the database table from workbook's schema
-    try {
-      await this.workbookDbService.workbookDb.deleteFolderContents(workbookId, snapshotTable.id as SnapshotTableId);
-    } catch (error) {
-      WSLogger.error({
-        source: 'WorkbookService.deleteTable',
-        message: 'Failed to delete folder contents',
-        error,
-        workbookId,
-        folderId: snapshotTable.id,
-      });
+    // 3b. Delete the files related to this table from the folder it belongs to
+    if (snapshotTable.folderId) {
+      try {
+        await this.workbookDbService.workbookDb.deleteFilesInFolder(workbookId, snapshotTable.folderId as FolderId);
+      } catch (error) {
+        WSLogger.error({
+          source: 'WorkbookService.deleteTable',
+          message: 'Failed to delete folder contents',
+          error,
+          workbookId,
+          folderId: snapshotTable.id,
+        });
+      }
     }
 
     // 4. Delete the SnapshotTable record

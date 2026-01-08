@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { Service, type WorkbookId } from '@spinner/shared-types';
+import { FolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
@@ -56,13 +56,15 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
    */
   private async resetSeenFlags(
     workbookId: WorkbookId,
-    { folderId, tableName }: { folderId: string; tableName: string },
+    { tableName, folderId }: { tableName: string; folderId?: FolderId },
   ) {
     await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
       __seen: false,
     });
 
-    await this.workbookDb.resetSeenFlagForFolder(workbookId, folderId);
+    if (folderId) {
+      await this.workbookDb.resetSeenFlagForFolder(workbookId, folderId);
+    }
   }
 
   async run(params: {
@@ -172,7 +174,7 @@ export class DownloadRecordsJobHandler implements JobHandlerBuilder<DownloadReco
 
       // Reset the 'seen' flag to false for all records before starting the download
       await this.resetSeenFlags(workbook.id as WorkbookId, {
-        folderId: snapshotTable.folderId ?? '',
+        folderId: snapshotTable.folderId as FolderId | undefined,
         tableName: snapshotTable.tableName,
       });
 
