@@ -61,6 +61,7 @@ interface TreeNodeData {
   parentFolderId: FolderId | null;
   path: string;
   isFile: boolean;
+  isFolder: boolean;
   isWorkbookRoot?: boolean;
   connectorService?: Service | null;
 }
@@ -79,7 +80,6 @@ interface TreeNodeRendererProps {
     shouldOpen?: boolean,
   ) => void;
   onFileDoubleClick: (fileId: FileId, fileName: string) => void;
-  onFolderDetailsClick: (folderId: FolderId) => void;
   onFileRename: (fileId: FileId, currentName: string) => void;
   onFileDelete: (fileId: FileId) => void;
   onFileDownload: (fileId: FileId) => void;
@@ -109,7 +109,6 @@ function TreeNodeRenderer({
   isAdmin,
   onNodeSelect,
   onFileDoubleClick,
-  onFolderDetailsClick,
   onFileRename,
   onFileDelete,
   onFileDownload,
@@ -317,15 +316,6 @@ function TreeNodeRenderer({
                     </Menu.Item>
                   )}
                   <Menu.Divider />
-                  <Menu.Item
-                    leftSection={<InfoIcon size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFolderDetailsClick(nodeData.id as FolderId);
-                    }}
-                  >
-                    View Details...
-                  </Menu.Item>
                   <Menu.Item
                     leftSection={<PencilIcon size={16} />}
                     onClick={(e) => {
@@ -536,6 +526,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         parentFolderId: entity.parentFolderId,
         path: entity.path,
         isFile: false,
+        isFolder: true,
         connectorService: entity.connectorService,
       },
     };
@@ -552,6 +543,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         parentFolderId: entity.parentFolderId,
         path: entity.path,
         isFile: true,
+        isFolder: false,
       },
     };
   }
@@ -611,6 +603,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           parentFolderId: null,
           path: '/',
           isFile: false,
+          isFolder: false,
           isWorkbookRoot: true,
         },
       };
@@ -656,6 +649,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           columnId: activeCells?.columnId,
           viewType: 'md',
         });
+      } else if (node?.data?.isFolder) {
+        openFileTab({ id: nodeId as FolderId, type: 'folder', title: node.data.name });
       }
     },
     [treeData, openFileTab, setActiveCells, activeCells],
@@ -845,10 +840,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     },
     [workbook, refreshFiles],
   );
-
-  const handleFolderDetailsClick = (folderId: FolderId) => {
-    openFileTab({ id: folderId, type: 'folder', title: 'Folder' }); // Or get folder name
-  };
 
   const handleFileRename = useCallback((fileId: FileId, currentName: string) => {
     setInputModal({ type: 'renameFile', fileId, currentName });
@@ -1313,7 +1304,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     isAdmin={!!isAdmin}
                     onNodeSelect={handleNodeSelect}
                     onFileDoubleClick={handleFileDoubleClick}
-                    onFolderDetailsClick={handleFolderDetailsClick}
                     onFileRename={handleFileRename}
                     onFileDelete={handleFileDelete}
                     onFileDownload={handleFileDownload}
