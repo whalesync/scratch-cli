@@ -10,6 +10,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, Menu, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
+import { NativeTypes } from 'react-dnd-html5-backend';
 import type { FileId, FileOrFolderRefEntity, FolderId, Service } from '@spinner/shared-types';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import {
@@ -77,7 +78,6 @@ interface TreeNodeRendererProps {
     shouldOpen?: boolean,
   ) => void;
   onFileDoubleClick: (fileId: FileId, fileName: string) => void;
-  onExternalFileDrop: (folderId: FolderId | null, files: FileWithPath[]) => void;
   onFolderDetailsClick: (folderId: FolderId) => void;
   onFileRename: (fileId: FileId, currentName: string) => void;
   onFileDelete: (fileId: FileId) => void;
@@ -108,7 +108,6 @@ function TreeNodeRenderer({
   isAdmin,
   onNodeSelect,
   onFileDoubleClick,
-  onExternalFileDrop,
   onFolderDetailsClick,
   onFileRename,
   onFileDelete,
@@ -129,13 +128,12 @@ function TreeNodeRenderer({
   onBulkMove,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
-  const [isExternalDragOver, setIsExternalDragOver] = useState(false);
   const [menuOpened, setMenuOpened] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   if (!nodeData) return <></>;
 
   const indent = depth * 18;
-  const showDropHighlight = isDropTarget || isExternalDragOver;
+  const showDropHighlight = isDropTarget;
   const canShowContextMenu = isSelected;
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -194,28 +192,6 @@ function TreeNodeRenderer({
       <Group
         gap="xs"
         h={24}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsExternalDragOver(true);
-        }}
-        onDragEnter={(e) => {
-          e.preventDefault();
-          setIsExternalDragOver(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          setIsExternalDragOver(false);
-        }}
-        onDrop={(e) => {
-          if (e.dataTransfer.files.length > 0) {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsExternalDragOver(false);
-            const files = Array.from(e.dataTransfer.files) as FileWithPath[];
-            onExternalFileDrop(null, files);
-          }
-        }}
         style={{
           borderRadius: '4px',
           border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
@@ -247,7 +223,7 @@ function TreeNodeRenderer({
   }
 
   if (!nodeData.isFile) {
-    // Folder node with native drag events for external file drops
+    // Folder node
     return (
       <>
         <Group
@@ -258,34 +234,6 @@ function TreeNodeRenderer({
           wrap="nowrap"
           onClick={handleNodeClick}
           onContextMenu={handleContextMenu}
-          onDragOver={(e) => {
-            // Only handle external file drags
-            if (e.dataTransfer.types.includes('Files')) {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsExternalDragOver(true);
-            }
-          }}
-          onDragEnter={(e) => {
-            if (e.dataTransfer.types.includes('Files')) {
-              e.preventDefault();
-              setIsExternalDragOver(true);
-            }
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            setIsExternalDragOver(false);
-          }}
-          onDrop={(e) => {
-            if (e.dataTransfer.files.length > 0) {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsExternalDragOver(false);
-              // Convert FileList to FileWithPath[]
-              const files = Array.from(e.dataTransfer.files) as FileWithPath[];
-              onExternalFileDrop(nodeData.id as FolderId, files);
-            }
-          }}
           className={styles.treeNode}
           data-drop-target={showDropHighlight ? 'true' : 'false'}
           data-selected={isSelected ? 'true' : 'false'}
@@ -802,10 +750,22 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   );
 
   const handleDrop = async (newTree: NodeModel<TreeNodeData>[], options: DropOptions<TreeNodeData>) => {
-    const { dragSourceId, dropTargetId } = options;
-    const draggedNode = treeData.find((n) => n.id === dragSourceId);
+    const { dragSourceId, dropTargetId, monitor } = options;
 
-    if (!draggedNode || !workbook) return;
+    if (!workbook) return;
+
+    // Handle external file drops
+    const itemType = monitor.getItemType();
+    if (itemType === NativeTypes.FILE) {
+      const files = monitor.getItem().files as File[];
+      const targetFolderId = dropTargetId === WORKBOOK_ROOT_ID ? null : (dropTargetId as FolderId);
+      await handleExternalFileDrop(targetFolderId, files as FileWithPath[]);
+      return;
+    }
+
+    // Handle internal drag and drop
+    const draggedNode = treeData.find((n) => n.id === dragSourceId);
+    if (!draggedNode) return;
 
     // Don't allow dropping the workbook root
     if (dragSourceId === WORKBOOK_ROOT_ID) return;
@@ -1226,6 +1186,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                   <Tree
                     tree={treeData}
                     rootId={0}
+                    extraAcceptTypes={[NativeTypes.FILE]}
                     onDrop={handleDrop}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
@@ -1325,7 +1286,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         isAdmin={!!isAdmin}
                         onNodeSelect={handleNodeSelect}
                         onFileDoubleClick={handleFileDoubleClick}
-                        onExternalFileDrop={handleExternalFileDrop}
                         onFolderDetailsClick={handleFolderDetailsClick}
                         onFileRename={handleFileRename}
                         onFileDelete={handleFileDelete}
