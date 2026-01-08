@@ -68,6 +68,7 @@ import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
 import { getSnapshotTableById, getTableSpecById } from './util';
+import { normalizeFolderName } from './workbook-db';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -271,14 +272,15 @@ export class WorkbookService {
     // 5. Create the snapshotTableId first
     const snapshotTableId = createSnapshotTableId();
     const snapshotDataTableName = `${snapshotTableId}_${tableSpec.slug}`;
-    const folderPath = '/' + snapshotTableId;
+    const folderName = normalizeFolderName(tableSpec.name);
+    const folderPath = '/' + folderName;
 
     const folderId = createFolderId();
     await this.db.client.folder.create({
       data: {
         id: folderId,
         workbookId,
-        name: snapshotTableId,
+        name: folderName,
         parentId: null,
         path: folderPath,
       },

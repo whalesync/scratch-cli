@@ -4,7 +4,7 @@ import {
   extractFileName,
   extractFolderId,
   extractFolderPath,
-  slugifyFileName,
+  normalizeFolderName,
 } from './workbook-db';
 
 describe('WorkbookDb Utility Functions', () => {
@@ -150,84 +150,119 @@ describe('WorkbookDb Utility Functions', () => {
     });
   });
 
-  describe('slugifyFileName', () => {
-    it('should convert spaces to hyphens', () => {
-      const result = slugifyFileName('My File Name');
+  describe('normalizeFolderName', () => {
+    it('should convert forward slashes to spaces', () => {
+      const result = normalizeFolderName('folder/subfolder');
 
-      expect(result).toBe('my-file-name');
+      expect(result).toBe('folder subfolder');
     });
 
-    it('should convert to lowercase', () => {
-      const result = slugifyFileName('UPPERCASE TEXT');
+    it('should convert multiple forward slashes to spaces', () => {
+      const result = normalizeFolderName('a/b/c/d');
 
-      expect(result).toBe('uppercase-text');
+      expect(result).toBe('a b c d');
     });
 
-    it('should remove special characters', () => {
-      const result = slugifyFileName('File@#$%Name!');
+    it('should remove carriage returns', () => {
+      const result = normalizeFolderName('folder\rname');
 
-      expect(result).toBe('filename');
+      expect(result).toBe('folder name');
     });
 
-    it('should handle accented characters', () => {
-      const result = slugifyFileName('Café Résumé');
+    it('should remove newlines', () => {
+      const result = normalizeFolderName('folder\nname');
 
-      expect(result).toBe('cafe-resume');
+      expect(result).toBe('folder name');
     });
 
-    it('should replace multiple spaces with single hyphen', () => {
-      const result = slugifyFileName('Multiple   Spaces   Here');
+    it('should handle mixed forward slashes, carriage returns, and newlines', () => {
+      const result = normalizeFolderName('folder/sub\rfolder\nname');
 
-      expect(result).toBe('multiple-spaces-here');
-    });
-
-    it('should replace multiple hyphens with single hyphen', () => {
-      const result = slugifyFileName('Too---Many---Hyphens');
-
-      expect(result).toBe('too-many-hyphens');
+      expect(result).toBe('folder sub folder name');
     });
 
     it('should trim leading and trailing whitespace', () => {
-      const result = slugifyFileName('  Trimmed Text  ');
+      const result = normalizeFolderName('  folder name  ');
 
-      expect(result).toBe('trimmed-text');
+      expect(result).toBe('folder name');
     });
 
-    it('should handle unicode characters', () => {
-      const result = slugifyFileName('Hello 世界');
+    it('should trim whitespace after converting slashes', () => {
+      const result = normalizeFolderName('/folder/name/');
 
-      // Unicode characters are removed but trailing hyphen from space remains
-      expect(result).toBe('hello-');
+      expect(result).toBe('folder name');
     });
 
-    it('should preserve numbers', () => {
-      const result = slugifyFileName('File 123 Name 456');
+    it('should handle string with only forward slashes', () => {
+      const result = normalizeFolderName('///');
 
-      expect(result).toBe('file-123-name-456');
-    });
-
-    it('should handle already slugified text', () => {
-      const result = slugifyFileName('already-slugified');
-
-      expect(result).toBe('already-slugified');
+      expect(result).toBe('');
     });
 
     it('should handle empty string', () => {
-      const result = slugifyFileName('');
+      const result = normalizeFolderName('');
 
       expect(result).toBe('');
     });
 
-    it('should handle text with only special characters', () => {
-      const result = slugifyFileName('!@#$%^&*()');
+    it('should preserve normal folder names', () => {
+      const result = normalizeFolderName('My Folder Name');
 
-      expect(result).toBe('');
+      expect(result).toBe('My Folder Name');
     });
 
-    it('should handle mixed alphanumeric with special chars', () => {
-      const result = slugifyFileName('Test (2024) - Final [v2]');
+    it('should handle folder names with special characters', () => {
+      const result = normalizeFolderName('Folder@#$%Name!');
 
-      expect(result).toBe('test-2024-final-v2');
+      expect(result).toBe('Folder@#$%Name!');
+    });
+
+    it('should handle folder names with unicode characters', () => {
+      const result = normalizeFolderName('Hello 世界');
+
+      expect(result).toBe('Hello 世界');
+    });
+
+    it('should handle folder names with numbers', () => {
+      const result = normalizeFolderName('Folder 123 Name 456');
+
+      expect(result).toBe('Folder 123 Name 456');
+    });
+
+    it('should handle folder names with mixed line endings', () => {
+      const result = normalizeFolderName('folder\r\nname');
+
+      expect(result).toBe('folder name');
+    });
+
+    it('should remove duplicate spaces', () => {
+      const result = normalizeFolderName('folder    name');
+
+      expect(result).toBe('folder name');
+    });
+
+    it('should handle folder names with multiple consecutive newlines', () => {
+      const result = normalizeFolderName('folder\n\n\nname');
+
+      expect(result).toBe('folder name');
+    });
+
+    it('should handle folder names with multiple consecutive carriage returns', () => {
+      const result = normalizeFolderName('folder\r\r\rname');
+
+      expect(result).toBe('folder name');
+    });
+
+    it('should remove duplicate spaces created by converting slashes', () => {
+      const result = normalizeFolderName('folder//subfolder');
+
+      expect(result).toBe('folder subfolder');
+    });
+
+    it('should remove duplicate spaces from mixed sources', () => {
+      const result = normalizeFolderName('folder  /  subfolder');
+
+      expect(result).toBe('folder subfolder');
     });
   });
 
