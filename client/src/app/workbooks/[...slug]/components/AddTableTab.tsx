@@ -71,6 +71,9 @@ export const AddTableTab = () => {
   const deleteTableModal = useDeleteConfirmationModal<SnapshotTableId>();
   const modalStack = useModalsStack(['create', 'upload']);
   const { markStepCompleted } = useOnboardingUpdate();
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
+  const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+  const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
 
   const tree = useTree();
 
@@ -153,8 +156,14 @@ export const AddTableTab = () => {
     try {
       setIsCreatingTable(true);
       const snapshotTableId = await addTable(table.id, group.service, group.connectorAccountId ?? undefined);
-      setActiveTab(snapshotTableId);
-      closeNewTabs();
+
+      if (workbookMode === 'files') {
+        openFileTab({ id: snapshotTableId, type: 'folder', title: table.displayName });
+        closeFileTab('add-table');
+      } else {
+        setActiveTab(snapshotTableId);
+        closeNewTabs();
+      }
     } catch (error) {
       console.error('Failed to add table:', error);
       ScratchpadNotifications.error({
@@ -197,8 +206,14 @@ export const AddTableTab = () => {
       setIsCreatingTable(true);
       const snapshotTableId = await addSampleTable();
       markStepCompleted('gettingStartedV1', 'dataSourceConnected');
-      setActiveTab(snapshotTableId);
-      closeNewTabs();
+
+      if (workbookMode === 'files') {
+        openFileTab({ id: snapshotTableId, type: 'folder', title: 'Sample Table' });
+        closeFileTab('add-table');
+      } else {
+        setActiveTab(snapshotTableId);
+        closeNewTabs();
+      }
     } catch (error) {
       console.error('Failed to add sample table:', error);
       ScratchpadNotifications.error({
@@ -379,8 +394,14 @@ export const AddTableTab = () => {
         remoteId: [uploadId],
       };
       const snapshotTableId = await addTable(tableId, Service.CSV);
-      setActiveTab(snapshotTableId);
-      closeNewTabs();
+
+      if (workbookMode === 'files') {
+        openFileTab({ id: snapshotTableId, type: 'folder', title: 'CSV Upload' });
+        closeFileTab('add-table');
+      } else {
+        setActiveTab(snapshotTableId);
+        closeNewTabs();
+      }
     } catch (error) {
       console.error('Failed to add uploaded table:', error);
       ScratchpadNotifications.error({

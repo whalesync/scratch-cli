@@ -25,7 +25,7 @@ export type RecordViewType = 'details' | 'md';
 
 export interface FileTab {
   id: string; // FileId or FolderId
-  type: 'file' | 'folder';
+  type: 'file' | 'folder' | 'add-table';
   title: string;
 }
 

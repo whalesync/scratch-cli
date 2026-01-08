@@ -8,6 +8,7 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
+import { AddTableTab } from '@/app/workbooks/[...slug]/components/AddTableTab';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
@@ -28,7 +29,7 @@ import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Group, Stack, Text } from '@mantine/core';
 import type { FileId } from '@spinner/shared-types';
-import { ArrowLeftIcon, FileTextIcon, FolderIcon, XIcon } from 'lucide-react';
+import { ArrowLeftIcon, FileTextIcon, FolderIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FileEditor } from './components/FileEditor';
 import { FolderDetailViewer } from './components/FolderDetailViewer';
@@ -154,6 +155,8 @@ function WorkbookFilesPageContent() {
                           >
                             {isFolder ? (
                               <FolderIcon size={12} color="var(--fg-secondary)" />
+                            ) : tab.type === 'add-table' ? (
+                              <PlusIcon size={12} color="var(--fg-secondary)" />
                             ) : (
                               <FileTextIcon size={12} color="var(--fg-secondary)" />
                             )}
@@ -208,6 +211,9 @@ function WorkbookFilesPageContent() {
 
                       if (activeTab?.type === 'folder') {
                         return <FolderDetailViewer workbookId={workbook.id} folderId={activeTab.id} />;
+                      }
+                      if (activeTab?.type === 'add-table') {
+                        return <AddTableTab />;
                       }
                       // Default to file editor
                       return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;

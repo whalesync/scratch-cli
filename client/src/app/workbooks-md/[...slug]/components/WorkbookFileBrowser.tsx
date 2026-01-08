@@ -7,7 +7,6 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { filesApi, foldersApi } from '@/lib/api/files';
 import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, Menu, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
@@ -28,7 +27,6 @@ import {
   PlusIcon,
   Trash2Icon,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { FolderPickerModal } from './FolderPickerModal';
@@ -550,7 +548,6 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
 }
 
 export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
-  const router = useRouter();
   const { workbook } = useActiveWorkbook();
   const { isAdmin } = useScratchPadUser();
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
@@ -1138,7 +1135,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
               variant="subtle"
               color="gray"
               leftSection={<PlusIcon size={12} />}
-              onClick={() => router.push(RouteUrls.workbookNewTabPageUrl(workbook.id))}
+              onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table' })}
             >
               Table
             </Button>
