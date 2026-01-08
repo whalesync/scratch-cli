@@ -2,6 +2,7 @@
  * File system entity types for the file-based workbook database
  */
 
+import { Service } from './enums';
 import { FileId, FolderId } from './ids';
 
 /**
@@ -24,6 +25,8 @@ export interface FolderRefEntity {
   name: string;
   /** ID of the parent folder, or null if at workbook root */
   parentFolderId: FolderId | null;
+  /** Service type if folder is linked to a snapshot table */
+  connectorService?: Service | null;
 }
 
 /**

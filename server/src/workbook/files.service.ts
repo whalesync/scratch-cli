@@ -5,6 +5,7 @@ import type {
   FileRefEntity,
   FolderId,
   FolderRefEntity,
+  Service,
   WorkbookId,
 } from '@spinner/shared-types';
 import {
@@ -56,21 +57,28 @@ export class FilesService {
   async listFilesAndFolders(workbookId: WorkbookId, actor: Actor): Promise<ListFilesResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    // Get all folders in the workbook
+    // Get all folders in the workbook with their linked snapshot tables
     const folders = await this.db.client.folder.findMany({
       where: { workbookId },
       orderBy: { name: 'asc' },
+      include: {
+        snapshotTables: {
+          select: { connectorService: true },
+        },
+      },
     });
 
     // Get all files in the workbook
     const files = await this.workbookDbService.workbookDb.listAllFiles(workbookId);
 
     // Convert folders to FolderRefEntity
+    // If folder has exactly one snapshot table, include its service type
     const folderEntities: FolderRefEntity[] = folders.map((f) => ({
       type: 'folder' as const,
       id: f.id as FolderId,
       name: f.name,
       parentFolderId: f.parentId as FolderId | null,
+      connectorService: f.snapshotTables.length === 1 ? (f.snapshotTables[0].connectorService as Service) : null,
     }));
 
     // Convert files to FileRefEntity
@@ -264,6 +272,16 @@ export class FilesService {
   }
 
   /**
+   * Check if a folder is linked to a snapshot table
+   */
+  private async isFolderLinked(folderId: FolderId): Promise<boolean> {
+    const count = await this.db.client.snapshotTable.count({
+      where: { folderId },
+    });
+    return count > 0;
+  }
+
+  /**
    * Create a new folder
    */
   async createFolder(
@@ -283,6 +301,11 @@ export class FilesService {
       });
       if (!parentFolder) {
         throw new NotFoundException('Parent folder not found');
+      }
+
+      // Check if parent folder is linked to a snapshot table
+      if (await this.isFolderLinked(createFolderDto.parentFolderId)) {
+        throw new BadRequestException('Cannot create subfolders in a folder linked to a connector');
       }
     }
 
@@ -373,6 +396,11 @@ export class FilesService {
       const isDescendant = await this.isFolderDescendant(workbookId, updateFolderDto.parentFolderId, folderId);
       if (isDescendant) {
         throw new BadRequestException('Cannot move folder into its own descendant');
+      }
+
+      // Check if new parent folder is linked to a snapshot table
+      if (await this.isFolderLinked(updateFolderDto.parentFolderId)) {
+        throw new BadRequestException('Cannot move folders into a folder linked to a connector');
       }
     }
 

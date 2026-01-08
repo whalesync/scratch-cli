@@ -10,7 +10,8 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, Menu, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
-import type { FileId, FileOrFolderRefEntity, FolderId } from '@spinner/shared-types';
+import type { FileId, FileOrFolderRefEntity, FolderId, Service } from '@spinner/shared-types';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import {
   BookOpenIcon,
   ChevronDownIcon,
@@ -55,6 +56,7 @@ interface TreeNodeData {
   name: string;
   parentFolderId: FolderId | null;
   isFile: boolean;
+  connectorService?: Service | null;
 }
 
 interface TreeNodeRendererProps {
@@ -243,11 +245,15 @@ function TreeNodeRenderer({
               <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
             )}
           </Box>
-          <FolderIcon
-            size={14}
-            color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'}
-            style={{ flexShrink: 0 }}
-          />
+          {nodeData.connectorService ? (
+            <ConnectorIcon connector={nodeData.connectorService} size={14} p={0} style={{ flexShrink: 0 }} />
+          ) : (
+            <FolderIcon
+              size={14}
+              color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'}
+              style={{ flexShrink: 0 }}
+            />
+          )}
           <Text
             size="sm"
             c={
@@ -293,15 +299,17 @@ function TreeNodeRenderer({
                   >
                     New File
                   </Menu.Item>
-                  <Menu.Item
-                    leftSection={<FolderPlusIcon size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCreateFolderInFolder(nodeData.id as FolderId);
-                    }}
-                  >
-                    New Folder
-                  </Menu.Item>
+                  {!nodeData.connectorService && (
+                    <Menu.Item
+                      leftSection={<FolderPlusIcon size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateFolderInFolder(nodeData.id as FolderId);
+                      }}
+                    >
+                      New Folder
+                    </Menu.Item>
+                  )}
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<InfoIcon size={16} />}
@@ -521,6 +529,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         name: entity.name,
         parentFolderId: entity.parentFolderId,
         isFile: false,
+        connectorService: entity.connectorService,
       },
     };
   } else {
@@ -538,6 +547,93 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
       },
     };
   }
+}
+
+interface WorkbookRootDropTargetProps {
+  workbookName: string;
+  onFileDrop: (files: FileWithPath[]) => void;
+  onInternalDrop: (draggedIds: string[]) => void;
+  selectedNodes: Set<string>;
+}
+
+function WorkbookRootDropTarget({
+  workbookName,
+  onFileDrop,
+  onInternalDrop,
+  selectedNodes,
+}: WorkbookRootDropTargetProps) {
+  const [isExternalDragOver, setIsExternalDragOver] = useState(false);
+  const [isInternalDragOver, setIsInternalDragOver] = useState(false);
+
+  const showDropHighlight = isExternalDragOver || isInternalDragOver;
+
+  return (
+    <Group
+      gap="xs"
+      h={24}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer.types.includes('Files')) {
+          setIsExternalDragOver(true);
+        } else {
+          setIsInternalDragOver(true);
+        }
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer.types.includes('Files')) {
+          setIsExternalDragOver(true);
+        } else {
+          setIsInternalDragOver(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        setIsExternalDragOver(false);
+        setIsInternalDragOver(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsExternalDragOver(false);
+        setIsInternalDragOver(false);
+
+        if (e.dataTransfer.files.length > 0) {
+          const files = Array.from(e.dataTransfer.files) as FileWithPath[];
+          onFileDrop(files);
+        } else {
+          const dragData = e.dataTransfer.getData('text/plain');
+          if (dragData) {
+            try {
+              const draggedId = dragData;
+              if (selectedNodes.has(draggedId)) {
+                onInternalDrop(Array.from(selectedNodes));
+              } else {
+                onInternalDrop([draggedId]);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }}
+      style={{
+        borderRadius: '4px',
+        border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
+        backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
+      }}
+    >
+      <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
+      <Text
+        size="sm"
+        fw={500}
+        c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'}
+        truncate
+      >
+        {workbookName}
+      </Text>
+    </Group>
+  );
 }
 
 export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
@@ -571,6 +667,13 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
   // State for move file modal
   const [moveFileIds, setMoveFileIds] = useState<FileId[] | null>(null);
+
+  // State for confirmation modal
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Sync server data to local state
   useEffect(() => {
@@ -811,16 +914,21 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   }, []);
 
   const handleFileDelete = useCallback(
-    async (fileId: FileId) => {
+    (fileId: FileId) => {
       if (!workbook) return;
-      if (!window.confirm('Are you sure you want to delete this file?')) return;
-
-      try {
-        await filesApi.deleteFile(workbook.id, fileId);
-        await refreshFiles();
-      } catch (error) {
-        console.error('Failed to delete file:', error);
-      }
+      setConfirmModal({
+        title: 'Delete File',
+        message: 'Are you sure you want to delete this file?',
+        onConfirm: async () => {
+          try {
+            await filesApi.deleteFile(workbook.id, fileId);
+            await refreshFiles();
+          } catch (error) {
+            console.error('Failed to delete file:', error);
+          }
+          setConfirmModal(null);
+        },
+      });
     },
     [workbook, refreshFiles],
   );
@@ -886,25 +994,32 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     [workbook, moveFileIds, refreshFiles],
   );
 
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = useCallback(() => {
     if (!workbook || selectedNodes.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedNodes.size} items?`)) return;
-
-    try {
-      const promises = Array.from(selectedNodes).map(async (id) => {
-        const node = treeData.find((n) => n.id === id);
-        if (!node) return;
-        if (node.data?.isFile) {
-          await filesApi.deleteFile(workbook.id, id as FileId);
-        } else {
-          await foldersApi.deleteFolder(workbook.id, id as FolderId);
+    const count = selectedNodes.size;
+    const nodesToDelete = Array.from(selectedNodes);
+    setConfirmModal({
+      title: 'Delete Items',
+      message: `Are you sure you want to delete ${count} item${count > 1 ? 's' : ''}?`,
+      onConfirm: async () => {
+        try {
+          const promises = nodesToDelete.map(async (id) => {
+            const node = treeData.find((n) => n.id === id);
+            if (!node) return;
+            if (node.data?.isFile) {
+              await filesApi.deleteFile(workbook.id, id as FileId);
+            } else {
+              await foldersApi.deleteFolder(workbook.id, id as FolderId);
+            }
+          });
+          await Promise.all(promises);
+          await refreshFiles();
+        } catch (error) {
+          console.error('Failed to delete items:', error);
         }
-      });
-      await Promise.all(promises);
-      await refreshFiles();
-    } catch (error) {
-      console.error('Failed to delete items:', error);
-    }
+        setConfirmModal(null);
+      },
+    });
   }, [workbook, selectedNodes, treeData, refreshFiles]);
 
   const handleFileDuplicate = useCallback((fileId: FileId, parentFolderId: FolderId | null, currentName: string) => {
@@ -926,16 +1041,21 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   }, []);
 
   const handleFolderDelete = useCallback(
-    async (folderId: FolderId) => {
+    (folderId: FolderId) => {
       if (!workbook) return;
-      if (!window.confirm('Are you sure you want to delete this folder and all its contents?')) return;
-
-      try {
-        await foldersApi.deleteFolder(workbook.id, folderId);
-        await refreshFiles();
-      } catch (error) {
-        console.error('Failed to delete folder:', error);
-      }
+      setConfirmModal({
+        title: 'Delete Folder',
+        message: 'Are you sure you want to delete this folder and all its contents?',
+        onConfirm: async () => {
+          try {
+            await foldersApi.deleteFolder(workbook.id, folderId);
+            await refreshFiles();
+          } catch (error) {
+            console.error('Failed to delete folder:', error);
+          }
+          setConfirmModal(null);
+        },
+      });
     },
     [workbook, refreshFiles],
   );
@@ -1094,24 +1214,33 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
         <ScrollArea style={{ flex: 1 }}>
           <Stack gap={0} p="xs">
-            {/* Workbook Node (Top Level) */}
-            <Box>
-              <Group
-                gap="xs"
-                h={24}
-                style={{
-                  borderRadius: '4px',
-                }}
-                bg="transparent"
-              >
-                <BookOpenIcon size={14} color="var(--fg-secondary)" />
-                <Text size="sm" fw={500} c="var(--fg-primary)" truncate>
-                  {workbook.name || 'Untitled Workbook'}
-                </Text>
-              </Group>
-
-              {/* Files and Folders */}
-              <Box ml={6} style={{ borderLeft: '1px solid var(--fg-divider)' }}>
+            {/* Workbook Node (Top Level) - Drop target for root */}
+            <WorkbookRootDropTarget
+              workbookName={workbook.name || 'Untitled Workbook'}
+              onFileDrop={(files) => handleExternalFileDrop(null, files)}
+              onInternalDrop={async (draggedIds) => {
+                if (!workbook) return;
+                try {
+                  const promises = draggedIds.map(async (id) => {
+                    const node = treeData.find((n) => n.id === id);
+                    if (!node) return;
+                    if (node.data?.isFile) {
+                      await filesApi.updateFile(workbook.id, id as FileId, { parentFolderId: null });
+                    } else {
+                      await foldersApi.updateFolder(workbook.id, id as FolderId, { parentFolderId: null });
+                    }
+                  });
+                  await Promise.all(promises);
+                  await refreshFiles();
+                } catch (error) {
+                  console.error('Failed to move to root:', error);
+                  await refreshFiles();
+                }
+              }}
+              selectedNodes={selectedNodes}
+            />
+            {/* Files and Folders */}
+            <Box ml={6} style={{ borderLeft: '1px solid var(--fg-divider)' }}>
                 {isLoading && (
                   <Box pl={18} py="xs">
                     <Text size="xs" c="dimmed">
@@ -1133,6 +1262,19 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onDrop={handleDrop}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
+                    canDrop={(_tree, { dragSource, dropTargetId }) => {
+                      // Prevent dropping folders into linked folders (folders with connectorService)
+                      if (!dragSource?.data?.isFile) {
+                        // dragging a folder
+                        if (dropTargetId !== 0) {
+                          const targetFolder = treeData.find((n) => n.id === dropTargetId);
+                          if (targetFolder?.data?.connectorService) {
+                            return false;
+                          }
+                        }
+                      }
+                      return true;
+                    }}
                     classes={{ listItem: styles.listItem }}
                     dragPreviewRender={(monitorProps) => {
                       const isMultiSelect = selectedNodes.has(monitorProps.item.id as string) && selectedNodes.size > 1;
@@ -1192,6 +1334,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         >
                           {monitorProps.item.data?.isFile ? (
                             <FileTextIcon size={16} color="var(--fg-secondary)" />
+                          ) : monitorProps.item.data?.connectorService ? (
+                            <ConnectorIcon connector={monitorProps.item.data.connectorService} size={16} p={0} />
                           ) : (
                             <FolderIcon size={16} color="var(--fg-secondary)" />
                           )}
@@ -1237,7 +1381,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                   />
                 )}
               </Box>
-            </Box>
           </Stack>
         </ScrollArea>
       </Stack>
@@ -1344,6 +1487,26 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         title="Move File To..."
         confirmText="Move Here"
       />
+
+      {/* Confirmation Modal */}
+      <Modal
+        opened={!!confirmModal}
+        onClose={() => setConfirmModal(null)}
+        title={confirmModal?.title}
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text size="sm">{confirmModal?.message}</Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={confirmModal?.onConfirm}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </DndProvider>
   );
 }
