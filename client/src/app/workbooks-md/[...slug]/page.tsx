@@ -8,13 +8,11 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import AIChatPanel from '@/app/workbooks/[...slug]/components/AIChatPanel/AIChatPanel';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
 import { ManageTablesModal } from '@/app/workbooks/[...slug]/components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
-import { GridFooterBar } from '@/app/workbooks/[...slug]/components/snapshot-grid/grid-footer-bar/GridFooterBar';
 import { WorkbookEditorModals } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/WorkbookEditorModals';
 import { WorkbookHeader } from '@/app/workbooks/[...slug]/components/WorkbookHeader';
 import { useWorkbookParams } from '@/app/workbooks/[...slug]/hooks/use-workbook-params';
@@ -36,9 +34,9 @@ import { FileEditor } from './components/FileEditor';
 import { FolderDetailViewer } from './components/FolderDetailViewer';
 import { WorkbookFileBrowser } from './components/WorkbookFileBrowser';
 
-const DEFAULT_CHAT_WIDTH = '360px';
-const MIN_CHAT_WIDTH = 300;
-const MAX_CHAT_WIDTH = 800;
+// const DEFAULT_CHAT_WIDTH = '360px';
+// const MIN_CHAT_WIDTH = 300;
+// const MAX_CHAT_WIDTH = 800;
 
 const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
@@ -53,7 +51,7 @@ function WorkbookFilesPageContent() {
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
-  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
+  // const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   // File tab state is now managed in the store
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
@@ -220,21 +218,23 @@ function WorkbookFilesPageContent() {
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />
 
-              {/* Optional Right Pane: Agent Chat */}
-              {chatOpen && (
+              {/* Optional Right Pane: Agent Chat*/}
+              {/* https://linear.app/whalesync/issue/DEV-9228/remove-some-unused-ui */}
+              {/* {chatOpen && (
                 <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
                   <AIChatPanel />
                 </Split.Pane>
-              )}
+              )} */}
             </Split>
           </Box>
 
           {/* Footer - Full Width */}
-          {activeTable && (
+          {/* https://linear.app/whalesync/issue/DEV-9228/remove-some-unused-ui */}
+          {/*activeTable && (
             <MainContent.Footer h={28}>
               <GridFooterBar table={activeTable} />
             </MainContent.Footer>
-          )}
+          )*/}
         </Stack>
       </MainContent>
 

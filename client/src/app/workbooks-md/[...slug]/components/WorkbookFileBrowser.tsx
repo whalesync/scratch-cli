@@ -1085,15 +1085,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
               variant="subtle"
               color="gray"
               leftSection={<PlusIcon size={12} />}
-              onClick={() => router.push(RouteUrls.workbooksPageUrl)}
-            >
-              WB
-            </Button>
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="gray"
-              leftSection={<PlusIcon size={12} />}
               onClick={() => router.push(RouteUrls.workbookNewTabPageUrl(workbook.id))}
             >
               Table

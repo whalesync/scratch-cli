@@ -11,11 +11,9 @@ import {
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAllTables } from '@/hooks/use-all-tables';
-import { useUploads } from '@/hooks/use-uploads';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { TableGroup } from '@/types/server-entities/table-list';
-import { EntityId, SnapshotTable } from '@spinner/shared-types';
 import { timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
@@ -32,7 +30,7 @@ import {
   useModalsStack,
   useTree,
 } from '@mantine/core';
-import { Service, SnapshotTableId } from '@spinner/shared-types';
+import { EntityId, Service, SnapshotTable, SnapshotTableId } from '@spinner/shared-types';
 import cx from 'classnames';
 import {
   ArrowRightIcon,
@@ -43,7 +41,6 @@ import {
   RefreshCwIcon,
   SearchIcon,
   Trash2Icon,
-  Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
@@ -67,7 +64,7 @@ function createGroupKey(group: TableGroup) {
 
 export const AddTableTab = () => {
   const { workbook, addTable, addSampleTable, unhideTable, deleteTable } = useActiveWorkbook();
-  const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
+  // const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
@@ -83,23 +80,24 @@ export const AddTableTab = () => {
   const [isCreatingTable, setIsCreatingTable] = useState(false);
 
   // Transform CSV uploads into a TableGroup
-  const csvGroup = useMemo((): TableGroup | null => {
-    const csvUploads = uploads.filter((upload) => upload.type === 'CSV');
-    if (csvUploads.length === 0) return null;
+  // https://linear.app/whalesync/issue/DEV-9228/remove-some-unused-ui
+  // const csvGroup = useMemo((): TableGroup | null => {
+  //   const csvUploads = uploads.filter((upload) => upload.type === 'CSV');
+  //   if (csvUploads.length === 0) return null;
 
-    return {
-      service: Service.CSV,
-      connectorAccountId: null,
-      displayName: 'Uploaded files',
-      tables: csvUploads.map((upload) => ({
-        id: {
-          wsId: upload.id,
-          remoteId: [upload.id],
-        },
-        displayName: upload.name,
-      })),
-    };
-  }, [uploads]);
+  //   return {
+  //     service: Service.CSV,
+  //     connectorAccountId: null,
+  //     displayName: 'Uploaded files',
+  //     tables: csvUploads.map((upload) => ({
+  //       id: {
+  //         wsId: upload.id,
+  //         remoteId: [upload.id],
+  //       },
+  //       displayName: upload.name,
+  //     })),
+  //   };
+  // }, [uploads]);
 
   // Adjust the tree expansion in response to the search query
   useEffect(() => {
@@ -114,7 +112,7 @@ export const AddTableTab = () => {
   // Combine backend groups with CSV group and filter by search
   const groupedTables = useMemo(() => {
     // Combine all groups
-    const allGroups = csvGroup ? [...tableGroups, csvGroup] : tableGroups;
+    const allGroups = tableGroups;
 
     // Filter tables by search query
     const filteredGroups = allGroups.map((group) => ({
@@ -132,7 +130,7 @@ export const AddTableTab = () => {
       if (b.service === Service.CSV) return -1;
       return 0;
     });
-  }, [tableGroups, csvGroup, searchQuery]);
+  }, [tableGroups, searchQuery]);
 
   const recentlyClosedTables = useMemo(() => {
     return (workbook?.snapshotTables || [])
@@ -176,7 +174,7 @@ export const AddTableTab = () => {
     try {
       // If refreshing uploaded files, only refresh uploads
       if (groupKey === Service.CSV) {
-        await mutateUploads();
+        // await mutateUploads();
       } else {
         // TODO: Refresh only the tables for the specific service.
         // For other connectors, refresh all tables
@@ -188,9 +186,9 @@ export const AddTableTab = () => {
     }
   };
 
-  const handleUploadFile = () => {
-    modalStack.open('upload');
-  };
+  // const handleUploadFile = () => {
+  //   modalStack.open('upload');
+  // };
 
   const handleAddSampleTable = async () => {
     if (!workbook) return;
@@ -361,13 +359,13 @@ export const AddTableTab = () => {
     return <Loader />;
   }
 
-  const isLoading = loadingTables || loadingUploads;
+  const isLoading = loadingTables;
 
   const handleUploadModalClose = () => {
     // When modal closes, close it via modalStack and refresh uploads
     modalStack.close('upload');
     // Refresh the uploads list to show the newly uploaded CSV
-    mutateUploads();
+    // mutateUploads();
   };
 
   const handleUploadSuccess = async (uploadId: string) => {
@@ -411,15 +409,6 @@ export const AddTableTab = () => {
           icon={<StyledLucideIcon Icon={PlusIcon} size="md" c={'dimmed'} />}
           onClick={() => modalStack.open('create')}
         />
-
-        <ButtonWithDescription
-          title="Upload file"
-          description="Import a CSV table"
-          icon={<StyledLucideIcon Icon={Upload} size="md" c={'dimmed'} />}
-          onClick={handleUploadFile}
-        >
-          Upload file
-        </ButtonWithDescription>
         <Group w="100%">
           <Divider style={{ flex: 1 }} />
           <TextMono12Regular c="primary">OR</TextMono12Regular>
@@ -519,9 +508,6 @@ export const AddTableTab = () => {
         >
           New data source
         </ButtonSecondaryOutline>
-        <ButtonSecondaryOutline leftSection={<StyledLucideIcon Icon={Upload} size="sm" />} onClick={handleUploadFile}>
-          Upload file
-        </ButtonSecondaryOutline>
       </Group>
     </Stack>
   );
@@ -532,7 +518,11 @@ export const AddTableTab = () => {
         {...modalStack.register('create')}
         returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
       />
-      <UploadFileModal opened={modalStack.state['upload']} onClose={handleUploadModalClose} onUploadSuccess={handleUploadSuccess} />
+      <UploadFileModal
+        opened={modalStack.state['upload']}
+        onClose={handleUploadModalClose}
+        onUploadSuccess={handleUploadSuccess}
+      />
       <GenericDeleteConfirmationModal
         title="Delete table"
         onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
