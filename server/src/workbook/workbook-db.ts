@@ -106,6 +106,19 @@ export class WorkbookDb {
   }
 
   /**
+   * Updates the paths of all files in a folder to match the new folder path.
+   */
+  async updateFilePathsInFolder(workbookId: WorkbookId, folderId: string, folderPath: string): Promise<void> {
+    const prefix = folderPath === '/' ? '' : folderPath;
+    await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FOLDER_ID_COLUMN, folderId)
+      .update({
+        [PATH_COLUMN]: this.getKnex().raw("? || '/' || ??", [prefix, FILE_NAME_COLUMN]),
+      });
+  }
+
+  /**
    * Creates a new schema for a workbook and creates the files table within it
    */
   async createForWorkbook(workbookId: WorkbookId) {

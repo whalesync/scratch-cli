@@ -1,5 +1,6 @@
 'use client';
 
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -10,9 +11,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { Box, Button, Group, Menu, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
-import { NativeTypes } from 'react-dnd-html5-backend';
-import type { FileId, FileOrFolderRefEntity, FolderId, Service } from '@spinner/shared-types';
-import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
+import type { FileId, FileOrFolderRefEntity, FolderId, FolderRefEntity, Service } from '@spinner/shared-types';
 import {
   BookOpenIcon,
   ChevronDownIcon,
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { NativeTypes } from 'react-dnd-html5-backend';
 import { FolderPickerModal } from './FolderPickerModal';
 import styles from './WorkbookFileBrowser.module.css';
 
@@ -59,6 +59,7 @@ interface TreeNodeData {
   id: string;
   name: string;
   parentFolderId: FolderId | null;
+  path: string;
   isFile: boolean;
   isWorkbookRoot?: boolean;
   connectorService?: Service | null;
@@ -210,12 +211,7 @@ function TreeNodeRenderer({
           )}
         </Box>
         <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
-        <Text
-          size="sm"
-          fw={500}
-          c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'}
-          truncate
-        >
+        <Text size="sm" fw={500} c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'} truncate>
           {nodeData.name}
         </Text>
       </Group>
@@ -538,6 +534,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         id: entity.id,
         name: entity.name,
         parentFolderId: entity.parentFolderId,
+        path: entity.path,
         isFile: false,
         connectorService: entity.connectorService,
       },
@@ -553,6 +550,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         id: entity.id,
         name: entity.name,
         parentFolderId: entity.parentFolderId,
+        path: entity.path,
         isFile: true,
       },
     };
@@ -611,6 +609,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           id: WORKBOOK_ROOT_ID,
           name: workbook.name || 'Untitled Workbook',
           parentFolderId: null,
+          path: '/',
           isFile: false,
           isWorkbookRoot: true,
         },
@@ -626,22 +625,11 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     setLastSelectedNodeId(null);
   }, [files]);
 
-  // Build path for a node by traversing up the tree
+  // Get path for a node from its stored data (provided by server)
   const getNodePath = useCallback(
     (nodeId: string): string => {
-      const buildPath = (id: string, path: string[] = []): string[] => {
-        const node = treeData.find((n) => n.id === id);
-        if (!node) return path;
-
-        path.unshift(node.data?.name || '');
-
-        if (node.parent && node.parent !== 0) {
-          return buildPath(node.parent as string, path);
-        }
-        return path;
-      };
-
-      return '/' + buildPath(nodeId).join('/');
+      const node = treeData.find((n) => n.id === nodeId);
+      return node?.data?.path ?? '/';
     },
     [treeData],
   );
@@ -1183,134 +1171,173 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
               </Box>
             )}
             {!isLoading && treeData.length > 0 && (
-                  <Tree
-                    tree={treeData}
-                    rootId={0}
-                    extraAcceptTypes={[NativeTypes.FILE]}
-                    onDrop={handleDrop}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    canDrop={(_tree, { dragSource, dropTargetId }) => {
-                      // Prevent dragging the workbook root
-                      if (dragSource?.id === WORKBOOK_ROOT_ID) {
+              <Tree
+                tree={treeData}
+                rootId={0}
+                extraAcceptTypes={[NativeTypes.FILE]}
+                onDrop={handleDrop}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                canDrag={(node) => {
+                  // Prevent dragging the workbook root
+                  return node?.id !== WORKBOOK_ROOT_ID;
+                }}
+                canDrop={(_tree, { dragSource, dropTargetId }) => {
+                  // Determine all nodes being dragged (multi-select aware)
+                  const draggedIds: Set<string> =
+                    dragSource?.id && selectedNodes.has(dragSource.id as string)
+                      ? selectedNodes
+                      : new Set(dragSource?.id ? [dragSource.id as string] : []);
+
+                  // Prevent dropping onto any of the dragged nodes
+                  if (draggedIds.has(dropTargetId as string)) {
+                    return false;
+                  }
+
+                  // Helper to check if a node is a child of a parent
+                  const isChildOf = (parentId: string, childId: string | number): boolean => {
+                    const child = treeData.find((n) => n.id === childId);
+                    if (!child) return false;
+                    if (child.parent === parentId) return true;
+                    if (child.parent === 0 || child.parent === WORKBOOK_ROOT_ID) return false;
+                    return isChildOf(parentId, child.parent);
+                  };
+
+                  // Check if any dragged folder contains the drop target
+                  for (const draggedId of draggedIds) {
+                    const draggedNode = treeData.find((n) => n.id === draggedId);
+                    // Only check folders (files can't contain other nodes)
+                    if (draggedNode && !draggedNode.data?.isFile) {
+                      if (
+                        dropTargetId !== 0 &&
+                        dropTargetId !== WORKBOOK_ROOT_ID &&
+                        isChildOf(draggedId, dropTargetId)
+                      ) {
                         return false;
                       }
-                      // Prevent dropping folders into linked folders (folders with connectorService)
-                      if (!dragSource?.data?.isFile) {
-                        // dragging a folder - check if target is a linked folder
-                        if (dropTargetId !== 0 && dropTargetId !== WORKBOOK_ROOT_ID) {
-                          const targetFolder = treeData.find((n) => n.id === dropTargetId);
-                          if (targetFolder?.data?.connectorService) {
-                            return false;
-                          }
-                        }
-                      }
-                      return true;
-                    }}
-                    classes={{ listItem: styles.listItem }}
-                    dragPreviewRender={(monitorProps) => {
-                      const isMultiSelect = selectedNodes.has(monitorProps.item.id as string) && selectedNodes.size > 1;
+                    }
+                  }
 
-                      if (isMultiSelect) {
-                        return (
-                          <div
-                            style={{
-                              backgroundColor: 'var(--mantine-color-blue-6)',
-                              color: 'white',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: 500,
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              width: 'max-content',
-                            }}
-                          >
-                            <Box
-                              style={{
-                                background: 'white',
-                                color: 'var(--mantine-color-blue-6)',
-                                borderRadius: '50%',
-                                width: '16px',
-                                height: '16px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {selectedNodes.size}
-                            </Box>
-                            Files
-                          </div>
-                        );
+                  // Prevent dropping folders into linked folders (folders with connectorService)
+                  const hasFolderInSelection = Array.from(draggedIds).some((id) => {
+                    const node = treeData.find((n) => n.id === id);
+                    return node && !node.data?.isFile;
+                  });
+                  if (hasFolderInSelection) {
+                    if (dropTargetId !== 0 && dropTargetId !== WORKBOOK_ROOT_ID) {
+                      const targetFolder = treeData.find((n) => n.id === dropTargetId);
+                      if (targetFolder?.data?.connectorService) {
+                        return false;
                       }
+                    }
+                  }
 
-                      return (
-                        <div
+                  return true;
+                }}
+                classes={{ listItem: styles.listItem }}
+                dragPreviewRender={(monitorProps) => {
+                  const isMultiSelect = selectedNodes.has(monitorProps.item.id as string) && selectedNodes.size > 1;
+
+                  if (isMultiSelect) {
+                    return (
+                      <div
+                        style={{
+                          backgroundColor: 'var(--mantine-color-blue-6)',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          width: 'max-content',
+                        }}
+                      >
+                        <Box
                           style={{
-                            backgroundColor: 'white', // var(--bg-base) might be transparent in some contexts or dark
-                            border: '1px solid var(--fg-divider)',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            background: 'white',
+                            color: 'var(--mantine-color-blue-6)',
+                            borderRadius: '50%',
+                            width: '16px',
+                            height: '16px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            width: 'max-content',
-                            color: 'var(--fg-primary)',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            fontWeight: 700,
                           }}
                         >
-                          {monitorProps.item.data?.isFile ? (
-                            <FileTextIcon size={16} color="var(--fg-secondary)" />
-                          ) : monitorProps.item.data?.connectorService ? (
-                            <ConnectorIcon connector={monitorProps.item.data.connectorService} size={16} p={0} />
-                          ) : (
-                            <FolderIcon size={16} color="var(--fg-secondary)" />
-                          )}
-                          <Text size="sm">{monitorProps.item.text}</Text>
-                        </div>
-                      );
-                    }}
-                    render={(node, { depth, isOpen, onToggle, isDropTarget }) => (
-                      <TreeNodeRenderer
-                        node={node}
-                        depth={depth}
-                        isOpen={isOpen}
-                        onToggle={onToggle}
-                        isSelected={selectedNodes.has(node.id as string)}
-                        isDropTarget={isDropTarget}
-                        isAdmin={!!isAdmin}
-                        onNodeSelect={handleNodeSelect}
-                        onFileDoubleClick={handleFileDoubleClick}
-                        onFolderDetailsClick={handleFolderDetailsClick}
-                        onFileRename={handleFileRename}
-                        onFileDelete={handleFileDelete}
-                        onFileDownload={handleFileDownload}
-                        onFileCopy={handleFileCopy}
-                        onFileMove={handleFileMove}
-                        onFileDuplicate={handleFileDuplicate}
-                        onFolderRename={handleFolderRename}
-                        onFolderDelete={handleFolderDelete}
-                        onFolderDownload={handleFolderDownload}
-                        onShowInfo={handleShowInfo}
-                        getNodePath={getNodePath}
-                        onCreateFolderInFolder={handleCreateFolderInFolder}
-                        onCreateFileInFolder={handleCreateFileInFolder}
-                        selectedCount={selectedNodes.size}
-                        areAllSelectedFiles={
-                          selectedNodes.size > 0 &&
-                          Array.from(selectedNodes).every((id) => treeData.find((n) => n.id === id)?.data?.isFile)
-                        }
-                        onBulkDelete={handleBulkDelete}
-                        onBulkMove={handleBulkMove}
-                      />
-                    )}
+                          {selectedNodes.size}
+                        </Box>
+                        Files
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: 'white', // var(--bg-base) might be transparent in some contexts or dark
+                        border: '1px solid var(--fg-divider)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: 'max-content',
+                        color: 'var(--fg-primary)',
+                      }}
+                    >
+                      {monitorProps.item.data?.isFile ? (
+                        <FileTextIcon size={16} color="var(--fg-secondary)" />
+                      ) : monitorProps.item.data?.connectorService ? (
+                        <ConnectorIcon connector={monitorProps.item.data.connectorService} size={16} p={0} />
+                      ) : (
+                        <FolderIcon size={16} color="var(--fg-secondary)" />
+                      )}
+                      <Text size="sm">{monitorProps.item.text}</Text>
+                    </div>
+                  );
+                }}
+                render={(node, { depth, isOpen, onToggle, isDropTarget }) => (
+                  <TreeNodeRenderer
+                    node={node}
+                    depth={depth}
+                    isOpen={isOpen}
+                    onToggle={onToggle}
+                    isSelected={selectedNodes.has(node.id as string)}
+                    isDropTarget={isDropTarget}
+                    isAdmin={!!isAdmin}
+                    onNodeSelect={handleNodeSelect}
+                    onFileDoubleClick={handleFileDoubleClick}
+                    onFolderDetailsClick={handleFolderDetailsClick}
+                    onFileRename={handleFileRename}
+                    onFileDelete={handleFileDelete}
+                    onFileDownload={handleFileDownload}
+                    onFileCopy={handleFileCopy}
+                    onFileMove={handleFileMove}
+                    onFileDuplicate={handleFileDuplicate}
+                    onFolderRename={handleFolderRename}
+                    onFolderDelete={handleFolderDelete}
+                    onFolderDownload={handleFolderDownload}
+                    onShowInfo={handleShowInfo}
+                    getNodePath={getNodePath}
+                    onCreateFolderInFolder={handleCreateFolderInFolder}
+                    onCreateFileInFolder={handleCreateFileInFolder}
+                    selectedCount={selectedNodes.size}
+                    areAllSelectedFiles={
+                      selectedNodes.size > 0 &&
+                      Array.from(selectedNodes).every((id) => treeData.find((n) => n.id === id)?.data?.isFile)
+                    }
+                    onBulkDelete={handleBulkDelete}
+                    onBulkMove={handleBulkMove}
                   />
                 )}
+              />
+            )}
           </Stack>
         </ScrollArea>
       </Stack>
@@ -1324,25 +1351,27 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
       >
         {infoModalData && (
           <Stack gap="sm">
-            <Group>
-              <Text fw={500} size="sm" w={60}>
+            <Group align="flex-start" wrap="nowrap">
+              <Text fw={500} size="sm" w={60} style={{ flexShrink: 0 }}>
                 ID:
               </Text>
-              <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace' }}>
+              <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {infoModalData.id}
               </Text>
             </Group>
-            <Group>
-              <Text fw={500} size="sm" w={60}>
+            <Group align="flex-start" wrap="nowrap">
+              <Text fw={500} size="sm" w={60} style={{ flexShrink: 0 }}>
                 Name:
               </Text>
-              <Text size="sm">{infoModalData.name}</Text>
+              <Text size="sm" style={{ wordBreak: 'break-word' }}>
+                {infoModalData.name}
+              </Text>
             </Group>
-            <Group>
-              <Text fw={500} size="sm" w={60}>
+            <Group align="flex-start" wrap="nowrap">
+              <Text fw={500} size="sm" w={60} style={{ flexShrink: 0 }}>
                 Path:
               </Text>
-              <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace' }}>
+              <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {infoModalData.path}
               </Text>
             </Group>
@@ -1395,11 +1424,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         opened={!!copyFileId}
         onClose={() => setCopyFileId(null)}
         onSelect={handleFileCopyConfirm}
-        folders={
-          files?.items
-            .filter((item): item is typeof item & { type: 'folder' } => item.type === 'folder')
-            .map((f) => ({ type: 'folder' as const, id: f.id, name: f.name, parentFolderId: f.parentFolderId })) ?? []
-        }
+        folders={files?.items.filter((item): item is FolderRefEntity => item.type === 'folder') ?? []}
         title="Copy File To..."
         confirmText="Copy Here"
       />
@@ -1409,22 +1434,13 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         opened={!!moveFileIds}
         onClose={() => setMoveFileIds(null)}
         onSelect={handleFileMoveConfirm}
-        folders={
-          files?.items
-            .filter((item): item is typeof item & { type: 'folder' } => item.type === 'folder')
-            .map((f) => ({ type: 'folder' as const, id: f.id, name: f.name, parentFolderId: f.parentFolderId })) ?? []
-        }
+        folders={files?.items.filter((item): item is FolderRefEntity => item.type === 'folder') ?? []}
         title="Move File To..."
         confirmText="Move Here"
       />
 
       {/* Confirmation Modal */}
-      <Modal
-        opened={!!confirmModal}
-        onClose={() => setConfirmModal(null)}
-        title={confirmModal?.title}
-        size="sm"
-      >
+      <Modal opened={!!confirmModal} onClose={() => setConfirmModal(null)} title={confirmModal?.title} size="sm">
         <Stack gap="md">
           <Text size="sm">{confirmModal?.message}</Text>
           <Group justify="flex-end" gap="sm">

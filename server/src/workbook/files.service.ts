@@ -78,6 +78,7 @@ export class FilesService {
       id: f.id as FolderId,
       name: f.name,
       parentFolderId: f.parentId as FolderId | null,
+      path: f.path ?? `/${f.name}`,
       connectorService: f.snapshotTables.length === 1 ? (f.snapshotTables[0].connectorService as Service) : null,
     }));
 
@@ -87,6 +88,7 @@ export class FilesService {
       id: f.id as FileId,
       name: f.name,
       parentFolderId: (f.folder_id || null) as FolderId | null,
+      path: f.path,
     }));
 
     // Combine and return
@@ -123,6 +125,7 @@ export class FilesService {
         id: f.id as FileId,
         name: f.name,
         parentFolderId: f.folder_id as FolderId | null,
+        path: f.path,
       },
       content: f.content,
       originalContent: f.original,
@@ -156,6 +159,7 @@ export class FilesService {
           id: file.id as FileId,
           name: file.name,
           parentFolderId: file.folder_id as FolderId | null,
+          path: file.path,
         },
         content: file.content,
         originalContent: file.original,
@@ -208,6 +212,7 @@ export class FilesService {
       id: fileId,
       name: createFileDto.name,
       parentFolderId: createFileDto.parentFolderId ?? null,
+      path: fullPath,
     };
   }
 
@@ -621,6 +626,7 @@ export class FilesService {
       id: newFileId,
       name: newFileName,
       parentFolderId: targetFolderId,
+      path: fullPath,
     };
   }
 }

@@ -14,6 +14,8 @@ export interface FileRefEntity {
   name: string;
   /** ID of the parent folder, or null if at workbook root */
   parentFolderId: FolderId | null;
+  /** Full path of the file, e.g. "/folder/file.md" */
+  path: string;
 }
 
 /**
@@ -25,6 +27,8 @@ export interface FolderRefEntity {
   name: string;
   /** ID of the parent folder, or null if at workbook root */
   parentFolderId: FolderId | null;
+  /** Full path of the folder, e.g. "/parent/child" */
+  path: string;
   /** Service type if folder is linked to a snapshot table */
   connectorService?: Service | null;
 }

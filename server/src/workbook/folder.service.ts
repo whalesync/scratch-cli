@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { FolderId, WorkbookId } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
+import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
 export class FolderService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly workbookDbService: WorkbookDbService,
+  ) {}
 
   /**
    * Moves a folder to a new parent folder.
@@ -167,6 +171,9 @@ export class FolderService {
       where: { id: folderId },
       data: { path: currentPath },
     });
+
+    // Update paths of all files in this folder
+    await this.workbookDbService.workbookDb.updateFilePathsInFolder(workbookId, folderId, currentPath);
 
     // Find all children
     const children = await this.db.client.folder.findMany({
