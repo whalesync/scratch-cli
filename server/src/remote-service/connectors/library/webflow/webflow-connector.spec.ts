@@ -264,37 +264,6 @@ describe('WebflowConnector', () => {
       expect((callback.mock.calls[1][0] as { records: ConnectorRecord[] }).records).toHaveLength(50);
     });
 
-    it('should convert rich text to markdown when requested', async () => {
-      const mockItems = [
-        {
-          id: 'item1',
-          fieldData: {
-            description: '<h1>Heading</h1><p>Paragraph with <strong>bold</strong> text</p>',
-          },
-        },
-      ];
-
-      mockClient.collections.items.listItems.mockResolvedValue({
-        items: mockItems,
-        pagination: { total: 1, offset: 0, limit: 100 },
-      });
-
-      const columnSettingsMapWithMarkdown = {
-        description: {
-          dataConverter: 'markdown',
-        },
-      };
-
-      const callback = jest.fn().mockResolvedValue(undefined);
-
-      await connector.downloadTableRecords(mockTableSpec, columnSettingsMapWithMarkdown, callback);
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const record = (callback.mock.calls[0][0] as { records: ConnectorRecord[] }).records[0];
-      // Turndown converts HTML to markdown
-      expect(record.fields.description).toBe('# Heading\n\nParagraph with **bold** text');
-    });
-
     it('should keep rich text as HTML by default', async () => {
       const mockItems = [
         {
