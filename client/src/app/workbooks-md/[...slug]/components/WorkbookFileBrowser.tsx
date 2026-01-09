@@ -110,6 +110,7 @@ interface TreeNodeRendererProps {
   onFolderRename: (folderId: FolderId, currentName: string) => void;
   onFolderDelete: (folderId: FolderId) => void;
   onFolderDownload: (folderId: FolderId) => void;
+  onOpenAllFilesInFolder: (folderId: FolderId) => void;
   onShowInfo: (info: NodeInfoData) => void;
   getNodePath: (nodeId: string) => string;
   onCreateFolderInFolder: (parentFolderId: FolderId) => void;
@@ -140,6 +141,7 @@ function TreeNodeRenderer({
   onFolderRename,
   onFolderDelete,
   onFolderDownload,
+  onOpenAllFilesInFolder,
   onShowInfo,
   getNodePath,
   onCreateFolderInFolder,
@@ -400,6 +402,18 @@ function TreeNodeRenderer({
                     }}
                   >
                     Download
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<FileTextIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenAllFilesInFolder(nodeData.id as FolderId);
+                    }}
+                    disabled={
+                      !treeData.some((n) => n.parent === nodeData.id && n.data?.isFile)
+                    }
+                  >
+                    Open all files
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item
@@ -1121,6 +1135,39 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     [workbook],
   );
 
+  const handleOpenAllFilesInFolder = useCallback(
+    (folderId: FolderId) => {
+      // Find all files that are direct children of this folder
+      const filesInFolder = treeData.filter(
+        (node) => node.parent === folderId && node.data?.isFile
+      );
+
+      if (filesInFolder.length === 0) return;
+
+      // Open all files as tabs
+      filesInFolder.forEach((fileNode) => {
+        if (fileNode.data) {
+          openFileTab({
+            id: fileNode.id as FileId,
+            type: 'file',
+            title: fileNode.data.name,
+          });
+        }
+      });
+
+      // Set the first file as active and update activeCells
+      const firstFile = filesInFolder[0];
+      if (firstFile.data) {
+        setActiveCells({
+          recordId: firstFile.id as string,
+          columnId: activeCells?.columnId,
+          viewType: 'md',
+        });
+      }
+    },
+    [treeData, openFileTab, setActiveCells, activeCells],
+  );
+
   const handleCreateFolder = useCallback((parentFolderId: FolderId | null = null) => {
     setInputModal({ type: 'createFolder', parentFolderId });
     setInputValue('');
@@ -1479,6 +1526,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onFolderRename={handleFolderRename}
                     onFolderDelete={handleFolderDelete}
                     onFolderDownload={handleFolderDownload}
+                    onOpenAllFilesInFolder={handleOpenAllFilesInFolder}
                     onShowInfo={handleShowInfo}
                     getNodePath={getNodePath}
                     onCreateFolderInFolder={handleCreateFolderInFolder}

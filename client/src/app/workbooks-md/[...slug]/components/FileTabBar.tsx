@@ -1,8 +1,9 @@
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { Box, Group, Text } from '@mantine/core';
+import { Box, Group, Menu, Text } from '@mantine/core';
 import { FileTextIcon, FolderIcon, PlusIcon, XIcon } from 'lucide-react';
+import { useState } from 'react';
 import styles from './FileTabBar.module.css';
 
 interface FileTabBarProps {
@@ -14,10 +15,15 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
+  const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
   const setActiveFileTab = useWorkbookEditorUIStore((state) => state.setActiveFileTab);
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const { files } = useFileList(workbook?.id ?? null);
+
+  // Context menu state
+  const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
   // We rely on openFileTabs, not files validation, to show tabs.
   // files might be undefined during refresh or initial load, but tabs should persist.
@@ -48,6 +54,58 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
     });
   };
 
+  // Context menu handlers
+  const handleCloseAllTabs = () => {
+    const allTabIds = openFileTabs.map((tab) => tab.id);
+    closeFileTabs(allTabIds);
+    setActiveCells({
+      recordId: undefined,
+      columnId: activeCells?.columnId,
+      viewType: 'md',
+    });
+  };
+
+  const handleCloseOtherTabs = (tabId: string) => {
+    const otherTabIds = openFileTabs.filter((tab) => tab.id !== tabId).map((tab) => tab.id);
+    closeFileTabs(otherTabIds);
+    // Update activeCells to the remaining tab
+    setActiveCells({
+      recordId: tabId,
+      columnId: activeCells?.columnId,
+      viewType: 'md',
+    });
+  };
+
+  const handleCloseTabsToRight = (tabId: string) => {
+    const tabIndex = openFileTabs.findIndex((tab) => tab.id === tabId);
+    if (tabIndex === -1 || tabIndex === openFileTabs.length - 1) return;
+
+    const tabsToClose = openFileTabs.slice(tabIndex + 1).map((tab) => tab.id);
+    closeFileTabs(tabsToClose);
+    // Update activeCells if needed
+    const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
+    setActiveCells({
+      recordId: newActiveId ?? undefined,
+      columnId: activeCells?.columnId,
+      viewType: 'md',
+    });
+  };
+
+  const handleCloseTabsToLeft = (tabId: string) => {
+    const tabIndex = openFileTabs.findIndex((tab) => tab.id === tabId);
+    if (tabIndex === -1 || tabIndex === 0) return;
+
+    const tabsToClose = openFileTabs.slice(0, tabIndex).map((tab) => tab.id);
+    closeFileTabs(tabsToClose);
+    // Update activeCells if needed
+    const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
+    setActiveCells({
+      recordId: newActiveId ?? undefined,
+      columnId: activeCells?.columnId,
+      viewType: 'md',
+    });
+  };
+
   return (
     <Group
       gap={0}
@@ -58,7 +116,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
         borderBottom: '0.5px solid var(--fg-divider)',
       }}
     >
-      {openFileTabs.map((tab) => {
+      {openFileTabs.map((tab, index) => {
         const isFolder = tab.type === 'folder';
         const isActiveTab = activeFileTabId === tab.id;
 
@@ -68,51 +126,88 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
         // We want to use the up to date file name when possible, but fallback to the tab title or id if not available
         const tabLabel = tabFile?.name || tab.title || tab.id;
 
+        const handleContextMenu = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuPosition({ x: e.clientX, y: e.clientY });
+          setContextMenuTabId(tab.id);
+        };
+
         return (
-          <Group
-            key={tab.id}
-            gap={4}
-            px="sm"
-            h={36}
-            wrap="nowrap"
-            onClick={() => handleTabClick(tab.id)}
-            style={{
-              cursor: 'pointer',
-              borderRight: '1px solid var(--fg-divider)',
-              backgroundColor: isActiveTab ? 'var(--bg-base)' : 'var(--bg-surface)',
-              borderBottom: isActiveTab ? '2px solid var(--mantine-color-blue-6)' : 'none',
-              flexShrink: 0,
-              minWidth: 'fit-content',
-            }}
-          >
-            {isFolder ? (
-              <FolderIcon size={12} color="var(--fg-secondary)" />
-            ) : tab.type === 'add-table' ? (
-              <PlusIcon size={12} color="var(--fg-secondary)" />
-            ) : (
-              <FileTextIcon size={12} color="var(--fg-secondary)" />
-            )}
-            <Text size="xs" truncate style={{ maxWidth: '120px' }}>
-              {tabLabel}
-            </Text>
-            <Box
-              onClick={(e) => handleTabClose(tab.id, e)}
+          <>
+            <Group
+              key={tab.id}
+              gap={4}
+              px="sm"
+              h={36}
+              wrap="nowrap"
+              onClick={() => handleTabClick(tab.id)}
+              onContextMenu={handleContextMenu}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '2px',
-                borderRadius: '2px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                cursor: 'pointer',
+                borderRight: '1px solid var(--fg-divider)',
+                backgroundColor: isActiveTab ? 'var(--bg-base)' : 'var(--bg-surface)',
+                borderBottom: isActiveTab ? '2px solid var(--mantine-color-blue-6)' : 'none',
+                flexShrink: 0,
+                minWidth: 'fit-content',
               }}
             >
-              <XIcon size={12} color="var(--fg-secondary)" />
-            </Box>
-          </Group>
+              {isFolder ? (
+                <FolderIcon size={12} color="var(--fg-secondary)" />
+              ) : tab.type === 'add-table' ? (
+                <PlusIcon size={12} color="var(--fg-secondary)" />
+              ) : (
+                <FileTextIcon size={12} color="var(--fg-secondary)" />
+              )}
+              <Text size="xs" truncate style={{ maxWidth: '120px' }}>
+                {tabLabel}
+              </Text>
+              <Box
+                onClick={(e) => handleTabClose(tab.id, e)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px',
+                  borderRadius: '2px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <XIcon size={12} color="var(--fg-secondary)" />
+              </Box>
+            </Group>
+            {contextMenuTabId === tab.id && (
+              <Menu
+                opened={contextMenuTabId === tab.id}
+                onChange={(opened) => !opened && setContextMenuTabId(null)}
+                position="bottom-start"
+                withinPortal
+              >
+                <Menu.Target>
+                  <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item onClick={handleCloseAllTabs}>Close all</Menu.Item>
+                  <Menu.Item onClick={() => handleCloseOtherTabs(tab.id)} disabled={openFileTabs.length === 1}>
+                    Close others
+                  </Menu.Item>
+                  <Menu.Item onClick={() => handleCloseTabsToLeft(tab.id)} disabled={index === 0}>
+                    Close all to the left
+                  </Menu.Item>
+                  <Menu.Item
+                    onClick={() => handleCloseTabsToRight(tab.id)}
+                    disabled={index === openFileTabs.length - 1}
+                  >
+                    Close all to the right
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
+          </>
         );
       })}
     </Group>

@@ -105,6 +105,7 @@ type Actions = {
   // File tab management
   openFileTab: (tab: FileTab) => void;
   closeFileTab: (tabId: string) => void;
+  closeFileTabs: (tabIds: string[]) => void;
   setActiveFileTab: (tabId: string | null) => void;
 
   openDevTools: () => void;
@@ -207,6 +208,47 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
       if (newOpenFileTabs.length > 0) {
         // Switch to previous tab or first tab
         newActiveFileTabId = newOpenFileTabs[Math.max(0, currentIndex - 1)].id;
+      } else {
+        newActiveFileTabId = null;
+      }
+    }
+
+    set({ openFileTabs: newOpenFileTabs, activeFileTabId: newActiveFileTabId });
+  },
+
+  closeFileTabs: (tabIds: string[]) => {
+    const current = get();
+    const tabIdsSet = new Set(tabIds);
+    const newOpenFileTabs = current.openFileTabs.filter((t) => !tabIdsSet.has(t.id));
+    let newActiveFileTabId = current.activeFileTabId;
+
+    // If closing the active tab, switch to another tab
+    if (current.activeFileTabId && tabIdsSet.has(current.activeFileTabId)) {
+      if (newOpenFileTabs.length > 0) {
+        // Find the index of the active tab in the original list
+        const currentIndex = current.openFileTabs.findIndex((t) => t.id === current.activeFileTabId);
+        // Find the nearest remaining tab
+        let nearestTab = null;
+
+        // Look for the next tab after the current one that's not being closed
+        for (let i = currentIndex + 1; i < current.openFileTabs.length; i++) {
+          if (!tabIdsSet.has(current.openFileTabs[i].id)) {
+            nearestTab = current.openFileTabs[i];
+            break;
+          }
+        }
+
+        // If no next tab, look for the previous tab
+        if (!nearestTab) {
+          for (let i = currentIndex - 1; i >= 0; i--) {
+            if (!tabIdsSet.has(current.openFileTabs[i].id)) {
+              nearestTab = current.openFileTabs[i];
+              break;
+            }
+          }
+        }
+
+        newActiveFileTabId = nearestTab ? nearestTab.id : newOpenFileTabs[0].id;
       } else {
         newActiveFileTabId = null;
       }
