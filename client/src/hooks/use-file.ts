@@ -27,6 +27,7 @@ export const useFile = (workbookId: WorkbookId | null, fileId: FileId | null): U
     () => (workbookId && fileId ? filesApi.getFile(workbookId, fileId) : undefined),
     {
       revalidateOnFocus: false,
+      keepPreviousData: true,
     },
   );
 

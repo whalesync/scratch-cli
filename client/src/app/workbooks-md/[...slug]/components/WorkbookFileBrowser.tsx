@@ -12,6 +12,7 @@ import {
   Box,
   Button,
   Group,
+  Loader,
   Menu,
   Modal,
   ScrollArea,
@@ -648,8 +649,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   // State for move file modal
   const [moveFileIds, setMoveFileIds] = useState<FileId[] | null>(null);
 
-  // State to force tree re-render for collapse all
-  const [treeKey, setTreeKey] = useState(0);
+  // Controlled expansion state
+  const [openIds, setOpenIds] = useState<(string | number)[]>([WORKBOOK_ROOT_ID]);
 
   // State for confirmation modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -1218,7 +1219,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
 
             <Tooltip label="Collapse All" openDelay={500}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setTreeKey((k) => k + 1)}>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setOpenIds([WORKBOOK_ROOT_ID])}>
                 <CopyMinusIcon size={14} />
               </ActionIcon>
             </Tooltip>
@@ -1232,11 +1233,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
         <ScrollArea style={{ flex: 1 }}>
           <Stack gap={0} p="xs">
-            {isLoading && (
-              <Box pl={18} py="xs">
-                <Text size="xs" c="dimmed">
-                  Loading files...
-                </Text>
+            {isLoading && treeData.length === 0 && (
+              <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                <Loader color="gray" size="sm" />
               </Box>
             )}
             {!isLoading && treeData.length === 0 && (
@@ -1246,12 +1245,12 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                 </Text>
               </Box>
             )}
-            {!isLoading && treeData.length > 0 && (
+            {treeData.length > 0 && (
               <Tree
-                key={treeKey}
-                initialOpen={[WORKBOOK_ROOT_ID]}
                 tree={treeData}
                 rootId={0}
+                initialOpen={openIds}
+                onChangeOpen={(newOpenIds: (string | number)[]) => setOpenIds(newOpenIds)}
                 extraAcceptTypes={[NativeTypes.FILE]}
                 onDrop={handleDrop}
                 onDragStart={handleDragStart}

@@ -13,7 +13,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type ViewMode = 'original' | 'original-current' | 'current' | 'current-suggested' | 'suggested';
 
-
 interface FileEditorProps {
   workbookId: WorkbookId;
   fileId: FileId | null;
@@ -154,7 +153,8 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     );
   }
 
-  if (isLoading) {
+  // Don't show full page loader if we are just saving changes
+  if (isLoading && !fileResponse && !isSaving) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Text c="dimmed">Loading file...</Text>
@@ -162,7 +162,7 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     );
   }
 
-  if (!fileResponse) {
+  if (!fileResponse && !isSaving) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Text c="dimmed">File not found</Text>
@@ -249,7 +249,6 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
           }}
         />
       </Box>
-
     </Box>
   );
 }

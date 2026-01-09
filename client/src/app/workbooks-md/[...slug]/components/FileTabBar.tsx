@@ -19,7 +19,9 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const { files } = useFileList(workbook?.id ?? null);
 
-  if (openFileTabs.length === 0 || !files) {
+  // We rely on openFileTabs, not files validation, to show tabs.
+  // files might be undefined during refresh or initial load, but tabs should persist.
+  if (openFileTabs.length === 0) {
     return null;
   }
 
@@ -49,7 +51,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
   return (
     <Group
       gap={0}
-      h={32}
+      h={36}
       wrap="nowrap"
       className={styles.tabBarContainer}
       style={{
@@ -61,7 +63,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
         const isActiveTab = activeFileTabId === tab.id;
 
         // get the actual file or folder for the tab
-        const tabFile = files.items.find((f) => f.id === tab.id);
+        const tabFile = files?.items.find((f) => f.id === tab.id);
 
         // We want to use the up to date file name when possible, but fallback to the tab title or id if not available
         const tabLabel = tabFile?.name || tab.title || tab.id;
@@ -71,7 +73,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
             key={tab.id}
             gap={4}
             px="sm"
-            h={32}
+            h={36}
             wrap="nowrap"
             onClick={() => handleTabClick(tab.id)}
             style={{
