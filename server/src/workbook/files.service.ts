@@ -89,6 +89,7 @@ export class FilesService {
       name: f.name,
       parentFolderId: (f.folder_id || null) as FolderId | null,
       path: f.path,
+      dirty: f.dirty,
     }));
 
     // Combine and return

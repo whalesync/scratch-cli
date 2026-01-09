@@ -16,6 +16,8 @@ export interface FileRefEntity {
   parentFolderId: FolderId | null;
   /** Full path of the file, e.g. "/folder/file.md" */
   path: string;
+  /** Whether the file has unpublished changes */
+  dirty?: boolean;
 }
 
 /**

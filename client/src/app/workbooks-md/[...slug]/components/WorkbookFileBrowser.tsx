@@ -76,6 +76,7 @@ interface TreeNodeData {
   isFolder: boolean;
   isWorkbookRoot?: boolean;
   connectorService?: Service | null;
+  dirty?: boolean;
 }
 
 interface TreeNodeRendererProps {
@@ -109,6 +110,7 @@ interface TreeNodeRendererProps {
   areAllSelectedFiles: boolean;
   onBulkDelete: () => void;
   onBulkMove: () => void;
+  treeData: NodeModel<TreeNodeData>[];
 }
 
 function TreeNodeRenderer({
@@ -138,6 +140,7 @@ function TreeNodeRenderer({
   areAllSelectedFiles,
   onBulkDelete,
   onBulkMove,
+  treeData,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -147,6 +150,37 @@ function TreeNodeRenderer({
   const indent = depth * 18;
   const showDropHighlight = isDropTarget;
   const canShowContextMenu = isSelected;
+
+  // Check if this node has unpublished changes
+  const hasUnpublishedChanges = (() => {
+    // For files, use the dirty flag directly from the file entity
+    if (nodeData.isFile) {
+      return nodeData.dirty === true;
+    }
+
+    // For folders, check if any child file has the dirty flag
+    // This includes direct children and all descendants
+    const hasDirtyDescendant = (folderId: string): boolean => {
+      return treeData.some((n) => {
+        // Check if this node is a child of the folder
+        if (n.parent !== folderId) return false;
+
+        // If it's a file and dirty, return true
+        if (n.data?.isFile && n.data?.dirty === true) {
+          return true;
+        }
+
+        // If it's a folder, recursively check its children
+        if (n.data?.isFolder) {
+          return hasDirtyDescendant(n.id as string);
+        }
+
+        return false;
+      });
+    };
+
+    return hasDirtyDescendant(nodeData.id);
+  })();
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -251,6 +285,17 @@ function TreeNodeRenderer({
             border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
           }}
         >
+          {hasUnpublishedChanges && (
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--mantine-color-yellow-6)',
+                flexShrink: 0,
+              }}
+            />
+          )}
           <Box
             data-chevron
             onClick={handleChevronClick}
@@ -271,6 +316,7 @@ function TreeNodeRenderer({
               style={{ flexShrink: 0 }}
             />
           )}
+
           <Text
             size="sm"
             c={
@@ -400,6 +446,17 @@ function TreeNodeRenderer({
           }}
         >
           <Box w={14} style={{ flexShrink: 0 }} />
+          {hasUnpublishedChanges && (
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--mantine-color-yellow-6)',
+                flexShrink: 0,
+              }}
+            />
+          )}
           <FileTextIcon size={12} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
           <Text
             size="sm"
@@ -556,6 +613,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         path: entity.path,
         isFile: true,
         isFolder: false,
+        dirty: entity.dirty,
       },
     };
   }
@@ -567,10 +625,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
-
   // Use the file list hook
   const { files, isLoading, refreshFiles } = useFileList(workbook?.id ?? null);
-
   // Local state for tree data (required for drag-and-drop to work)
   const [treeData, setTreeData] = useState<NodeModel<TreeNodeData>[]>([]);
 
@@ -1298,6 +1354,26 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     );
                   }
 
+                  // Check if this node has unpublished changes
+                  const hasUnpublishedChanges = (() => {
+                    // For files, use the dirty flag directly from the file entity
+                    if (monitorProps.item.data?.isFile) {
+                      return monitorProps.item.data?.dirty === true;
+                    }
+
+                    // For folders, check if any child file has the dirty flag
+                    const hasDirtyDescendant = (folderId: string): boolean => {
+                      return treeData.some((n) => {
+                        if (n.parent !== folderId) return false;
+                        if (n.data?.isFile && n.data?.dirty === true) return true;
+                        if (n.data?.isFolder) return hasDirtyDescendant(n.id as string);
+                        return false;
+                      });
+                    };
+
+                    return hasDirtyDescendant(monitorProps.item.id as string);
+                  })();
+
                   return (
                     <div
                       style={{
@@ -1313,6 +1389,17 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                         color: 'var(--fg-primary)',
                       }}
                     >
+                      {hasUnpublishedChanges && (
+                        <div
+                          style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--mantine-color-yellow-6)',
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
                       {monitorProps.item.data?.isFile ? (
                         <FileTextIcon size={16} color="var(--fg-secondary)" />
                       ) : monitorProps.item.data?.connectorService ? (
@@ -1355,6 +1442,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     }
                     onBulkDelete={handleBulkDelete}
                     onBulkMove={handleBulkMove}
+                    treeData={treeData}
                   />
                 )}
               />
