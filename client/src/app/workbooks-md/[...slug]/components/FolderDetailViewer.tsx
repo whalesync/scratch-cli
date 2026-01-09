@@ -215,8 +215,8 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
   };
 
   const handleFileClick = useCallback(
-    (fileId: FileId, fileName: string) => {
-      openFileTab({ id: fileId, type: 'file', title: fileName });
+    (fileId: FileId, fileName: string, filePath: string) => {
+      openFileTab({ id: fileId, type: 'file', title: fileName, path: filePath });
     },
     [openFileTab],
   );
@@ -256,6 +256,7 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
       id: file.ref.id,
       fileName: file.ref.name,
       fileId: file.ref.id as FileId,
+      filePath: file.ref.path,
       updatedAt: file.updatedAt,
       createdAt: file.createdAt,
       metadata: file.metadata,
@@ -326,7 +327,7 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
           stopEditingWhenCellsLoseFocus={false}
           onRowClicked={(event: RowClickedEvent) => {
             if (event.data?.fileId) {
-              handleFileClick(event.data.fileId, event.data.fileName);
+              handleFileClick(event.data.fileId, event.data.fileName, event.data.filePath);
             }
           }}
         />

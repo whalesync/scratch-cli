@@ -109,7 +109,7 @@ interface TreeNodeRendererProps {
     modifiers: { shift: boolean; ctrl: boolean; meta: boolean },
     shouldOpen?: boolean,
   ) => void;
-  onFileDoubleClick: (fileId: FileId, fileName: string) => void;
+  onFileDoubleClick: (fileId: FileId, fileName: string, filePath: string) => void;
   onFileRename: (fileId: FileId, currentName: string) => void;
   onFileDelete: (fileId: FileId) => void;
   onFileDownload: (fileId: FileId) => void;
@@ -480,7 +480,7 @@ function TreeNodeRenderer({
           gap="xs"
           wrap="nowrap"
           onClick={handleNodeClick}
-          onDoubleClick={() => onFileDoubleClick(nodeData.id as FileId, nodeData.name)}
+          onDoubleClick={() => onFileDoubleClick(nodeData.id as FileId, nodeData.name, nodeData.path)}
           onContextMenu={handleContextMenu}
           bg={isSelected ? 'var(--bg-selected)' : 'transparent'}
           className={styles.treeNode}
@@ -761,7 +761,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
       // Also open if it's a file
       const node = treeData.find((n) => n.id === nodeId);
       if (node?.data?.isFile) {
-        openFileTab({ id: nodeId as FileId, type: 'file', title: node.data.name });
+        openFileTab({ id: nodeId as FileId, type: 'file', title: node.data.name, path: node.data.path });
 
         // Also set active cells for compatibility
         setActiveCells({
@@ -770,7 +770,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           viewType: 'md',
         });
       } else if (node?.data?.isFolder) {
-        openFileTab({ id: nodeId as FolderId, type: 'folder', title: node.data.name });
+        openFileTab({ id: nodeId as FolderId, type: 'folder', title: node.data.name, path: node.data.path });
       }
     },
     [treeData, openFileTab, setActiveCells, activeCells],
@@ -838,9 +838,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   );
 
   const handleFileDoubleClick = useCallback(
-    (fileId: FileId, fileName: string) => {
+    (fileId: FileId, fileName: string, filePath: string) => {
       // Add to open tabs if not already open, and set as active
-      openFileTab({ id: fileId, type: 'file', title: fileName });
+      openFileTab({ id: fileId, type: 'file', title: fileName, path: filePath });
 
       // Update activeCells for compatibility
       setActiveCells({
@@ -1089,6 +1089,16 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     if (!workbook || selectedNodes.size === 0) return;
     const count = selectedNodes.size;
     const nodesToDelete = Array.from(selectedNodes);
+
+    // Collect paths of items to delete BEFORE deletion (while tree data still exists)
+    const deletedPaths: { path: string; isFolder: boolean }[] = [];
+    nodesToDelete.forEach((id) => {
+      const node = treeData.find((n) => n.id === id);
+      if (node?.data?.path) {
+        deletedPaths.push({ path: node.data.path, isFolder: !!node.data.isFolder });
+      }
+    });
+
     setConfirmModal({
       title: 'Delete Items',
       message: `Are you sure you want to delete ${count} item${count > 1 ? 's' : ''}?`,
@@ -1104,6 +1114,27 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             }
           });
           await Promise.all(promises);
+
+          // Close tabs for deleted items and their contents
+          const openFileTabs = useWorkbookEditorUIStore.getState().openFileTabs;
+          const closeFileTabs = useWorkbookEditorUIStore.getState().closeFileTabs;
+
+          const tabsToClose = openFileTabs.filter((tab) => {
+            return deletedPaths.some(({ path, isFolder }) => {
+              if (isFolder) {
+                // For folders, close tabs that match the folder or are under it
+                return tab.path === path || tab.path.startsWith(path + '/');
+              } else {
+                // For files, close tabs that match exactly
+                return tab.path === path;
+              }
+            });
+          });
+
+          if (tabsToClose.length > 0) {
+            closeFileTabs(tabsToClose.map((t) => t.id));
+          }
+
           await refreshFiles();
         } catch (error) {
           console.error('Failed to delete items:', error);
@@ -1134,12 +1165,31 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const handleFolderDelete = useCallback(
     (folderId: FolderId) => {
       if (!workbook) return;
+
+      // Get the folder path BEFORE deletion (while tree data still exists)
+      const folderPath = getNodePath(folderId);
+
       setConfirmModal({
         title: 'Delete Folder',
         message: 'Are you sure you want to delete this folder and all its contents?',
         onConfirm: async () => {
           try {
             await foldersApi.deleteFolder(workbook.id, folderId);
+
+            // Close tabs for deleted folder and all contents
+            const openFileTabs = useWorkbookEditorUIStore.getState().openFileTabs;
+            const closeFileTabs = useWorkbookEditorUIStore.getState().closeFileTabs;
+
+            // Find tabs whose path starts with the deleted folder's path
+            const tabsToClose = openFileTabs.filter((tab) => {
+              // Match: folder itself, or anything under it (folderPath + "/")
+              return tab.path === folderPath || tab.path.startsWith(folderPath + '/');
+            });
+
+            if (tabsToClose.length > 0) {
+              closeFileTabs(tabsToClose.map((t) => t.id));
+            }
+
             await refreshFiles();
           } catch (error) {
             console.error('Failed to delete folder:', error);
@@ -1148,7 +1198,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         },
       });
     },
-    [workbook, refreshFiles],
+    [workbook, refreshFiles, getNodePath],
   );
 
   const handleFolderDownload = useCallback(
@@ -1175,6 +1225,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             id: fileNode.id as FileId,
             type: 'file',
             title: fileNode.data.name,
+            path: fileNode.data.path,
           });
         }
       });
@@ -1330,7 +1381,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                 variant="subtle"
                 color="gray"
                 size="sm"
-                onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table' })}
+                onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table', path: '' })}
               >
                 <FolderSyncIcon size={14} />
               </ActionIcon>

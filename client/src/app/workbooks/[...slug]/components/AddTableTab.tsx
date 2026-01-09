@@ -121,13 +121,13 @@ export const AddTableTab = () => {
     // Automatically add the table when selected
     try {
       setIsCreatingTable(true);
-      const snapshotTableId = await addTable(table.id, group.service, group.connectorAccountId ?? undefined);
+      const snapshotTable = await addTable(table.id, group.service, group.connectorAccountId ?? undefined);
 
       if (workbookMode === 'files') {
-        openFileTab({ id: snapshotTableId, type: 'folder', title: table.displayName });
+        openFileTab({ id: snapshotTable.id, type: 'folder', title: table.displayName, path: snapshotTable.path ?? `/${table.displayName}` });
         closeFileTab('add-table');
       } else {
-        setActiveTab(snapshotTableId);
+        setActiveTab(snapshotTable.id);
         closeNewTabs();
       }
     } catch (error) {

@@ -27,6 +27,7 @@ export interface FileTab {
   id: string; // FileId or FolderId
   type: 'file' | 'folder' | 'add-table';
   title: string;
+  path: string; // Full path for determining hierarchy (e.g., closing tabs when parent folder deleted)
 }
 
 export type ActiveCells = {

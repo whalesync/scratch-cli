@@ -7,6 +7,7 @@ import {
   EntityId,
   Service,
   SnapshotColumnSettingsMap,
+  SnapshotTable,
   SnapshotTableId,
   Workbook,
   WorkbookId,
@@ -30,7 +31,7 @@ export interface UseWorkbookReturn {
   hideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   unhideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   showAllColumns: (tableId: SnapshotTableId) => Promise<void>;
-  addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTableId>;
+  addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTable>;
 }
 
 export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
@@ -195,7 +196,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
   );
 
   const addTable = useCallback(
-    async (tableId: EntityId, service: Service, connectorAccountId?: string): Promise<SnapshotTableId> => {
+    async (tableId: EntityId, service: Service, connectorAccountId?: string): Promise<SnapshotTable> => {
       if (!id) {
         throw new Error('Workbook not found');
       }
@@ -203,7 +204,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       const dto: AddTableToWorkbookDto = { tableId, service, connectorAccountId };
       const snapshotTable = await workbookApi.addTable(id, dto);
       await mutate();
-      return snapshotTable.id;
+      return snapshotTable;
     },
     [id, mutate],
   );
