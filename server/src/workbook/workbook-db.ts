@@ -691,18 +691,23 @@ export class WorkbookDb {
   }
 
   /**
-   * Updates the remote ID for a file.
+   * Updates the remote ID, name, and path for a file after publishing.
+   * Sets original to current content so future edits are recognized as updates, not creates.
    * Also marks the file as clean (not dirty).
    *
    * @param workbookId - The workbook ID
    * @param fileId - The file ID to update
    * @param remoteId - The remote ID from the connector
+   * @param fileName - The new file name
+   * @param filePath - The new file path
    * @param trx - Optional Knex transaction. If not provided, uses knex directly
    */
-  async updateFileRemoteId(
+  async updateFileAfterPublishing(
     workbookId: WorkbookId,
     fileId: FileId,
     remoteId: string,
+    fileName: string,
+    filePath: string,
     trx?: Knex.Transaction,
   ): Promise<void> {
     const db = trx || this.getKnex();
@@ -711,6 +716,9 @@ export class WorkbookDb {
       .where(FILE_ID_COLUMN, fileId)
       .update({
         [REMOTE_ID_COLUMN]: remoteId,
+        [FILE_NAME_COLUMN]: fileName,
+        [PATH_COLUMN]: filePath,
+        [ORIGINAL_COLUMN]: db.raw('??', [CONTENT_COLUMN]),
         [DIRTY_COLUMN]: false,
       });
   }
