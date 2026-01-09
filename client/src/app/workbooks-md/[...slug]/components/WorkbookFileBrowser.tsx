@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NativeTypes } from 'react-dnd-html5-backend';
+import { countMarkdownFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
 import { FolderPickerModal } from './FolderPickerModal';
 import styles from './WorkbookFileBrowser.module.css';
 
@@ -52,6 +53,12 @@ interface NodeInfoData {
   name: string;
   path: string;
   type: 'file' | 'folder';
+  parentFolderId?: string | null;
+}
+
+interface DragItemWithItems {
+  files?: File[];
+  items?: DataTransferItemList;
 }
 
 type InputModalType =
@@ -230,6 +237,7 @@ function TreeNodeRenderer({
       name: nodeData.name,
       path: getNodePath(nodeData.id),
       type: nodeData.isFile ? 'file' : 'folder',
+      parentFolderId: nodeData.parentFolderId,
     });
   };
 
@@ -657,6 +665,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     title: string;
     message: string;
     onConfirm: () => void;
+    confirmText?: string;
+    confirmColor?: string;
+    hideCancel?: boolean;
   } | null>(null);
 
   // Sync server data to local state
@@ -811,9 +822,47 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     // Handle external file drops
     const itemType = monitor.getItemType();
     if (itemType === NativeTypes.FILE) {
-      const files = monitor.getItem().files as File[];
+      const item = monitor.getItem() as DragItemWithItems;
       const targetFolderId = dropTargetId === WORKBOOK_ROOT_ID ? null : (dropTargetId as FolderId);
-      await handleExternalFileDrop(targetFolderId, files as FileWithPath[]);
+
+      // Check if we have DataTransferItems to support folder structure scanning
+      if (item.items) {
+        try {
+          // Scan the dropped items (files and folders)
+          const pendingItems = await scanDataTransferItems(item.items);
+          const mdCount = countMarkdownFiles(pendingItems);
+
+          if (mdCount === 0) {
+            setConfirmModal({
+              title: 'Upload Failed',
+              message: 'No markdown files found in the uploaded folder(s). Only .md files are supported.',
+              onConfirm: () => setConfirmModal(null),
+              confirmText: 'OK',
+              confirmColor: 'blue',
+              hideCancel: true,
+            });
+            return;
+          }
+
+          // Upload the structure
+          await uploadStructure(workbook.id, pendingItems, targetFolderId);
+          await refreshFiles();
+        } catch (error) {
+          console.error('Failed to upload folder structure:', error);
+          setConfirmModal({
+            title: 'Upload Error',
+            message: 'An error occurred while uploading. Please try again.',
+            onConfirm: () => setConfirmModal(null),
+            confirmText: 'OK',
+            confirmColor: 'red',
+            hideCancel: true,
+          });
+        }
+      } else {
+        // Fallback for flat files (legacy behavior)
+        const files = item.files as File[];
+        await handleExternalFileDrop(targetFolderId, files as FileWithPath[]);
+      }
       return;
     }
 
@@ -1483,6 +1532,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                 {infoModalData.path}
               </Text>
             </Group>
+            <Group align="flex-start" wrap="nowrap">
+              <Text fw={500} size="sm" w={60} style={{ flexShrink: 0 }}>
+                Parent ID:
+              </Text>
+              <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {infoModalData.parentFolderId ?? 'null (root)'}
+              </Text>
+            </Group>
           </Stack>
         )}
       </Modal>
@@ -1552,11 +1609,13 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         <Stack gap="md">
           <Text size="sm">{confirmModal?.message}</Text>
           <Group justify="flex-end" gap="sm">
-            <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={confirmModal?.onConfirm}>
-              Delete
+            {!confirmModal?.hideCancel && (
+              <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
+                Cancel
+              </Button>
+            )}
+            <Button color={confirmModal?.confirmColor ?? 'red'} onClick={confirmModal?.onConfirm}>
+              {confirmModal?.confirmText ?? 'Delete'}
             </Button>
           </Group>
         </Stack>
