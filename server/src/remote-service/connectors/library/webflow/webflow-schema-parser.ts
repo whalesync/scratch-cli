@@ -40,22 +40,22 @@ export class WebflowSchemaParser {
     const nameField = collection.fields.find((f) => f.slug === 'name');
     const titleColumnSlug: string[] | undefined = nameField && nameField.slug ? [nameField.slug] : undefined;
 
-    let mainContentColumnRemoteId: string[] | undefined;
     let titleColumnRemoteId: string[] | undefined;
 
     // Parse all collection fields
     const columns = collection.fields.map((field) => {
-      // Find the RichText field which is typically the main content column
-      // TODO: Improve this to prioritize the main content column based on keywods in the field name. e.g. content, body, etc.
       const column = this.parseColumn(field, titleColumnSlug?.[0]);
-      if (column.webflowFieldType === Webflow.FieldType.RichText) {
-        mainContentColumnRemoteId = column.id.remoteId;
-      }
       if (column.slug === titleColumnSlug?.[0]) {
         titleColumnRemoteId = column.id.remoteId;
       }
       return column;
     });
+
+    // Discover the main content column with priority:
+    // 1. First RichText field
+    // 2. PlainText field with content-related name (content, body, description, etc.)
+    // 3. First non-title PlainText field
+    const mainContentColumnRemoteId = this.discoverMainContentColumn(columns, titleColumnSlug?.[0]);
 
     // Add predefined metadata columns (readonly)
     columns.push(
@@ -140,6 +140,43 @@ export class WebflowSchemaParser {
       dataConverterTypes,
       webflowFieldType: field.type,
     };
+  }
+
+  /**
+   * Discovers the main content column with the following priority:
+   * 1. First RichText field (best for formatted content)
+   * 2. PlainText field with content-related name (content, body, description, etc.)
+   * 3. First non-title PlainText field as fallback
+   */
+  private discoverMainContentColumn(columns: WebflowColumnSpec[], titleColumnSlug?: string): string[] | undefined {
+    // Priority 1: First RichText field
+    const richTextField = columns.find((col) => col.webflowFieldType === Webflow.FieldType.RichText);
+    if (richTextField) {
+      return richTextField.id.remoteId;
+    }
+
+    // Priority 2: PlainText field with content-related name
+    const contentKeywords = ['content', 'body', 'description', 'summary', 'excerpt', 'bio', 'about', 'text', 'details'];
+    const namedContentField = columns.find(
+      (col) =>
+        col.webflowFieldType === Webflow.FieldType.PlainText &&
+        col.slug !== titleColumnSlug &&
+        col.slug &&
+        contentKeywords.some((keyword) => col.slug!.toLowerCase().includes(keyword)),
+    );
+    if (namedContentField) {
+      return namedContentField.id.remoteId;
+    }
+
+    // Priority 3: First non-title PlainText field
+    const fallbackTextField = columns.find(
+      (col) => col.webflowFieldType === Webflow.FieldType.PlainText && col.slug !== titleColumnSlug,
+    );
+    if (fallbackTextField) {
+      return fallbackTextField.id.remoteId;
+    }
+
+    return undefined;
   }
 
   private mapFieldTypeToPgType(field: Webflow.Field): {
