@@ -224,8 +224,10 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
 
   const connectorListFromFlags = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
 
-  // For admins show all services.
-  const availableServices = isAdmin ? [...connectorListFromFlags, ...INTERNAL_SERVICES] : connectorListFromFlags;
+  // For admins show all services. Dedupe in case of overlap between flags and internal services.
+  const availableServices = isAdmin
+    ? [...new Set([...connectorListFromFlags, ...INTERNAL_SERVICES])]
+    : connectorListFromFlags;
   return (
     <ModalWrapper
       title="Create Connection"
