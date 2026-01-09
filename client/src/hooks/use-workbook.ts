@@ -31,7 +31,6 @@ export interface UseWorkbookReturn {
   unhideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   showAllColumns: (tableId: SnapshotTableId) => Promise<void>;
   addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTableId>;
-  addSampleTable: () => Promise<SnapshotTableId>;
 }
 
 export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
@@ -209,16 +208,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     [id, mutate],
   );
 
-  const addSampleTable = useCallback(async (): Promise<SnapshotTableId> => {
-    if (!id) {
-      throw new Error('Workbook not found');
-    }
-
-    const snapshotTable = await workbookApi.addSampleTable(id);
-    await mutate();
-    return snapshotTable.id;
-  }, [id, mutate]);
-
   return {
     workbook: data,
     isLoading,
@@ -235,6 +224,5 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     unhideColumn,
     showAllColumns,
     addTable,
-    addSampleTable,
   };
 };

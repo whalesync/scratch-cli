@@ -6,7 +6,6 @@ import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
-import { UploadsModule } from 'src/uploads/uploads.module';
 import { UserModule } from 'src/users/users.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
@@ -38,7 +37,6 @@ import { FolderService } from './folder.service';
     WorkerEnqueuerModule,
     SnapshotDbModule,
     WorkbookDbModule,
-    UploadsModule,
     AuditLogModule,
   ],
   controllers: [

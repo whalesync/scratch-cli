@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSecondaryOutline, ButtonWithDescription, IconButtonInline } from '@/app/components/base/buttons';
-import { Text13Book, Text13Medium, Text13Regular, TextMono12Regular } from '@/app/components/base/text';
+import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/buttons';
+import { Text13Book, Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
@@ -11,14 +11,12 @@ import {
 } from '@/app/components/modals/GenericDeleteConfirmationModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useAllTables } from '@/hooks/use-all-tables';
-import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { TableGroup } from '@/types/server-entities/table-list';
 import { timeAgo } from '@/utils/helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   Center,
-  Divider,
   Group,
   Loader,
   RenderTreeNodePayload,
@@ -30,10 +28,9 @@ import {
   useModalsStack,
   useTree,
 } from '@mantine/core';
-import { EntityId, Service, SnapshotTable, SnapshotTableId } from '@spinner/shared-types';
+import { EntityId, SnapshotTable, SnapshotTableId } from '@spinner/shared-types';
 import cx from 'classnames';
 import {
-  ArrowRightIcon,
   ChevronDown,
   ChevronRight,
   CloudDownload,
@@ -45,7 +42,6 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
-import { UploadFileModal } from '../../../components/modals/UploadFileModal';
 import { CreateConnectionModal } from '../../../data-sources/components/CreateConnectionModal';
 import styles from './AddTableTab.module.css';
 
@@ -63,14 +59,12 @@ function createGroupKey(group: TableGroup) {
 }
 
 export const AddTableTab = () => {
-  const { workbook, addTable, addSampleTable, unhideTable, deleteTable } = useActiveWorkbook();
-  // const { uploads, isLoading: loadingUploads, mutate: mutateUploads } = useUploads();
+  const { workbook, addTable, unhideTable, deleteTable } = useActiveWorkbook();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
   const deleteTableModal = useDeleteConfirmationModal<SnapshotTableId>();
-  const modalStack = useModalsStack(['create', 'upload']);
-  const { markStepCompleted } = useOnboardingUpdate();
+  const modalStack = useModalsStack(['create']);
   const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
@@ -78,29 +72,8 @@ export const AddTableTab = () => {
   const tree = useTree();
 
   const [searchQuery, setSearchQuery] = useState('');
-  // const [selectedTableId, setSelectedTableId] = useState<EntityId | null>(null);
   const [refreshingGroups, setRefreshingGroups] = useState<Record<string, boolean>>({});
   const [isCreatingTable, setIsCreatingTable] = useState(false);
-
-  // Transform CSV uploads into a TableGroup
-  // https://linear.app/whalesync/issue/DEV-9228/remove-some-unused-ui
-  // const csvGroup = useMemo((): TableGroup | null => {
-  //   const csvUploads = uploads.filter((upload) => upload.type === 'CSV');
-  //   if (csvUploads.length === 0) return null;
-
-  //   return {
-  //     service: Service.CSV,
-  //     connectorAccountId: null,
-  //     displayName: 'Uploaded files',
-  //     tables: csvUploads.map((upload) => ({
-  //       id: {
-  //         wsId: upload.id,
-  //         remoteId: [upload.id],
-  //       },
-  //       displayName: upload.name,
-  //     })),
-  //   };
-  // }, [uploads]);
 
   // Adjust the tree expansion in response to the search query
   useEffect(() => {
@@ -125,14 +98,7 @@ export const AddTableTab = () => {
 
     // When searching, hide groups with no matching tables
     // When not searching, show all groups (including empty ones for unhealthy connections)
-    const visibleGroups = searchQuery ? filteredGroups.filter((group) => group.tables.length > 0) : filteredGroups;
-
-    // Sort groups: CSV uploads last
-    return visibleGroups.sort((a, b) => {
-      if (a.service === Service.CSV) return 1;
-      if (b.service === Service.CSV) return -1;
-      return 0;
-    });
+    return searchQuery ? filteredGroups.filter((group) => group.tables.length > 0) : filteredGroups;
   }, [tableGroups, searchQuery]);
 
   const recentlyClosedTables = useMemo(() => {
@@ -181,47 +147,11 @@ export const AddTableTab = () => {
     setRefreshingGroups((prev) => ({ ...prev, [groupKey]: true }));
 
     try {
-      // If refreshing uploaded files, only refresh uploads
-      if (groupKey === Service.CSV) {
-        // await mutateUploads();
-      } else {
-        // TODO: Refresh only the tables for the specific service.
-        // For other connectors, refresh all tables
-        await mutateAllTables();
-      }
+      // TODO: Refresh only the tables for the specific service.
+      await mutateAllTables();
     } finally {
       // Clear loading state for this group
       setRefreshingGroups((prev) => ({ ...prev, [groupKey]: false }));
-    }
-  };
-
-  // const handleUploadFile = () => {
-  //   modalStack.open('upload');
-  // };
-
-  const handleAddSampleTable = async () => {
-    if (!workbook) return;
-
-    try {
-      setIsCreatingTable(true);
-      const snapshotTableId = await addSampleTable();
-      markStepCompleted('gettingStartedV1', 'dataSourceConnected');
-
-      if (workbookMode === 'files') {
-        openFileTab({ id: snapshotTableId, type: 'folder', title: 'Sample Table' });
-        closeFileTab('add-table');
-      } else {
-        setActiveTab(snapshotTableId);
-        closeNewTabs();
-      }
-    } catch (error) {
-      console.error('Failed to add sample table:', error);
-      ScratchpadNotifications.error({
-        title: 'Failed to add sample table',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsCreatingTable(false);
     }
   };
 
@@ -376,43 +306,6 @@ export const AddTableTab = () => {
 
   const isLoading = loadingTables;
 
-  const handleUploadModalClose = () => {
-    // When modal closes, close it via modalStack and refresh uploads
-    modalStack.close('upload');
-    // Refresh the uploads list to show the newly uploaded CSV
-    // mutateUploads();
-  };
-
-  const handleUploadSuccess = async (uploadId: string) => {
-    if (!workbook) return;
-
-    try {
-      setIsCreatingTable(true);
-      // Create the EntityId for the CSV upload
-      const tableId: EntityId = {
-        wsId: uploadId,
-        remoteId: [uploadId],
-      };
-      const snapshotTableId = await addTable(tableId, Service.CSV);
-
-      if (workbookMode === 'files') {
-        openFileTab({ id: snapshotTableId, type: 'folder', title: 'CSV Upload' });
-        closeFileTab('add-table');
-      } else {
-        setActiveTab(snapshotTableId);
-        closeNewTabs();
-      }
-    } catch (error) {
-      console.error('Failed to add uploaded table:', error);
-      ScratchpadNotifications.error({
-        title: 'Failed to add table',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsCreatingTable(false);
-    }
-  };
-
   const contentWithoutExistingSources = (
     <Stack justify="center" gap="lg" my="md" align="center">
       <DecorativeBoxedIcon Icon={PlusIcon} />
@@ -424,23 +317,12 @@ export const AddTableTab = () => {
       </Stack>
 
       <Stack w={400}>
-        <ButtonWithDescription
-          title="Connect app"
-          description="Import data from an app"
-          icon={<StyledLucideIcon Icon={PlusIcon} size="md" c={'dimmed'} />}
+        <ButtonSecondaryOutline
+          leftSection={<StyledLucideIcon Icon={PlusIcon} size="sm" />}
           onClick={() => modalStack.open('create')}
-        />
-        <Group w="100%">
-          <Divider style={{ flex: 1 }} />
-          <TextMono12Regular c="primary">OR</TextMono12Regular>
-          <Divider style={{ flex: 1 }} />
-        </Group>
-        <ButtonWithDescription
-          title="Use demo data"
-          description="Try out Scratch with demo data."
-          icon={<StyledLucideIcon Icon={ArrowRightIcon} size="md" c={'dimmed'} />}
-          onClick={handleAddSampleTable}
-        />
+        >
+          Connect app
+        </ButtonSecondaryOutline>
       </Stack>
     </Stack>
   );
@@ -538,11 +420,6 @@ export const AddTableTab = () => {
       <CreateConnectionModal
         {...modalStack.register('create')}
         returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
-      />
-      <UploadFileModal
-        opened={modalStack.state['upload']}
-        onClose={handleUploadModalClose}
-        onUploadSuccess={handleUploadSuccess}
       />
       <GenericDeleteConfirmationModal
         title="Delete table"

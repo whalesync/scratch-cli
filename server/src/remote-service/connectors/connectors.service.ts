@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
 import { Service } from '@spinner/shared-types';
-import { DbService } from '../../db/db.service';
 import { OAuthService } from '../../oauth/oauth.service';
-import { UploadsDbService } from '../../uploads/uploads-db.service';
 import { DecryptedCredentials } from '../connector-account/types/encrypted-credentials.interface';
 import { AuthParser, Connector } from './connector';
 import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
-import { CsvConnector } from './library/csv/csv-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -18,11 +15,7 @@ import { YouTubeConnector } from './library/youtube/youtube-connector';
 
 @Injectable()
 export class ConnectorsService {
-  constructor(
-    private readonly db: DbService,
-    private readonly oauthService: OAuthService,
-    private readonly uploadsDbService: UploadsDbService,
-  ) {}
+  constructor(private readonly oauthService: OAuthService) {}
 
   getAuthParser(params: { service: Service }): AuthParser<Service> | undefined {
     const { service } = params;
@@ -41,7 +34,7 @@ export class ConnectorsService {
     decryptedCredentials: DecryptedCredentials | null;
     userId?: string;
   }): Promise<Connector<Service, any>> {
-    const { service, connectorAccount, decryptedCredentials, userId } = params;
+    const { service, connectorAccount, decryptedCredentials } = params;
 
     switch (service) {
       case Service.AIRTABLE:
@@ -85,8 +78,6 @@ export class ConnectorsService {
           }
           return new NotionConnector(decryptedCredentials.apiKey);
         }
-      case Service.CSV:
-        return new CsvConnector(this.db, this.uploadsDbService, connectorAccount?.userId ?? userId);
       case Service.YOUTUBE:
         if (!connectorAccount) {
           throw new ConnectorInstantiationError('Connector account is required for YouTube', service);

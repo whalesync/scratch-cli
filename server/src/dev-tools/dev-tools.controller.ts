@@ -32,7 +32,6 @@ import { DbService } from 'src/db/db.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
-import { UploadsDbService } from 'src/uploads/uploads-db.service';
 import { User } from 'src/users/entities/user.entity';
 import { OnboardingService } from 'src/users/onboarding.service';
 import { userToActor } from 'src/users/types';
@@ -56,7 +55,6 @@ export class DevToolsController {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,
-    private readonly uploadsDbService: UploadsDbService,
     private readonly agentCredentialsService: AgentCredentialsService,
     private readonly onboardingService: OnboardingService,
   ) {}

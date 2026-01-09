@@ -29,7 +29,6 @@ import { ConnectorAccountModule } from './remote-service/connector-account/conne
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { SlackNotificationModule } from './slack/slack-notification.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
-import { UploadsModule } from './uploads/uploads.module';
 import { UserModule } from './users/users.module';
 import { WorkbookModule } from './workbook/workbook.module';
 import { WorkerEnqueuerModule } from './worker-enqueuer/worker-enqueuer.module';
@@ -57,7 +56,6 @@ import { WorkerModule } from './worker/workers.module';
     WixCustomActionsModule,
     WorkbookModule,
     StyleGuideModule,
-    UploadsModule,
     AgentTokenUsageModule,
     PaymentModule,
     OpenRouterModule,
@@ -88,14 +86,6 @@ export class AppModule implements NestModule {
       })
       .apply(JsonBodyMiddleware)
       .exclude(
-        // Legacy snapshot CSV upload endpoints (deprecated)
-        { path: '/uploads/preview-csv', method: RequestMethod.POST },
-        { path: '/workbook/import-csv', method: RequestMethod.POST },
-        // New uploads endpoints
-        { path: '/uploads/csv/preview', method: RequestMethod.POST },
-        { path: '/uploads/csv', method: RequestMethod.POST },
-        { path: '/uploads/md/preview', method: RequestMethod.POST },
-        { path: '/uploads/md', method: RequestMethod.POST },
         // Import suggestions endpoint
         { path: '/workbook/*/tables/*/import-suggestions', method: RequestMethod.POST },
         // Payment webhook

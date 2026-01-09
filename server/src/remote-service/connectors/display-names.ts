@@ -1,6 +1,5 @@
 import { Service } from '@spinner/shared-types';
 import { AirtableConnector } from './library/airtable/airtable-connector';
-import { CsvConnector } from './library/csv/csv-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -19,7 +18,7 @@ export function getServiceDisplayName(service: Service): string {
     case Service.AIRTABLE:
       return AirtableConnector.displayName;
     case Service.CSV:
-      return CsvConnector.displayName;
+      return 'CSV';
     case Service.POSTGRES:
       return 'PostgreSQL';
     case Service.YOUTUBE:

@@ -89,7 +89,6 @@ model User {
   invoiceResults          InvoiceResult[]
   jobs                    DbJob[]
   workbooks               Workbook[]
-  uploads                 Upload[]
 }
 
 model APIToken {
@@ -417,23 +416,6 @@ model DbJob {
   @@map("Job")
 }
 
-model Upload {
-  id             String       @id // type: UploadId
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId         String?
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String // Upload name/filename
-  type           String // "CSV" | "MD" - stored as string for flexibility
-  typeId         String // Reference to csv table name or MdUpload record id
-
-  @@index([userId])
-  @@index([type])
-  @@index([organizationId])
-}
-
 ///
 /// NOTE: Keep this in sync with packages/shared-types/src/db/audit-log-event.ts
 /// Begin "keep in sync" section
@@ -475,7 +457,6 @@ model Organization {
   styleGuides       StyleGuide[]
   connectorAccounts ConnectorAccount[]
   workbooks         Workbook[]
-  uploads           Upload[]
   subscriptions     Subscription[]
   invoiceResults    InvoiceResult[]
   actions           Action[]

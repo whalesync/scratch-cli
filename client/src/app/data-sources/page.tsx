@@ -2,7 +2,6 @@
 
 import MainContent from '../components/layouts/MainContent';
 import ConnectorTable from './components/ConnectorTable';
-import UploadsTable from './components/UploadsTable';
 
 export default function DataSourcesPage() {
   return (
@@ -10,7 +9,6 @@ export default function DataSourcesPage() {
       <MainContent.BasicHeader title="Data sources" />
       <MainContent.Body>
         <ConnectorTable />
-        <UploadsTable />
       </MainContent.Body>
     </MainContent>
   );

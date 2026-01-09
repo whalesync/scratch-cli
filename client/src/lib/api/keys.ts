@@ -58,13 +58,6 @@ export const SWR_KEYS = {
     list: (workbookId: WorkbookId) => ['agent-sessions', 'list', workbookId],
     detail: (id: string) => ['agent-sessions', 'detail', id],
   },
-  uploads: {
-    list: () => ['uploads', 'list'],
-    detail: (id: string) => ['uploads', 'detail', id],
-    csvData: (id: string, limit?: number, offset?: number) => ['uploads', 'csv-data', id, limit, offset],
-    mdData: (id: string) => ['uploads', 'md-data', id],
-  },
-
   styleGuides: {
     list: () => ['style-guides', 'list'],
     detail: (id: StyleGuideId) => ['style-guides', 'detail', id],

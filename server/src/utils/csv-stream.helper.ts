@@ -3,8 +3,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Knex } from 'knex';
 import { to as copyTo } from 'pg-copy-streams';
-import { CSV_INDEX_COLUMN } from 'src/uploads/csvMetaFields';
 import { Readable } from 'stream';
+
+// Column name for CSV upload index (legacy, kept for backwards compatibility)
+const CSV_INDEX_COLUMN = '__index';
 
 type KnexClientPool = {
   acquireConnection: () => Promise<any>;
