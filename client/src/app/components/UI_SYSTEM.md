@@ -68,7 +68,7 @@ import { MainContent } from '@/components/layouts/MainContent';
 
 ```typescript
 import { StyledLucideIcon } from '@/components/Icons/StyledLucideIcon';
-import { Plus, ArrowRight, Settings } from 'lucide-react';
+import { PlusIcon, ArrowRightIcon, SettingsIcon } from 'lucide-react';
 ```
 
 ### Theme

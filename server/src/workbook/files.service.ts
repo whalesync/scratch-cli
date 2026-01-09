@@ -6,6 +6,7 @@ import type {
   FolderId,
   FolderRefEntity,
   Service,
+  SnapshotTableId,
   WorkbookId,
 } from '@spinner/shared-types';
 import {
@@ -63,7 +64,7 @@ export class FilesService {
       orderBy: { name: 'asc' },
       include: {
         snapshotTables: {
-          select: { connectorService: true },
+          select: { connectorService: true, id: true },
         },
       },
     });
@@ -73,14 +74,18 @@ export class FilesService {
 
     // Convert folders to FolderRefEntity
     // If folder has exactly one snapshot table, include its service type
-    const folderEntities: FolderRefEntity[] = folders.map((f) => ({
-      type: 'folder' as const,
-      id: f.id as FolderId,
-      name: f.name,
-      parentFolderId: f.parentId as FolderId | null,
-      path: f.path ?? `/${f.name}`,
-      connectorService: f.snapshotTables.length === 1 ? (f.snapshotTables[0].connectorService as Service) : null,
-    }));
+    const folderEntities: FolderRefEntity[] = folders.map((f) => {
+      const snapshotTable = f.snapshotTables.length === 1 ? f.snapshotTables[0] : null;
+      return {
+        type: 'folder' as const,
+        id: f.id as FolderId,
+        name: f.name,
+        parentFolderId: f.parentId as FolderId | null,
+        path: f.path ?? `/${f.name}`,
+        connectorService: snapshotTable?.connectorService as Service | null,
+        snapshotTableId: (snapshotTable?.id as SnapshotTableId) ?? null,
+      };
+    });
 
     // Convert files to FileRefEntity
     const fileEntities: FileRefEntity[] = files.map((f) => ({

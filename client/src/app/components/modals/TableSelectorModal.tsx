@@ -14,12 +14,13 @@ interface Props {
   onConfirm: (selectedTableIds: string[]) => void;
   tables: SnapshotTable[];
   currentTableId?: string;
+  initialSelectedTableIds?: string[];
   title: string;
   workbookId: WorkbookId;
 }
 
 export const TableSelectorModal: FC<Props> = (props) => {
-  const { isOpen, onClose, onConfirm, tables, currentTableId, title, workbookId } = props;
+  const { isOpen, onClose, onConfirm, tables, currentTableId, initialSelectedTableIds, title, workbookId } = props;
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
   const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const { operationCounts, isLoading, error } = useOperationCounts(workbookId, workbookMode);
@@ -43,15 +44,21 @@ export const TableSelectorModal: FC<Props> = (props) => {
   // Initialize selection when availableTables changes
   useEffect(() => {
     if (availableTables.length > 0) {
-      // If current table is in the list, select it. Otherwise select nothing (or maybe all?)
-      // User said: "Essentially drop the option to use the current table, just preselect it."
-      if (currentTableId && availableTables.some((t) => t.id === currentTableId && !t.lock)) {
+      // If initialSelectedTableIds provided, use those (filter to only available tables)
+      if (initialSelectedTableIds && initialSelectedTableIds.length > 0) {
+        const validInitialIds = initialSelectedTableIds.filter((id) =>
+          availableTables.some((t) => t.id === id && !t.lock),
+        );
+        setSelectedTableIds(validInitialIds);
+      } else if (currentTableId && availableTables.some((t) => t.id === currentTableId && !t.lock)) {
+        // If current table is in the list, select it. Otherwise select nothing (or maybe all?)
+        // User said: "Essentially drop the option to use the current table, just preselect it."
         setSelectedTableIds([currentTableId]);
       } else {
         setSelectedTableIds([]);
       }
     }
-  }, [availableTables, currentTableId]);
+  }, [availableTables, currentTableId, initialSelectedTableIds]);
 
   const handleConfirm = () => {
     onConfirm(selectedTableIds);

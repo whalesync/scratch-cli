@@ -18,16 +18,20 @@ export const PublishWorkbookWorkflow = () => {
   const { workbook, activeTable, refreshWorkbook } = useActiveWorkbook();
   const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const publishConfirmationOpen = useWorkbookEditorUIStore((state) => state.publishConfirmationOpen);
+  const preselectedPublishTableIds = useWorkbookEditorUIStore((state) => state.preselectedPublishTableIds);
   const closePublishConfirmation = useWorkbookEditorUIStore((state) => state.closePublishConfirmation);
   const [showTableSelector, setShowTableSelector] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [selectedPublishTableIds, setSelectedPublishTableIds] = useState<string[]>([]);
+  const [initialSelectedTableIds, setInitialSelectedTableIds] = useState<string[] | undefined>(undefined);
   const [publishInProgress, setPublishInProgress] = useState<{ jobId: string } | null>(null);
   const [limitExceeded, setLimitExceeded] = useState(false);
   const { canPublishWorkbook } = useSubscription();
+
   // When the store's publishConfirmationOpen changes to true, show the table selector
   if (publishConfirmationOpen && !showTableSelector && !showPublishConfirmation) {
     setShowTableSelector(true);
+    setInitialSelectedTableIds(preselectedPublishTableIds ?? undefined);
     closePublishConfirmation(); // Close the store's flag immediately
   }
 
@@ -35,6 +39,11 @@ export const PublishWorkbookWorkflow = () => {
     setSelectedPublishTableIds(tableIds);
     setShowTableSelector(false);
     setShowPublishConfirmation(true);
+  };
+
+  const handleTableSelectorClose = () => {
+    setShowTableSelector(false);
+    setInitialSelectedTableIds(undefined);
   };
 
   const handleConfirmPublish = useCallback(async () => {
@@ -64,6 +73,7 @@ export const PublishWorkbookWorkflow = () => {
 
   const handlePublishComplete = useCallback(async () => {
     setPublishInProgress(null);
+    setInitialSelectedTableIds(undefined);
     // Ensure the workbook is refreshed to reflect the changes to sync status on all the published tables
     await refreshWorkbook();
   }, [refreshWorkbook, setPublishInProgress]);
@@ -73,12 +83,12 @@ export const PublishWorkbookWorkflow = () => {
       {workbook && activeTable && showTableSelector && (
         <TableSelectorModal
           isOpen={showTableSelector}
-          onClose={() => setShowTableSelector(false)}
+          onClose={handleTableSelectorClose}
           onConfirm={handleTablesSelectedForPublish}
           tables={workbook.snapshotTables?.filter((table) => !hasDeletedConnection(table)) || []}
           currentTableId={activeTable.id}
+          initialSelectedTableIds={initialSelectedTableIds}
           title="Select tables to publish"
-          // confirmButtonText="Continue"
           workbookId={workbook.id}
         />
       )}

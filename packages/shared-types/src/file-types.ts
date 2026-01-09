@@ -3,7 +3,7 @@
  */
 
 import { Service } from './enums';
-import { FileId, FolderId } from './ids';
+import { FileId, FolderId, SnapshotTableId } from './ids';
 
 /**
  * Reference to a file in the workbook
@@ -33,6 +33,8 @@ export interface FolderRefEntity {
   path: string;
   /** Service type if folder is linked to a snapshot table */
   connectorService?: Service | null;
+  /** Whether the folder is linked to a snapshot table */
+  snapshotTableId?: SnapshotTableId | null;
 }
 
 /**

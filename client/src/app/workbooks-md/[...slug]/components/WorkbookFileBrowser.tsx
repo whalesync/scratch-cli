@@ -23,11 +23,19 @@ import {
 } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
-import type { FileId, FileOrFolderRefEntity, FolderId, FolderRefEntity, Service } from '@spinner/shared-types';
+import type {
+  FileId,
+  FileOrFolderRefEntity,
+  FolderId,
+  FolderRefEntity,
+  Service,
+  SnapshotTableId,
+} from '@spinner/shared-types';
 import {
   BookOpenIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  CloudUploadIcon,
   CopyIcon,
   CopyMinusIcon,
   DownloadIcon,
@@ -84,6 +92,7 @@ interface TreeNodeData {
   isFolder: boolean;
   isWorkbookRoot?: boolean;
   connectorService?: Service | null;
+  snapshotTableId?: string | null;
   dirty?: boolean;
 }
 
@@ -115,6 +124,7 @@ interface TreeNodeRendererProps {
   getNodePath: (nodeId: string) => string;
   onCreateFolderInFolder: (parentFolderId: FolderId) => void;
   onCreateFileInFolder: (parentFolderId: FolderId) => void;
+  onPublishFolder: (snapshotTableId?: string) => void;
   selectedCount: number;
   areAllSelectedFiles: boolean;
   onBulkDelete: () => void;
@@ -146,6 +156,7 @@ function TreeNodeRenderer({
   getNodePath,
   onCreateFolderInFolder,
   onCreateFileInFolder,
+  onPublishFolder,
   selectedCount,
   areAllSelectedFiles,
   onBulkDelete,
@@ -415,6 +426,17 @@ function TreeNodeRenderer({
                   >
                     Open all files
                   </Menu.Item>
+                  {nodeData.connectorService && (
+                    <Menu.Item
+                      leftSection={<CloudUploadIcon size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPublishFolder(nodeData.snapshotTableId ?? undefined);
+                      }}
+                    >
+                      Publish
+                    </Menu.Item>
+                  )}
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<Trash2Icon size={16} />}
@@ -620,6 +642,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
         isFile: false,
         isFolder: true,
         connectorService: entity.connectorService,
+        snapshotTableId: entity.snapshotTableId,
       },
     };
   } else {
@@ -648,6 +671,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   // Use the file list hook
   const { files, isLoading, refreshFiles } = useFileList(workbook?.id ?? null);
   // Local state for tree data (required for drag-and-drop to work)
@@ -1531,6 +1555,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     getNodePath={getNodePath}
                     onCreateFolderInFolder={handleCreateFolderInFolder}
                     onCreateFileInFolder={handleCreateFileInFolder}
+                    onPublishFolder={(snapshotTableId) =>
+                      openPublishConfirmation(snapshotTableId ? [snapshotTableId as SnapshotTableId] : undefined)
+                    }
                     selectedCount={selectedNodes.size}
                     areAllSelectedFiles={
                       selectedNodes.size > 0 &&

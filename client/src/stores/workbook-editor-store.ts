@@ -78,6 +78,7 @@ export interface WorkbookEditorUIState {
 
   // UI state for the publish confirmation modal.
   publishConfirmationOpen: boolean;
+  preselectedPublishTableIds: SnapshotTableId[] | null;
 
   activeModal: WorkbookModalParams | null;
 
@@ -114,7 +115,7 @@ type Actions = {
   openChat: () => void;
   closeChat: () => void;
 
-  openPublishConfirmation: () => void;
+  openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) => void;
   closePublishConfirmation: () => void;
 
   showModal: (modal: WorkbookModalParams) => void;
@@ -135,6 +136,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   devToolsOpen: false,
   chatOpen: true,
   publishConfirmationOpen: false,
+  preselectedPublishTableIds: null,
   activeModal: null,
   workbookMode: 'tables',
 };
@@ -267,8 +269,9 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   openChat: () => set({ chatOpen: true }),
   closeChat: () => set({ chatOpen: false }),
 
-  openPublishConfirmation: () => set({ publishConfirmationOpen: true }),
-  closePublishConfirmation: () => set({ publishConfirmationOpen: false }),
+  openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) =>
+    set({ publishConfirmationOpen: true, preselectedPublishTableIds: preselectedTableIds ?? null }),
+  closePublishConfirmation: () => set({ publishConfirmationOpen: false, preselectedPublishTableIds: null }),
 
   showModal: (modal: WorkbookModalParams) => set({ activeModal: modal }),
   dismissModal: (modalType: WorkbookModalParams['type'] | null) => {

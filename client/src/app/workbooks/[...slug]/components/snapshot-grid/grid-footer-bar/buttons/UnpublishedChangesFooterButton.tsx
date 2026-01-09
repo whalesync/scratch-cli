@@ -20,7 +20,7 @@ export const UnpublishedChangesFooterButton = ({ table }: { table: SnapshotTable
   }, [operationCounts, table.id]);
 
   return (
-    <ButtonSecondaryInline onClick={openPublishConfirmation}>
+    <ButtonSecondaryInline onClick={() => openPublishConfirmation()}>
       {unpublishedCount ?? '-'} unpublished {pluralize('change', unpublishedCount ?? 0)}
     </ButtonSecondaryInline>
   );
