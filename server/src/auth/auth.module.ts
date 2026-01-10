@@ -7,11 +7,13 @@ import { UserModule } from 'src/users/users.module';
 import { AgentTokenStrategy } from './agent-token.strategy';
 import { APITokenStrategy } from './api-token.strategy';
 import { ClerkStrategy } from './clerk.strategy';
+import { CliAuthGuard } from './cli-auth.guard';
+import { CliStrategy } from './cli.strategy';
 import { WebSocketAuthGuard } from './websocket-auth-guard';
 
 @Module({
   imports: [PassportModule, ScratchpadConfigModule, ClerkModule, DbModule, UserModule],
-  providers: [ClerkStrategy, APITokenStrategy, WebSocketAuthGuard, AgentTokenStrategy],
-  exports: [PassportModule],
+  providers: [ClerkStrategy, APITokenStrategy, WebSocketAuthGuard, AgentTokenStrategy, CliStrategy, CliAuthGuard],
+  exports: [PassportModule, CliAuthGuard],
 })
 export class AuthModule {}

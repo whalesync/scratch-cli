@@ -8,6 +8,7 @@ import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { BugReportModule } from './bug-report/bug-report.module';
 import { ClerkModule } from './clerk/clerk.module';
+import { CliModule } from './cli/cli.module';
 import { CodeMigrationsModule } from './code-migrations/code-migrations.module';
 import { ScratchpadConfigModule } from './config/scratchpad-config.module';
 import { ScratchpadConfigService } from './config/scratchpad-config.service';
@@ -49,6 +50,7 @@ import { WorkerModule } from './worker/workers.module';
     UserModule,
     ClerkModule,
     AuthModule,
+    CliModule,
     OAuthModule,
     ConnectorAccountModule,
     ConnectorsModule,

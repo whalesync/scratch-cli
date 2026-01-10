@@ -37,7 +37,7 @@ export class SlackNotificationService {
       const responseData = await axios.post(this.webhookUrl, messageData, {
         timeout: 2000,
         headers: {
-          'User-Agent': 'Scratchpaper/1.0 (compatible; ScratchpaperSlackNotification/1.0)',
+          'User-Agent': 'Scratch/1.0 (compatible; ScratchSlackNotification/1.0)',
         },
       });
 
