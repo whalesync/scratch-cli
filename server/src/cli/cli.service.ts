@@ -6,6 +6,8 @@ import { DecryptedCredentials } from 'src/remote-service/connector-account/types
 import { Connector } from 'src/remote-service/connectors/connector';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { ValidatedConnectorCredentialsDto } from './dtos/credentials.dto';
+import { FetchTableSpecDto, FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
+import { ListTableSpecsDto, ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
 import { ListTablesDto, ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestCredentialsDto, TestCredentialsResponseDto } from './dtos/test-credentials.dto';
 
@@ -89,6 +91,9 @@ export class CliService {
     }
   }
 
+  /**
+   * Lists all the available tables for a connnector
+   */
   async listTables(listTablesDto: ListTablesDto): Promise<ListTablesResponseDto> {
     const credentials = listTablesDto.credentials as ValidatedConnectorCredentialsDto;
     if (!credentials?.service) {
@@ -108,6 +113,84 @@ export class CliService {
         success: true,
         service,
         tables,
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        success: false,
+        error: errorMessage,
+        service,
+      };
+    }
+  }
+
+  /**
+   * Retrives a specific table spec from the connector
+   */
+  async fetchTableSpec(fetchTableSpecDto: FetchTableSpecDto): Promise<FetchTableSpecResponseDto> {
+    const credentials = fetchTableSpecDto.credentials as ValidatedConnectorCredentialsDto;
+    if (!credentials?.service) {
+      return {
+        success: false,
+        error: 'Service is required',
+      };
+    }
+
+    if (!fetchTableSpecDto.tableId) {
+      return {
+        success: false,
+        error: 'Table ID is required',
+      };
+    }
+
+    const service = credentials.service;
+
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials);
+      const tableSpec = await connector.fetchTableSpec({
+        wsId: fetchTableSpecDto.tableId,
+        remoteId: [fetchTableSpecDto.tableId],
+      });
+
+      return {
+        success: true,
+        service,
+        tableSpec,
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        success: false,
+        error: errorMessage,
+        service,
+      };
+    }
+  }
+
+  /**
+   * Gets a list of all available tables with full specs from a connection
+   */
+  async listTableSpecs(listTableSpecsDto: ListTableSpecsDto): Promise<ListTableSpecsResponseDto> {
+    const credentials = listTableSpecsDto.credentials as ValidatedConnectorCredentialsDto;
+    if (!credentials?.service) {
+      return {
+        success: false,
+        error: 'Service is required',
+      };
+    }
+
+    const service = credentials.service;
+
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials);
+      const tables = await connector.listTables();
+
+      const tableSpecs = await Promise.all(tables.map((table) => connector.fetchTableSpec(table.id)));
+
+      return {
+        success: true,
+        service,
+        tables: tableSpecs,
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
