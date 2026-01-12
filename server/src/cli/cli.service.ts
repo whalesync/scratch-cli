@@ -3,9 +3,12 @@ import { AuthType, ConnectorAccount } from '@prisma/client';
 import { createConnectorAccountId, Service } from '@spinner/shared-types';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { WSLogger } from 'src/logger';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { TablePreview } from 'src/remote-service/connectors/types';
+import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
+import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
+import { DownloadedFilesResponseDto, FileContent } from './dtos/download-files.dto';
 import { FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
 import { ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
@@ -190,6 +193,103 @@ export class CliService {
         tables: tableSpecs,
       };
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        success: false,
+        error: errorMessage,
+        service,
+      };
+    }
+  }
+
+  /**
+   * Downloads records from a connector table and converts them to frontmatter files
+   * @param tableId - Array of strings representing the table's remote ID path
+   */
+  async download(
+    credentials: CliConnectorCredentials | undefined,
+    tableId: string[],
+  ): Promise<DownloadedFilesResponseDto> {
+    if (!credentials?.service) {
+      return {
+        success: false,
+        error: 'Service is required in X-Scratch-Connector header',
+      };
+    }
+
+    if (!tableId || tableId.length === 0) {
+      return {
+        success: false,
+        error: 'Table ID is required',
+      };
+    }
+
+    const service = credentials.service as Service;
+
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials);
+
+      // Fetch the table spec using the tableId array as the remoteId
+      const wsId = tableId.join('-');
+      const tableSpec = await connector.fetchTableSpec({
+        wsId,
+        remoteId: tableId,
+      });
+
+      // Collect all records
+      const allRecords: ConnectorRecord[] = [];
+
+      await connector.downloadTableRecords(
+        tableSpec,
+        {}, // Empty column settings map for CLI usage
+        ({ records }) => {
+          allRecords.push(...records);
+          return Promise.resolve();
+        },
+        { tables: [] }, // Empty progress object for CLI usage
+      );
+
+      // Convert records to frontmatter files
+      const files: FileContent[] = allRecords.map((record) => {
+        const { content } = convertConnectorRecordToFrontMatter(record, tableSpec);
+
+        // Determine filename from title column or record ID
+        let fileName = record.id;
+        if (tableSpec.titleColumnRemoteId) {
+          const column = tableSpec.columns.find((c) =>
+            Array.isArray(c.id.remoteId)
+              ? c.id.remoteId[0] === tableSpec.titleColumnRemoteId?.[0]
+              : c.id.remoteId === tableSpec.titleColumnRemoteId?.[0],
+          );
+          const titleValue = record.fields[column?.id.wsId ?? ''];
+          if (titleValue && typeof titleValue === 'string') {
+            fileName = titleValue;
+          }
+        }
+
+        // Ensure filename ends with .md
+        if (!fileName.endsWith('.md')) {
+          fileName += '.md';
+        }
+
+        return {
+          name: fileName,
+          remoteId: record.id,
+          content,
+        };
+      });
+
+      return {
+        success: true,
+        service,
+        files,
+      };
+    } catch (error: unknown) {
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error downloading files',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
