@@ -2,6 +2,7 @@ import { Body, ClassSerializerInterceptor, Controller, Get, Post, UseGuards, Use
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
 import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
+import { ListTablesDto, ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestCredentialsDto, TestCredentialsResponseDto } from './dtos/test-credentials.dto';
 
 @Controller('cli/v1')
@@ -24,5 +25,10 @@ export class CliController {
   @Post('test-credentials')
   async testCredentials(@Body() testCredentialsDto: TestCredentialsDto): Promise<TestCredentialsResponseDto> {
     return this.cliService.testCredentials(testCredentialsDto);
+  }
+
+  @Post('list-tables')
+  async listTables(@Body() listTablesDto: ListTablesDto): Promise<ListTablesResponseDto> {
+    return this.cliService.listTables(listTablesDto);
   }
 }
