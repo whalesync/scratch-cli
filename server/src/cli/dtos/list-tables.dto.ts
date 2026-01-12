@@ -1,15 +1,11 @@
 import { Service } from '@spinner/shared-types';
-import { Type } from 'class-transformer';
-import { IsNotEmpty, ValidateNested } from 'class-validator';
 import { TablePreview } from 'src/remote-service/connectors/types';
-import { ConnectorCredentialsDto } from './credentials.dto';
 
-export class ListTablesDto {
-  @ValidateNested()
-  @Type(() => ConnectorCredentialsDto)
-  @IsNotEmpty()
-  readonly credentials?: ConnectorCredentialsDto;
-}
+/**
+ * Request DTO for list-tables endpoint.
+ * Connector credentials are now provided via the X-Scratch-Connector header.
+ */
+export class ListTablesDto {}
 
 export class ListTablesResponseDto {
   readonly service?: Service;

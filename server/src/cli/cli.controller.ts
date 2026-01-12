@@ -1,11 +1,18 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ClassSerializerInterceptor, Controller, Get, Param, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Request } from 'express';
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
+import { CliConnectorCredentials } from 'src/auth/types';
 import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
-import { FetchTableSpecDto, FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
-import { ListTableSpecsDto, ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
-import { ListTablesDto, ListTablesResponseDto } from './dtos/list-tables.dto';
-import { TestCredentialsDto, TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+import { FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
+import { ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
+import { ListTablesResponseDto } from './dtos/list-tables.dto';
+import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+
+/**
+ * CLI Request type with optional connector credentials from X-Scratch-Connector header
+ */
+type CliRequest = Request & { connectorCredentials?: CliConnectorCredentials };
 
 @Controller('cli/v1')
 @UseGuards(CliAuthGuard)
@@ -24,23 +31,23 @@ export class CliController {
     };
   }
 
-  @Post('test-credentials')
-  async testCredentials(@Body() testCredentialsDto: TestCredentialsDto): Promise<TestCredentialsResponseDto> {
-    return this.cliService.testCredentials(testCredentialsDto);
+  @Get('test-credentials')
+  async testCredentials(@Req() req: CliRequest): Promise<TestCredentialsResponseDto> {
+    return this.cliService.testCredentials(req.connectorCredentials);
   }
 
-  @Post('list-tables')
-  async listTables(@Body() listTablesDto: ListTablesDto): Promise<ListTablesResponseDto> {
-    return this.cliService.listTables(listTablesDto);
+  @Get('list-tables')
+  async listTables(@Req() req: CliRequest): Promise<ListTablesResponseDto> {
+    return this.cliService.listTables(req.connectorCredentials);
   }
 
-  @Post('fetch-table-spec')
-  async fetchTableSpec(@Body() fetchTableSpecDto: FetchTableSpecDto): Promise<FetchTableSpecResponseDto> {
-    return this.cliService.fetchTableSpec(fetchTableSpecDto);
+  @Get('fetch-table-spec')
+  async fetchTableSpec(@Req() req: CliRequest, @Param() tableId: string): Promise<FetchTableSpecResponseDto> {
+    return this.cliService.fetchTableSpec(req.connectorCredentials, tableId);
   }
 
-  @Post('list-table-specs')
-  async listTableSpecs(@Body() listTableSpecsDto: ListTableSpecsDto): Promise<ListTableSpecsResponseDto> {
-    return this.cliService.listTableSpecs(listTableSpecsDto);
+  @Get('list-table-specs')
+  async listTableSpecs(@Req() req: CliRequest): Promise<ListTableSpecsResponseDto> {
+    return this.cliService.listTableSpecs(req.connectorCredentials);
   }
 }

@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
 import { createConnectorAccountId, Service } from '@spinner/shared-types';
+import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
-import { Connector } from 'src/remote-service/connectors/connector';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { ValidatedConnectorCredentialsDto } from './dtos/credentials.dto';
-import { FetchTableSpecDto, FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
-import { ListTableSpecsDto, ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
-import { ListTablesDto, ListTablesResponseDto } from './dtos/list-tables.dto';
-import { TestCredentialsDto, TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+import { TablePreview } from 'src/remote-service/connectors/types';
+import { FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
+import { ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
+import { ListTablesResponseDto } from './dtos/list-tables.dto';
+import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
 
 @Injectable()
 export class CliService {
@@ -18,17 +18,15 @@ export class CliService {
     private readonly connectorsService: ConnectorsService,
   ) {}
 
-  private async getConnectorFromCredentials(
-    credentials: ValidatedConnectorCredentialsDto,
-  ): Promise<Connector<Service, any>> {
-    const service = credentials.service;
+  private async getConnectorFromCredentials(credentials: CliConnectorCredentials) {
+    const service = credentials.service as Service;
 
     // Parse user-provided params if an auth parser exists for this service
-    let parsedCredentials: Record<string, string> = credentials.userProvidedParams ?? {};
+    let parsedCredentials: Record<string, string> = credentials.params ?? {};
     const authParser = this.connectorsService.getAuthParser({ service });
     if (authParser) {
       const result = await authParser.parseUserProvidedParams({
-        userProvidedParams: credentials.userProvidedParams ?? {},
+        userProvidedParams: credentials.params ?? {},
       });
       parsedCredentials = result.credentials;
     }
@@ -42,7 +40,7 @@ export class CliService {
       organizationId: 'cli-org',
       service: service,
       displayName: 'CLI Connection',
-      authType: credentials.authType ?? AuthType.USER_PROVIDED_PARAMS,
+      authType: AuthType.USER_PROVIDED_PARAMS,
       encryptedCredentials: {},
       healthStatus: null,
       healthStatusLastCheckedAt: null,
@@ -62,16 +60,15 @@ export class CliService {
     });
   }
 
-  async testCredentials(testCredentialsDto: TestCredentialsDto): Promise<TestCredentialsResponseDto> {
-    const credentials = testCredentialsDto.credentials as ValidatedConnectorCredentialsDto;
+  async testCredentials(credentials?: CliConnectorCredentials): Promise<TestCredentialsResponseDto> {
     if (!credentials?.service) {
       return {
         success: false,
-        error: 'Service is required',
+        error: 'Service is required in X-Scratch-Connector header',
       };
     }
 
-    const service = credentials.service;
+    const service = credentials.service as Service;
 
     try {
       const connector = await this.getConnectorFromCredentials(credentials);
@@ -94,16 +91,15 @@ export class CliService {
   /**
    * Lists all the available tables for a connnector
    */
-  async listTables(listTablesDto: ListTablesDto): Promise<ListTablesResponseDto> {
-    const credentials = listTablesDto.credentials as ValidatedConnectorCredentialsDto;
+  async listTables(credentials?: CliConnectorCredentials): Promise<ListTablesResponseDto> {
     if (!credentials?.service) {
       return {
         success: false,
-        error: 'Service is required',
+        error: 'Service is required in X-Scratch-Connector header',
       };
     }
 
-    const service = credentials.service;
+    const service = credentials.service as Service;
 
     try {
       const connector = await this.getConnectorFromCredentials(credentials);
@@ -127,29 +123,31 @@ export class CliService {
   /**
    * Retrives a specific table spec from the connector
    */
-  async fetchTableSpec(fetchTableSpecDto: FetchTableSpecDto): Promise<FetchTableSpecResponseDto> {
-    const credentials = fetchTableSpecDto.credentials as ValidatedConnectorCredentialsDto;
+  async fetchTableSpec(
+    credentials: CliConnectorCredentials | undefined,
+    tableId: string,
+  ): Promise<FetchTableSpecResponseDto> {
     if (!credentials?.service) {
       return {
         success: false,
-        error: 'Service is required',
+        error: 'Service is required in X-Scratch-Connector header',
       };
     }
 
-    if (!fetchTableSpecDto.tableId) {
+    if (!tableId) {
       return {
         success: false,
         error: 'Table ID is required',
       };
     }
 
-    const service = credentials.service;
+    const service = credentials.service as Service;
 
     try {
       const connector = await this.getConnectorFromCredentials(credentials);
       const tableSpec = await connector.fetchTableSpec({
-        wsId: fetchTableSpecDto.tableId,
-        remoteId: [fetchTableSpecDto.tableId],
+        wsId: tableId,
+        remoteId: [tableId],
       });
 
       return {
@@ -170,22 +168,21 @@ export class CliService {
   /**
    * Gets a list of all available tables with full specs from a connection
    */
-  async listTableSpecs(listTableSpecsDto: ListTableSpecsDto): Promise<ListTableSpecsResponseDto> {
-    const credentials = listTableSpecsDto.credentials as ValidatedConnectorCredentialsDto;
+  async listTableSpecs(credentials?: CliConnectorCredentials): Promise<ListTableSpecsResponseDto> {
     if (!credentials?.service) {
       return {
         success: false,
-        error: 'Service is required',
+        error: 'Service is required in X-Scratch-Connector header',
       };
     }
 
-    const service = credentials.service;
+    const service = credentials.service as Service;
 
     try {
       const connector = await this.getConnectorFromCredentials(credentials);
       const tables = await connector.listTables();
 
-      const tableSpecs = await Promise.all(tables.map((table) => connector.fetchTableSpec(table.id)));
+      const tableSpecs = await Promise.all(tables.map((table: TablePreview) => connector.fetchTableSpec(table.id)));
 
       return {
         success: true,

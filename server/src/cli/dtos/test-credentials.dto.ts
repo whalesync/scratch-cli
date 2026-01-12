@@ -1,14 +1,10 @@
 import { Service } from '@spinner/shared-types';
-import { Type } from 'class-transformer';
-import { IsNotEmpty, ValidateNested } from 'class-validator';
-import { ConnectorCredentialsDto } from './credentials.dto';
 
-export class TestCredentialsDto {
-  @ValidateNested()
-  @Type(() => ConnectorCredentialsDto)
-  @IsNotEmpty()
-  readonly credentials?: ConnectorCredentialsDto;
-}
+/**
+ * Request DTO for test-credentials endpoint.
+ * Connector credentials are now provided via the X-Scratch-Connector header.
+ */
+export class TestCredentialsDto {}
 
 export class TestCredentialsResponseDto {
   readonly service?: Service;

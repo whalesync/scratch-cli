@@ -31,3 +31,20 @@ export interface ScratchpadJwtPayload {
   fullName?: string;
   primaryEmail?: string;
 }
+
+/**
+ * Connector credentials passed via the X-Scratch-Connector header for CLI requests.
+ * This allows CLI tools to provide connection details for data sources.
+ */
+export interface CliConnectorCredentials {
+  service: string;
+  params?: Record<string, string>;
+}
+
+/**
+ * Extended Express Request type for CLI endpoints that may include optional connector credentials
+ * parsed from the X-Scratch-Connector header.
+ */
+export interface CliRequest {
+  connectorCredentials?: CliConnectorCredentials;
+}
