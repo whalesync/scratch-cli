@@ -244,4 +244,5 @@ dummy job:
         - gitlab-ci/**/*
         - .vscode/**/*
         - experimental/**/*
+        - scratch-cli/**/*
         - "*"
