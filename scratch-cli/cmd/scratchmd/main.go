@@ -3,8 +3,8 @@
 package main
 
 import (
-	"os"
 	"github.com/whalesync/scratch-cli/internal/cmd"
+	"os"
 )
 
 func main() {

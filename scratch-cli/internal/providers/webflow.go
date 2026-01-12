@@ -108,7 +108,7 @@ func (w *WebflowProvider) ListTables(apiKey string, progress ProgressCallback) (
 	// Step 2: For each site, get collections
 	for _, site := range sites {
 		progress(fmt.Sprintf("Fetching collections from '%s'...", site.DisplayName))
-		
+
 		collections, err := w.listCollections(apiKey, site.ID)
 		if err != nil {
 			progress(fmt.Sprintf("Warning: Failed to get collections for site '%s': %v", site.DisplayName, err))

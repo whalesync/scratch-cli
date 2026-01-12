@@ -17,14 +17,14 @@ const TableSchemaFileName = "scratchmd.schema.yaml"
 
 // TableConfig represents the configuration for a synced table/collection
 type TableConfig struct {
-	AccountID     string `yaml:"accountId"`               // UUID of the account this table belongs to
-	Provider      string `yaml:"provider"`                // Provider name (webflow, wordpress)
-	TableID       string `yaml:"tableId"`                 // Remote table/collection ID
-	SiteID        string `yaml:"siteId,omitempty"`        // Remote site ID (if applicable)
-	TableName     string `yaml:"tableName"`               // Display name
-	SiteName      string `yaml:"siteName,omitempty"`      // Site display name
-	FilenameField string `yaml:"filenameField"`           // Field to use for filenames (default: slug)
-	ContentField  string `yaml:"contentField,omitempty"`  // Field to use as main content body
+	AccountID     string `yaml:"accountId"`              // UUID of the account this table belongs to
+	Provider      string `yaml:"provider"`               // Provider name (webflow, wordpress)
+	TableID       string `yaml:"tableId"`                // Remote table/collection ID
+	SiteID        string `yaml:"siteId,omitempty"`       // Remote site ID (if applicable)
+	TableName     string `yaml:"tableName"`              // Display name
+	SiteName      string `yaml:"siteName,omitempty"`     // Site display name
+	FilenameField string `yaml:"filenameField"`          // Field to use for filenames (default: slug)
+	ContentField  string `yaml:"contentField,omitempty"` // Field to use as main content body
 }
 
 // TableSchema represents the schema of a synced table (simplified: field -> type)

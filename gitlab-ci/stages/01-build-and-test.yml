@@ -227,6 +227,30 @@ build agent docker image:
     - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
+# SCRATCH-CLI SUBPROJECT
+# =============================================================================
+
+build and test scratch-cli:
+  stage: build and test
+  image: golang:1.25
+  interruptible: true
+  script:
+    - cd scratch-cli
+    - echo "Checking code formatting"
+    - test -z "$(gofmt -l .)" || (echo "Code is not formatted. Run 'gofmt -w .'" && gofmt -l . && exit 1)
+    - echo "Building scratch-cli"
+    - go build -o scratchmd ./cmd/scratchmd
+    - echo "Testing executable"
+    - ./scratchmd --help
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - scratch-cli/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+# =============================================================================
 # MISC
 # =============================================================================
 
@@ -244,5 +268,4 @@ dummy job:
         - gitlab-ci/**/*
         - .vscode/**/*
         - experimental/**/*
-        - scratch-cli/**/*
         - "*"

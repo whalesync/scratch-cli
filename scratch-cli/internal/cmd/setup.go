@@ -335,7 +335,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 					break
 				}
 			}
-			
+
 			filenamePrompt := &survey.Select{
 				Message: "Select the field to use for filenames:",
 				Options: allFieldSlugs,
@@ -383,14 +383,14 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 
 		// Create simplified schema (field slug -> type)
 		schema := make(config.TableSchema)
-		
+
 		// Add system fields first
 		for _, f := range table.SystemFields {
 			if f.Slug != "" {
 				schema[f.Slug] = f.Type
 			}
 		}
-		
+
 		// Add user-defined fields (from fieldData)
 		for _, f := range table.Fields {
 			if f.Slug != "" {
@@ -738,5 +738,3 @@ func sanitizeFilename(name string) string {
 	)
 	return replacer.Replace(name)
 }
-
-
