@@ -224,10 +224,10 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		return fmt.Errorf("failed to select account")
 	}
 
-	// Get the API key for this account
-	apiKey := secrets.GetSecret(selectedAccount.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", selectedAccount.Name)
+	// Get the authentication properties for this account
+	authProps := secrets.GetSecretProperties(selectedAccount.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", selectedAccount.Name)
 	}
 
 	// List available tables via API
@@ -237,7 +237,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	client := api.NewClient()
 	creds := &api.ConnectorCredentials{
 		Service: selectedAccount.Provider,
-		Params:  map[string]string{"apiKey": apiKey},
+		Params:  authProps,
 	}
 
 	resp, err := client.ListTables(creds)
@@ -469,19 +469,45 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		}
 	}
 
-	// Get API key
-	apiKey := ""
-	keyPrompt := &survey.Password{
-		Message: "Enter your API key:",
-		Help:    getAPIKeyHelp(providerName),
-	}
-	if err := survey.AskOne(keyPrompt, &apiKey); err != nil {
-		return err
+	// Get provider to access auth properties
+	provider, err := providers.GetProvider(providerName)
+	if err != nil {
+		return fmt.Errorf("failed to get provider: %w", err)
 	}
 
-	apiKey = strings.TrimSpace(apiKey)
-	if apiKey == "" {
-		return fmt.Errorf("API key cannot be empty")
+	// Collect authentication properties from user
+	authProps := provider.AuthProperties()
+	authValues := make(map[string]string)
+
+	for _, prop := range authProps {
+		var value string
+
+		if prop.Sensitive {
+			// Use password prompt for sensitive fields
+			prompt := &survey.Password{
+				Message: fmt.Sprintf("Enter %s:", prop.DisplayName),
+				Help:    prop.Description,
+			}
+			if err := survey.AskOne(prompt, &value); err != nil {
+				return err
+			}
+		} else {
+			// Use input prompt for non-sensitive fields
+			prompt := &survey.Input{
+				Message: fmt.Sprintf("Enter %s:", prop.DisplayName),
+				Help:    prop.Description,
+			}
+			if err := survey.AskOne(prompt, &value); err != nil {
+				return err
+			}
+		}
+
+		value = strings.TrimSpace(value)
+		if prop.Required && value == "" {
+			return fmt.Errorf("%s cannot be empty", prop.DisplayName)
+		}
+
+		authValues[prop.Key] = value
 	}
 
 	// Test connection via API
@@ -490,7 +516,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 	client := api.NewClient()
 	creds := &api.ConnectorCredentials{
 		Service: providerName,
-		Params:  map[string]string{"apiKey": apiKey},
+		Params:  authValues,
 	}
 
 	tested := false
@@ -529,7 +555,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		accountID = config.GenerateAccountID()
 	}
 
-	// Save account to config (without API key)
+	// Save account to config (without secrets)
 	account := config.Account{
 		ID:       accountID,
 		Name:     accountName,
@@ -538,8 +564,8 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 	}
 	cfg.AddAccount(account)
 
-	// Save API key to secrets (linked by UUID)
-	secrets.SetSecret(accountID, apiKey)
+	// Save authentication properties to secrets (linked by UUID)
+	secrets.SetSecretProperties(accountID, authValues)
 
 	return nil
 }
@@ -594,10 +620,10 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 		return fmt.Errorf("account not found for table '%s'", selectedTable)
 	}
 
-	// Get the API key
-	apiKey := secrets.GetSecret(account.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", account.Name)
+	// Get the authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", account.Name)
 	}
 
 	fmt.Printf("\n📥 Downloading records from '%s'...\n\n", tableConfig.TableName)
@@ -608,9 +634,7 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
-		Params: map[string]string{
-			"apiKey": apiKey,
-		},
+		Params:  authProps,
 	}
 
 	// Build table ID array - if SiteID exists, use [siteId, tableId], otherwise just [tableId]

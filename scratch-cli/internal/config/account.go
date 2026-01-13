@@ -17,6 +17,12 @@ const (
 	SecretsFileName = ".scratchmd.secrets.yaml"
 )
 
+// Version constants
+const (
+	ConfigFileVersion  = "1.0.0" // Current config file format version
+	SecretsFileVersion = "1.0.0" // Current secrets file format version
+)
+
 // Account represents a CMS account configuration (stored in config file)
 type Account struct {
 	ID       string `yaml:"id"`       // UUID to link with secrets
@@ -27,17 +33,20 @@ type Account struct {
 
 // AccountSecret represents the secret part of an account (stored in secrets file)
 type AccountSecret struct {
-	ID     string `yaml:"id"`     // UUID matching the account
-	APIKey string `yaml:"apiKey"` // The actual API key
+	ID         string            `yaml:"id"`         // UUID matching the account
+	APIKey     string            `yaml:"apiKey"`     // DEPRECATED: The actual API key (kept for backwards compatibility)
+	Properties map[string]string `yaml:"properties"` // Authentication properties (apiKey, email, password, wordpressUrl, etc.)
 }
 
 // Config holds the main configuration (committable to git)
 type Config struct {
+	Version  string    `yaml:"version"` // Format version (e.g., "1.0.0")
 	Accounts []Account `yaml:"accounts"`
 }
 
 // SecretsConfig holds the secrets configuration (gitignored)
 type SecretsConfig struct {
+	Version string          `yaml:"version"` // Format version (e.g., "1.0.0")
 	Secrets []AccountSecret `yaml:"secrets"`
 }
 
@@ -58,7 +67,10 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Config{Accounts: []Account{}}, nil
+			return &Config{
+				Version:  ConfigFileVersion,
+				Accounts: []Account{},
+			}, nil
 		}
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -66,6 +78,11 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Set default version if not present (for backwards compatibility)
+	if config.Version == "" {
+		config.Version = ConfigFileVersion
 	}
 
 	return &config, nil
@@ -80,12 +97,17 @@ func SaveConfig(config *Config) error {
 func SaveConfigTo(dir string, config *Config) error {
 	path := filepath.Join(dir, ConfigFileName)
 
+	// Ensure version is set before saving
+	if config.Version == "" {
+		config.Version = ConfigFileVersion
+	}
+
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed to serialize config: %w", err)
 	}
 
-	header := "# scratchmd configuration\n# This file can be committed to git\n\n"
+	header := "# scratchmd configuration\n# This file can be committed to git\n# Format version: " + config.Version + "\n\n"
 	content := []byte(header + string(data))
 
 	if err := os.WriteFile(path, content, 0644); err != nil {
@@ -107,7 +129,10 @@ func LoadSecretsFrom(dir string) (*SecretsConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &SecretsConfig{Secrets: []AccountSecret{}}, nil
+			return &SecretsConfig{
+				Version: SecretsFileVersion,
+				Secrets: []AccountSecret{},
+			}, nil
 		}
 		return nil, fmt.Errorf("failed to read secrets file: %w", err)
 	}
@@ -115,6 +140,11 @@ func LoadSecretsFrom(dir string) (*SecretsConfig, error) {
 	var config SecretsConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse secrets file: %w", err)
+	}
+
+	// Set default version if not present (for backwards compatibility)
+	if config.Version == "" {
+		config.Version = SecretsFileVersion
 	}
 
 	return &config, nil
@@ -129,12 +159,17 @@ func SaveSecrets(secrets *SecretsConfig) error {
 func SaveSecretsTo(dir string, secrets *SecretsConfig) error {
 	path := filepath.Join(dir, SecretsFileName)
 
+	// Ensure version is set before saving
+	if secrets.Version == "" {
+		secrets.Version = SecretsFileVersion
+	}
+
 	data, err := yaml.Marshal(secrets)
 	if err != nil {
 		return fmt.Errorf("failed to serialize secrets: %w", err)
 	}
 
-	header := "# scratchmd secrets - DO NOT COMMIT THIS FILE\n# Contains API keys and credentials\n\n"
+	header := "# scratchmd secrets - DO NOT COMMIT THIS FILE\n# Contains API keys and credentials\n# Format version: " + secrets.Version + "\n\n"
 	content := []byte(header + string(data))
 
 	// Use restrictive permissions for secrets
@@ -188,25 +223,141 @@ func (c *Config) RemoveAccount(name string) bool {
 	return false
 }
 
-// SetSecret adds or updates a secret by account ID
+// SetSecret adds or updates a secret by account ID (deprecated - use SetSecretProperties)
 func (s *SecretsConfig) SetSecret(id, apiKey string) {
 	for i, secret := range s.Secrets {
 		if secret.ID == id {
 			s.Secrets[i].APIKey = apiKey
+			// Also set in properties for new consumers
+			if s.Secrets[i].Properties == nil {
+				s.Secrets[i].Properties = make(map[string]string)
+			}
+			s.Secrets[i].Properties["apiKey"] = apiKey
 			return
 		}
 	}
-	s.Secrets = append(s.Secrets, AccountSecret{ID: id, APIKey: apiKey})
+	s.Secrets = append(s.Secrets, AccountSecret{
+		ID:         id,
+		APIKey:     apiKey,
+		Properties: map[string]string{"apiKey": apiKey},
+	})
 }
 
-// GetSecret retrieves an API key by account ID
+// SetSecretProperties adds or updates authentication properties for an account
+func (s *SecretsConfig) SetSecretProperties(id string, properties map[string]string) {
+	for i, secret := range s.Secrets {
+		if secret.ID == id {
+			s.Secrets[i].Properties = properties
+			// For backwards compatibility, also set APIKey if present
+			if apiKey, ok := properties["apiKey"]; ok {
+				s.Secrets[i].APIKey = apiKey
+			}
+			return
+		}
+	}
+	secret := AccountSecret{
+		ID:         id,
+		Properties: properties,
+	}
+	// For backwards compatibility, also set APIKey if present
+	if apiKey, ok := properties["apiKey"]; ok {
+		secret.APIKey = apiKey
+	}
+	s.Secrets = append(s.Secrets, secret)
+}
+
+// GetSecret retrieves an API key by account ID (deprecated - use GetSecretProperties)
 func (s *SecretsConfig) GetSecret(id string) string {
 	for _, secret := range s.Secrets {
 		if secret.ID == id {
+			// Try new properties first
+			if secret.Properties != nil {
+				if apiKey, ok := secret.Properties["apiKey"]; ok {
+					return apiKey
+				}
+			}
+			// Fall back to legacy field
 			return secret.APIKey
 		}
 	}
 	return ""
+}
+
+// GetSecretProperties retrieves all authentication properties for an account
+func (s *SecretsConfig) GetSecretProperties(id string) map[string]string {
+
+	for _, secret := range s.Secrets {
+		if secret.ID == id {
+
+			if len(secret.Properties) > 0 {
+				return secret.Properties
+			}
+			// For backwards compatibility, create properties from APIKey
+			if secret.APIKey != "" {
+				return map[string]string{"apiKey": secret.APIKey}
+			}
+			return make(map[string]string)
+		}
+	}
+	return make(map[string]string)
+}
+
+// UpsertSecretProperty adds or updates a single authentication property for an account
+func (s *SecretsConfig) UpsertSecretProperty(id, key, value string) {
+	for i, secret := range s.Secrets {
+		if secret.ID == id {
+			// Initialize properties map if needed
+			if s.Secrets[i].Properties == nil {
+				s.Secrets[i].Properties = make(map[string]string)
+			}
+			// Set the property
+			s.Secrets[i].Properties[key] = value
+
+			// For backwards compatibility, also update APIKey field if this is the apiKey property
+			if key == "apiKey" {
+				s.Secrets[i].APIKey = value
+			}
+			return
+		}
+	}
+
+	// Account secret doesn't exist yet, create it
+	secret := AccountSecret{
+		ID:         id,
+		Properties: map[string]string{key: value},
+	}
+	// For backwards compatibility, also set APIKey if this is the apiKey property
+	if key == "apiKey" {
+		secret.APIKey = value
+	}
+	s.Secrets = append(s.Secrets, secret)
+}
+
+// DeleteSecretProperty removes a single authentication property from an account
+func (s *SecretsConfig) DeleteSecretProperty(id, key string) bool {
+	for i, secret := range s.Secrets {
+		if secret.ID == id {
+			if s.Secrets[i].Properties == nil {
+				return false
+			}
+
+			// Check if property exists
+			if _, exists := s.Secrets[i].Properties[key]; !exists {
+				return false
+			}
+
+			// Delete the property
+			delete(s.Secrets[i].Properties, key)
+
+			// For backwards compatibility, also clear APIKey field if this is the apiKey property
+			if key == "apiKey" {
+				s.Secrets[i].APIKey = ""
+			}
+
+			return true
+		}
+	}
+	return false
 }
 
 // RemoveSecret removes a secret by account ID

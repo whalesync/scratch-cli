@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -193,7 +194,9 @@ func runAccountSetup(cmd *cobra.Command, args []string) error {
 
 	// Ask what to do
 	options := []string{"Add a new account"}
-	// TODO: Add "Edit existing account" option later
+	if len(cfg.Accounts) > 0 {
+		options = append(options, "Update account credentials")
+	}
 	options = append(options, "Cancel")
 
 	var action string
@@ -205,17 +208,25 @@ func runAccountSetup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if action == "Cancel" {
+	switch action {
+	case "Cancel":
 		return nil
-	}
 
-	// Use the shared addAccountInteractive function
-	if err := addAccountInteractive(cfg, secrets); err != nil {
-		return err
-	}
+	case "Add a new account":
+		// Use the shared addAccountInteractive function
+		if err := addAccountInteractive(cfg, secrets); err != nil {
+			return err
+		}
+		// Save configs
+		saveConfigs(cfg, secrets)
 
-	// Save configs
-	saveConfigs(cfg, secrets)
+	case "Update account credentials":
+		if err := updateAccountCredentialsInteractive(cfg, secrets); err != nil {
+			return err
+		}
+		// Save configs
+		saveConfigs(cfg, secrets)
+	}
 
 	return nil
 }
@@ -411,17 +422,17 @@ func runAccountListTables(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
 	}
 
-	// Get API key
-	apiKey := secrets.GetSecret(account.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", accountName)
+	// Get authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", accountName)
 	}
 
 	// List tables via API
 	client := api.NewClient()
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
-		Params:  map[string]string{"apiKey": apiKey},
+		Params:  authProps,
 	}
 
 	resp, err := client.ListTables(creds)
@@ -470,17 +481,17 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
 	}
 
-	// Get API key
-	apiKey := secrets.GetSecret(account.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", accountName)
+	// Get authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", accountName)
 	}
 
 	// List tables via API to find the one we want
 	client := api.NewClient()
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
-		Params:  map[string]string{"apiKey": apiKey},
+		Params:  authProps,
 	}
 
 	resp, err := client.ListTables(creds)
@@ -576,10 +587,10 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
 	}
 
-	// Get API key
-	apiKey := secrets.GetSecret(account.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", accountName)
+	// Get authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", accountName)
 	}
 
 	// Create API client
@@ -588,9 +599,7 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
-		Params: map[string]string{
-			"apiKey": apiKey,
-		},
+		Params:  authProps,
 	}
 
 	fmt.Printf("Testing account credentials for '%s'...\n", accountName)
@@ -619,6 +628,162 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 		}
 		return fmt.Errorf("credential test failed")
 	}
+
+	return nil
+}
+
+// updateAccountCredentialsInteractive allows user to update credentials for an existing account
+func updateAccountCredentialsInteractive(cfg *config.Config, secrets *config.SecretsConfig) error {
+	fmt.Println()
+
+	// Build account options
+	if len(cfg.Accounts) == 0 {
+		return fmt.Errorf("no accounts configured")
+	}
+
+	var selectedAccount *config.Account
+
+	if len(cfg.Accounts) == 1 {
+		// Auto-select if only one account
+		selectedAccount = &cfg.Accounts[0]
+		fmt.Printf("Updating credentials for: %s (%s)\n", selectedAccount.Name, selectedAccount.Provider)
+	} else {
+		// Let user choose
+		accountOptions := make([]string, len(cfg.Accounts))
+		for i, acc := range cfg.Accounts {
+			accountOptions[i] = fmt.Sprintf("%s (%s)", acc.Name, acc.Provider)
+		}
+
+		var selected string
+		prompt := &survey.Select{
+			Message: "Select an account to update:",
+			Options: accountOptions,
+		}
+		if err := survey.AskOne(prompt, &selected); err != nil {
+			return err
+		}
+
+		// Find selected account
+		for i := range cfg.Accounts {
+			option := fmt.Sprintf("%s (%s)", cfg.Accounts[i].Name, cfg.Accounts[i].Provider)
+			if option == selected {
+				selectedAccount = &cfg.Accounts[i]
+				break
+			}
+		}
+	}
+
+	if selectedAccount == nil {
+		return fmt.Errorf("failed to select account")
+	}
+
+	// Get provider to access auth properties
+	provider, err := providers.GetProvider(selectedAccount.Provider)
+	if err != nil {
+		return fmt.Errorf("failed to get provider: %w", err)
+	}
+
+	// Get existing credentials to use as defaults
+	existingProps := secrets.GetSecretProperties(selectedAccount.ID)
+
+	fmt.Println()
+	fmt.Printf("📝 Re-enter credentials for '%s' (%s)\n", selectedAccount.Name, provider.DisplayName())
+	fmt.Println("   (Press Enter to keep current value)")
+	fmt.Println()
+
+	// Collect authentication properties from user
+	authProps := provider.AuthProperties()
+	authValues := make(map[string]string)
+
+	for _, prop := range authProps {
+		var value string
+		existingValue := existingProps[prop.Key]
+
+		if prop.Sensitive {
+			// For sensitive fields, show a masked version if value exists
+			defaultHint := ""
+			if existingValue != "" {
+				defaultHint = " (current: ********)"
+			}
+
+			// Use password prompt for sensitive fields
+			prompt := &survey.Password{
+				Message: fmt.Sprintf("Enter %s%s:", prop.DisplayName, defaultHint),
+				Help:    prop.Description,
+			}
+			if err := survey.AskOne(prompt, &value); err != nil {
+				return err
+			}
+
+			// If empty, keep existing value
+			if value == "" && existingValue != "" {
+				value = existingValue
+			}
+		} else {
+			// Use input prompt for non-sensitive fields with existing value as default
+			prompt := &survey.Input{
+				Message: fmt.Sprintf("Enter %s:", prop.DisplayName),
+				Help:    prop.Description,
+				Default: existingValue,
+			}
+			if err := survey.AskOne(prompt, &value); err != nil {
+				return err
+			}
+		}
+
+		value = strings.TrimSpace(value)
+		if prop.Required && value == "" {
+			return fmt.Errorf("%s cannot be empty", prop.DisplayName)
+		}
+
+		authValues[prop.Key] = value
+	}
+
+	// Test connection via API
+	fmt.Print("\n⏳ Testing connection...")
+
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: selectedAccount.Provider,
+		Params:  authValues,
+	}
+
+	tested := false
+	result, err := client.TestConnection(creds)
+	if err != nil {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("   Error: %s\n", err)
+	} else if !result.Success {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("   Error: %s\n", result.Error)
+	} else {
+		fmt.Printf(" ✅ Success!\n")
+		tested = true
+	}
+
+	if !tested {
+		// Ask if they want to save anyway
+		saveAnyway := false
+		savePrompt := &survey.Confirm{
+			Message: "Save credentials anyway? (You can test again later)",
+			Default: false,
+		}
+		if err := survey.AskOne(savePrompt, &saveAnyway); err != nil {
+			return err
+		}
+		if !saveAnyway {
+			return fmt.Errorf("update cancelled - connection test failed")
+		}
+	}
+
+	// Update authentication properties in secrets
+	secrets.SetSecretProperties(selectedAccount.ID, authValues)
+
+	// Update tested status in account
+	selectedAccount.Tested = tested
+
+	fmt.Println()
+	fmt.Printf("✅ Updated credentials for '%s'\n", selectedAccount.Name)
 
 	return nil
 }

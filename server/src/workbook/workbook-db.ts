@@ -586,7 +586,7 @@ export class WorkbookDb {
         // Convert to Front Matter markdown format
         const { content: frontMatterContent, metadata: frontMatterMetadata } = convertConnectorRecordToFrontMatter(
           record,
-          tableSpec.mainContentColumnRemoteId,
+          { contentColumnId: tableSpec.mainContentColumnRemoteId, embedRemoteId: false },
         );
 
         // Generate a scratch ID for new records
@@ -889,8 +889,12 @@ export class WorkbookDb {
  */
 export function convertConnectorRecordToFrontMatter(
   record: ConnectorRecord,
-  contentColumnId: string[] | undefined,
+  options: {
+    contentColumnId?: string[];
+    embedRemoteId?: boolean;
+  },
 ): { content: string; metadata: Record<string, unknown> } {
+  const { contentColumnId, embedRemoteId } = options;
   // Determine the main content column key
   let contentKey: string | undefined;
   if (contentColumnId && contentColumnId.length > 0) {
@@ -901,6 +905,10 @@ export function convertConnectorRecordToFrontMatter(
   // Extract main content and metadata from record fields
   let bodyContent = '';
   const metadata: Record<string, unknown> = {};
+
+  if (embedRemoteId) {
+    metadata['remoteId'] = record.id;
+  }
 
   for (const [key, value] of Object.entries(record.fields)) {
     if (contentKey && key === contentKey) {

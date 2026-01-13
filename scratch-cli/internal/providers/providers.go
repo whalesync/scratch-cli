@@ -32,12 +32,23 @@ type FieldInfo struct {
 // ProgressCallback is called to report progress during long operations
 type ProgressCallback func(message string)
 
+// AuthProperty represents a single authentication property that needs to be collected
+type AuthProperty struct {
+	Key         string // The key used to identify this property (e.g., "apiKey", "email", "wordpressUrl")
+	DisplayName string // Human-readable name shown to user (e.g., "API Key", "Email", "WordPress URL")
+	Description string // Optional description/help text
+	Required    bool   // Whether this property is required
+	Sensitive   bool   // Whether this is sensitive data (password, API key) - should be masked in UI
+}
+
 // Provider represents a CMS provider that can be tested
 type Provider interface {
 	// Name returns the provider name (e.g., "webflow", "wordpress")
 	Name() string
 	// DisplayName returns a human-readable name
 	DisplayName() string
+	// AuthProperties returns the list of authentication properties needed for this provider
+	AuthProperties() []AuthProperty
 }
 
 // TableLister is implemented by providers that can list available tables
@@ -64,6 +75,8 @@ func SupportedProviders() []string {
 // GetProvider returns a provider by name
 func GetProvider(name string) (Provider, error) {
 	switch name {
+	case "airtable":
+		return &AirtableProvider{}, nil
 	case "webflow":
 		return &WebflowProvider{}, nil
 	case "wordpress":

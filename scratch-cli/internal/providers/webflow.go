@@ -18,6 +18,19 @@ func (w *WebflowProvider) DisplayName() string {
 	return "Webflow"
 }
 
+// AuthProperties returns the authentication properties needed for Webflow
+func (w *WebflowProvider) AuthProperties() []AuthProperty {
+	return []AuthProperty{
+		{
+			Key:         "apiKey",
+			DisplayName: "API Key",
+			Description: "Your Webflow API token",
+			Required:    true,
+			Sensitive:   true,
+		},
+	}
+}
+
 // Webflow API response types
 type webflowSitesResponse struct {
 	Sites []webflowSite `json:"sites"`

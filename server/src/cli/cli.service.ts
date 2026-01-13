@@ -263,7 +263,7 @@ export class CliService {
 
       // Convert records to frontmatter files
       const files: FileContent[] = allRecords.map((record) => {
-        const { content } = convertConnectorRecordToFrontMatter(record, contentColumnId);
+        const { content } = convertConnectorRecordToFrontMatter(record, { contentColumnId, embedRemoteId: true });
 
         // Determine filename from title column or record ID
         let fileName = record.id;

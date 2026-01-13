@@ -103,10 +103,10 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 		return fmt.Errorf("account not found for table '%s'", tableName)
 	}
 
-	// Get the API key
-	apiKey := secrets.GetSecret(account.ID)
-	if apiKey == "" {
-		return fmt.Errorf("no API key found for account '%s'", account.Name)
+	// Get the authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", account.Name)
 	}
 
 	fmt.Printf("📥 Downloading '%s' from %s...\n", tableConfig.TableName, account.Name)
@@ -117,9 +117,7 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
-		Params: map[string]string{
-			"apiKey": apiKey,
-		},
+		Params:  authProps,
 	}
 
 	// Build table ID array - if SiteID exists, use [siteId, tableId], otherwise just [tableId]
