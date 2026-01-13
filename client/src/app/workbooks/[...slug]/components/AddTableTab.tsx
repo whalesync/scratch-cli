@@ -426,7 +426,15 @@ export const AddTableTab = () => {
         onConfirm={async (id: SnapshotTableId) => await deleteTable(id)}
         {...deleteTableModal}
       />
-      {groupedTables.length === 0 ? contentWithoutExistingSources : contentWithExistingSources}
+      {isLoading ? (
+        <Center py="xl">
+          <Loader size="sm" />
+        </Center>
+      ) : groupedTables.length === 0 ? (
+        contentWithoutExistingSources
+      ) : (
+        contentWithExistingSources
+      )}
     </>
   );
 };
