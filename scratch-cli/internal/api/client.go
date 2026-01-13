@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/whalesync/scratch-cli/internal/providers"
 )
 
 // DefaultBaseURL is the default server URL for the Scratch API.
@@ -33,11 +35,17 @@ type ConnectorCredentials struct {
 	Params  map[string]string `json:"params,omitempty"`
 }
 
-// TestCredentialsResponse represents the response from the test-credentials endpoint.
-type TestCredentialsResponse struct {
+// TestConnectionResponse represents the response from the test-credentials endpoint.
+type TestConnectionResponse struct {
 	Success bool   `json:"success"`
 	Service string `json:"service,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+// ListTablesResponse represents the response from the list-tables endpoint.
+type ListTablesResponse struct {
+	Error  string                `json:"error,omitempty"`
+	Tables []providers.TableInfo `json:"tables,omitempty"`
 }
 
 // ClientOption is a function that configures a Client.
@@ -145,10 +153,19 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 	return nil
 }
 
-// TestCredentials tests the provided connector credentials.
-func (c *Client) TestCredentials(creds *ConnectorCredentials) (*TestCredentialsResponse, error) {
-	var result TestCredentialsResponse
-	if err := c.doRequest(http.MethodGet, "test-credentials", creds, nil, &result); err != nil {
+// TestConnection tests the provided connector credentials.
+func (c *Client) TestConnection(creds *ConnectorCredentials) (*TestConnectionResponse, error) {
+	var result TestConnectionResponse
+	if err := c.doRequest(http.MethodGet, "test-connection", creds, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ListTables retrieves the list of available tables/collections from the server.
+func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
+	var result ListTablesResponse
+	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

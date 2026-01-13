@@ -86,6 +86,12 @@ export type BaseColumnSpec = {
    * @example ["html", "markdown"]
    */
   dataConverterTypes?: string[];
+
+  /**
+   * A unique, slugified version of the column name
+   * Implementation depends on the connector but can be used to identify the column in the UI and in the agent.
+   */
+  slug?: string;
 };
 
 /**

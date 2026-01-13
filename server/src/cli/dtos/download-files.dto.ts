@@ -1,10 +1,15 @@
-import { Service } from '@spinner/shared-types';
 import { IsArray, IsString } from 'class-validator';
 
 export class DownloadRequestDto {
-  @IsArray()
   @IsString({ each: true })
+  @IsArray()
   tableId?: string[];
+
+  @IsString()
+  filenameFieldId?: string;
+
+  @IsString()
+  contentFieldId?: string;
 }
 
 export type ValidatedDownloadRequestDto = Required<Pick<DownloadRequestDto, 'tableId'>>;
@@ -19,8 +24,6 @@ export type FileContent = {
 };
 
 export class DownloadedFilesResponseDto {
-  readonly success?: boolean;
-  readonly service?: Service;
   readonly error?: string;
   readonly files?: FileContent[];
 }

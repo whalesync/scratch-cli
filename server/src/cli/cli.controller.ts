@@ -15,7 +15,7 @@ import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
-import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 
 /**
  * CLI Request type with optional connector credentials from X-Scratch-Connector header
@@ -39,9 +39,9 @@ export class CliController {
     };
   }
 
-  @Get('test-credentials')
-  async testCredentials(@Req() req: CliRequest): Promise<TestCredentialsResponseDto> {
-    return this.cliService.testCredentials(req.connectorCredentials);
+  @Get('test-connection')
+  async testConnection(@Req() req: CliRequest): Promise<TestConnectionResponseDto> {
+    return this.cliService.testConnection(req.connectorCredentials);
   }
 
   @Get('list-tables')
@@ -50,8 +50,8 @@ export class CliController {
   }
 
   @Post('download')
-  async download(@Req() req: CliRequest, @Body() body: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
+  async download(@Req() req: CliRequest, @Body() dto: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
     // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
-    return this.cliService.download(req.connectorCredentials, body.tableId ?? []);
+    return this.cliService.download(req.connectorCredentials, dto);
   }
 }

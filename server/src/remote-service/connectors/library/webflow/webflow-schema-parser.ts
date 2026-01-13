@@ -111,7 +111,7 @@ export class WebflowSchemaParser {
 
     return {
       id,
-      slug: id.wsId,
+      slug: collection.slug ?? id.wsId,
       name: `${site.displayName} - ${collection.displayName}`,
       columns,
       titleColumnRemoteId,

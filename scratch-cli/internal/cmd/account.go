@@ -349,14 +349,19 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("account '%s' already exists. Use 'account remove' first or choose a different name", name)
 	}
 
-	// Test connection
-	providerImpl, err := providers.GetProvider(provider)
-	if err != nil {
-		return fmt.Errorf("failed to get provider: %w", err)
+	// Test connection via API
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: provider,
+		Params:  map[string]string{"apiKey": apiKey},
 	}
 
-	if err := providerImpl.TestConnection(apiKey); err != nil {
+	result, err := client.TestConnection(creds)
+	if err != nil {
 		return fmt.Errorf("connection test failed: %w", err)
+	}
+	if !result.Success {
+		return fmt.Errorf("connection test failed: %s", result.Error)
 	}
 
 	// Create account
@@ -412,33 +417,28 @@ func runAccountListTables(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no API key found for account '%s'", accountName)
 	}
 
-	// Get provider
-	provider, err := providers.GetProvider(account.Provider)
-	if err != nil {
-		return fmt.Errorf("failed to get provider: %w", err)
+	// List tables via API
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params:  map[string]string{"apiKey": apiKey},
 	}
 
-	// Check if provider supports listing tables
-	tableLister, ok := provider.(providers.TableLister)
-	if !ok {
-		return fmt.Errorf("provider '%s' does not support listing tables", account.Provider)
-	}
-
-	// List tables (suppress progress output for clean machine-readable output)
-	tables, err := tableLister.ListTables(apiKey, func(msg string) {
-		// Silent progress for non-interactive use
-	})
+	resp, err := client.ListTables(creds)
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}
+	if resp.Error != "" {
+		return fmt.Errorf("failed to list tables: %s", resp.Error)
+	}
 
-	if len(tables) == 0 {
+	if len(resp.Tables) == 0 {
 		fmt.Println("No tables found.")
 		return nil
 	}
 
 	// Output in name: id format
-	for _, table := range tables {
+	for _, table := range resp.Tables {
 		fmt.Printf("%s: %s\n", table.Name, table.ID)
 	}
 
@@ -476,31 +476,26 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no API key found for account '%s'", accountName)
 	}
 
-	// Get provider
-	provider, err := providers.GetProvider(account.Provider)
-	if err != nil {
-		return fmt.Errorf("failed to get provider: %w", err)
+	// List tables via API to find the one we want
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params:  map[string]string{"apiKey": apiKey},
 	}
 
-	// Check if provider supports listing tables (needed to get table info)
-	tableLister, ok := provider.(providers.TableLister)
-	if !ok {
-		return fmt.Errorf("provider '%s' does not support listing tables", account.Provider)
-	}
-
-	// List tables to find the one we want
-	tables, err := tableLister.ListTables(apiKey, func(msg string) {
-		// Silent progress
-	})
+	resp, err := client.ListTables(creds)
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
+	}
+	if resp.Error != "" {
+		return fmt.Errorf("failed to list tables: %s", resp.Error)
 	}
 
 	// Find the table by ID
 	var targetTable *providers.TableInfo
-	for i := range tables {
-		if tables[i].ID == tableID {
-			targetTable = &tables[i]
+	for i := range resp.Tables {
+		if resp.Tables[i].ID == tableID {
+			targetTable = &resp.Tables[i]
 			break
 		}
 	}
@@ -601,7 +596,7 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Testing account credentials for '%s'...\n", accountName)
 
 	// Call test-credentials endpoint
-	result, err := client.TestCredentials(creds)
+	result, err := client.TestConnection(creds)
 	if err != nil {
 		return fmt.Errorf("failed to call server API: %w", err)
 	}

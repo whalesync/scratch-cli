@@ -25,5 +25,4 @@ export type WebflowTableSpecExtras = object;
 export type WebflowColumnSpecExtras = {
   // Webflow field type (e.g., 'PlainText', 'RichText', 'Number', etc.)
   webflowFieldType?: string;
-  slug?: string;
 };

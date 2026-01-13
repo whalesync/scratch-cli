@@ -9,6 +9,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/providers"
 	"golang.org/x/term"
@@ -230,27 +231,25 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		return fmt.Errorf("no API key found for account '%s'", selectedAccount.Name)
 	}
 
-	// Get the provider
-	provider, err := providers.GetProvider(selectedAccount.Provider)
-	if err != nil {
-		return err
-	}
-
-	// Check if provider supports listing tables
-	tableLister, ok := provider.(providers.TableLister)
-	if !ok {
-		return fmt.Errorf("provider '%s' does not support listing tables yet", selectedAccount.Provider)
-	}
-
-	// List available tables with progress
+	// List available tables via API
 	fmt.Println()
-	var tables []providers.TableInfo
-	tables, err = tableLister.ListTables(apiKey, func(message string) {
-		fmt.Printf("   %s\n", message)
-	})
+	fmt.Println("   Fetching tables from server...")
+
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: selectedAccount.Provider,
+		Params:  map[string]string{"apiKey": apiKey},
+	}
+
+	resp, err := client.ListTables(creds)
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}
+	if resp.Error != "" {
+		return fmt.Errorf("failed to list tables: %s", resp.Error)
+	}
+
+	tables := resp.Tables
 
 	if len(tables) == 0 {
 		fmt.Println("\n⚠️  No tables/collections found in this account.")
@@ -486,19 +485,29 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		return fmt.Errorf("API key cannot be empty")
 	}
 
-	// Test connection
+	// Test connection via API
 	fmt.Print("\n⏳ Testing connection...")
 
-	provider, err := providers.GetProvider(providerName)
-	if err != nil {
-		return err
+	client := api.NewClient()
+	creds := &api.ConnectorCredentials{
+		Service: providerName,
+		Params:  map[string]string{"apiKey": apiKey},
 	}
 
 	tested := false
-	if err := provider.TestConnection(apiKey); err != nil {
+	result, err := client.TestConnection(creds)
+	if err != nil {
 		fmt.Printf(" ❌ Failed\n")
 		fmt.Printf("   Error: %s\n", err)
+	} else if !result.Success {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("   Error: %s\n", result.Error)
+	} else {
+		fmt.Printf(" ✅ Success!\n")
+		tested = true
+	}
 
+	if !tested {
 		// Ask if they want to save anyway
 		saveAnyway := false
 		savePrompt := &survey.Confirm{
@@ -511,9 +520,6 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		if !saveAnyway {
 			return fmt.Errorf("account creation cancelled - connection test failed")
 		}
-	} else {
-		fmt.Printf(" ✅ Success!\n")
-		tested = true
 	}
 
 	// Generate UUID for new account, or reuse existing

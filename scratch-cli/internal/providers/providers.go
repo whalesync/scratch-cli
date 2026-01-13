@@ -9,24 +9,24 @@ import (
 
 // TableInfo represents a table/collection from a CMS
 type TableInfo struct {
-	ID           string            // Unique identifier (e.g., collection ID)
-	Name         string            // Display name
-	Slug         string            // URL-friendly slug (used for folder name)
-	SiteID       string            // Parent site ID (for providers with sites)
-	SiteName     string            // Parent site name
-	Fields       []FieldInfo       // User-defined schema fields
-	SystemFields []FieldInfo       // System/metadata fields (isDraft, createdOn, etc.)
-	ExtraInfo    map[string]string // Provider-specific info
+	ID           string            `json:"id,omitempty"`           // Unique identifier (e.g., collection ID)
+	Name         string            `json:"name,omitempty"`         // Display name
+	Slug         string            `json:"slug,omitempty"`         // URL-friendly slug (used for folder name)
+	SiteID       string            `json:"siteId,omitempty"`       // Parent site ID (for providers with sites)
+	SiteName     string            `json:"siteName,omitempty"`     // Parent site name
+	Fields       []FieldInfo       `json:"fields,omitempty"`       // User-defined schema fields
+	SystemFields []FieldInfo       `json:"systemFields,omitempty"` // System/metadata fields (isDraft, createdOn, etc.)
+	ExtraInfo    map[string]string `json:"extraInfo,omitempty"`    // Provider-specific info
 }
 
 // FieldInfo represents a field/column in a table
 type FieldInfo struct {
-	ID       string // Field ID
-	Name     string // Display name
-	Slug     string // URL-friendly slug (used as key in records)
-	Type     string // Field type (text, richtext, image, etc.)
-	Required bool   // Whether field is required
-	HelpText string // Description/help text
+	ID       string `json:"id,omitempty"`       // Field ID
+	Name     string `json:"name,omitempty"`     // Display name
+	Slug     string `json:"slug,omitempty"`     // URL-friendly slug (used as key in records)
+	Type     string `json:"type,omitempty"`     // Field type (text, richtext, image, etc.)
+	Required bool   `json:"required,omitempty"` // Whether field is required
+	HelpText string `json:"helpText,omitempty"` // Description/help text
 }
 
 // ProgressCallback is called to report progress during long operations

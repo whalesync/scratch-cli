@@ -8,9 +8,9 @@ import { DecryptedCredentials } from 'src/remote-service/connector-account/types
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
-import { DownloadedFilesResponseDto, FileContent } from './dtos/download-files.dto';
+import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
-import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { FieldInfo } from './entities/field-info.entity';
 import { TableInfo } from './entities/table-info.entity';
 
@@ -34,10 +34,17 @@ export class CliService {
     return undefined;
   }
 
-  private async getConnectorFromCredentials(credentials: CliConnectorCredentials, service: Service) {
+  private async getConnectorFromCredentials(credentials: CliConnectorCredentials, serviceName: string) {
+    const service = this.parseServiceName(serviceName);
+    if (!service) {
+      throw new Error(
+        `Invalid service: ${serviceName}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
+      );
+    }
+
     // Parse user-provided params if an auth parser exists for this service
     let parsedCredentials: Record<string, string> = credentials.params ?? {};
-    const authParser = this.connectorsService.getAuthParser({ service });
+    const authParser = this.connectorsService.getAuthParser({ service: service });
     if (authParser) {
       const result = await authParser.parseUserProvidedParams({
         userProvidedParams: credentials.params ?? {},
@@ -74,7 +81,7 @@ export class CliService {
     });
   }
 
-  async testCredentials(credentials?: CliConnectorCredentials): Promise<TestCredentialsResponseDto> {
+  async testConnection(credentials?: CliConnectorCredentials): Promise<TestConnectionResponseDto> {
     if (!credentials?.service) {
       return {
         success: false,
@@ -114,7 +121,6 @@ export class CliService {
   async listTables(credentials?: CliConnectorCredentials): Promise<ListTablesResponseDto> {
     if (!credentials?.service) {
       return {
-        success: false,
         error: 'Service is required in X-Scratch-Connector header',
       };
     }
@@ -122,7 +128,6 @@ export class CliService {
     const service = this.parseServiceName(credentials.service);
     if (!service) {
       return {
-        success: false,
         error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
       };
     }
@@ -138,7 +143,20 @@ export class CliService {
       // Convert table specs to TableInfo objects
       const tables: TableInfo[] = tableSpecs.map((spec) => {
         const tableInfo = new TableInfo();
-        tableInfo.id = Array.isArray(spec.id.remoteId) ? spec.id.remoteId.join('/') : spec.id.remoteId;
+        const tablePreview = tablePreviews.find((p) => spec.id.wsId === p.id.wsId);
+        if (spec.id.remoteId.length > 1) {
+          // Table IDs are an array that represent a path to an object.
+          // If there are multiple elements, the first element is a base or site ID, the second element is the table ID
+          tableInfo.siteId = spec.id.remoteId[0];
+          tableInfo.id = spec.id.remoteId[1];
+
+          // The site name, might be stored in the TablePreview metadata
+          if (tablePreview && tablePreview.metadata && 'siteName' in tablePreview.metadata) {
+            tableInfo.siteName = tablePreview.metadata.siteName as string;
+          }
+        } else {
+          tableInfo.id = spec.id.remoteId[0];
+        }
         tableInfo.name = spec.name;
         tableInfo.slug = spec.slug;
 
@@ -147,9 +165,9 @@ export class CliService {
           .filter((col) => !col.readonly)
           .map((col) => {
             const fieldInfo = new FieldInfo();
-            fieldInfo.id = Array.isArray(col.id.remoteId) ? col.id.remoteId.join('/') : col.id.remoteId;
+            fieldInfo.id = col.id.remoteId.join('/');
             fieldInfo.name = col.name;
-            fieldInfo.slug = col.id.wsId;
+            fieldInfo.slug = col.slug ?? col.id.remoteId[0];
             fieldInfo.type = col.pgType;
             fieldInfo.required = col.required;
             return fieldInfo;
@@ -161,65 +179,64 @@ export class CliService {
             const fieldInfo = new FieldInfo();
             fieldInfo.id = Array.isArray(col.id.remoteId) ? col.id.remoteId.join('/') : col.id.remoteId;
             fieldInfo.name = col.name;
-            fieldInfo.slug = col.id.wsId;
+            fieldInfo.slug = col.slug ?? col.id.remoteId[0];
             fieldInfo.type = col.pgType;
             fieldInfo.required = col.required;
             return fieldInfo;
           });
 
+        tableInfo.extraInfo = {};
+        if (spec.mainContentColumnRemoteId) {
+          tableInfo.extraInfo.contentFieldId = spec.mainContentColumnRemoteId[0];
+        }
+        if (spec.titleColumnRemoteId && spec.titleColumnRemoteId.length > 0) {
+          tableInfo.extraInfo.filenameFieldId = spec.titleColumnRemoteId[0];
+        }
+
         return tableInfo;
       });
 
       return {
-        success: true,
-        service,
         tables,
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        success: false,
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error listing tables',
         error: errorMessage,
-        service,
+      });
+      return {
+        error: errorMessage,
       };
     }
   }
 
   async download(
     credentials: CliConnectorCredentials | undefined,
-    tableId: string[],
+    downloadRequest: DownloadRequestDto,
   ): Promise<DownloadedFilesResponseDto> {
     // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
     if (!credentials?.service) {
       return {
-        success: false,
         error: 'Service is required in X-Scratch-Connector header',
       };
     }
 
-    if (!tableId || tableId.length === 0) {
+    if (!downloadRequest.tableId || downloadRequest.tableId.length === 0) {
       return {
-        success: false,
         error: 'Table ID is required',
       };
     }
 
-    const service = this.parseServiceName(credentials.service);
-    if (!service) {
-      return {
-        success: false,
-        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
-      };
-    }
-
     try {
-      const connector = await this.getConnectorFromCredentials(credentials, service);
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
 
       // Fetch the table spec using the tableId array as the remoteId
-      const wsId = tableId.join('-');
+      const wsId = downloadRequest.tableId.join('-');
       const tableSpec = await connector.fetchTableSpec({
         wsId,
-        remoteId: tableId,
+        remoteId: downloadRequest.tableId,
       });
 
       // Collect all records
@@ -266,8 +283,6 @@ export class CliService {
       });
 
       return {
-        success: true,
-        service,
         files,
       };
     } catch (error: unknown) {
@@ -278,9 +293,7 @@ export class CliService {
       });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
-        success: false,
         error: errorMessage,
-        service,
       };
     }
   }
