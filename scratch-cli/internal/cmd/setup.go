@@ -109,6 +109,7 @@ edit the config files directly:
 			"Add a new account",
 			"Set up tables",
 			"Download records",
+			"Advanced settings",
 			"Exit setup",
 		}
 
@@ -153,6 +154,12 @@ edit the config files directly:
 
 		case "Download records":
 			if err := downloadRecordsInteractive(cfg, secrets); err != nil {
+				fmt.Printf("\n❌ Error: %s\n\n", err)
+				continue
+			}
+
+		case "Advanced settings":
+			if err := advancedSettingsInteractive(cfg); err != nil {
 				fmt.Printf("\n❌ Error: %s\n\n", err)
 				continue
 			}
@@ -234,7 +241,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	fmt.Println()
 	fmt.Println("   Fetching tables from server...")
 
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: selectedAccount.Provider,
 		Params:  authProps,
@@ -513,7 +520,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 	// Test connection via API
 	fmt.Print("\n⏳ Testing connection...")
 
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: providerName,
 		Params:  authValues,
@@ -629,7 +636,7 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	fmt.Printf("\n📥 Downloading records from '%s'...\n\n", tableConfig.TableName)
 
 	// Create API client
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
@@ -683,5 +690,93 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	}
 
 	fmt.Printf("\n✅ Downloaded %d record(s) to '%s/'\n", totalSaved, selectedTable)
+	return nil
+}
+
+// advancedSettingsInteractive allows users to configure advanced settings
+func advancedSettingsInteractive(cfg *config.Config) error {
+	fmt.Println()
+	fmt.Println("⚙️  Advanced Settings")
+	fmt.Println()
+
+	for {
+		options := []string{
+			"Update Scratch.md Server URL",
+			"Back to main menu",
+		}
+
+		action := ""
+		prompt := &survey.Select{
+			Message: "What would you like to configure?",
+			Options: options,
+		}
+		if err := survey.AskOne(prompt, &action); err != nil {
+			return err
+		}
+
+		switch action {
+		case "Back to main menu":
+			return nil
+
+		case "Update Scratch.md Server URL":
+			if err := setScratchServerURLInteractive(cfg); err != nil {
+				fmt.Printf("\n❌ Error: %s\n\n", err)
+				continue
+			}
+			config.SaveConfig(cfg)
+		}
+	}
+}
+
+// setScratchServerURLInteractive allows users to set the Scratch server URL
+func setScratchServerURLInteractive(cfg *config.Config) error {
+	fmt.Println()
+	fmt.Printf("Current Scratch.md server URL: %s\n", cfg.Settings.ScratchServerURL)
+	fmt.Println()
+
+	var newURL string
+	prompt := &survey.Input{
+		Message: "Enter new Scratch.md server URL:",
+		Default: cfg.Settings.ScratchServerURL,
+		Help:    "The URL for the Scratch.md API server (e.g., https://api.scratch.md)",
+	}
+	if err := survey.AskOne(prompt, &newURL); err != nil {
+		return err
+	}
+
+	newURL = strings.TrimSpace(newURL)
+	if newURL == "" {
+		return fmt.Errorf("Scratch.md server URL cannot be empty")
+	}
+
+	// Remove trailing slash if present
+	newURL = strings.TrimSuffix(newURL, "/")
+
+	fmt.Print("\n⏳ Testing connection to server...")
+
+	client := api.NewClient(api.WithBaseURL(newURL))
+	if err := client.CheckHealth(); err != nil {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("   Error: %s\n\n", err)
+
+		// Ask if they want to save anyway
+		saveAnyway := false
+		savePrompt := &survey.Confirm{
+			Message: "Save URL anyway?",
+			Default: false,
+		}
+		if err := survey.AskOne(savePrompt, &saveAnyway); err != nil {
+			return err
+		}
+		if !saveAnyway {
+			return fmt.Errorf("URL change cancelled - health check failed")
+		}
+	} else {
+		fmt.Printf(" ✅ Success!\n")
+	}
+
+	cfg.Settings.ScratchServerURL = newURL
+
+	fmt.Printf("\n✅ Scratch server URL updated to: %s\n\n", newURL)
 	return nil
 }

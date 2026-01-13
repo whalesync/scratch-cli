@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/whalesync/scratch-cli/internal/api"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,6 +23,11 @@ const (
 	ConfigFileVersion  = "1.0.0" // Current config file format version
 	SecretsFileVersion = "1.0.0" // Current secrets file format version
 )
+
+// Settings represents global settings for the CLI (stored in config file)
+type Settings struct {
+	ScratchServerURL string `yaml:"scratchServerUrl"` // Base URL for the scratch API
+}
 
 // Account represents a CMS account configuration (stored in config file)
 type Account struct {
@@ -40,7 +46,8 @@ type AccountSecret struct {
 
 // Config holds the main configuration (committable to git)
 type Config struct {
-	Version  string    `yaml:"version"` // Format version (e.g., "1.0.0")
+	Version  string    `yaml:"version"`  // Format version (e.g., "1.0.0")
+	Settings *Settings `yaml:"settings"` // Global settings
 	Accounts []Account `yaml:"accounts"`
 }
 
@@ -68,7 +75,10 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &Config{
-				Version:  ConfigFileVersion,
+				Version: ConfigFileVersion,
+				Settings: &Settings{
+					ScratchServerURL: api.DefaultScratchServerURL,
+				},
 				Accounts: []Account{},
 			}, nil
 		}
@@ -83,6 +93,18 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	// Set default version if not present (for backwards compatibility)
 	if config.Version == "" {
 		config.Version = ConfigFileVersion
+	}
+
+	// Initialize settings with defaults if not present (for backwards compatibility)
+	if config.Settings == nil {
+		config.Settings = &Settings{
+			ScratchServerURL: api.DefaultScratchServerURL,
+		}
+	}
+
+	// Set default ScratchURL if not present
+	if config.Settings.ScratchServerURL == "" {
+		config.Settings.ScratchServerURL = api.DefaultScratchServerURL
 	}
 
 	return &config, nil
@@ -100,6 +122,13 @@ func SaveConfigTo(dir string, config *Config) error {
 	// Ensure version is set before saving
 	if config.Version == "" {
 		config.Version = ConfigFileVersion
+	}
+
+	// Ensure settings are initialized with defaults
+	if config.Settings == nil {
+		config.Settings = &Settings{
+			ScratchServerURL: api.DefaultScratchServerURL,
+		}
 	}
 
 	data, err := yaml.Marshal(config)

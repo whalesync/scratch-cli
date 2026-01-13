@@ -25,10 +25,12 @@ To embed version information into the binary:
 VERSION=0.1.0
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+SCRATCH_API_SERVER_URL="https://api.scratch.md"
 
 go build -ldflags "-X 'github.com/whalesync/scratch-cli/internal/cmd.version=${VERSION}' \
                    -X 'github.com/whalesync/scratch-cli/internal/cmd.commit=${COMMIT}' \
-                   -X 'github.com/whalesync/scratch-cli/internal/cmd.buildDate=${BUILD_DATE}'" \
+                   -X 'github.com/whalesync/scratch-cli/internal/cmd.buildDate=${BUILD_DATE}' \
+                   -X 'github.com/whalesync/scratch-cli/internal/api.DefaultScratchServerURL=${SCRATCH_API_SERVER_URL}'" \
          -o scratchmd ./cmd/scratchmd
 ```
 

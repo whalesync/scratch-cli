@@ -160,7 +160,7 @@ func init() {
 	accountAddCmd.MarkFlagRequired("api-key")
 
 	// Flags for account test
-	accountTestCmd.Flags().String("server", api.DefaultBaseURL, "Scratch.md server URL")
+	accountTestCmd.Flags().String("server", "", "Scratch.md api server URL (defaults to config setting)")
 }
 
 func runAccountSetup(cmd *cobra.Command, args []string) error {
@@ -361,7 +361,7 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Test connection via API
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: provider,
 		Params:  map[string]string{"apiKey": apiKey},
@@ -429,7 +429,7 @@ func runAccountListTables(cmd *cobra.Command, args []string) error {
 	}
 
 	// List tables via API
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authProps,
@@ -488,7 +488,7 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 	}
 
 	// List tables via API to find the one we want
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authProps,
@@ -579,6 +579,11 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 	secrets, err := config.LoadSecrets()
 	if err != nil {
 		return fmt.Errorf("failed to load secrets: %w", err)
+	}
+
+	// Use config URL if server flag not provided
+	if serverURL == "" {
+		serverURL = cfg.Settings.ScratchServerURL
 	}
 
 	// Find account
@@ -742,7 +747,7 @@ func updateAccountCredentialsInteractive(cfg *config.Config, secrets *config.Sec
 	// Test connection via API
 	fmt.Print("\n⏳ Testing connection...")
 
-	client := api.NewClient()
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: selectedAccount.Provider,
 		Params:  authValues,

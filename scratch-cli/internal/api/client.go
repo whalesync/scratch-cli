@@ -13,8 +13,10 @@ import (
 	"github.com/whalesync/scratch-cli/internal/providers"
 )
 
-// DefaultBaseURL is the default server URL for the Scratch API.
-const DefaultBaseURL = "http://localhost:3010"
+// DefaultScratchURL is the default base URL for the scratch API
+// This can be overridden at build time using:
+// go build -ldflags "-X github.com/whalesync/scratch-cli/internal/config.DefaultScratchURL=https://api.example.com"
+var DefaultScratchServerURL = "http://localhost:3010"
 
 // DefaultTimeout is the default timeout for API requests.
 const DefaultTimeout = 30 * time.Second
@@ -79,6 +81,7 @@ type DownloadResponse struct {
 type ClientOption func(*Client)
 
 // WithBaseURL sets the base URL for the client.
+// If not provided, the default from config.DefaultScratchURL will be used.
 func WithBaseURL(baseURL string) ClientOption {
 	return func(c *Client) {
 		c.baseURL = baseURL
@@ -102,7 +105,7 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 // NewClient creates a new API client with the given options.
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
-		baseURL: DefaultBaseURL,
+		baseURL: DefaultScratchServerURL,
 		httpClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
@@ -205,4 +208,32 @@ func (c *Client) Download(creds *ConnectorCredentials, req *DownloadRequest) (*D
 		return nil, err
 	}
 	return &result, nil
+}
+
+// CheckHealth performs a health check against the server's /health endpoint.
+// This is used to verify the server URL is valid and reachable.
+func (c *Client) CheckHealth() error {
+	u, err := url.JoinPath(c.baseURL, "health")
+	if err != nil {
+		return fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", DefaultUserAgent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("server returned status %d", resp.StatusCode)
+	}
+
+	return nil
 }
