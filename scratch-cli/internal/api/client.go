@@ -22,6 +22,11 @@ const DefaultTimeout = 30 * time.Second
 // DefaultUserAgent is the default User-Agent header for API requests.
 const DefaultUserAgent = "Scratch-CLI/1.0"
 
+// SupportedProviders returns the list of supported provider names
+func SupportedDataSources() []string {
+	return []string{"webflow", "wordpress", "airtable", "notion"}
+}
+
 // Client represents a client for the Scratch CLI API.
 type Client struct {
 	baseURL    string
@@ -46,6 +51,28 @@ type TestConnectionResponse struct {
 type ListTablesResponse struct {
 	Error  string                `json:"error,omitempty"`
 	Tables []providers.TableInfo `json:"tables,omitempty"`
+}
+
+// DownloadRequest represents the request body for the download endpoint.
+type DownloadRequest struct {
+	TableID         []string `json:"tableId"`
+	FilenameFieldID string   `json:"filenameFieldId,omitempty"`
+	ContentFieldID  string   `json:"contentFieldId,omitempty"`
+	Offset          int      `json:"offset,omitempty"`
+	Limit           int      `json:"limit,omitempty"`
+}
+
+// FileContent represents a downloaded file with its metadata.
+type FileContent struct {
+	Slug    string `json:"slug"`    // A file name slug, should be URL-friendly and unique
+	ID      string `json:"id"`      // The remote ID of remote record that this file was generated from
+	Content string `json:"content"` // The content of the file in Frontmatter YAML format
+}
+
+// DownloadResponse represents the response from the download endpoint.
+type DownloadResponse struct {
+	Error string        `json:"error,omitempty"`
+	Files []FileContent `json:"files,omitempty"`
 }
 
 // ClientOption is a function that configures a Client.
@@ -166,6 +193,15 @@ func (c *Client) TestConnection(creds *ConnectorCredentials) (*TestConnectionRes
 func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
 	var result ListTablesResponse
 	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// Download downloads files from the specified table using the download endpoint.
+func (c *Client) Download(creds *ConnectorCredentials, req *DownloadRequest) (*DownloadResponse, error) {
+	var result DownloadResponse
+	if err := c.doRequest(http.MethodPost, "download", creds, req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

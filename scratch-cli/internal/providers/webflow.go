@@ -18,46 +18,6 @@ func (w *WebflowProvider) DisplayName() string {
 	return "Webflow"
 }
 
-// TestConnection tests the Webflow API key by listing sites
-func (w *WebflowProvider) TestConnection(apiKey string) error {
-	// Webflow API v2: List sites the token has access to
-	// https://developers.webflow.com/reference/list-sites
-	req, err := http.NewRequest("GET", "https://api.webflow.com/v2/sites", nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := HTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("connection failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 401 {
-		return fmt.Errorf("invalid API key (unauthorized)")
-	}
-
-	if resp.StatusCode == 403 {
-		return fmt.Errorf("API key lacks 'sites:read' permission")
-	}
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	// Parse response to confirm it's valid
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("invalid API response: %w", err)
-	}
-
-	return nil
-}
-
 // Webflow API response types
 type webflowSitesResponse struct {
 	Sites []webflowSite `json:"sites"`

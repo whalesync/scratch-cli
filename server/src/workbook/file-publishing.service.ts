@@ -10,7 +10,8 @@ import type {
   ConnectorRecord,
   SnapshotRecordSanitizedForUpdate,
 } from '../remote-service/connectors/types';
-import { convertFileToConnectorRecord, FileDbRecord, normalizeFolderName } from './workbook-db';
+import { normalizeFolderName } from './util';
+import { convertFileToConnectorRecord, FileDbRecord } from './workbook-db';
 import { WorkbookDbService } from './workbook-db.service';
 
 /**

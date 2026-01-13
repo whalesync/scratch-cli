@@ -38,11 +38,10 @@ type Provider interface {
 	Name() string
 	// DisplayName returns a human-readable name
 	DisplayName() string
-	// TestConnection tests the API key and returns nil if successful
-	TestConnection(apiKey string) error
 }
 
 // TableLister is implemented by providers that can list available tables
+// @deprecated: use api instead
 type TableLister interface {
 	Provider
 	// ListTables returns all available tables/collections
@@ -55,14 +54,6 @@ type Record struct {
 	ID      string                 // Record ID
 	Slug    string                 // URL-friendly slug (used as filename)
 	RawData map[string]interface{} // Raw data from the API
-}
-
-// RecordDownloader is implemented by providers that can download records
-type RecordDownloader interface {
-	Provider
-	// DownloadRecords fetches all records from a table/collection
-	// Calls the callback with batches of records as they are fetched
-	DownloadRecords(apiKey string, collectionID string, progress ProgressCallback, callback func(records []Record) error) error
 }
 
 // SupportedProviders returns the list of supported provider names

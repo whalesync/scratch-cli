@@ -4,6 +4,7 @@ import { Knex } from 'knex';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import { BaseColumnSpec, BaseTableSpec, ConnectorRecord } from '../remote-service/connectors/types';
+import { assertFolderPathIsValid, normalizeFileName } from './util';
 
 // Table name constant
 export const FILES_TABLE = 'files';
@@ -585,7 +586,7 @@ export class WorkbookDb {
         // Convert to Front Matter markdown format
         const { content: frontMatterContent, metadata: frontMatterMetadata } = convertConnectorRecordToFrontMatter(
           record,
-          tableSpec,
+          tableSpec.mainContentColumnRemoteId,
         );
 
         // Generate a scratch ID for new records
@@ -606,7 +607,7 @@ export class WorkbookDb {
           }
 
           if (attempts > 0) {
-            fileName = normalizeFolderName(fileName) + '-' + attempts + '.md';
+            fileName = normalizeFileName(fileName) + '-' + attempts + '.md';
           }
 
           if (!fileName.endsWith('.md')) {
@@ -886,15 +887,15 @@ export class WorkbookDb {
  * @param tableSpec - TableSpec containing column definitions and mainContentColumnRemoteId
  * @returns Front Matter markdown string
  */
-export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
+export function convertConnectorRecordToFrontMatter(
   record: ConnectorRecord,
-  tableSpec: BaseTableSpec<T>,
+  contentColumnId: string[] | undefined,
 ): { content: string; metadata: Record<string, unknown> } {
   // Determine the main content column key
-  let mainContentKey: string | undefined;
-  if (tableSpec.mainContentColumnRemoteId) {
+  let contentKey: string | undefined;
+  if (contentColumnId && contentColumnId.length > 0) {
     // this is likely incorrect - need to handle the string array case
-    mainContentKey = tableSpec.mainContentColumnRemoteId[0];
+    contentKey = contentColumnId[0];
   }
 
   // Extract main content and metadata from record fields
@@ -902,7 +903,7 @@ export function convertConnectorRecordToFrontMatter<T extends BaseColumnSpec>(
   const metadata: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(record.fields)) {
-    if (mainContentKey && key === mainContentKey) {
+    if (contentKey && key === contentKey) {
       // This is the main content field
       bodyContent =
         typeof value === 'string' ? value : value === null || value === undefined ? '' : JSON.stringify(value, null, 2);
@@ -969,42 +970,6 @@ export function convertFileToConnectorRecord<T extends BaseColumnSpec>(
     fields,
     errors: file.errors || {},
   };
-}
-
-/**
- * @param filename - name of the file to slugify
- * @returns a version of the file name that is safe to use as a file name
- */
-export function normalizeFileName(filename: string): string {
-  return filename
-    .toString() // Ensure the input is a string
-    .normalize('NFD') // Split accented letters into base letter and accent
-    .replace(/[\u0300-\u036f]/g, '') // Remove all previously split accents (diacritical marks)
-    .toLowerCase() // Convert to lowercase
-    .trim() // Trim leading/trailing whitespace
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/[^a-z0-9 -]/g, '') // Remove all non-alphanumeric characters, except hyphens and spaces
-    .replace(/-+/g, '-'); // Replace multiple hyphens with a single hyphen
-}
-
-/**
- * @param name - name of the folder to normalize
- * @returns a version of the folder name that is safe to use as a folder name in a path
- */
-export function normalizeFolderName(name: string): string {
-  return name.toString().replace(/\//g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function assertFolderPathIsValid(path: unknown): asserts path is string {
-  if (typeof path !== 'string') {
-    throw new Error(`Path must be a string, but got ${typeof path}: ${path as string}`);
-  }
-  if (path.length === 0) {
-    throw new Error('Path must not be empty');
-  }
-  if (!path.startsWith('/')) {
-    throw new Error('Path must start with a slash');
-  }
 }
 
 export class FileNotFoundError extends Error {

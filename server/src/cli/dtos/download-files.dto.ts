@@ -1,6 +1,8 @@
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class DownloadRequestDto {
+  // The ID of the table to download, can be an array of IDs if the table is nested in a base or site
+  // actual meaning depends on the connector
   @IsString({ each: true })
   @IsArray()
   tableId?: string[];
@@ -10,15 +12,28 @@ export class DownloadRequestDto {
 
   @IsString()
   contentFieldId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  offset?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @Max(1000)
+  limit?: number;
 }
 
 export type ValidatedDownloadRequestDto = Required<Pick<DownloadRequestDto, 'tableId'>>;
 
 export type FileContent = {
-  // File name to give the file, should end in .md
-  name: string;
+  // A file name slug, should be URL-friendly and unique
+  slug: string;
+
   // The remote ID of remote record that this file was generated from
-  remoteId: string;
+  id: string;
+
   // the content of the file in Frontmatter YAML format
   content: string;
 };

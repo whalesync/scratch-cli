@@ -67,8 +67,7 @@ import { DEFAULT_COLUMNS } from './snapshot-db';
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
-import { getSnapshotTableById, getTableSpecById } from './util';
-import { normalizeFolderName } from './workbook-db';
+import { getSnapshotTableById, getTableSpecById, normalizeFolderName } from './util';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()

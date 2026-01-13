@@ -13,7 +13,6 @@ import (
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/providers"
 	"golang.org/x/term"
-	"gopkg.in/yaml.v3"
 )
 
 // setupCmd represents the setup command
@@ -594,153 +593,71 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	if account == nil {
 		return fmt.Errorf("account not found for table '%s'", selectedTable)
 	}
+
 	// Get the API key
 	apiKey := secrets.GetSecret(account.ID)
 	if apiKey == "" {
 		return fmt.Errorf("no API key found for account '%s'", account.Name)
 	}
 
-	// Get the provider
-	provider, err := providers.GetProvider(account.Provider)
-	if err != nil {
-		return err
-	}
-
-	// Check if provider supports downloading records
-	downloader, ok := provider.(providers.RecordDownloader)
-	if !ok {
-		return fmt.Errorf("provider '%s' does not support downloading records yet", account.Provider)
-	}
-
 	fmt.Printf("\n📥 Downloading records from '%s'...\n\n", tableConfig.TableName)
 
-	// Track stats
-	totalSaved := 0
+	// Create API client
+	client := api.NewClient()
 
-	// Download records
-	err = downloader.DownloadRecords(apiKey, tableConfig.TableID, func(message string) {
-		fmt.Printf("   %s\n", message)
-	}, func(records []providers.Record) error {
-		// Save each record as a Markdown file with frontmatter
-		for _, record := range records {
-			// Get filename from configured field
-			filename := getFieldValue(record.RawData, tableConfig.FilenameField)
-			if filename == "" {
-				filename = record.Slug
-			}
-			if filename == "" {
-				filename = record.ID
-			}
+	// Build connector credentials
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params: map[string]string{
+			"apiKey": apiKey,
+		},
+	}
 
-			// Sanitize filename
-			filename = sanitizeFilename(filename)
-			if filename == "" {
-				filename = record.ID
-			}
+	// Build table ID array - if SiteID exists, use [siteId, tableId], otherwise just [tableId]
+	var tableID []string
+	if tableConfig.SiteID != "" {
+		tableID = []string{tableConfig.SiteID, tableConfig.TableID}
+	} else {
+		tableID = []string{tableConfig.TableID}
+	}
 
-			// Build frontmatter and content
-			frontmatter := make(map[string]interface{})
-			var contentBody string
+	// Build download request
+	req := &api.DownloadRequest{
+		TableID:         tableID,
+		FilenameFieldID: tableConfig.FilenameField,
+		ContentFieldID:  tableConfig.ContentField,
+	}
 
-			// Process all fields from the record
-			for key, value := range record.RawData {
-				if key == "fieldData" {
-					// Handle user-defined fields
-					if fieldData, ok := value.(map[string]interface{}); ok {
-						for fieldKey, fieldValue := range fieldData {
-							if tableConfig.ContentField != "" && fieldKey == tableConfig.ContentField {
-								// This is the content body field
-								if strVal, ok := fieldValue.(string); ok {
-									contentBody = strVal
-								} else {
-									// Convert to string if possible
-									contentBody = fmt.Sprintf("%v", fieldValue)
-								}
-							} else {
-								// Add to frontmatter
-								frontmatter[fieldKey] = fieldValue
-							}
-						}
-					}
-				} else {
-					// System field - add to frontmatter
-					frontmatter[key] = value
-				}
-			}
-
-			// Build the Markdown file content
-			var mdContent strings.Builder
-
-			// Write YAML frontmatter
-			mdContent.WriteString("---\n")
-			frontmatterYAML, err := yaml.Marshal(frontmatter)
-			if err != nil {
-				fmt.Printf("   ⚠️  Failed to serialize frontmatter for '%s': %v\n", filename, err)
-				continue
-			}
-			mdContent.Write(frontmatterYAML)
-			mdContent.WriteString("---\n\n")
-
-			// Write content body
-			if contentBody != "" {
-				mdContent.WriteString(contentBody)
-				mdContent.WriteString("\n")
-			}
-
-			// Save the file
-			filePath := filepath.Join(selectedTable, filename+".md")
-			if err := os.WriteFile(filePath, []byte(mdContent.String()), 0644); err != nil {
-				fmt.Printf("   ⚠️  Failed to save '%s': %v\n", filePath, err)
-				continue
-			}
-
-			totalSaved++
-		}
-		return nil
-	})
-
+	// Call the download endpoint
+	resp, err := client.Download(creds, req)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
 
+	// Check for errors in response
+	if resp.Error != "" {
+		return fmt.Errorf("server error: %s", resp.Error)
+	}
+
+	// Save each file
+	totalSaved := 0
+	for _, file := range resp.Files {
+		// Use the slug directly as the filename (already sanitized by server)
+		filename := file.Slug
+		if filename == "" {
+			filename = file.ID
+		}
+
+		// Save the file - content is already in Frontmatter YAML format
+		filePath := filepath.Join(selectedTable, filename+".md")
+		if err := os.WriteFile(filePath, []byte(file.Content), 0644); err != nil {
+			fmt.Printf("   ⚠️  Failed to save '%s': %v\n", filePath, err)
+			continue
+		}
+
+		totalSaved++
+	}
+
 	fmt.Printf("\n✅ Downloaded %d record(s) to '%s/'\n", totalSaved, selectedTable)
 	return nil
-}
-
-// getFieldValue extracts a field value from record data, checking both top-level and fieldData
-func getFieldValue(data map[string]interface{}, fieldName string) string {
-	// Check top-level first
-	if val, ok := data[fieldName]; ok {
-		if strVal, ok := val.(string); ok {
-			return strVal
-		}
-	}
-
-	// Check in fieldData
-	if fieldData, ok := data["fieldData"].(map[string]interface{}); ok {
-		if val, ok := fieldData[fieldName]; ok {
-			if strVal, ok := val.(string); ok {
-				return strVal
-			}
-		}
-	}
-
-	return ""
-}
-
-// sanitizeFilename removes or replaces characters that are invalid in filenames
-func sanitizeFilename(name string) string {
-	// Replace problematic characters
-	replacer := strings.NewReplacer(
-		"/", "-",
-		"\\", "-",
-		":", "-",
-		"*", "-",
-		"?", "",
-		"\"", "",
-		"<", "",
-		">", "",
-		"|", "-",
-	)
-	return replacer.Replace(name)
 }

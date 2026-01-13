@@ -7,6 +7,7 @@ import { WSLogger } from 'src/logger';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
+import { normalizeFileName } from 'src/workbook/util';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
@@ -216,7 +217,6 @@ export class CliService {
     credentials: CliConnectorCredentials | undefined,
     downloadRequest: DownloadRequestDto,
   ): Promise<DownloadedFilesResponseDto> {
-    // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
     if (!credentials?.service) {
       return {
         error: 'Service is required in X-Scratch-Connector header',
@@ -233,15 +233,17 @@ export class CliService {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
 
       // Fetch the table spec using the tableId array as the remoteId
-      const wsId = downloadRequest.tableId.join('-');
+      // TODO: the client should probably just provide the spec directly
       const tableSpec = await connector.fetchTableSpec({
-        wsId,
+        wsId: downloadRequest.tableId.join('-'),
         remoteId: downloadRequest.tableId,
       });
 
       // Collect all records
       const allRecords: ConnectorRecord[] = [];
 
+      // download all the tables in one go
+      // TODO: add pagination support to the connectors
       await connector.downloadTableRecords(
         tableSpec,
         {}, // Empty column settings map for CLI usage
@@ -249,20 +251,27 @@ export class CliService {
           allRecords.push(...records);
           return Promise.resolve();
         },
-        { tables: [] }, // Empty progress object for CLI usage
+        {}, // Empty progress object for CLI usage
       );
+
+      const fileNameColumnId = downloadRequest.filenameFieldId
+        ? [downloadRequest.filenameFieldId]
+        : tableSpec.titleColumnRemoteId;
+      const contentColumnId = downloadRequest.contentFieldId
+        ? [downloadRequest.contentFieldId]
+        : tableSpec.mainContentColumnRemoteId;
 
       // Convert records to frontmatter files
       const files: FileContent[] = allRecords.map((record) => {
-        const { content } = convertConnectorRecordToFrontMatter(record, tableSpec);
+        const { content } = convertConnectorRecordToFrontMatter(record, contentColumnId);
 
         // Determine filename from title column or record ID
         let fileName = record.id;
-        if (tableSpec.titleColumnRemoteId) {
+        if (fileNameColumnId) {
           const column = tableSpec.columns.find((c) =>
             Array.isArray(c.id.remoteId)
-              ? c.id.remoteId[0] === tableSpec.titleColumnRemoteId?.[0]
-              : c.id.remoteId === tableSpec.titleColumnRemoteId?.[0],
+              ? c.id.remoteId[0] === fileNameColumnId?.[0]
+              : c.id.remoteId === fileNameColumnId?.[0],
           );
           const titleValue = record.fields[column?.id.wsId ?? ''];
           if (titleValue && typeof titleValue === 'string') {
@@ -270,14 +279,9 @@ export class CliService {
           }
         }
 
-        // Ensure filename ends with .md
-        if (!fileName.endsWith('.md')) {
-          fileName += '.md';
-        }
-
         return {
-          name: fileName,
-          remoteId: record.id,
+          slug: normalizeFileName(fileName),
+          id: record.id,
           content,
         };
       });
