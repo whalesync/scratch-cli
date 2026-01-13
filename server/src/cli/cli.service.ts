@@ -9,10 +9,10 @@ import { ConnectorsService } from 'src/remote-service/connectors/connectors.serv
 import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, FileContent } from './dtos/download-files.dto';
-import { FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
-import { ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
+import { FieldInfo } from './entities/field-info.entity';
+import { TableInfo } from './entities/table-info.entity';
 
 @Injectable()
 export class CliService {
@@ -21,9 +21,20 @@ export class CliService {
     private readonly connectorsService: ConnectorsService,
   ) {}
 
-  private async getConnectorFromCredentials(credentials: CliConnectorCredentials) {
-    const service = credentials.service as Service;
+  /**
+   * Converts a lowercase service name (e.g., "notion", "airtable") to the Service enum value.
+   * Returns undefined if the service name is not valid.
+   */
+  private parseServiceName(serviceName: string): Service | undefined {
+    const upperService = serviceName.toUpperCase();
+    const serviceValues = Object.values(Service) as string[];
+    if (serviceValues.includes(upperService)) {
+      return upperService as Service;
+    }
+    return undefined;
+  }
 
+  private async getConnectorFromCredentials(credentials: CliConnectorCredentials, service: Service) {
     // Parse user-provided params if an auth parser exists for this service
     let parsedCredentials: Record<string, string> = credentials.params ?? {};
     const authParser = this.connectorsService.getAuthParser({ service });
@@ -71,10 +82,16 @@ export class CliService {
       };
     }
 
-    const service = credentials.service as Service;
+    const service = this.parseServiceName(credentials.service);
+    if (!service) {
+      return {
+        success: false,
+        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
+      };
+    }
 
     try {
-      const connector = await this.getConnectorFromCredentials(credentials);
+      const connector = await this.getConnectorFromCredentials(credentials, service);
       await connector.testConnection();
 
       return {
@@ -92,7 +109,7 @@ export class CliService {
   }
 
   /**
-   * Lists all the available tables for a connnector
+   * Gets a list of all available tables formatted as TableInfo objects
    */
   async listTables(credentials?: CliConnectorCredentials): Promise<ListTablesResponseDto> {
     if (!credentials?.service) {
@@ -102,11 +119,56 @@ export class CliService {
       };
     }
 
-    const service = credentials.service as Service;
+    const service = this.parseServiceName(credentials.service);
+    if (!service) {
+      return {
+        success: false,
+        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
+      };
+    }
 
     try {
-      const connector = await this.getConnectorFromCredentials(credentials);
-      const tables = await connector.listTables();
+      const connector = await this.getConnectorFromCredentials(credentials, service);
+      const tablePreviews = await connector.listTables();
+
+      const tableSpecs = await Promise.all(
+        tablePreviews.map((table: TablePreview) => connector.fetchTableSpec(table.id)),
+      );
+
+      // Convert table specs to TableInfo objects
+      const tables: TableInfo[] = tableSpecs.map((spec) => {
+        const tableInfo = new TableInfo();
+        tableInfo.id = Array.isArray(spec.id.remoteId) ? spec.id.remoteId.join('/') : spec.id.remoteId;
+        tableInfo.name = spec.name;
+        tableInfo.slug = spec.slug;
+
+        // Convert columns to FieldInfo objects
+        tableInfo.fields = spec.columns
+          .filter((col) => !col.readonly)
+          .map((col) => {
+            const fieldInfo = new FieldInfo();
+            fieldInfo.id = Array.isArray(col.id.remoteId) ? col.id.remoteId.join('/') : col.id.remoteId;
+            fieldInfo.name = col.name;
+            fieldInfo.slug = col.id.wsId;
+            fieldInfo.type = col.pgType;
+            fieldInfo.required = col.required;
+            return fieldInfo;
+          });
+
+        tableInfo.systemFields = spec.columns
+          .filter((col) => col.readonly)
+          .map((col) => {
+            const fieldInfo = new FieldInfo();
+            fieldInfo.id = Array.isArray(col.id.remoteId) ? col.id.remoteId.join('/') : col.id.remoteId;
+            fieldInfo.name = col.name;
+            fieldInfo.slug = col.id.wsId;
+            fieldInfo.type = col.pgType;
+            fieldInfo.required = col.required;
+            return fieldInfo;
+          });
+
+        return tableInfo;
+      });
 
       return {
         success: true,
@@ -123,93 +185,11 @@ export class CliService {
     }
   }
 
-  /**
-   * Retrives a specific table spec from the connector
-   */
-  async fetchTableSpec(
-    credentials: CliConnectorCredentials | undefined,
-    tableId: string,
-  ): Promise<FetchTableSpecResponseDto> {
-    if (!credentials?.service) {
-      return {
-        success: false,
-        error: 'Service is required in X-Scratch-Connector header',
-      };
-    }
-
-    if (!tableId) {
-      return {
-        success: false,
-        error: 'Table ID is required',
-      };
-    }
-
-    const service = credentials.service as Service;
-
-    try {
-      const connector = await this.getConnectorFromCredentials(credentials);
-      const tableSpec = await connector.fetchTableSpec({
-        wsId: tableId,
-        remoteId: [tableId],
-      });
-
-      return {
-        success: true,
-        service,
-        tableSpec,
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        success: false,
-        error: errorMessage,
-        service,
-      };
-    }
-  }
-
-  /**
-   * Gets a list of all available tables with full specs from a connection
-   */
-  async listTableSpecs(credentials?: CliConnectorCredentials): Promise<ListTableSpecsResponseDto> {
-    if (!credentials?.service) {
-      return {
-        success: false,
-        error: 'Service is required in X-Scratch-Connector header',
-      };
-    }
-
-    const service = credentials.service as Service;
-
-    try {
-      const connector = await this.getConnectorFromCredentials(credentials);
-      const tables = await connector.listTables();
-
-      const tableSpecs = await Promise.all(tables.map((table: TablePreview) => connector.fetchTableSpec(table.id)));
-
-      return {
-        success: true,
-        service,
-        tables: tableSpecs,
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        success: false,
-        error: errorMessage,
-        service,
-      };
-    }
-  }
-
-  /**
-   * Downloads records from a connector table and converts them to frontmatter files
-   * @param tableId - Array of strings representing the table's remote ID path
-   */
   async download(
     credentials: CliConnectorCredentials | undefined,
     tableId: string[],
   ): Promise<DownloadedFilesResponseDto> {
+    // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
     if (!credentials?.service) {
       return {
         success: false,
@@ -224,10 +204,16 @@ export class CliService {
       };
     }
 
-    const service = credentials.service as Service;
+    const service = this.parseServiceName(credentials.service);
+    if (!service) {
+      return {
+        success: false,
+        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
+      };
+    }
 
     try {
-      const connector = await this.getConnectorFromCredentials(credentials);
+      const connector = await this.getConnectorFromCredentials(credentials, service);
 
       // Fetch the table spec using the tableId array as the remoteId
       const wsId = tableId.join('-');

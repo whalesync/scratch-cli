@@ -4,7 +4,6 @@ import {
   Controller,
   Get,
   Post,
-  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -15,8 +14,6 @@ import { CliConnectorCredentials } from 'src/auth/types';
 import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
-import { FetchTableSpecResponseDto } from './dtos/fetch-table-spec.dto';
-import { ListTableSpecsResponseDto } from './dtos/list-table-specs.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestCredentialsResponseDto } from './dtos/test-credentials.dto';
 
@@ -52,18 +49,9 @@ export class CliController {
     return this.cliService.listTables(req.connectorCredentials);
   }
 
-  @Get('fetch-table-spec')
-  async fetchTableSpec(@Req() req: CliRequest, @Query('tableId') tableId: string): Promise<FetchTableSpecResponseDto> {
-    return this.cliService.fetchTableSpec(req.connectorCredentials, tableId);
-  }
-
-  @Get('list-table-specs')
-  async listTableSpecs(@Req() req: CliRequest): Promise<ListTableSpecsResponseDto> {
-    return this.cliService.listTableSpecs(req.connectorCredentials);
-  }
-
   @Post('download')
   async download(@Req() req: CliRequest, @Body() body: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
+    // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
     return this.cliService.download(req.connectorCredentials, body.tableId ?? []);
   }
 }

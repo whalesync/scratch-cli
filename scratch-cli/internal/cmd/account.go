@@ -6,6 +6,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/providers"
 )
@@ -22,6 +23,7 @@ NON-INTERACTIVE (LLM-friendly):
   account list-tables <account>                         List available tables
   account link-table <account> <table-id> [folder]      Link table to folder
   account remove <name>                                 Remove account
+  account test <account>                                Test account credentials
 
 INTERACTIVE (requires TTY):
   account setup                                         Interactive wizard`,
@@ -123,6 +125,23 @@ Examples:
 	RunE: runAccountLinkTable,
 }
 
+// accountTestCmd represents the account test command
+var accountTestCmd = &cobra.Command{
+	Use:   "test <account-name>",
+	Short: "[NON-INTERACTIVE] Test account credentials",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Test account credentials with a test call to the data service.
+
+This command sends the account credentials to the data service to verify the connection is working.
+
+Examples:
+  scratchmd account test webflow
+  scratchmd account test my-site --server=http://localhost:3010`,
+	Args: cobra.ExactArgs(1),
+	RunE: runAccountTest,
+}
+
 func init() {
 	rootCmd.AddCommand(accountCmd)
 	accountCmd.AddCommand(accountSetupCmd)
@@ -131,12 +150,16 @@ func init() {
 	accountCmd.AddCommand(accountAddCmd)
 	accountCmd.AddCommand(accountListTablesCmd)
 	accountCmd.AddCommand(accountLinkTableCmd)
+	accountCmd.AddCommand(accountTestCmd)
 
 	// Flags for account add
 	accountAddCmd.Flags().String("provider", "", "CMS provider (webflow, wordpress)")
 	accountAddCmd.Flags().String("api-key", "", "API key for the provider")
 	accountAddCmd.MarkFlagRequired("provider")
 	accountAddCmd.MarkFlagRequired("api-key")
+
+	// Flags for account test
+	accountTestCmd.Flags().String("server", api.DefaultBaseURL, "Scratch.md server URL")
 }
 
 func runAccountSetup(cmd *cobra.Command, args []string) error {
@@ -534,5 +557,73 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Linked table '%s' to folder '%s'.\n", targetTable.Name, folderName)
 	fmt.Printf("Run 'scratchmd content download %s' to download records.\n", folderName)
+	return nil
+}
+
+func runAccountTest(cmd *cobra.Command, args []string) error {
+	accountName := args[0]
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	// Load config and secrets
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	secrets, err := config.LoadSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to load secrets: %w", err)
+	}
+
+	// Find account
+	account := cfg.GetAccount(accountName)
+	if account == nil {
+		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
+	}
+
+	// Get API key
+	apiKey := secrets.GetSecret(account.ID)
+	if apiKey == "" {
+		return fmt.Errorf("no API key found for account '%s'", accountName)
+	}
+
+	// Create API client
+	client := api.NewClient(api.WithBaseURL(serverURL))
+
+	// Build connector credentials
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params: map[string]string{
+			"apiKey": apiKey,
+		},
+	}
+
+	fmt.Printf("Testing account credentials for '%s'...\n", accountName)
+
+	// Call test-credentials endpoint
+	result, err := client.TestCredentials(creds)
+	if err != nil {
+		return fmt.Errorf("failed to call server API: %w", err)
+	}
+
+	if result.Success {
+		fmt.Printf("✅ Credentials valid for %s\n", result.Service)
+
+		// Update account tested status
+		account.Tested = true
+		if err := config.SaveConfig(cfg); err != nil {
+			fmt.Printf("⚠️  Warning: Could not update config: %s\n", err)
+		}
+	} else {
+		fmt.Printf("❌ Credentials invalid: %s\n", result.Error)
+
+		// Update account tested status
+		account.Tested = false
+		if err := config.SaveConfig(cfg); err != nil {
+			fmt.Printf("⚠️  Warning: Could not update config: %s\n", err)
+		}
+		return fmt.Errorf("credential test failed")
+	}
+
 	return nil
 }
