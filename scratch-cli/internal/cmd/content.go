@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
@@ -23,11 +24,11 @@ var contentCmd = &cobra.Command{
 	Long: `Manage CMS content synchronization.
 
 NON-INTERACTIVE (LLM-friendly):
-  content download [folder]      Download content from CMS
-  content dirty <folder>         Check which files have changed
-  content dirty-fields <folder>  Check which fields changed
-  content diff <folder>          Show actual file diffs
-  content diff-field <folder>    Show actual field value diffs
+  content download [folder]       Download content from CMS
+  content dirty <folder>          Check which files have changed
+  content dirty-fields <folder>   Check which fields changed
+  content diff <folder>           Show actual file diffs
+  content diff-fields <folder>    Show actual field value diffs
 
 Use 'account link-table' first to configure which tables to sync.`,
 }
@@ -115,9 +116,9 @@ Examples:
 	RunE: runContentDiff,
 }
 
-// contentDiffFieldCmd shows field-level diffs with values
-var contentDiffFieldCmd = &cobra.Command{
-	Use:   "diff-field <folder>",
+// contentDiffFieldsCmd shows field-level diffs with values
+var contentDiffFieldsCmd = &cobra.Command{
+	Use:   "diff-fields <folder>",
 	Short: "[NON-INTERACTIVE] Show field value diffs",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
@@ -127,10 +128,10 @@ Without --file flag, shows field diffs for all changed files.
 With --file flag, shows field diffs for a specific file only.
 
 Examples:
-  scratchmd content diff-field blog-posts
-  scratchmd content diff-field blog-posts --file post-1.md`,
+  scratchmd content diff-fields blog-posts
+  scratchmd content diff-fields blog-posts --file post-1.md`,
 	Args: cobra.ExactArgs(1),
-	RunE: runContentDiffField,
+	RunE: runContentDiffFields,
 }
 
 // contentUploadCmd represents the content upload command
@@ -164,7 +165,7 @@ func init() {
 	contentCmd.AddCommand(contentDirtyCmd)
 	contentCmd.AddCommand(contentDirtyFieldsCmd)
 	contentCmd.AddCommand(contentDiffCmd)
-	contentCmd.AddCommand(contentDiffFieldCmd)
+	contentCmd.AddCommand(contentDiffFieldsCmd)
 	contentCmd.AddCommand(contentUploadCmd)
 
 	// Flags for content download
@@ -179,8 +180,8 @@ func init() {
 	// Flags for content diff
 	contentDiffCmd.Flags().String("file", "", "Show diff for a specific file only")
 
-	// Flags for content diff-field
-	contentDiffFieldCmd.Flags().String("file", "", "Show field diffs for a specific file only")
+	// Flags for content diff-fields
+	contentDiffFieldsCmd.Flags().String("file", "", "Show field diffs for a specific file only")
 
 	// Flags for content upload
 	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
@@ -192,7 +193,13 @@ const (
 	colorRed    = "\033[31m"
 	colorGreen  = "\033[32m"
 	colorOrange = "\033[33m"
+	colorBlack  = "\033[30m"
+	colorWhite  = "\033[97m"
 	colorReset  = "\033[0m"
+
+	// Background colors
+	bgRed   = "\033[41m"
+	bgGreen = "\033[42m"
 )
 
 func runContentDownload(cmd *cobra.Command, args []string) error {
@@ -792,7 +799,7 @@ func runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName
 	return nil
 }
 
-func runContentDiffField(cmd *cobra.Command, args []string) error {
+func runContentDiffFields(cmd *cobra.Command, args []string) error {
 	tableName := args[0]
 	fileName, _ := cmd.Flags().GetString("file")
 
@@ -1005,17 +1012,27 @@ func printFieldValue(value, color string) {
 	fmt.Printf("    %s%s%s\n", color, value, colorReset)
 }
 
-// printFieldValueChange prints old -> new values, inline if short enough, otherwise on separate lines
+// printFieldValueChange prints old -> new values with character-level diff highlighting
 func printFieldValueChange(oldVal, newVal string) {
-	combinedLen := len(oldVal) + len(newVal)
-	if combinedLen < 50 {
-		// Short enough: show inline
-		fmt.Printf("    %s%s%s -> %s%s%s\n", colorRed, oldVal, colorReset, colorGreen, newVal, colorReset)
-	} else {
-		// Too long: show on separate lines
-		fmt.Printf("    %s%s%s\n", colorRed, oldVal, colorReset)
-		fmt.Printf("    %s%s%s\n", colorGreen, newVal, colorReset)
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(oldVal, newVal, false)
+
+	// Build the highlighted output showing what changed
+	fmt.Print("    ")
+	for _, diff := range diffs {
+		switch diff.Type {
+		case diffmatchpatch.DiffDelete:
+			// Red text on red background for deleted
+			fmt.Printf("%s%s%s", bgRed+colorWhite, diff.Text, colorReset)
+		case diffmatchpatch.DiffInsert:
+			// Green text on green background for inserted
+			fmt.Printf("%s%s%s", bgGreen+colorBlack, diff.Text, colorReset)
+		case diffmatchpatch.DiffEqual:
+			// Unchanged text in default color
+			fmt.Print(diff.Text)
+		}
 	}
+	fmt.Println()
 }
 
 func runFolderDirtyFields(tableName, originalDir, contentFieldName string) error {
