@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Req,
@@ -16,6 +18,7 @@ import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
+import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
 
 /**
  * CLI Request type with optional connector credentials from X-Scratch-Connector header
@@ -41,17 +44,40 @@ export class CliController {
 
   @Get('test-connection')
   async testConnection(@Req() req: CliRequest): Promise<TestConnectionResponseDto> {
-    return this.cliService.testConnection(req.connectorCredentials);
+    this.validateCredentials(req.connectorCredentials);
+    // req.connectorCredentials is guaranteed to be defined after validateCredentials
+    return this.cliService.testConnection(req.connectorCredentials as CliConnectorCredentials);
   }
 
   @Get('list-tables')
   async listTables(@Req() req: CliRequest): Promise<ListTablesResponseDto> {
-    return this.cliService.listTables(req.connectorCredentials);
+    this.validateCredentials(req.connectorCredentials);
+    // req.connectorCredentials is guaranteed to be defined after validateCredentials
+    return this.cliService.listTables(req.connectorCredentials as CliConnectorCredentials);
   }
 
   @Post('download')
+  @Post('download')
   async download(@Req() req: CliRequest, @Body() dto: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
-    // WIP - DON'T USE THIS YET - NOT IMPLEMENTED
-    return this.cliService.download(req.connectorCredentials, dto);
+    this.validateCredentials(req.connectorCredentials);
+    // req.connectorCredentials is guaranteed to be defined after validateCredentials
+    return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto);
+  }
+
+  @Post('upload')
+  async upload(@Req() req: CliRequest, @Body() dto: UploadChangesDto): Promise<UploadChangesResponseDto> {
+    this.validateCredentials(req.connectorCredentials);
+    // req.connectorCredentials is guaranteed to be defined after validateCredentials
+    return await this.cliService.upload(req.connectorCredentials as CliConnectorCredentials, dto);
+  }
+
+  private validateCredentials(credentials?: CliConnectorCredentials): void {
+    if (!credentials) {
+      throw new ForbiddenException('Missing connector credentials');
+    }
+
+    if (!credentials?.service) {
+      throw new BadRequestException('No data service provided in connector credentials');
+    }
   }
 }

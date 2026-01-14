@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import { createConnectorAccountId, Service } from '@spinner/shared-types';
+import { createConnectorAccountId, Service, SnapshotRecordId } from '@spinner/shared-types';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
@@ -12,6 +12,7 @@ import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
+import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
 import { FieldInfo } from './entities/field-info.entity';
 import { TableInfo } from './entities/table-info.entity';
 
@@ -38,9 +39,7 @@ export class CliService {
   private async getConnectorFromCredentials(credentials: CliConnectorCredentials, serviceName: string) {
     const service = this.parseServiceName(serviceName);
     if (!service) {
-      throw new Error(
-        `Invalid service: ${serviceName}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
-      );
+      throw new BadRequestException(`Invalid service: ${serviceName} provided`);
     }
 
     // Parse user-provided params if an auth parser exists for this service
@@ -82,36 +81,21 @@ export class CliService {
     });
   }
 
-  async testConnection(credentials?: CliConnectorCredentials): Promise<TestConnectionResponseDto> {
-    if (!credentials?.service) {
-      return {
-        success: false,
-        error: 'Service is required in X-Scratch-Connector header',
-      };
-    }
-
-    const service = this.parseServiceName(credentials.service);
-    if (!service) {
-      return {
-        success: false,
-        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
-      };
-    }
-
+  async testConnection(credentials: CliConnectorCredentials): Promise<TestConnectionResponseDto> {
     try {
-      const connector = await this.getConnectorFromCredentials(credentials, service);
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
       await connector.testConnection();
 
       return {
         success: true,
-        service,
+        service: credentials.service,
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
         error: errorMessage,
-        service,
+        service: credentials.service,
       };
     }
   }
@@ -119,22 +103,9 @@ export class CliService {
   /**
    * Gets a list of all available tables formatted as TableInfo objects
    */
-  async listTables(credentials?: CliConnectorCredentials): Promise<ListTablesResponseDto> {
-    if (!credentials?.service) {
-      return {
-        error: 'Service is required in X-Scratch-Connector header',
-      };
-    }
-
-    const service = this.parseServiceName(credentials.service);
-    if (!service) {
-      return {
-        error: `Invalid service: ${credentials.service}. Valid services: ${Object.values(Service).join(', ').toLowerCase()}`,
-      };
-    }
-
+  async listTables(credentials: CliConnectorCredentials): Promise<ListTablesResponseDto> {
     try {
-      const connector = await this.getConnectorFromCredentials(credentials, service);
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
       const tablePreviews = await connector.listTables();
 
       const tableSpecs = await Promise.all(
@@ -214,19 +185,11 @@ export class CliService {
   }
 
   async download(
-    credentials: CliConnectorCredentials | undefined,
+    credentials: CliConnectorCredentials,
     downloadRequest: DownloadRequestDto,
   ): Promise<DownloadedFilesResponseDto> {
-    if (!credentials?.service) {
-      return {
-        error: 'Service is required in X-Scratch-Connector header',
-      };
-    }
-
     if (!downloadRequest.tableId || downloadRequest.tableId.length === 0) {
-      return {
-        error: 'Table ID is required',
-      };
+      throw new BadRequestException('Table ID is missing from request');
     }
 
     try {
@@ -300,5 +263,128 @@ export class CliService {
         error: errorMessage,
       };
     }
+  }
+
+  async upload(
+    credentials: CliConnectorCredentials,
+    uploadChanges: UploadChangesDto,
+  ): Promise<UploadChangesResponseDto> {
+    WSLogger.info({
+      source: 'CliService',
+      message: 'Uploading changes',
+      changes: uploadChanges,
+    });
+
+    if (!uploadChanges.tableId || uploadChanges.tableId.length === 0) {
+      throw new BadRequestException('Table ID is missing from request');
+    }
+
+    if (!uploadChanges.creates && !uploadChanges.updates && !uploadChanges.deletes) {
+      throw new BadRequestException('No changes provided in request');
+    }
+
+    const results: UploadChangesResult[] = [];
+
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
+
+      // Fetch the table spec using the tableId array as the remoteId
+      const tableSpec = await connector.fetchTableSpec({
+        wsId: uploadChanges.tableId.join('-'),
+        remoteId: uploadChanges.tableId,
+      });
+
+      // NOTE: this is super inefficient to do each push one at a time, they should be batched together but this
+      // does provide better output while we develop the CLI
+
+      // Process creates one at a time
+      if (uploadChanges.creates && uploadChanges.creates.length > 0) {
+        for (const create of uploadChanges.creates) {
+          try {
+            const fields = this.convertOperationDataToFields(create.data ?? {});
+            const returnedRecords = await connector.createRecords(tableSpec, {}, [{ wsId: create.filename, fields }]);
+            const returnedRecord = returnedRecords[0];
+            results.push({
+              op: 'create',
+              id: returnedRecord?.remoteId ?? '',
+              filename: create.filename,
+            });
+          } catch (error: unknown) {
+            results.push({
+              op: 'create',
+              id: '',
+              filename: create.filename,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      }
+
+      // Process updates one at a time
+      if (uploadChanges.updates && uploadChanges.updates.length > 0) {
+        for (const update of uploadChanges.updates) {
+          try {
+            const fields = this.convertOperationDataToFields(update.data ?? {});
+            await connector.updateRecords(tableSpec, {}, [
+              {
+                id: { wsId: update.filename as SnapshotRecordId, remoteId: update.id },
+                partialFields: fields,
+              },
+            ]);
+            results.push({
+              op: 'update',
+              id: update.id,
+              filename: update.filename,
+            });
+          } catch (error: unknown) {
+            results.push({
+              op: 'update',
+              id: update.id,
+              filename: update.filename,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      }
+
+      // Process deletes one at a time
+      if (uploadChanges.deletes && uploadChanges.deletes.length > 0) {
+        for (const deleteOp of uploadChanges.deletes) {
+          try {
+            await connector.deleteRecords(tableSpec, [{ wsId: deleteOp.filename, remoteId: deleteOp.id }]);
+            results.push({
+              op: 'delete',
+              id: deleteOp.id,
+              filename: deleteOp.filename,
+            });
+          } catch (error: unknown) {
+            results.push({
+              op: 'delete',
+              id: deleteOp.id,
+              filename: deleteOp.filename,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      }
+
+      return { results };
+    } catch (error: unknown) {
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error uploading changes',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Converts operation data (key-value pairs) to connector record fields.
+   * The data comes directly from the CLI as parsed frontmatter fields.
+   * Removes the 'remoteId' property which is metadata, not a field value.
+   */
+  private convertOperationDataToFields(data: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'remoteId'));
   }
 }
