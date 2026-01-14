@@ -380,11 +380,19 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 			ContentField:  contentField,
 		}
 
+		// Create the .scratchmd directory structure for change tracking
+		scratchmdFolderDir := filepath.Join(".scratchmd", folderName)
+		if err := os.MkdirAll(scratchmdFolderDir, 0755); err != nil {
+			fmt.Printf("   ❌ Failed to create .scratchmd folder: %s\n", err)
+			continue
+		}
+
 		if err := config.SaveTableConfig(folderName, tableConfig); err != nil {
 			fmt.Printf("   ❌ Failed to save config: %s\n", err)
 			continue
 		}
 		fmt.Printf("   ✅ Created %s/%s\n", folderName, config.TableConfigFileName)
+		fmt.Printf("   ✅ Created .scratchmd/%s/ for tracking changes\n", folderName)
 
 		// Create simplified schema (field slug -> type)
 		schema := make(config.TableSchema)
@@ -670,7 +678,13 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 		return fmt.Errorf("server error: %s", resp.Error)
 	}
 
-	// Save each file
+	// Create the .scratchmd/<folder>/original directory for tracking changes
+	originalDir := filepath.Join(".scratchmd", selectedTable, "original")
+	if err := os.MkdirAll(originalDir, 0755); err != nil {
+		return fmt.Errorf("failed to create original directory: %w", err)
+	}
+
+	// Save each file to both locations
 	totalSaved := 0
 	for _, file := range resp.Files {
 		// Use the slug directly as the filename (already sanitized by server)
@@ -679,11 +693,21 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 			filename = file.ID
 		}
 
-		// Save the file - content is already in Frontmatter YAML format
-		filePath := filepath.Join(selectedTable, filename+".md")
-		if err := os.WriteFile(filePath, []byte(file.Content), 0644); err != nil {
-			fmt.Printf("   ⚠️  Failed to save '%s': %v\n", filePath, err)
+		fileContent := []byte(file.Content)
+		mdFilename := filename + ".md"
+
+		// Save to the main folder (user-editable copy)
+		mainPath := filepath.Join(selectedTable, mdFilename)
+		if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
+			fmt.Printf("   ⚠️  Failed to save '%s': %v\n", mainPath, err)
 			continue
+		}
+
+		// Save to .scratchmd/<folder>/original (for change detection)
+		originalPath := filepath.Join(originalDir, mdFilename)
+		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
+			fmt.Printf("   ⚠️  Failed to save original '%s': %v\n", originalPath, err)
+			// Continue anyway, main file was saved
 		}
 
 		totalSaved++

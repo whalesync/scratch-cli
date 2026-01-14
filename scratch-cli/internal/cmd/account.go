@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -543,6 +545,13 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 		ContentField:  "",     // user can set later if needed
 	}
 
+	// Create the .scratchmd directory structure
+	scratchmdDir := ".scratchmd"
+	scratchmdFolderDir := filepath.Join(scratchmdDir, folderName)
+	if err := os.MkdirAll(scratchmdFolderDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .scratchmd folder: %w", err)
+	}
+
 	// Save table config (this creates the folder too)
 	if err := config.SaveTableConfig(folderName, tableConfig); err != nil {
 		return fmt.Errorf("failed to save table config: %w", err)
@@ -562,6 +571,7 @@ func runAccountLinkTable(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Linked table '%s' to folder '%s'.\n", targetTable.Name, folderName)
+	fmt.Printf("Created .scratchmd/%s/ for tracking changes.\n", folderName)
 	fmt.Printf("Run 'scratchmd content download %s' to download records.\n", folderName)
 	return nil
 }
