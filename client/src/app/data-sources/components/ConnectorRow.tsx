@@ -8,6 +8,8 @@ import { Group, Menu, Table } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { AuthType, ConnectorAccount, ConnectorHealthStatus, Service } from '@spinner/shared-types';
 import { ArrowLeftRightIcon, Plus, RefreshCcwIcon, SquarePenIcon, Trash2 } from 'lucide-react';
+import { useScratchPadUser } from '../../../hooks/useScratchpadUser';
+import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import { RelativeDate } from '../../components/RelativeDate';
@@ -44,6 +46,9 @@ export function ConnectorRow({
 }: ConnectorRowProps) {
   const [opened, { open, close }] = useDisclosure(false);
 
+  const user = useScratchPadUser();
+  const workbookModeActiveFlag = user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   return (
     <>
       <CreateWorkbookModal connectorAccount={connectorAccount} opened={opened} onClose={close} />
@@ -63,7 +68,11 @@ export function ConnectorRow({
         </Table.Td>
         <Table.Td align="right">
           <Group gap="xs" justify="flex-end">
-            <ToolIconButton onClick={open} icon={Plus} tooltip="Create a workbook" />
+            {workbookModeActiveFlag === 'files' || workbookMode === 'files' ? (
+              <></>
+            ) : (
+              <ToolIconButton onClick={open} icon={Plus} tooltip="Create a workbook" />
+            )}
             <ToolIconButton
               onClick={() => onTest(connectorAccount)}
               loading={testingId === connectorAccount.id}

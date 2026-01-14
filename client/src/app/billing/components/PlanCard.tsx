@@ -12,6 +12,8 @@ import { Check } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
 import { usePayments } from '../../../hooks/use-payments';
+import { useScratchPadUser } from '../../../hooks/useScratchpadUser';
+import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
@@ -20,6 +22,9 @@ interface PlanCardProps {
 
 export const PlanCard = ({ plan, onError }: PlanCardProps) => {
   const { subscription, isFreePlan } = useSubscription();
+  const user = useScratchPadUser();
+  const workbookModeActiveFlag = user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const { isSignedIn } = useAuth();
   const {
     redirectToUpdateSubscription,
@@ -92,6 +97,45 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
         </ButtonPrimaryLight>
       );
     }
+  }
+
+  if (workbookModeActiveFlag === 'files' || workbookMode === 'files') {
+    return (
+      <Box px={12} py={10} className={customBordersClasses.cornerBorders} style={{ position: 'relative' }}>
+        <Stack gap="sm">
+          <Group justify="space-between" align="flex-start">
+            <Text13Medium>{plan.displayName}</Text13Medium>
+            {plan.popular && !isCurrentPlan && <Badge w="fit-content">Popular</Badge>}
+          </Group>
+          <Group gap="2px">
+            <Text16Medium>${plan.costUSD}</Text16Medium>
+            <Text13Book c="dimmed">/month</Text13Book>
+          </Group>
+          {actionButton}
+
+          {/* Features list */}
+          <Stack gap="xs" mt="xs">
+            <Text13Book c="dimmed">Features:</Text13Book>
+            <FeatureLineItem
+              id="availableModels"
+              label={
+                plan.features.availableModels.length > 0
+                  ? `${plan.features.availableModels.length} models`
+                  : 'Any model'
+              }
+            />
+            <FeatureLineItem
+              id="publishingLimit"
+              label={
+                plan.features.publishingLimit > 0
+                  ? `${plan.features.publishingLimit} publishing actions`
+                  : 'Unlimited publishing'
+              }
+            />
+          </Stack>
+        </Stack>
+      </Box>
+    );
   }
 
   return (

@@ -47,12 +47,6 @@ const upperMenuItems: MenuItem[] = [
     label: 'Data sources',
     icon: BlocksIcon,
   },
-  {
-    type: 'link',
-    href: RouteUrls.promptAssetsPageUrl,
-    label: 'Prompt assets',
-    icon: FileTextIcon,
-  },
 ];
 
 const lowerMenuItems: MenuItem[] = [
@@ -102,6 +96,20 @@ export function NavMenu() {
     icon: colorScheme === 'light' ? MoonIcon : SunIcon,
   };
 
+  const upperSectionMenuItems: MenuItem[] =
+    user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE === 'files'
+      ? upperMenuItems
+      : [
+          ...upperMenuItems,
+
+          {
+            type: 'link',
+            href: RouteUrls.promptAssetsPageUrl,
+            label: 'Prompt assets',
+            icon: FileTextIcon,
+          },
+        ];
+
   const lowerSectionMenuItems: MenuItem[] = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT
     ? [
         {
@@ -118,7 +126,7 @@ export function NavMenu() {
     <Stack h="100%" p="10px 8px" gap="10px" bg="var(--bg-panel)">
       <Stack gap="2px" justify="flex-start" w="100%">
         <NavMenuUserButton />
-        {upperMenuItems
+        {upperSectionMenuItems
           .filter((item) => isDevToolsEnabled || !item.isDevTool)
           .map((item) => {
             const isActive = item.type === 'link' && pathname.startsWith(item.href);

@@ -6,6 +6,8 @@ import { PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useWorkbooks } from '../../../hooks/use-workbooks';
+import { useScratchPadUser } from '../../../hooks/useScratchpadUser';
+import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { RouteUrls } from '../../../utils/route-urls';
 import { ScratchpadNotifications } from '../../components/ScratchpadNotifications';
 
@@ -19,12 +21,19 @@ export const CreateWorkbookButton = ({
   const [isLoading, setIsLoading] = useState(false);
   const { createWorkbook } = useWorkbooks();
   const router = useRouter();
-
+  const user = useScratchPadUser();
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
+  const workbookModeActiveFlag = user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
   const handleCreateWorkbook = useCallback(async () => {
     setIsLoading(true);
     try {
       const newWorkbook = await createWorkbook({});
-      router.push(RouteUrls.workbookPageUrl(newWorkbook.id));
+
+      if (workbookModeActiveFlag === 'files' || workbookMode === 'files') {
+        router.push(RouteUrls.workbookFilePageUrl(newWorkbook.id));
+      } else {
+        router.push(RouteUrls.workbookPageUrl(newWorkbook.id));
+      }
     } catch (error) {
       ScratchpadNotifications.error({
         title: 'Error creating workbook',
@@ -33,7 +42,7 @@ export const CreateWorkbookButton = ({
     } finally {
       setIsLoading(false);
     }
-  }, [createWorkbook, router]);
+  }, [createWorkbook, router, workbookModeActiveFlag, workbookMode]);
   return variant === 'solid' ? (
     <ButtonPrimarySolid
       leftSection={<PlusIcon />}
