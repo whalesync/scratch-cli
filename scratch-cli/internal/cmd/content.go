@@ -41,9 +41,13 @@ Download content from a configured CMS collection.
 If folder is specified, downloads only that collection.
 If no folder is specified, downloads all configured collections.
 
+By default, preserves locally edited files (only updates unmodified files).
+Use --clobber to delete everything and re-download fresh.
+
 Examples:
   scratchmd content download              # download all linked tables
-  scratchmd content download blog-posts   # download one table`,
+  scratchmd content download blog-posts   # download one table
+  scratchmd content download --clobber    # reset and re-download everything`,
 	RunE: runContentDownload,
 }
 
@@ -123,6 +127,9 @@ func init() {
 	contentCmd.AddCommand(contentFieldDiffCmd)
 	contentCmd.AddCommand(contentUploadCmd)
 
+	// Flags for content download
+	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
+
 	// Flags for content diff
 	contentDiffCmd.Flags().String("file", "", "Show diff for a specific file")
 
@@ -144,6 +151,8 @@ const (
 )
 
 func runContentDownload(cmd *cobra.Command, args []string) error {
+	clobber, _ := cmd.Flags().GetBool("clobber")
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
@@ -176,7 +185,7 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 
 	// Download each table
 	for _, tableName := range tablesToDownload {
-		if err := downloadTable(cfg, secrets, tableName); err != nil {
+		if err := downloadTable(cfg, secrets, tableName, clobber); err != nil {
 			fmt.Printf("❌ Error downloading '%s': %v\n", tableName, err)
 			continue
 		}
@@ -185,7 +194,7 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName string) error {
+func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName string, clobber bool) error {
 	// Load table config
 	tableConfig, err := config.LoadTableConfig(tableName)
 	if err != nil {
@@ -205,6 +214,23 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	authProps := secrets.GetSecretProperties(account.ID)
 	if len(authProps) == 0 {
 		return fmt.Errorf("no credentials found for account '%s'", account.Name)
+	}
+
+	originalDir := filepath.Join(".scratchmd", tableName, "original")
+
+	// If --clobber, delete both folders first
+	if clobber {
+		fmt.Printf("🗑️  Clobbering existing files for '%s'...\n", tableName)
+		// Remove main folder contents (but not the folder itself, as it may have config)
+		if entries, err := os.ReadDir(tableName); err == nil {
+			for _, entry := range entries {
+				if strings.HasSuffix(entry.Name(), ".md") {
+					os.Remove(filepath.Join(tableName, entry.Name()))
+				}
+			}
+		}
+		// Remove original folder entirely
+		os.RemoveAll(originalDir)
 	}
 
 	fmt.Printf("📥 Downloading '%s' from %s...\n", tableConfig.TableName, account.Name)
@@ -245,13 +271,18 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	}
 
 	// Create the .scratchmd/<folder>/original directory for tracking changes
-	originalDir := filepath.Join(".scratchmd", tableName, "original")
 	if err := os.MkdirAll(originalDir, 0755); err != nil {
 		return fmt.Errorf("failed to create original directory: %w", err)
 	}
 
-	// Save each file to both locations
+	// Ensure main folder exists
+	if err := os.MkdirAll(tableName, 0755); err != nil {
+		return fmt.Errorf("failed to create table directory: %w", err)
+	}
+
+	// Save each file
 	totalSaved := 0
+	totalSkipped := 0
 	for _, file := range resp.Files {
 		// Use the slug directly as the filename (already sanitized by server)
 		filename := file.Slug
@@ -262,24 +293,52 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 		fileContent := []byte(file.Content)
 		mdFilename := filename + ".md"
 
-		// Save to the main folder (user-editable copy)
 		mainPath := filepath.Join(tableName, mdFilename)
-		if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
-			fmt.Printf("   ⚠️  Failed to save '%s': %v\n", mainPath, err)
+		originalPath := filepath.Join(originalDir, mdFilename)
+
+		// Check if main file should be updated
+		// Only update main file if it matches the current original (unedited) or doesn't exist
+		shouldUpdateMain := true
+		if !clobber {
+			// Read current original file (if exists)
+			oldOriginal, errOldOrig := os.ReadFile(originalPath)
+			// Read current main file (if exists)
+			currentMain, errMain := os.ReadFile(mainPath)
+
+			if errOldOrig == nil && errMain == nil {
+				// Both files exist - only update main if it matches the old original
+				if !bytes.Equal(currentMain, oldOriginal) {
+					// Main file has been edited, don't overwrite it
+					shouldUpdateMain = false
+					totalSkipped++
+					fmt.Printf("   ⏭️  Skipping '%s' (locally modified)\n", mdFilename)
+				}
+			}
+			// If original doesn't exist or main doesn't exist, we'll write both
+		}
+
+		// Always update the original file
+		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
+			fmt.Printf("   ⚠️  Failed to save original '%s': %v\n", originalPath, err)
 			continue
 		}
 
-		// Save to .scratchmd/<folder>/original (for change detection)
-		originalPath := filepath.Join(originalDir, mdFilename)
-		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
-			fmt.Printf("   ⚠️  Failed to save original '%s': %v\n", originalPath, err)
-			// Continue anyway, main file was saved
+		// Update main file only if appropriate
+		if shouldUpdateMain {
+			if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
+				fmt.Printf("   ⚠️  Failed to save '%s': %v\n", mainPath, err)
+				continue
+			}
 		}
 
 		totalSaved++
 	}
 
-	fmt.Printf("✅ Downloaded %d record(s) to '%s/'\n", totalSaved, tableName)
+	if totalSkipped > 0 {
+		fmt.Printf("✅ Downloaded %d record(s) to '%s/' (%d locally modified files preserved)\n", totalSaved, tableName, totalSkipped)
+	} else {
+		fmt.Printf("✅ Downloaded %d record(s) to '%s/'\n", totalSaved, tableName)
+	}
 	return nil
 }
 
