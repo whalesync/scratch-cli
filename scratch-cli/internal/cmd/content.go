@@ -23,9 +23,11 @@ var contentCmd = &cobra.Command{
 	Long: `Manage CMS content synchronization.
 
 NON-INTERACTIVE (LLM-friendly):
-  content download [folder]    Download content from CMS
-  content diff <folder>        Show which files have changed
-  content field-diff <folder>  Show which fields changed in a file
+  content download [folder]      Download content from CMS
+  content dirty <folder>         Check which files have changed
+  content dirty-fields <folder>  Check which fields changed
+  content diff <folder>          Show actual file diffs
+  content diff-field <folder>    Show actual field value diffs
 
 Use 'account link-table' first to configure which tables to sync.`,
 }
@@ -51,20 +53,60 @@ Examples:
 	RunE: runContentDownload,
 }
 
-// contentDiffCmd represents the content diff command
-var contentDiffCmd = &cobra.Command{
-	Use:   "diff <folder>",
-	Short: "[NON-INTERACTIVE] Show which files have changed",
+// contentDirtyCmd checks which files have changed (dirty)
+var contentDirtyCmd = &cobra.Command{
+	Use:   "dirty <folder>",
+	Short: "[NON-INTERACTIVE] Check which files have changed",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-Compare files in a table folder against the original downloaded versions.
+Check which files in a table folder differ from the original downloaded versions.
 
-Without --file flag, reports:
-  - Modified files (content differs from original)
-  - Added files (exist in folder but not in original)
-  - Deleted files (exist in original but not in folder)
+Reports:
+  - Modified files (content differs from original) in orange
+  - Created files (exist in folder but not in original) in green
+  - Deleted files (exist in original but not in folder) in red
 
-With --file flag, shows the actual diff for a specific file using git or diff.
+With --file flag, checks a specific file only.
+
+Examples:
+  scratchmd content dirty blog-posts
+  scratchmd content dirty blog-posts --file post-1.md`,
+	Args: cobra.ExactArgs(1),
+	RunE: runContentDirty,
+}
+
+// contentDirtyFieldsCmd checks which fields changed in files
+var contentDirtyFieldsCmd = &cobra.Command{
+	Use:   "dirty-fields <folder>",
+	Short: "[NON-INTERACTIVE] Check which fields changed in files",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Check which fields changed in files compared to original downloaded versions.
+
+Without --file flag, compares all files and shows:
+  - Deleted files (in red)
+  - Created files (in green)
+  - Modified files with list of changed fields (in orange)
+
+With --file flag, shows changed fields for a specific file only.
+
+Examples:
+  scratchmd content dirty-fields blog-posts
+  scratchmd content dirty-fields blog-posts --file post-1.md`,
+	Args: cobra.ExactArgs(1),
+	RunE: runContentDirtyFields,
+}
+
+// contentDiffCmd shows actual diffs for files
+var contentDiffCmd = &cobra.Command{
+	Use:   "diff <folder>",
+	Short: "[NON-INTERACTIVE] Show actual file diffs",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Show the actual diff (using git diff or diff) for changed files.
+
+Without --file flag, shows diffs for all changed files in the folder.
+With --file flag, shows diff for a specific file only.
 
 Examples:
   scratchmd content diff blog-posts
@@ -73,26 +115,22 @@ Examples:
 	RunE: runContentDiff,
 }
 
-// contentFieldDiffCmd represents the content field-diff command
-var contentFieldDiffCmd = &cobra.Command{
-	Use:   "field-diff <folder> [--file <filename>]",
-	Short: "[NON-INTERACTIVE] Show which fields changed in files",
+// contentDiffFieldCmd shows field-level diffs with values
+var contentDiffFieldCmd = &cobra.Command{
+	Use:   "diff-field <folder>",
+	Short: "[NON-INTERACTIVE] Show field value diffs",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-Compare files' fields against the original downloaded versions.
+Show the actual old and new values for changed fields.
 
-Without --file flag, compares all files and shows:
-  - Deleted files (in red)
-  - Created files (in green)
-  - Modified files with list of changed fields (in orange)
-
-With --file flag, shows field changes for a specific file only.
+Without --file flag, shows field diffs for all changed files.
+With --file flag, shows field diffs for a specific file only.
 
 Examples:
-  scratchmd content field-diff blog-posts
-  scratchmd content field-diff blog-posts --file post-1.md`,
+  scratchmd content diff-field blog-posts
+  scratchmd content diff-field blog-posts --file post-1.md`,
 	Args: cobra.ExactArgs(1),
-	RunE: runContentFieldDiff,
+	RunE: runContentDiffField,
 }
 
 // contentUploadCmd represents the content upload command
@@ -123,19 +161,26 @@ Examples:
 func init() {
 	rootCmd.AddCommand(contentCmd)
 	contentCmd.AddCommand(contentDownloadCmd)
+	contentCmd.AddCommand(contentDirtyCmd)
+	contentCmd.AddCommand(contentDirtyFieldsCmd)
 	contentCmd.AddCommand(contentDiffCmd)
-	contentCmd.AddCommand(contentFieldDiffCmd)
+	contentCmd.AddCommand(contentDiffFieldCmd)
 	contentCmd.AddCommand(contentUploadCmd)
 
 	// Flags for content download
 	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
 
-	// Flags for content diff
-	contentDiffCmd.Flags().String("file", "", "Show diff for a specific file")
+	// Flags for content dirty
+	contentDirtyCmd.Flags().String("file", "", "Check a specific file only")
 
-	// Flags for content field-diff
-	contentFieldDiffCmd.Flags().String("file", "", "File to compare (optional, compares all if not specified)")
-	contentFieldDiffCmd.Flags().Bool("show-values", false, "Show old and new values for changed fields (only with --file)")
+	// Flags for content dirty-fields
+	contentDirtyFieldsCmd.Flags().String("file", "", "Check a specific file only")
+
+	// Flags for content diff
+	contentDiffCmd.Flags().String("file", "", "Show diff for a specific file only")
+
+	// Flags for content diff-field
+	contentDiffFieldCmd.Flags().String("file", "", "Show field diffs for a specific file only")
 
 	// Flags for content upload
 	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
@@ -342,7 +387,7 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	return nil
 }
 
-func runContentDiff(cmd *cobra.Command, args []string) error {
+func runContentDirty(cmd *cobra.Command, args []string) error {
 	tableName := args[0]
 	fileName, _ := cmd.Flags().GetString("file")
 
@@ -357,9 +402,9 @@ func runContentDiff(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("original folder '%s' does not exist. Run 'content download %s' first", originalDir, tableName)
 	}
 
-	// If --file flag is provided, show diff for that specific file
+	// If --file flag is provided, check that specific file
 	if fileName != "" {
-		return runFileDiff(tableName, originalDir, fileName)
+		return runSingleFileDirty(tableName, originalDir, fileName)
 	}
 
 	// Get list of .md files in both directories
@@ -451,6 +496,139 @@ func runContentDiff(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// runSingleFileDirty checks if a single file is dirty
+func runSingleFileDirty(tableName, originalDir, fileName string) error {
+	currentPath := filepath.Join(tableName, fileName)
+	originalPath := filepath.Join(originalDir, fileName)
+
+	currentExists := true
+	if _, err := os.Stat(currentPath); os.IsNotExist(err) {
+		currentExists = false
+	}
+
+	originalExists := true
+	if _, err := os.Stat(originalPath); os.IsNotExist(err) {
+		originalExists = false
+	}
+
+	if !currentExists && !originalExists {
+		return fmt.Errorf("file '%s' not found in either location", fileName)
+	}
+
+	if !originalExists {
+		fmt.Printf("%s%s (created)%s\n", colorGreen, fileName, colorReset)
+		return nil
+	}
+
+	if !currentExists {
+		fmt.Printf("%s%s (deleted)%s\n", colorRed, fileName, colorReset)
+		return nil
+	}
+
+	// Both exist - compare content
+	currentContent, err := os.ReadFile(currentPath)
+	if err != nil {
+		return fmt.Errorf("failed to read current file: %w", err)
+	}
+	originalContent, err := os.ReadFile(originalPath)
+	if err != nil {
+		return fmt.Errorf("failed to read original file: %w", err)
+	}
+
+	if bytes.Equal(currentContent, originalContent) {
+		fmt.Printf("%s (clean)\n", fileName)
+	} else {
+		fmt.Printf("%s%s (modified)%s\n", colorOrange, fileName, colorReset)
+	}
+
+	return nil
+}
+
+func runContentDiff(cmd *cobra.Command, args []string) error {
+	tableName := args[0]
+	fileName, _ := cmd.Flags().GetString("file")
+
+	// Check that the table folder exists
+	if _, err := os.Stat(tableName); os.IsNotExist(err) {
+		return fmt.Errorf("folder '%s' does not exist", tableName)
+	}
+
+	// Check that the original folder exists
+	originalDir := filepath.Join(".scratchmd", tableName, "original")
+	if _, err := os.Stat(originalDir); os.IsNotExist(err) {
+		return fmt.Errorf("original folder '%s' does not exist. Run 'content download %s' first", originalDir, tableName)
+	}
+
+	// If --file flag is provided, show diff for that specific file
+	if fileName != "" {
+		return runFileDiff(tableName, originalDir, fileName)
+	}
+
+	// Show diffs for all changed files
+	return runAllFilesDiff(tableName, originalDir)
+}
+
+// runAllFilesDiff shows diffs for all changed files in a folder
+func runAllFilesDiff(tableName, originalDir string) error {
+	// Get list of .md files in both directories
+	currentFiles := make(map[string]bool)
+	originalFiles := make(map[string]bool)
+
+	entries, err := os.ReadDir(tableName)
+	if err != nil {
+		return fmt.Errorf("failed to read folder: %w", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+			currentFiles[entry.Name()] = true
+		}
+	}
+
+	entries, err = os.ReadDir(originalDir)
+	if err != nil {
+		return fmt.Errorf("failed to read original folder: %w", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+			originalFiles[entry.Name()] = true
+		}
+	}
+
+	// Collect all files that need diffing
+	var filesToDiff []string
+	for filename := range originalFiles {
+		if currentFiles[filename] {
+			// Check if actually modified
+			currentPath := filepath.Join(tableName, filename)
+			originalPath := filepath.Join(originalDir, filename)
+			currentContent, _ := os.ReadFile(currentPath)
+			originalContent, _ := os.ReadFile(originalPath)
+			if !bytes.Equal(currentContent, originalContent) {
+				filesToDiff = append(filesToDiff, filename)
+			}
+		}
+	}
+
+	sort.Strings(filesToDiff)
+
+	if len(filesToDiff) == 0 {
+		fmt.Println("No modified files to diff.")
+		return nil
+	}
+
+	for i, filename := range filesToDiff {
+		if i > 0 {
+			fmt.Println() // Separator between files
+		}
+		fmt.Printf("=== %s ===\n", filename)
+		if err := runFileDiff(tableName, originalDir, filename); err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
 func runFileDiff(tableName, originalDir, fileName string) error {
 	currentPath := filepath.Join(tableName, fileName)
 	originalPath := filepath.Join(originalDir, fileName)
@@ -516,10 +694,9 @@ func runFileDiff(tableName, originalDir, fileName string) error {
 	return nil
 }
 
-func runContentFieldDiff(cmd *cobra.Command, args []string) error {
+func runContentDirtyFields(cmd *cobra.Command, args []string) error {
 	tableName := args[0]
 	fileName, _ := cmd.Flags().GetString("file")
-	showValues, _ := cmd.Flags().GetBool("show-values")
 
 	// Check that the table folder exists
 	if _, err := os.Stat(tableName); os.IsNotExist(err) {
@@ -542,16 +719,16 @@ func runContentFieldDiff(cmd *cobra.Command, args []string) error {
 		contentFieldName = tableConfig.ContentField
 	}
 
-	// If --file flag is provided, show field diff for that specific file
+	// If --file flag is provided, show dirty fields for that specific file
 	if fileName != "" {
-		return runSingleFileFieldDiff(tableName, originalDir, fileName, contentFieldName, showValues)
+		return runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName)
 	}
 
 	// Otherwise, compare all files in the folder
-	return runFolderFieldDiff(tableName, originalDir, contentFieldName)
+	return runFolderDirtyFields(tableName, originalDir, contentFieldName)
 }
 
-func runSingleFileFieldDiff(tableName, originalDir, fileName, contentFieldName string, showValues bool) error {
+func runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName string) error {
 	currentPath := filepath.Join(tableName, fileName)
 	originalPath := filepath.Join(originalDir, fileName)
 
@@ -601,22 +778,221 @@ func runSingleFileFieldDiff(tableName, originalDir, fileName, contentFieldName s
 	// Show filename header
 	fmt.Printf("%s%s%s\n", colorOrange, fileName, colorReset)
 
-	// Show each field with appropriate color
+	// Show each field with appropriate color (no values, just field names)
 	for _, f := range removedFields {
 		fmt.Printf("  %s%s (removed)%s\n", colorRed, f, colorReset)
-		if showValues {
-			printFieldValue(originalFields[f], colorRed)
-		}
 	}
 	for _, f := range addedFields {
 		fmt.Printf("  %s%s (added)%s\n", colorGreen, f, colorReset)
-		if showValues {
-			printFieldValue(currentFields[f], colorGreen)
-		}
 	}
 	for _, f := range modifiedFields {
 		fmt.Printf("  %s%s%s\n", colorOrange, f, colorReset)
-		if showValues {
+	}
+
+	return nil
+}
+
+func runContentDiffField(cmd *cobra.Command, args []string) error {
+	tableName := args[0]
+	fileName, _ := cmd.Flags().GetString("file")
+
+	// Check that the table folder exists
+	if _, err := os.Stat(tableName); os.IsNotExist(err) {
+		return fmt.Errorf("folder '%s' does not exist", tableName)
+	}
+
+	// Check that the original folder exists
+	originalDir := filepath.Join(".scratchmd", tableName, "original")
+	if _, err := os.Stat(originalDir); os.IsNotExist(err) {
+		return fmt.Errorf("original folder '%s' does not exist. Run 'content download %s' first", originalDir, tableName)
+	}
+
+	// Load table config to get content field name
+	tableConfig, err := config.LoadTableConfig(tableName)
+	if err != nil {
+		return fmt.Errorf("failed to load table config: %w", err)
+	}
+	contentFieldName := ""
+	if tableConfig != nil {
+		contentFieldName = tableConfig.ContentField
+	}
+
+	// If --file flag is provided, show field diffs for that specific file
+	if fileName != "" {
+		return runSingleFileDiffField(tableName, originalDir, fileName, contentFieldName)
+	}
+
+	// Otherwise, show field diffs for all files
+	return runFolderDiffField(tableName, originalDir, contentFieldName)
+}
+
+func runSingleFileDiffField(tableName, originalDir, fileName, contentFieldName string) error {
+	currentPath := filepath.Join(tableName, fileName)
+	originalPath := filepath.Join(originalDir, fileName)
+
+	// Check if files exist
+	_, currentErr := os.Stat(currentPath)
+	currentExists := currentErr == nil
+
+	_, originalErr := os.Stat(originalPath)
+	originalExists := originalErr == nil
+
+	// Handle deleted case (in original but not in current)
+	if !currentExists && originalExists {
+		fmt.Printf("%s%s (deleted)%s\n", colorRed, fileName, colorReset)
+		return nil
+	}
+
+	// Handle created case (in current but not in original)
+	if currentExists && !originalExists {
+		fmt.Printf("%s%s (created)%s\n", colorGreen, fileName, colorReset)
+		return nil
+	}
+
+	// Handle case where file doesn't exist in either location
+	if !currentExists && !originalExists {
+		return fmt.Errorf("file '%s' not found in either location", fileName)
+	}
+
+	// Parse both files
+	currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+	if err != nil {
+		return fmt.Errorf("failed to parse current file: %w", err)
+	}
+
+	originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+	if err != nil {
+		return fmt.Errorf("failed to parse original file: %w", err)
+	}
+
+	// Compare fields
+	modifiedFields, addedFields, removedFields := getChangedFieldsDetailed(currentFields, originalFields)
+
+	if len(modifiedFields) == 0 && len(addedFields) == 0 && len(removedFields) == 0 {
+		fmt.Println("No field changes detected.")
+		return nil
+	}
+
+	// Show filename header
+	fmt.Printf("%s%s%s\n", colorOrange, fileName, colorReset)
+
+	// Show each field with values
+	for _, f := range removedFields {
+		fmt.Printf("  %s%s (removed)%s\n", colorRed, f, colorReset)
+		printFieldValue(originalFields[f], colorRed)
+	}
+	for _, f := range addedFields {
+		fmt.Printf("  %s%s (added)%s\n", colorGreen, f, colorReset)
+		printFieldValue(currentFields[f], colorGreen)
+	}
+	for _, f := range modifiedFields {
+		fmt.Printf("  %s%s%s\n", colorOrange, f, colorReset)
+		printFieldValueChange(originalFields[f], currentFields[f])
+	}
+
+	return nil
+}
+
+func runFolderDiffField(tableName, originalDir, contentFieldName string) error {
+	// Get list of .md files in both directories
+	currentFiles := make(map[string]bool)
+	originalFiles := make(map[string]bool)
+
+	entries, err := os.ReadDir(tableName)
+	if err != nil {
+		return fmt.Errorf("failed to read folder: %w", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+			currentFiles[entry.Name()] = true
+		}
+	}
+
+	entries, err = os.ReadDir(originalDir)
+	if err != nil {
+		return fmt.Errorf("failed to read original folder: %w", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+			originalFiles[entry.Name()] = true
+		}
+	}
+
+	var deleted, created []string
+	var modifiedFiles []string
+
+	// Check for deleted and modified files
+	for filename := range originalFiles {
+		if currentFiles[filename] {
+			// Check if actually modified
+			currentPath := filepath.Join(tableName, filename)
+			originalPath := filepath.Join(originalDir, filename)
+			currentContent, _ := os.ReadFile(currentPath)
+			originalContent, _ := os.ReadFile(originalPath)
+			if !bytes.Equal(currentContent, originalContent) {
+				modifiedFiles = append(modifiedFiles, filename)
+			}
+		} else {
+			deleted = append(deleted, filename)
+		}
+	}
+
+	// Check for created files
+	for filename := range currentFiles {
+		if !originalFiles[filename] {
+			created = append(created, filename)
+		}
+	}
+
+	sort.Strings(deleted)
+	sort.Strings(created)
+	sort.Strings(modifiedFiles)
+
+	if len(deleted) == 0 && len(created) == 0 && len(modifiedFiles) == 0 {
+		fmt.Println("No changes detected.")
+		return nil
+	}
+
+	// Show deleted files
+	for _, f := range deleted {
+		fmt.Printf("%s%s (deleted)%s\n", colorRed, f, colorReset)
+	}
+
+	// Show created files
+	for _, f := range created {
+		fmt.Printf("%s%s (created)%s\n", colorGreen, f, colorReset)
+	}
+
+	// Show modified files with field diffs
+	for _, filename := range modifiedFiles {
+		currentPath := filepath.Join(tableName, filename)
+		originalPath := filepath.Join(originalDir, filename)
+
+		currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+		if err != nil {
+			continue
+		}
+		originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+		if err != nil {
+			continue
+		}
+
+		modifiedFieldsList, addedFields, removedFields := getChangedFieldsDetailed(currentFields, originalFields)
+		if len(modifiedFieldsList) == 0 && len(addedFields) == 0 && len(removedFields) == 0 {
+			continue
+		}
+
+		fmt.Printf("%s%s%s\n", colorOrange, filename, colorReset)
+		for _, f := range removedFields {
+			fmt.Printf("  %s%s (removed)%s\n", colorRed, f, colorReset)
+			printFieldValue(originalFields[f], colorRed)
+		}
+		for _, f := range addedFields {
+			fmt.Printf("  %s%s (added)%s\n", colorGreen, f, colorReset)
+			printFieldValue(currentFields[f], colorGreen)
+		}
+		for _, f := range modifiedFieldsList {
+			fmt.Printf("  %s%s%s\n", colorOrange, f, colorReset)
 			printFieldValueChange(originalFields[f], currentFields[f])
 		}
 	}
@@ -642,7 +1018,7 @@ func printFieldValueChange(oldVal, newVal string) {
 	}
 }
 
-func runFolderFieldDiff(tableName, originalDir, contentFieldName string) error {
+func runFolderDirtyFields(tableName, originalDir, contentFieldName string) error {
 	// Get list of .md files in both directories
 	currentFiles := make(map[string]bool)
 	originalFiles := make(map[string]bool)
