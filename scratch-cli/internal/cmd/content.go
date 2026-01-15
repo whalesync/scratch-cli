@@ -186,6 +186,7 @@ func init() {
 	// Flags for content upload
 	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
 	contentUploadCmd.Flags().Bool("sync-deletes", false, "Delete remote records that are missing locally")
+	contentUploadCmd.Flags().Bool("simulate", false, "Output operations to a text file instead of uploading")
 }
 
 // ANSI color codes
@@ -1136,15 +1137,18 @@ func runFolderDirtyFields(tableName, originalDir, contentFieldName string) error
 
 // UploadChange represents a single change to upload
 type UploadChange struct {
-	Operation     string            // "delete", "create", "update"
-	Filename      string            // The filename
-	ChangedFields []string          // List of changed fields (for create/update)
-	FieldValues   map[string]string // Field name -> new value (for create/update)
+	Operation     string                 // "delete", "create", "update"
+	Filename      string                 // The filename
+	RemoteID      string                 // The remote ID from frontmatter (for update/delete)
+	ChangedFields []string               // List of changed fields (for create/update)
+	FieldValues   map[string]interface{} // Field name -> new value (for create/update)
+
 }
 
 func runContentUpload(cmd *cobra.Command, args []string) error {
 	noReview, _ := cmd.Flags().GetBool("no-review")
 	syncDeletes, _ := cmd.Flags().GetBool("sync-deletes")
+	simulate, _ := cmd.Flags().GetBool("simulate")
 
 	// Parse the argument to determine scope
 	var tableName, fileName string
@@ -1177,8 +1181,24 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		tablesToProcess = tables
 	}
 
-	// Collect all changes across tables
-	var allChanges []UploadChange
+	// Load config and secrets for API calls
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	secrets, err := config.LoadSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to load secrets: %w", err)
+	}
+
+	// Collect all changes across tables, grouped by table for API calls
+	type tableChanges struct {
+		tableName   string
+		tableConfig *config.TableConfig
+		changes     []UploadChange
+	}
+	var allTableChanges []tableChanges
 
 	for _, table := range tablesToProcess {
 		// Check that the table folder exists
@@ -1203,6 +1223,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		}
 
 		// Get changes for this table
+		var changes []UploadChange
 		if fileName != "" {
 			// Single file mode
 			change, err := getSingleFileChange(table, originalDir, fileName, contentFieldName)
@@ -1210,16 +1231,29 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				return err
 			}
 			if change != nil {
-				allChanges = append(allChanges, *change)
+				changes = append(changes, *change)
 			}
 		} else {
 			// Folder mode
-			changes, err := getFolderChanges(table, originalDir, contentFieldName, syncDeletes)
+			changes, err = getFolderChanges(table, originalDir, contentFieldName, syncDeletes)
 			if err != nil {
 				return err
 			}
-			allChanges = append(allChanges, changes...)
 		}
+
+		if len(changes) > 0 {
+			allTableChanges = append(allTableChanges, tableChanges{
+				tableName:   table,
+				tableConfig: tableConfig,
+				changes:     changes,
+			})
+		}
+	}
+
+	// Flatten changes for display
+	var allChanges []UploadChange
+	for _, tc := range allTableChanges {
+		allChanges = append(allChanges, tc.changes...)
 	}
 
 	if len(allChanges) == 0 {
@@ -1234,14 +1268,14 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		for _, change := range allChanges {
 			switch change.Operation {
 			case "delete":
-				fmt.Printf("%s%s -> %s (delete)%s\n", colorRed, change.Filename, change.Filename, colorReset)
+				fmt.Printf("%s%s (delete)%s\n", colorRed, change.Filename, colorReset)
 			case "create":
-				fmt.Printf("%s%s -> %s (create)%s\n", colorGreen, change.Filename, change.Filename, colorReset)
+				fmt.Printf("%s%s (create)%s\n", colorGreen, change.Filename, colorReset)
 				for _, field := range change.ChangedFields {
 					fmt.Printf("  %s\n", field)
 				}
 			case "update":
-				fmt.Printf("%s%s -> %s (update)%s\n", colorOrange, change.Filename, change.Filename, colorReset)
+				fmt.Printf("%s%s (update)%s\n", colorOrange, change.Filename, colorReset)
 				for _, field := range change.ChangedFields {
 					fmt.Printf("  %s\n", field)
 				}
@@ -1259,32 +1293,169 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Write operations to a text file (placeholder for actual upload)
-	outputFile := "upload_operations.txt"
-	var sb strings.Builder
+	// If --simulate flag is set, write operations to a text file instead of uploading
+	if simulate {
+		outputFile := "upload_operations.txt"
+		var sb strings.Builder
 
-	for _, change := range allChanges {
-		switch change.Operation {
-		case "delete":
-			sb.WriteString(fmt.Sprintf("delete -> %s\n", change.Filename))
-		case "create":
-			sb.WriteString(fmt.Sprintf("create -> %s\n", change.Filename))
-			for _, field := range change.ChangedFields {
-				sb.WriteString(fmt.Sprintf("  %s\n", field))
+		for _, change := range allChanges {
+			switch change.Operation {
+			case "delete":
+				sb.WriteString(fmt.Sprintf("delete -> %s\n", change.Filename))
+			case "create":
+				sb.WriteString(fmt.Sprintf("create -> %s\n", change.Filename))
+				for _, field := range change.ChangedFields {
+					sb.WriteString(fmt.Sprintf("  %s\n", field))
+				}
+			case "update":
+				sb.WriteString(fmt.Sprintf("update -> %s\n", change.Filename))
+				for _, field := range change.ChangedFields {
+					sb.WriteString(fmt.Sprintf("  %s\n", field))
+				}
 			}
-		case "update":
-			sb.WriteString(fmt.Sprintf("update -> %s\n", change.Filename))
-			for _, field := range change.ChangedFields {
-				sb.WriteString(fmt.Sprintf("  %s\n", field))
+		}
+
+		if err := os.WriteFile(outputFile, []byte(sb.String()), 0644); err != nil {
+			return fmt.Errorf("failed to write operations file: %w", err)
+		}
+
+		fmt.Printf("Simulation: Operations written to %s\n", outputFile)
+		return nil
+	}
+
+	// Upload changes via API
+	for _, tc := range allTableChanges {
+		fmt.Printf("Uploading changes for '%s'...\n", tc.tableName)
+		if tc.tableConfig == nil {
+			fmt.Printf("❌ Skipping '%s': no table config found\n", tc.tableName)
+			continue
+		}
+
+		// Get the account for this table
+		account := cfg.GetAccountByID(tc.tableConfig.AccountID)
+		if account == nil {
+			fmt.Printf("❌ Skipping '%s': account not found\n", tc.tableName)
+			continue
+		}
+
+		// Get the authentication properties
+		authProps := secrets.GetSecretProperties(account.ID)
+		if len(authProps) == 0 {
+			fmt.Printf("❌ Skipping '%s': no credentials found for account '%s'\n", tc.tableName, account.Name)
+			continue
+		}
+
+		// Create API client
+		client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+
+		// Build connector credentials
+		creds := &api.ConnectorCredentials{
+			Service: account.Provider,
+			Params:  authProps,
+		}
+
+		// Build table ID array
+		var tableID []string
+		if tc.tableConfig.SiteID != "" {
+			tableID = []string{tc.tableConfig.SiteID, tc.tableConfig.TableID}
+		} else {
+			tableID = []string{tc.tableConfig.TableID}
+		}
+
+		// Convert UploadChange to api.UploadOperation
+		var operations []api.UploadOperation
+		for _, change := range tc.changes {
+			var op api.UploadOpType
+			switch change.Operation {
+			case "create":
+				op = api.OpCreate
+			case "update":
+				op = api.OpUpdate
+			case "delete":
+				op = api.OpDelete
+			}
+
+			// Build data map, excluding remoteId
+			// For updates, only include changed fields
+			var data map[string]interface{}
+			switch change.Operation {
+			case "update":
+				data = make(map[string]interface{})
+				for _, field := range change.ChangedFields {
+					// Strip suffix like " (added)" or " (removed)" from field names
+					cleanField := strings.TrimSuffix(strings.TrimSuffix(field, " (added)"), " (removed)")
+					if cleanField != "remoteId" {
+						if val, ok := change.FieldValues[cleanField]; ok {
+							data[cleanField] = val
+						}
+					}
+				}
+			case "create":
+				data = make(map[string]interface{})
+				for k, v := range change.FieldValues {
+					if k != "remoteId" {
+						data[k] = v
+					}
+				}
+			}
+
+			operations = append(operations, api.UploadOperation{
+				Op:       op,
+				ID:       change.RemoteID,
+				Filename: change.Filename,
+				Data:     data,
+			})
+		}
+
+		// Call the upload endpoint
+		resp, err := client.Upload(creds, tableID, operations)
+		if err != nil {
+			fmt.Printf("❌ Error uploading to '%s': %v\n", tc.tableName, err)
+			continue
+		}
+
+		// Report results and update local file system for each file
+		originalDir := filepath.Join(".scratchmd", tc.tableName, "original")
+		for _, result := range resp.Results {
+			if result.Error != "" {
+				fmt.Printf("  %s❌ %s: %s%s\n", colorRed, result.Filename, result.Error, colorReset)
+				continue
+			}
+
+			// Get just the filename from the full path (e.g., "blog-posts/post.md" -> "post.md")
+			_, fileName := filepath.Split(result.Filename)
+			currentPath := result.Filename
+			originalPath := filepath.Join(originalDir, fileName)
+
+			switch result.Op {
+			case "create":
+				fmt.Printf("  %s✓ %s (created, id: %s)%s\n", colorGreen, result.Filename, result.ID, colorReset)
+				// Update the current file to add the remoteId to frontmatter
+				if err := addRemoteIDToFile(currentPath, result.ID); err != nil {
+					fmt.Printf("    ⚠️  Failed to update remoteId: %v\n", err)
+				}
+				// Copy the updated current file to the original folder
+				if err := copyFile(currentPath, originalPath); err != nil {
+					fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+				}
+			case "update":
+				fmt.Printf("  %s✓ %s (updated)%s\n", colorGreen, result.Filename, colorReset)
+				// Copy the current file to the original folder
+				if err := copyFile(currentPath, originalPath); err != nil {
+					fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+				}
+			case "delete":
+				fmt.Printf("  %s✓ %s (deleted)%s\n", colorGreen, result.Filename, colorReset)
+				// Delete the original file (current file already doesn't exist for deletes)
+				if err := os.Remove(originalPath); err != nil && !os.IsNotExist(err) {
+					fmt.Printf("    ⚠️  Failed to remove original: %v\n", err)
+				}
 			}
 		}
 	}
 
-	if err := os.WriteFile(outputFile, []byte(sb.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write operations file: %w", err)
-	}
+	fmt.Println("Upload complete.")
 
-	fmt.Printf("Operations written to %s\n", outputFile)
 	return nil
 }
 
@@ -1303,9 +1474,15 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 
 	// Deleted file
 	if !currentExists && originalExists {
+		// Get remoteId from the original file for delete operations
+		originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse original file: %w", err)
+		}
 		return &UploadChange{
 			Operation: "delete",
 			Filename:  fullFileName,
+			RemoteID:  originalFields["remoteId"],
 		}, nil
 	}
 
@@ -1323,8 +1500,9 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 		return &UploadChange{
 			Operation:     "create",
 			Filename:      fullFileName,
+			RemoteID:      currentFields["remoteId"],
 			ChangedFields: fields,
-			FieldValues:   currentFields,
+			FieldValues:   stringMapToInterface(currentFields),
 		}, nil
 	}
 
@@ -1352,8 +1530,9 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 	return &UploadChange{
 		Operation:     "update",
 		Filename:      fullFileName,
+		RemoteID:      currentFields["remoteId"],
 		ChangedFields: changedFields,
-		FieldValues:   currentFields,
+		FieldValues:   stringMapToInterface(currentFields),
 	}, nil
 }
 
@@ -1391,9 +1570,15 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 	if includeDeletes {
 		for filename := range originalFiles {
 			if !currentFiles[filename] {
+				originalPath := filepath.Join(originalDir, filename)
+				originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+				if err != nil {
+					continue
+				}
 				changes = append(changes, UploadChange{
 					Operation: "delete",
 					Filename:  filepath.Join(tableName, filename),
+					RemoteID:  originalFields["remoteId"],
 				})
 			}
 		}
@@ -1415,8 +1600,9 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 			changes = append(changes, UploadChange{
 				Operation:     "create",
 				Filename:      filepath.Join(tableName, filename),
+				RemoteID:      currentFields["remoteId"],
 				ChangedFields: fields,
-				FieldValues:   currentFields,
+				FieldValues:   stringMapToInterface(currentFields),
 			})
 		}
 	}
@@ -1441,8 +1627,9 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 				changes = append(changes, UploadChange{
 					Operation:     "update",
 					Filename:      filepath.Join(tableName, filename),
+					RemoteID:      currentFields["remoteId"],
 					ChangedFields: changedFields,
-					FieldValues:   currentFields,
+					FieldValues:   stringMapToInterface(currentFields),
 				})
 			}
 		}
@@ -1513,6 +1700,15 @@ func getChangedFieldsDetailed(current, original map[string]string) (modified, ad
 	return modified, added, removed
 }
 
+// stringMapToInterface converts map[string]string to map[string]interface{}
+func stringMapToInterface(m map[string]string) map[string]interface{} {
+	result := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
 // parseMarkdownFile parses a markdown file with YAML frontmatter and returns field values.
 // If contentFieldName is provided, the markdown body is stored under that field name with "(content)" suffix.
 // Otherwise it's stored as "_content".
@@ -1528,7 +1724,7 @@ func parseMarkdownFile(filePath string, contentFieldName string) (map[string]str
 	// Determine the key to use for markdown content
 	contentKey := "_content"
 	if contentFieldName != "" {
-		contentKey = contentFieldName + " (content)"
+		contentKey = contentFieldName
 	}
 
 	// Check for YAML frontmatter (starts with ---)
@@ -1565,4 +1761,61 @@ func parseMarkdownFile(filePath string, contentFieldName string) (map[string]str
 	fields[contentKey] = strings.TrimSpace(markdownContent)
 
 	return fields, nil
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	content, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, content, 0644)
+}
+
+// addRemoteIDToFile adds or updates the remoteId field in the YAML frontmatter of a markdown file
+func addRemoteIDToFile(filePath, remoteID string) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	contentStr := string(content)
+
+	// Check for existing YAML frontmatter
+	if !strings.HasPrefix(contentStr, "---") {
+		// No frontmatter, add it with remoteId
+		newContent := fmt.Sprintf("---\nremoteId: %s\n---\n%s", remoteID, contentStr)
+		return os.WriteFile(filePath, []byte(newContent), 0644)
+	}
+
+	// Find the end of frontmatter
+	rest := contentStr[3:] // Skip initial ---
+	endIndex := strings.Index(rest, "\n---")
+	if endIndex == -1 {
+		// Malformed frontmatter, add remoteId at the start
+		newContent := fmt.Sprintf("---\nremoteId: %s\n---\n%s", remoteID, contentStr)
+		return os.WriteFile(filePath, []byte(newContent), 0644)
+	}
+
+	yamlContent := rest[:endIndex]
+	markdownContent := rest[endIndex+4:] // Skip \n---
+
+	// Parse existing YAML
+	var yamlData map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlContent), &yamlData); err != nil {
+		return fmt.Errorf("failed to parse YAML frontmatter: %w", err)
+	}
+
+	// Add or update remoteId
+	yamlData["remoteId"] = remoteID
+
+	// Marshal back to YAML
+	newYAML, err := yaml.Marshal(yamlData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML: %w", err)
+	}
+
+	// Reconstruct the file
+	newContent := fmt.Sprintf("---\n%s---\n%s", string(newYAML), strings.TrimPrefix(markdownContent, "\n"))
+	return os.WriteFile(filePath, []byte(newContent), 0644)
 }

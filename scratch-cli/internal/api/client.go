@@ -19,7 +19,7 @@ import (
 var DefaultScratchServerURL = "http://localhost:3010"
 
 // DefaultTimeout is the default timeout for API requests.
-const DefaultTimeout = 30 * time.Second
+const DefaultTimeout = 120 * time.Second
 
 // DefaultUserAgent is the default User-Agent header for API requests.
 const DefaultUserAgent = "Scratch-CLI/1.0"
@@ -75,6 +75,44 @@ type FileContent struct {
 type DownloadResponse struct {
 	Error string        `json:"error,omitempty"`
 	Files []FileContent `json:"files,omitempty"`
+}
+
+// UploadOpType represents the type of upload operation.
+type UploadOpType string
+
+const (
+	OpCreate UploadOpType = "create"
+	OpUpdate UploadOpType = "update"
+	OpDelete UploadOpType = "delete"
+)
+
+// UploadOperation represents a single file operation (create, update, or delete) for upload.
+type UploadOperation struct {
+	Op       UploadOpType           `json:"op"`       // OpCreate, OpUpdate, or OpDelete
+	ID       string                 `json:"id"`       // Required for update and delete operations
+	Filename string                 `json:"filename"` // The filename this operation originated from
+	Data     map[string]interface{} `json:"data"`     // The content as key-value pairs (not used for delete)
+}
+
+// uploadRequest represents the request body for the upload endpoint (internal use).
+type uploadRequest struct {
+	TableID []string                 `json:"tableId,omitempty"`
+	Creates []map[string]interface{} `json:"creates,omitempty"`
+	Updates []map[string]interface{} `json:"updates,omitempty"`
+	Deletes []map[string]interface{} `json:"deletes,omitempty"`
+}
+
+// UploadResult represents the result of a single upload operation.
+type UploadResult struct {
+	Op       string `json:"op"`
+	ID       string `json:"id"`
+	Filename string `json:"filename"`
+	Error    string `json:"error,omitempty"`
+}
+
+// UploadResponse represents the response from the upload endpoint.
+type UploadResponse struct {
+	Results []UploadResult `json:"results"`
 }
 
 // ClientOption is a function that configures a Client.
@@ -205,6 +243,46 @@ func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, e
 func (c *Client) Download(creds *ConnectorCredentials, req *DownloadRequest) (*DownloadResponse, error) {
 	var result DownloadResponse
 	if err := c.doRequest(http.MethodPost, "download", creds, req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// Upload uploads file changes (creates, updates, deletes) to the specified table.
+func (c *Client) Upload(creds *ConnectorCredentials, tableID []string, operations []UploadOperation) (*UploadResponse, error) {
+	// Build the request by separating operations into creates, updates, and deletes
+	req := uploadRequest{
+		TableID: tableID,
+	}
+
+	for _, op := range operations {
+		switch op.Op {
+		case OpCreate:
+			req.Creates = append(req.Creates, map[string]interface{}{
+				"op":       op.Op,
+				"filename": op.Filename,
+				"data":     op.Data,
+			})
+		case OpUpdate:
+			req.Updates = append(req.Updates, map[string]interface{}{
+				"op":       op.Op,
+				"id":       op.ID,
+				"filename": op.Filename,
+				"data":     op.Data,
+			})
+		case OpDelete:
+			req.Deletes = append(req.Deletes, map[string]interface{}{
+				"op":       op.Op,
+				"id":       op.ID,
+				"filename": op.Filename,
+			})
+		default:
+			return nil, fmt.Errorf("invalid operation type %q for file %q: must be create, update, or delete", op.Op, op.Filename)
+		}
+	}
+
+	var result UploadResponse
+	if err := c.doRequest(http.MethodPost, "upload", creds, req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
