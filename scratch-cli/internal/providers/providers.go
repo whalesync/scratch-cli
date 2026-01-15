@@ -55,8 +55,7 @@ type Provider interface {
 
 // SupportedProviders returns the list of supported provider names
 func SupportedProviders() []string {
-	return []string{"webflow", "wordpress"}
-	// return []string{"airtable", "notion", "webflow", "wordpress" }
+	return []string{"webflow", "wordpress", "airtable", "notion"}
 }
 
 // GetProvider returns a provider by name
