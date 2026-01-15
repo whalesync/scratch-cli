@@ -1,5 +1,5 @@
 import { WSLogger } from 'src/logger';
-import { sanitizeForColumnWsId, sanitizeForTableWsId } from '../../ids';
+import { sanitizeForTableWsId } from '../../ids';
 import { ColumnMetadata, PostgresColumnType, TablePreview } from '../../types';
 import { AirtableColumnSpec } from '../custom-spec-registry';
 import { AirtableBase, AirtableDataType, AirtableFieldsV2, AirtableTableV2 } from './airtable-types';
@@ -23,14 +23,73 @@ export class AirtableSchemaParser {
     WSLogger.debug({ source: 'AirtableSchemaParser', message: 'Parsing column', field, pgType, readonly });
     return {
       id: {
-        wsId: sanitizeForColumnWsId(field.name),
-        remoteId: [field.id],
+        wsId: field.name,
+        remoteId: [field.name, field.id],
       },
+      slug: field.name,
       name: field.name,
       pgType,
       readonly,
       metadata,
+      airtableFieldType: field.type,
     };
+  }
+
+  /**
+   * Discovers the main content column with the following priority:
+   * 1. First richText field (best for formatted content)
+   * 2. multilineText field with content-related name (content, body, description, etc.)
+   * 3. First non-title multilineText field
+   * 4. First non-title singleLineText field as fallback
+   */
+  discoverMainContentColumn(columns: AirtableColumnSpec[], titleColumnSlug?: string): string[] | undefined {
+    // Priority 1: First richText field
+    const richTextField = columns.find((col) => col.airtableFieldType === AirtableDataType.RICH_TEXT);
+    if (richTextField) {
+      return richTextField.id.remoteId;
+    }
+
+    // Priority 2: multilineText field with content-related name
+    const contentKeywords = [
+      'content',
+      'body',
+      'description',
+      'summary',
+      'excerpt',
+      'bio',
+      'about',
+      'text',
+      'details',
+      'notes',
+    ];
+    const namedContentField = columns.find(
+      (col) =>
+        col.airtableFieldType === AirtableDataType.MULTILINE_TEXT &&
+        col.slug !== titleColumnSlug &&
+        col.slug &&
+        contentKeywords.some((keyword) => col.slug!.toLowerCase().includes(keyword)),
+    );
+    if (namedContentField) {
+      return namedContentField.id.remoteId;
+    }
+
+    // Priority 3: First non-title multilineText field
+    const fallbackMultilineField = columns.find(
+      (col) => col.airtableFieldType === AirtableDataType.MULTILINE_TEXT && col.slug !== titleColumnSlug,
+    );
+    if (fallbackMultilineField) {
+      return fallbackMultilineField.id.remoteId;
+    }
+
+    // Priority 4: First non-title singleLineText field as last resort
+    const fallbackSingleLineField = columns.find(
+      (col) => col.airtableFieldType === AirtableDataType.SINGLE_LINE_TEXT && col.slug !== titleColumnSlug,
+    );
+    if (fallbackSingleLineField) {
+      return fallbackSingleLineField.id.remoteId;
+    }
+
+    return undefined;
   }
   private getColumnMetadata(field: AirtableFieldsV2): ColumnMetadata | undefined {
     const type = field.type as AirtableDataType;

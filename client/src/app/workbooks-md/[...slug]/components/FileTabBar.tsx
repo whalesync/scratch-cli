@@ -134,7 +134,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
         };
 
         return (
-          <>
+          <Box key={tab.id}>
             <Group
               key={tab.id}
               gap={4}
@@ -207,7 +207,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
                 </Menu.Dropdown>
               </Menu>
             )}
-          </>
+          </Box>
         );
       })}
     </Group>

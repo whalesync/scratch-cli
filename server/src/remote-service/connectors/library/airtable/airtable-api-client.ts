@@ -46,7 +46,7 @@ export class AirtableApiClient {
         offset?: string;
       }>(`${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`, {
         headers: this.authHeaders,
-        params: { offset, returnFieldsByFieldId: true },
+        params: { offset },
       });
       yield r.data.records;
       offset = r.data.offset;
@@ -61,7 +61,7 @@ export class AirtableApiClient {
   ): Promise<AirtableRecord[]> {
     const r = await axios.post<AirtableApiPushResponse>(
       `${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`,
-      { records, typecast: true, returnFieldsByFieldId: true },
+      { records, typecast: true },
       { headers: { ...this.authHeaders, 'Content-Type': 'application/json' } },
     );
     return r.data.records ?? [];
@@ -74,7 +74,7 @@ export class AirtableApiClient {
   ): Promise<AirtableRecord[]> {
     const r = await axios.patch<AirtableApiPushResponse>(
       `${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`,
-      { records, typecast: true, returnFieldsByFieldId: true },
+      { records, typecast: true },
       { headers: { ...this.authHeaders, 'Content-Type': 'application/json' } },
     );
     return r.data.records ?? [];

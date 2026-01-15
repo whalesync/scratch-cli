@@ -46,11 +46,23 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       throw new Error(`Table ${tableId} not found in base ${baseId}`);
     }
 
+    const columns = table.fields.map((field) => this.schemaParser.parseColumn(field));
+
+    // Find title column using Airtable's primaryFieldId
+    const titleColumn = columns.find((col) => col.id.remoteId[1] === table.primaryFieldId);
+    const titleColumnRemoteId = titleColumn?.id.remoteId;
+    const titleColumnSlug = titleColumn?.slug;
+
+    // Discover main content column
+    const mainContentColumnRemoteId = this.schemaParser.discoverMainContentColumn(columns, titleColumnSlug);
+
     return {
       id,
       slug: id.wsId,
       name: table.name,
-      columns: table.fields.map((field) => this.schemaParser.parseColumn(field)),
+      columns,
+      titleColumnRemoteId,
+      mainContentColumnRemoteId,
     };
   }
 
@@ -70,6 +82,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   // Record fields need to be keyed by the wsId, not the remoteId.
+  // Airtable returns fields keyed by field name (slug).
   private wireToConnectorRecord(records: AirtableRecord[], tableSpec: AirtableTableSpec): ConnectorRecord[] {
     return records.map((r) => {
       const record: ConnectorRecord = {
@@ -77,13 +90,18 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
         fields: {},
       };
       for (const column of tableSpec.columns) {
-        const val = column.id.remoteId[0];
-        if (val !== undefined) {
+        // Airtable uses field name as the key in response (like Webflow uses slug)
+        if (!column.slug) {
+          continue;
+        }
+
+        const fieldValue = r.fields[column.slug];
+        if (fieldValue !== undefined) {
           if (column.pgType === PostgresColumnType.TIMESTAMP) {
             // dates should be sent to Airtable in ISO 8601 format in UTC
-            record.fields[column.id.wsId] = r.fields[val] ? new Date(r.fields[val] as string) : null;
+            record.fields[column.id.wsId] = fieldValue ? new Date(fieldValue as string) : null;
           } else {
-            record.fields[column.id.wsId] = r.fields[val];
+            record.fields[column.id.wsId] = fieldValue;
           }
         }
       }
@@ -141,26 +159,26 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     );
   }
 
-  // Record fields need to be keyed by the remoteId, not the wsId.
+  // Record fields need to be keyed by field name (slug), not the wsId.
+  // Airtable accepts field names as keys when writing.
   private wsFieldsToAirtableFields(
     wsFields: Record<string, unknown>,
     tableSpec: AirtableTableSpec,
   ): Record<string, unknown> {
     const airtableFields: Record<string, unknown> = {};
     for (const column of tableSpec.columns) {
-      if (column.id.wsId === 'id') {
+      if (column.id.wsId === 'id' || !column.slug) {
         continue;
       }
       const val = wsFields[column.id.wsId];
       if (val !== undefined) {
         if (column.pgType === PostgresColumnType.NUMERIC) {
-          airtableFields[column.id.remoteId[0]] = parseFloat(val as string);
+          airtableFields[column.slug] = parseFloat(val as string);
         } else if (column.pgType === PostgresColumnType.TIMESTAMP) {
           // Airtable expects dates to be in ISO 8601 format in UTC
-          airtableFields[column.id.remoteId[0]] =
-            val instanceof Date ? val.toISOString() : _.isString(val) ? val : undefined;
+          airtableFields[column.slug] = val instanceof Date ? val.toISOString() : _.isString(val) ? val : undefined;
         } else {
-          airtableFields[column.id.remoteId[0]] = val;
+          airtableFields[column.slug] = val;
         }
       }
     }
