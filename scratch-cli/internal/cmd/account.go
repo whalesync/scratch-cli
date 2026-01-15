@@ -3,8 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -23,8 +21,7 @@ var accountCmd = &cobra.Command{
 NON-INTERACTIVE (LLM-friendly):
   account add <name> --provider=webflow --api-key=KEY   Add account
   account list                                          List accounts
-  account list-tables <account>                         List available tables
-  account link-table <account> <table-id> [folder]      Link table to folder
+  account list-folders <account>                        List available tables (folders)
   account remove <name>                                 Remove account
   account test <account>                                Test account credentials
 
@@ -90,42 +87,23 @@ Examples:
 	RunE: runAccountAdd,
 }
 
-// accountListTablesCmd represents the account list-tables command
-var accountListTablesCmd = &cobra.Command{
-	Use:   "list-tables <account-name>",
+// accountListFoldersCmd represents the account list-folders command
+var accountListFoldersCmd = &cobra.Command{
+	Use:   "list-folders <account-name>",
 	Short: "[NON-INTERACTIVE] List available tables for an account",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-List all available tables/collections for a configured account.
+List all available tables (collections) for a configured account.
+These represent the potential "folders" you can link to in your local project.
 
 Output format is "table-name: table-id", one per line.
-Use the table-id with 'link-table' command.
+Use the table-id with 'folder link' command.
 
 Examples:
-  scratchmd account list-tables webflow
-  scratchmd account list-tables my-site`,
+  scratchmd account list-folders webflow
+  scratchmd account list-folders my-site`,
 	Args: cobra.ExactArgs(1),
-	RunE: runAccountListTables,
-}
-
-// accountLinkTableCmd represents the account link-table command
-var accountLinkTableCmd = &cobra.Command{
-	Use:   "link-table <account-name> <table-id> [folder-name]",
-	Short: "[NON-INTERACTIVE] Link a table to a local folder",
-	Long: `[NON-INTERACTIVE - safe for LLM use]
-
-Create a local folder linked to a remote CMS table/collection.
-
-This creates the folder structure and configuration files needed to sync content.
-If folder-name is not provided, the table's slug will be used.
-
-After linking, use 'content download <folder>' to fetch records.
-
-Examples:
-  scratchmd account link-table webflow 6789abc
-  scratchmd account link-table webflow 6789abc blog-posts`,
-	Args: cobra.RangeArgs(2, 3),
-	RunE: runAccountLinkTable,
+	RunE: runAccountListFolders,
 }
 
 // accountTestCmd represents the account test command
@@ -148,11 +126,13 @@ Examples:
 func init() {
 	rootCmd.AddCommand(accountCmd)
 	accountCmd.AddCommand(accountSetupCmd)
+	// removed extra interactive commands from root account cmd to avoid confusion
+	// or keep them as advanced aliases? Keeping them is fine.
 	accountCmd.AddCommand(accountListCmd)
+
 	accountCmd.AddCommand(accountRemoveCmd)
 	accountCmd.AddCommand(accountAddCmd)
-	accountCmd.AddCommand(accountListTablesCmd)
-	accountCmd.AddCommand(accountLinkTableCmd)
+	accountCmd.AddCommand(accountListFoldersCmd)
 	accountCmd.AddCommand(accountTestCmd)
 
 	// Flags for account add
@@ -194,41 +174,145 @@ func runAccountSetup(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	// Ask what to do
-	options := []string{"Add a new account"}
+	// If not adding a new account, we are managing existing ones
+	// Let user pick an account first
 	if len(cfg.Accounts) > 0 {
-		options = append(options, "Update account credentials")
+		var selected *config.Account
+
+		// Only ask if there's more than one account
+		if len(cfg.Accounts) > 1 {
+			// Build list including "Add new..." option
+			options := []string{}
+			for _, acc := range cfg.Accounts {
+				options = append(options, fmt.Sprintf("%s (%s)", acc.Name, acc.Provider))
+			}
+			options = append(options, "+ Create a new account")
+			options = append(options, "Cancel")
+
+			var selection string
+			prompt := &survey.Select{
+				Message: "Select an account to manage:",
+				Options: options,
+			}
+			if err := survey.AskOne(prompt, &selection); err != nil {
+				return err
+			}
+
+			if selection == "Cancel" {
+				return nil
+			}
+
+			if selection == "+ Create a new account" {
+				return createNewAccountFlow(cfg, secrets)
+			}
+
+			// Find selected account
+			for i := range cfg.Accounts {
+				opt := fmt.Sprintf("%s (%s)", cfg.Accounts[i].Name, cfg.Accounts[i].Provider)
+				if opt == selection {
+					selected = &cfg.Accounts[i]
+					break
+				}
+			}
+		} else {
+			// If only one, present it as the first option "Manage 'Name'", plus "Create new"
+			acc := cfg.Accounts[0]
+			manageLabel := fmt.Sprintf("Manage '%s'", acc.Name)
+			createLabel := "Create a new account"
+			cancelLabel := "Cancel"
+
+			var selection string
+			prompt := &survey.Select{
+				Message: "What would you like to do?",
+				Options: []string{manageLabel, createLabel, cancelLabel},
+			}
+			if err := survey.AskOne(prompt, &selection); err != nil {
+				return err
+			}
+
+			if selection == cancelLabel {
+				return nil
+			}
+			if selection == createLabel {
+				return createNewAccountFlow(cfg, secrets)
+			}
+			selected = &acc
+		}
+
+		// Now present actions for the selected account
+		return manageAccountFlow(cfg, secrets, selected)
+
+	} else {
+		// No accounts exist, straight to create flow
+		fmt.Println("No accounts configured. Let's add one!")
+		return createNewAccountFlow(cfg, secrets)
 	}
-	options = append(options, "Cancel")
+}
+
+func createNewAccountFlow(cfg *config.Config, secrets *config.SecretsConfig) error {
+	if err := addAccountInteractive(cfg, secrets); err != nil {
+		return err
+	}
+	saveConfigs(cfg, secrets)
+	return nil
+}
+
+func manageAccountFlow(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
+	actionOptions := []string{
+		"Link a table",
+		"Test connection",
+		"Update credentials",
+		"Delete account",
+		"Cancel",
+	}
 
 	var action string
 	prompt := &survey.Select{
-		Message: "What would you like to do?",
-		Options: options,
+		Message: fmt.Sprintf("Action for '%s':", account.Name),
+		Options: actionOptions,
 	}
 	if err := survey.AskOne(prompt, &action); err != nil {
 		return err
 	}
 
 	switch action {
+	case "Link a table":
+		// We need to pass just this account to setupTablesInteractive
+		// Since setupTablesInteractive currently selects from all accounts,
+		// we'll call a specialized version or just pre-select it loop.
+		// For now, let's call a modified setupTablesInteractive that takes an account.
+		return setupTablesForAccountInteractive(cfg, secrets, account)
+
+	case "Test connection":
+		return performAccountTest(cfg, secrets, account)
+
+	case "Update credentials":
+		if err := updateCredentialsForAccount(cfg, secrets, account); err != nil {
+			return err
+		}
+		saveConfigs(cfg, secrets)
+
+	case "Delete account":
+		// Confirm removal
+		var confirm bool
+		prompt := &survey.Confirm{
+			Message: fmt.Sprintf("Are you sure you want to delete account '%s'?", account.Name),
+			Default: false,
+		}
+		if err := survey.AskOne(prompt, &confirm); err != nil {
+			return err
+		}
+		if confirm {
+			cfg.RemoveAccount(account.Name)
+			secrets.RemoveSecret(account.ID)
+			saveConfigs(cfg, secrets)
+			fmt.Printf("✅ Account '%s' removed.\n", account.Name)
+		}
+
 	case "Cancel":
 		return nil
-
-	case "Add a new account":
-		// Use the shared addAccountInteractive function
-		if err := addAccountInteractive(cfg, secrets); err != nil {
-			return err
-		}
-		// Save configs
-		saveConfigs(cfg, secrets)
-
-	case "Update account credentials":
-		if err := updateAccountCredentialsInteractive(cfg, secrets); err != nil {
-			return err
-		}
-		// Save configs
-		saveConfigs(cfg, secrets)
 	}
+	return nil
 
 	return nil
 }
@@ -404,7 +488,7 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runAccountListTables(cmd *cobra.Command, args []string) error {
+func runAccountListFolders(cmd *cobra.Command, args []string) error {
 	accountName := args[0]
 
 	// Load config and secrets
@@ -455,124 +539,6 @@ func runAccountListTables(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%s: %s\n", table.Name, table.ID)
 	}
 
-	return nil
-}
-
-func runAccountLinkTable(cmd *cobra.Command, args []string) error {
-	accountName := args[0]
-	tableID := args[1]
-	var folderName string
-	if len(args) > 2 {
-		folderName = args[2]
-	}
-
-	// Load config and secrets
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
-
-	secrets, err := config.LoadSecrets()
-	if err != nil {
-		return fmt.Errorf("failed to load secrets: %w", err)
-	}
-
-	// Find account
-	account := cfg.GetAccount(accountName)
-	if account == nil {
-		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
-	}
-
-	// Get authentication properties
-	authProps := secrets.GetSecretProperties(account.ID)
-	if len(authProps) == 0 {
-		return fmt.Errorf("no credentials found for account '%s'", accountName)
-	}
-
-	// List tables via API to find the one we want
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
-	creds := &api.ConnectorCredentials{
-		Service: account.Provider,
-		Params:  authProps,
-	}
-
-	resp, err := client.ListTables(creds)
-	if err != nil {
-		return fmt.Errorf("failed to list tables: %w", err)
-	}
-	if resp.Error != "" {
-		return fmt.Errorf("failed to list tables: %s", resp.Error)
-	}
-
-	// Find the table by ID
-	var targetTable *providers.TableInfo
-	for i := range resp.Tables {
-		if resp.Tables[i].ID == tableID {
-			targetTable = &resp.Tables[i]
-			break
-		}
-	}
-	if targetTable == nil {
-		return fmt.Errorf("table with ID '%s' not found. Run 'scratchmd account list-tables %s' to see available tables", tableID, accountName)
-	}
-
-	// Determine folder name
-	if folderName == "" {
-		folderName = targetTable.Slug
-		if folderName == "" {
-			folderName = tableID // fallback
-		}
-	}
-
-	// Check if folder already exists with config
-	existingConfig, err := config.LoadTableConfig(folderName)
-	if err != nil {
-		return fmt.Errorf("failed to check existing config: %w", err)
-	}
-	if existingConfig != nil {
-		return fmt.Errorf("folder '%s' already has a table configuration. Choose a different folder name", folderName)
-	}
-
-	// Create table config
-	tableConfig := &config.TableConfig{
-		AccountID:     account.ID,
-		Provider:      account.Provider,
-		TableID:       targetTable.ID,
-		SiteID:        targetTable.SiteID,
-		TableName:     targetTable.Name,
-		SiteName:      targetTable.SiteName,
-		FilenameField: "slug", // default
-		ContentField:  "",     // user can set later if needed
-	}
-
-	// Create the .scratchmd directory structure
-	scratchmdDir := ".scratchmd"
-	scratchmdFolderDir := filepath.Join(scratchmdDir, folderName)
-	if err := os.MkdirAll(scratchmdFolderDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .scratchmd folder: %w", err)
-	}
-
-	// Save table config (this creates the folder too)
-	if err := config.SaveTableConfig(folderName, tableConfig); err != nil {
-		return fmt.Errorf("failed to save table config: %w", err)
-	}
-
-	// Create schema from table fields
-	schema := make(config.TableSchema)
-	for _, field := range targetTable.Fields {
-		schema[field.Slug] = field.Type
-	}
-	for _, field := range targetTable.SystemFields {
-		schema[field.Slug] = field.Type
-	}
-
-	if err := config.SaveTableSchema(folderName, schema); err != nil {
-		return fmt.Errorf("failed to save table schema: %w", err)
-	}
-
-	fmt.Printf("Linked table '%s' to folder '%s'.\n", targetTable.Name, folderName)
-	fmt.Printf("Created .scratchmd/%s/ for tracking changes.\n", folderName)
-	fmt.Printf("Run 'scratchmd content download %s' to download records.\n", folderName)
 	return nil
 }
 
@@ -647,62 +613,18 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// updateAccountCredentialsInteractive allows user to update credentials for an existing account
-func updateAccountCredentialsInteractive(cfg *config.Config, secrets *config.SecretsConfig) error {
-	fmt.Println()
-
-	// Build account options
-	if len(cfg.Accounts) == 0 {
-		return fmt.Errorf("no accounts configured")
-	}
-
-	var selectedAccount *config.Account
-
-	if len(cfg.Accounts) == 1 {
-		// Auto-select if only one account
-		selectedAccount = &cfg.Accounts[0]
-		fmt.Printf("Updating credentials for: %s (%s)\n", selectedAccount.Name, selectedAccount.Provider)
-	} else {
-		// Let user choose
-		accountOptions := make([]string, len(cfg.Accounts))
-		for i, acc := range cfg.Accounts {
-			accountOptions[i] = fmt.Sprintf("%s (%s)", acc.Name, acc.Provider)
-		}
-
-		var selected string
-		prompt := &survey.Select{
-			Message: "Select an account to update:",
-			Options: accountOptions,
-		}
-		if err := survey.AskOne(prompt, &selected); err != nil {
-			return err
-		}
-
-		// Find selected account
-		for i := range cfg.Accounts {
-			option := fmt.Sprintf("%s (%s)", cfg.Accounts[i].Name, cfg.Accounts[i].Provider)
-			if option == selected {
-				selectedAccount = &cfg.Accounts[i]
-				break
-			}
-		}
-	}
-
-	if selectedAccount == nil {
-		return fmt.Errorf("failed to select account")
-	}
-
+// updateCredentialsForAccount updates a specific account directly
+func updateCredentialsForAccount(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
 	// Get provider to access auth properties
-	provider, err := providers.GetProvider(selectedAccount.Provider)
+	provider, err := providers.GetProvider(account.Provider)
 	if err != nil {
 		return fmt.Errorf("failed to get provider: %w", err)
 	}
 
-	// Get existing credentials to use as defaults
-	existingProps := secrets.GetSecretProperties(selectedAccount.ID)
+	existingProps := secrets.GetSecretProperties(account.ID)
 
 	fmt.Println()
-	fmt.Printf("📝 Re-enter credentials for '%s' (%s)\n", selectedAccount.Name, provider.DisplayName())
+	fmt.Printf("📝 Re-enter credentials for '%s' (%s)\n", account.Name, provider.DisplayName())
 	fmt.Println("   (Press Enter to keep current value)")
 	fmt.Println()
 
@@ -759,7 +681,7 @@ func updateAccountCredentialsInteractive(cfg *config.Config, secrets *config.Sec
 
 	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
-		Service: selectedAccount.Provider,
+		Service: account.Provider,
 		Params:  authValues,
 	}
 
@@ -792,13 +714,56 @@ func updateAccountCredentialsInteractive(cfg *config.Config, secrets *config.Sec
 	}
 
 	// Update authentication properties in secrets
-	secrets.SetSecretProperties(selectedAccount.ID, authValues)
+	secrets.SetSecretProperties(account.ID, authValues)
 
 	// Update tested status in account
-	selectedAccount.Tested = tested
+	account.Tested = tested
 
 	fmt.Println()
-	fmt.Printf("✅ Updated credentials for '%s'\n", selectedAccount.Name)
+	return nil
+}
 
+func performAccountTest(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
+	// Get authentication properties
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", account.Name)
+	}
+
+	// Create API client
+	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+
+	// Build connector credentials
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params:  authProps,
+	}
+
+	fmt.Printf("Testing account credentials for '%s'...\n", account.Name)
+
+	// Call test-credentials endpoint
+	result, err := client.TestConnection(creds)
+	if err != nil {
+		return fmt.Errorf("failed to call server API: %w", err)
+	}
+
+	if result.Success {
+		fmt.Printf("✅ Credentials valid for %s\n", result.Service)
+		// Update account tested status if it wasn't
+		if !account.Tested {
+			account.Tested = true
+			if err := config.SaveConfig(cfg); err != nil {
+				fmt.Printf("⚠️  Warning: Could not update config: %s\n", err)
+			}
+		}
+	} else {
+		fmt.Printf("❌ Credentials invalid: %s\n", result.Error)
+		// Update account tested status
+		account.Tested = false
+		if err := config.SaveConfig(cfg); err != nil {
+			fmt.Printf("⚠️  Warning: Could not update config: %s\n", err)
+		}
+		return fmt.Errorf("credential test failed")
+	}
 	return nil
 }

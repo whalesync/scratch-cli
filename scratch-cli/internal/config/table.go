@@ -25,6 +25,7 @@ type TableConfig struct {
 	SiteName      string `yaml:"siteName,omitempty"`     // Site display name
 	FilenameField string `yaml:"filenameField"`          // Field to use for filenames (default: slug)
 	ContentField  string `yaml:"contentField,omitempty"` // Field to use as main content body
+	LastDownload  string `yaml:"lastDownload,omitempty"` // Timestamp of last download (RFC3339)
 }
 
 // TableSchema represents the schema of a synced table (simplified: field -> type)

@@ -17,7 +17,7 @@ A command-line tool (`scratchmd`) that synchronizes local Markdown files with CM
 
 ### From Source
 
-```bash
+````bash
 # Clone the repository
 git clone https://github.com/whalesync/scratch-cli.git
 cd scratch-cli
@@ -27,7 +27,16 @@ go build -o scratchmd ./cmd/scratchmd
 
 # Optionally, install globally
 go install ./cmd/scratchmd
-```
+
+### Developer Install (After Changes)
+
+To rebuild and install the latest version after making changes:
+
+```bash
+cd cmd/scratchmd && go build && go install
+````
+
+````
 
 See [build.md](build.md) for detailed build instructions including cross-platform builds.
 
@@ -44,7 +53,7 @@ scratchmd --version
 
 # Get help for a specific command
 scratchmd <command> --help
-```
+````
 
 ### Example Output
 

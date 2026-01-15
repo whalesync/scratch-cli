@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/spf13/cobra"
@@ -25,11 +26,11 @@ var contentCmd = &cobra.Command{
 
 NON-INTERACTIVE (LLM-friendly):
   content download [folder]       Download content from CMS
-  content dirty <folder>          Check which files have changed
   content dirty-fields <folder>   Check which fields changed
   content diff <folder>           Show actual file diffs
   content diff-fields <folder>    Show actual field value diffs
 
+Use 'scratchmd status' to see which files have changed.
 Use 'account link-table' first to configure which tables to sync.`,
 }
 
@@ -52,28 +53,6 @@ Examples:
   scratchmd content download blog-posts   # download one table
   scratchmd content download --clobber    # reset and re-download everything`,
 	RunE: runContentDownload,
-}
-
-// contentDirtyCmd checks which files have changed (dirty)
-var contentDirtyCmd = &cobra.Command{
-	Use:   "dirty <folder>",
-	Short: "[NON-INTERACTIVE] Check which files have changed",
-	Long: `[NON-INTERACTIVE - safe for LLM use]
-
-Check which files in a table folder differ from the original downloaded versions.
-
-Reports:
-  - Modified files (content differs from original) in orange
-  - Created files (exist in folder but not in original) in green
-  - Deleted files (exist in original but not in folder) in red
-
-With --file flag, checks a specific file only.
-
-Examples:
-  scratchmd content dirty blog-posts
-  scratchmd content dirty blog-posts --file post-1.md`,
-	Args: cobra.ExactArgs(1),
-	RunE: runContentDirty,
 }
 
 // contentDirtyFieldsCmd checks which fields changed in files
@@ -162,7 +141,6 @@ Examples:
 func init() {
 	rootCmd.AddCommand(contentCmd)
 	contentCmd.AddCommand(contentDownloadCmd)
-	contentCmd.AddCommand(contentDirtyCmd)
 	contentCmd.AddCommand(contentDirtyFieldsCmd)
 	contentCmd.AddCommand(contentDiffCmd)
 	contentCmd.AddCommand(contentDiffFieldsCmd)
@@ -170,9 +148,6 @@ func init() {
 
 	// Flags for content download
 	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
-
-	// Flags for content dirty
-	contentDirtyCmd.Flags().String("file", "", "Check a specific file only")
 
 	// Flags for content dirty-fields
 	contentDirtyFieldsCmd.Flags().String("file", "", "Check a specific file only")
@@ -392,161 +367,11 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	} else {
 		fmt.Printf("✅ Downloaded %d record(s) to '%s/'\n", totalSaved, tableName)
 	}
-	return nil
-}
 
-func runContentDirty(cmd *cobra.Command, args []string) error {
-	tableName := args[0]
-	fileName, _ := cmd.Flags().GetString("file")
-
-	// Check that the table folder exists
-	if _, err := os.Stat(tableName); os.IsNotExist(err) {
-		return fmt.Errorf("folder '%s' does not exist", tableName)
-	}
-
-	// Check that the original folder exists
-	originalDir := filepath.Join(".scratchmd", tableName, "original")
-	if _, err := os.Stat(originalDir); os.IsNotExist(err) {
-		return fmt.Errorf("original folder '%s' does not exist. Run 'content download %s' first", originalDir, tableName)
-	}
-
-	// If --file flag is provided, check that specific file
-	if fileName != "" {
-		return runSingleFileDirty(tableName, originalDir, fileName)
-	}
-
-	// Get list of .md files in both directories
-	currentFiles := make(map[string]bool)
-	originalFiles := make(map[string]bool)
-
-	// Read current folder
-	entries, err := os.ReadDir(tableName)
-	if err != nil {
-		return fmt.Errorf("failed to read folder: %w", err)
-	}
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
-			currentFiles[entry.Name()] = true
-		}
-	}
-
-	// Read original folder
-	entries, err = os.ReadDir(originalDir)
-	if err != nil {
-		return fmt.Errorf("failed to read original folder: %w", err)
-	}
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
-			originalFiles[entry.Name()] = true
-		}
-	}
-
-	var modified, added, deleted []string
-
-	// Check for modified and deleted files
-	for filename := range originalFiles {
-		if currentFiles[filename] {
-			// File exists in both - check if content differs
-			currentPath := filepath.Join(tableName, filename)
-			originalPath := filepath.Join(originalDir, filename)
-
-			currentContent, err := os.ReadFile(currentPath)
-			if err != nil {
-				continue
-			}
-			originalContent, err := os.ReadFile(originalPath)
-			if err != nil {
-				continue
-			}
-
-			if !bytes.Equal(currentContent, originalContent) {
-				modified = append(modified, filename)
-			}
-		} else {
-			// File only in original - deleted
-			deleted = append(deleted, filename)
-		}
-	}
-
-	// Check for added files
-	for filename := range currentFiles {
-		if !originalFiles[filename] {
-			added = append(added, filename)
-		}
-	}
-
-	// Sort for consistent output
-	sort.Strings(modified)
-	sort.Strings(added)
-	sort.Strings(deleted)
-
-	// Output results
-	if len(modified) == 0 && len(added) == 0 && len(deleted) == 0 {
-		fmt.Println("No changes detected.")
-		return nil
-	}
-
-	// Show deleted first (red)
-	for _, f := range deleted {
-		fmt.Printf("%s%s (deleted)%s\n", colorRed, f, colorReset)
-	}
-
-	// Show created (green)
-	for _, f := range added {
-		fmt.Printf("%s%s (created)%s\n", colorGreen, f, colorReset)
-	}
-
-	// Show modified (orange)
-	for _, f := range modified {
-		fmt.Printf("%s%s (modified)%s\n", colorOrange, f, colorReset)
-	}
-
-	return nil
-}
-
-// runSingleFileDirty checks if a single file is dirty
-func runSingleFileDirty(tableName, originalDir, fileName string) error {
-	currentPath := filepath.Join(tableName, fileName)
-	originalPath := filepath.Join(originalDir, fileName)
-
-	currentExists := true
-	if _, err := os.Stat(currentPath); os.IsNotExist(err) {
-		currentExists = false
-	}
-
-	originalExists := true
-	if _, err := os.Stat(originalPath); os.IsNotExist(err) {
-		originalExists = false
-	}
-
-	if !currentExists && !originalExists {
-		return fmt.Errorf("file '%s' not found in either location", fileName)
-	}
-
-	if !originalExists {
-		fmt.Printf("%s%s (created)%s\n", colorGreen, fileName, colorReset)
-		return nil
-	}
-
-	if !currentExists {
-		fmt.Printf("%s%s (deleted)%s\n", colorRed, fileName, colorReset)
-		return nil
-	}
-
-	// Both exist - compare content
-	currentContent, err := os.ReadFile(currentPath)
-	if err != nil {
-		return fmt.Errorf("failed to read current file: %w", err)
-	}
-	originalContent, err := os.ReadFile(originalPath)
-	if err != nil {
-		return fmt.Errorf("failed to read original file: %w", err)
-	}
-
-	if bytes.Equal(currentContent, originalContent) {
-		fmt.Printf("%s (clean)\n", fileName)
-	} else {
-		fmt.Printf("%s%s (modified)%s\n", colorOrange, fileName, colorReset)
+	// Update lastDownload timestamp in table config
+	tableConfig.LastDownload = time.Now().Format(time.RFC3339)
+	if err := config.SaveTableConfig(tableName, tableConfig); err != nil {
+		fmt.Printf("   ⚠️  Failed to update lastDownload: %v\n", err)
 	}
 
 	return nil
