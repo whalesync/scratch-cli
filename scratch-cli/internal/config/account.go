@@ -29,6 +29,13 @@ type Settings struct {
 	ScratchServerURL string `yaml:"scratchServerUrl"` // Base URL for the scratch API
 }
 
+// Defaults represents default configuration values (stored in config file)
+type Defaults struct {
+	AccountName     string `yaml:"accountName,omitempty"`     // Default account name to use if not specified
+	AccountProvider string `yaml:"accountProvider,omitempty"` // Default provider to use for new accounts
+	AccountAPIKey   string `yaml:"accountApiKey,omitempty"`   // Default API key to use for new accounts
+}
+
 // Account represents a CMS account configuration (stored in config file)
 type Account struct {
 	ID       string `yaml:"id"`       // UUID to link with secrets
@@ -48,6 +55,7 @@ type AccountSecret struct {
 type Config struct {
 	Version  string    `yaml:"version"`  // Format version (e.g., "1.0.0")
 	Settings *Settings `yaml:"settings"` // Global settings
+	Defaults *Defaults `yaml:"defaults"` // Default values
 	Accounts []Account `yaml:"accounts"`
 }
 
@@ -106,6 +114,9 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	if config.Settings.ScratchServerURL == "" {
 		config.Settings.ScratchServerURL = api.DefaultScratchServerURL
 	}
+
+	// Apply overrides
+	config.ApplyAccountOverrides()
 
 	return &config, nil
 }
@@ -437,4 +448,124 @@ func EnsureGitignore(dir string) error {
 	}
 
 	return nil
+}
+
+// Overrides holds global configuration overrides set via CLI flags
+var Overrides = struct {
+	Account struct {
+		Name     string
+		Provider string
+		APIKey   string
+	}
+	Table struct {
+		AccountID     string // Can be name or ID, we'll try to resolve
+		FilenameField string
+		ContentField  string
+	}
+	Settings struct {
+		ScratchServerURL string
+	}
+}{}
+
+// ApplyAccountOverrides applies overrides to the config
+func (c *Config) ApplyAccountOverrides() {
+	// Apply global settings overrides
+	if Overrides.Settings.ScratchServerURL != "" {
+		if c.Settings == nil {
+			c.Settings = &Settings{}
+		}
+		c.Settings.ScratchServerURL = Overrides.Settings.ScratchServerURL
+	}
+	// If account name is provided via flag, and we are looking for a specific account,
+	// this logic is tricky because Config holds seemingly *all* accounts.
+	//
+	// The user likely intends to "force use this account config" for the current operation.
+	// But `LoadConfig` returns a `*Config` which contains a list of accounts.
+	//
+	// If the user provides `--account.name=my-override` and `--account.provider=webflow` and `--account.api-key=xyz`,
+	// they essentially want to *inject* or *replace* an account in the list to be used by the command.
+	//
+	// For "add" or "setup", overrides might pre-fill.
+	// For "download" (which uses table config -> account ID), we might want to resolve that ID to these overridden values.
+
+	// Strategy:
+	// If Overrides.Account.Name is set, we check if it exists in c.Accounts.
+	// If it exists, we update it with other overrides.
+	// If it doesn't exist, we add a transient account with these details.
+
+	// If override name is present, use it.
+	// If not, check defaults.
+	accountName := Overrides.Account.Name
+	if accountName == "" && c.Defaults != nil {
+		accountName = c.Defaults.AccountName
+		// If we are falling back to default, update the override so downstream consumers see it too?
+		// Better to just use local variable for lookup.
+		if accountName != "" {
+			// Also update the global Override so commands that check it directly (like list-folders) see it.
+			Overrides.Account.Name = accountName
+		}
+	}
+
+	// Apply default for API Key to Override if needed
+	if Overrides.Account.APIKey == "" && c.Defaults != nil && c.Defaults.AccountAPIKey != "" {
+		Overrides.Account.APIKey = c.Defaults.AccountAPIKey
+	}
+
+	// Apply default for Provider to Override if needed
+	if Overrides.Account.Provider == "" && c.Defaults != nil && c.Defaults.AccountProvider != "" {
+		Overrides.Account.Provider = c.Defaults.AccountProvider
+	}
+
+	if accountName != "" {
+		acc := c.GetAccount(accountName)
+		if acc == nil {
+			// Create transient
+			newAcc := Account{
+				ID:     GenerateAccountID(), // Transient ID
+				Name:   accountName,
+				Tested: true, // Assume valid if passed via flags
+			}
+			c.Accounts = append(c.Accounts, newAcc)
+			acc = &c.Accounts[len(c.Accounts)-1]
+		}
+
+		if Overrides.Account.Provider != "" {
+			acc.Provider = Overrides.Account.Provider
+		} else if c.Defaults != nil && c.Defaults.AccountProvider != "" {
+			acc.Provider = c.Defaults.AccountProvider
+		}
+	} else if len(c.Accounts) > 0 {
+		// If using an existing account (implicit first one?) logic is vague,
+		// but let's check provider override/default
+		var provider string
+		if Overrides.Account.Provider != "" {
+			provider = Overrides.Account.Provider
+		} else if c.Defaults != nil {
+			provider = c.Defaults.AccountProvider
+		}
+
+		if provider != "" {
+			// We have a provider but no account name.
+			// Should we apply this to the first account?
+			// Likely safer not to mutate existing accounts unless name matches.
+		}
+	}
+}
+
+// GetSecretPropertiesWithOverrides retrieves secrets applying overrides
+func (s *SecretsConfig) GetSecretPropertiesWithOverrides(accountID string) map[string]string {
+	// Start with stored secrets
+	props := s.GetSecretProperties(accountID)
+
+	// Check overrides first
+	if Overrides.Account.APIKey != "" {
+		props["apiKey"] = Overrides.Account.APIKey
+	}
+
+	// If not in overrides, we can't easily check Defaults here because we don't have access to the main Config object
+	// (this method hangs off SecretsConfig).
+	// However, the caller usually has Config.
+	// Ideally, `ApplyAccountOverrides` should have populated `Overrides.Account.APIKey` from defaults if it was missing.
+
+	return props
 }

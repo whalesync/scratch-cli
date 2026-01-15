@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"sort"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -73,37 +75,42 @@ Example:
 // accountAddCmd represents the non-interactive account add command
 var accountAddCmd = &cobra.Command{
 	Use:   "add [name]",
-	Short: "[NON-INTERACTIVE] Add an account",
+	Short: "[NON-INTERACTIVE] Add a new CMS account",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-Add a new CMS account connection non-interactively.
+Add a new account configuration.
 
-Requires --provider and --api-key flags. Name is optional and defaults to the provider name.
+Required flags:
+  --account.provider string   CMS provider (webflow, wordpress)
+  --account.api-key string    API key for the provider
 
-Examples:
-  scratchmd account add --provider=webflow --api-key=abc123
-  scratchmd account add my-site --provider=webflow --api-key=abc123`,
+(Or set defaults via 'config set')
+
+Example:
+  scratchmd account add --account.provider=webflow --account.api-key=<key>
+  scratchmd account add my-site --account.provider=webflow --account.api-key=<key>`,
+	// Args is optional (name)
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAccountAdd,
 }
 
-// accountListFoldersCmd represents the account list-folders command
-var accountListFoldersCmd = &cobra.Command{
-	Use:   "list-folders <account-name>",
-	Short: "[NON-INTERACTIVE] List available tables for an account",
+// accountFetchSourcesCmd represents the account fetch-sources command
+var accountFetchSourcesCmd = &cobra.Command{
+	Use:   "fetch-sources [account-name]",
+	Short: "[NON-INTERACTIVE] List available remote sources (tables) and their link status",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-List all available tables (collections) for a configured account.
-These represent the potential "folders" you can link to in your local project.
+List available tables/collections from the CMS and show if they are linked to local folders.
 
-Output format is "table-name: table-id", one per line.
-Use the table-id with 'folder link' command.
+Arguments:
+  account-name: Optional if configured via 'config set account.name'
 
 Examples:
-  scratchmd account list-folders webflow
-  scratchmd account list-folders my-site`,
-	Args: cobra.ExactArgs(1),
-	RunE: runAccountListFolders,
+  scratchmd account fetch-sources
+  scratchmd account fetch-sources webflow`,
+	Aliases: []string{"list-tables", "list-folders"},
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    runAccountFetchSources,
 }
 
 // accountTestCmd represents the account test command
@@ -132,14 +139,15 @@ func init() {
 
 	accountCmd.AddCommand(accountRemoveCmd)
 	accountCmd.AddCommand(accountAddCmd)
-	accountCmd.AddCommand(accountListFoldersCmd)
+	accountCmd.AddCommand(accountFetchSourcesCmd)
 	accountCmd.AddCommand(accountTestCmd)
 
 	// Flags for account add
-	accountAddCmd.Flags().String("provider", "", "CMS provider (webflow, wordpress)")
-	accountAddCmd.Flags().String("api-key", "", "API key for the provider")
-	accountAddCmd.MarkFlagRequired("provider")
-	accountAddCmd.MarkFlagRequired("api-key")
+	accountAddCmd.Flags().String("account.provider", "", "CMS provider (webflow, wordpress)")
+	accountAddCmd.Flags().String("account.api-key", "", "API key for the provider")
+	// Not required anymore, can come from defaults
+	// accountAddCmd.MarkFlagRequired("account.provider")
+	// accountAddCmd.MarkFlagRequired("account.api-key")
 
 	// Flags for account test
 	accountTestCmd.Flags().String("server", "", "Scratch.md api server URL (defaults to config setting)")
@@ -314,7 +322,6 @@ func manageAccountFlow(cfg *config.Config, secrets *config.SecretsConfig, accoun
 	}
 	return nil
 
-	return nil
 }
 
 func runAccountList(cmd *cobra.Command, args []string) error {
@@ -408,8 +415,30 @@ func runAccountRemove(cmd *cobra.Command, args []string) error {
 }
 
 func runAccountAdd(cmd *cobra.Command, args []string) error {
-	provider, _ := cmd.Flags().GetString("provider")
-	apiKey, _ := cmd.Flags().GetString("api-key")
+	provider, _ := cmd.Flags().GetString("account.provider")
+	apiKey, _ := cmd.Flags().GetString("account.api-key")
+
+	// Load existing config and secrets early to check defaults
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Apply defaults if missing
+	if provider == "" && cfg.Defaults != nil {
+		provider = cfg.Defaults.AccountProvider
+	}
+	if apiKey == "" && cfg.Defaults != nil {
+		apiKey = cfg.Defaults.AccountAPIKey
+	}
+
+	// Validation
+	if provider == "" {
+		return fmt.Errorf("provider required (via --account.provider or default)")
+	}
+	if apiKey == "" {
+		return fmt.Errorf("API key required (via --account.api-key or default)")
+	}
 
 	// Validate provider
 	supportedProviders := providers.SupportedProviders()
@@ -430,11 +459,8 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 		name = args[0]
 	}
 
-	// Load existing config and secrets
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
+	// Config already loaded above
+	// cfg, err := config.LoadConfig() ...
 
 	secrets, err := config.LoadSecrets()
 	if err != nil {
@@ -488,13 +514,20 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runAccountListFolders(cmd *cobra.Command, args []string) error {
-	accountName := args[0]
-
-	// Load config and secrets
+func runAccountFetchSources(cmd *cobra.Command, args []string) error {
+	// Load config and secrets first
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	var accountName string
+	if len(args) > 0 {
+		accountName = args[0]
+	} else if config.Overrides.Account.Name != "" {
+		accountName = config.Overrides.Account.Name
+	} else {
+		return fmt.Errorf("account name required (either as argument or --account.name flag)")
 	}
 
 	secrets, err := config.LoadSecrets()
@@ -508,13 +541,31 @@ func runAccountListFolders(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
 	}
 
-	// Get authentication properties
+	// Get auth props
 	authProps := secrets.GetSecretProperties(account.ID)
 	if len(authProps) == 0 {
 		return fmt.Errorf("no credentials found for account '%s'", accountName)
 	}
 
-	// List tables via API
+	// 1. Scan local folders to find links
+	linkedFolders := make(map[string][]string) // TableID -> []FolderName
+	folders, err := config.ListConfiguredTables(".")
+	if err != nil {
+		// Just warn, don't fail
+		fmt.Fprintf(os.Stderr, "Warning: failed to scan local folders: %v\n", err)
+	}
+	for _, folder := range folders {
+		tCfg, err := config.LoadTableConfig(folder)
+		if err != nil {
+			continue
+		}
+		// Match by AccountID (UUID)
+		if tCfg.AccountID == account.ID {
+			linkedFolders[tCfg.TableID] = append(linkedFolders[tCfg.TableID], folder)
+		}
+	}
+
+	// 2. Fetch remote tables
 	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
@@ -534,9 +585,28 @@ func runAccountListFolders(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Output in name: id format
+	// 3. Sort: Linked first, then Alphabetical
+	sort.Slice(resp.Tables, func(i, j int) bool {
+		t1 := resp.Tables[i]
+		t2 := resp.Tables[j]
+		isLinked1 := len(linkedFolders[t1.ID]) > 0
+		isLinked2 := len(linkedFolders[t2.ID]) > 0
+
+		if isLinked1 != isLinked2 {
+			return isLinked1 // Linked comes first (true > false)
+		}
+		return strings.ToLower(t1.Name) < strings.ToLower(t2.Name)
+	})
+
+	// 4. Output
+	fmt.Printf("Sources for account '%s':\n", accountName)
 	for _, table := range resp.Tables {
-		fmt.Printf("%s: %s\n", table.Name, table.ID)
+		links := linkedFolders[table.ID]
+		linkStr := ""
+		if len(links) > 0 {
+			linkStr = fmt.Sprintf(" [linked to: %s]", strings.Join(links, ", "))
+		}
+		fmt.Printf("- %s (ID: %s)%s\n", table.Name, table.ID, linkStr)
 	}
 
 	return nil

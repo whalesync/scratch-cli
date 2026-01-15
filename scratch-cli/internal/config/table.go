@@ -48,6 +48,17 @@ func LoadTableConfig(folderPath string) (*TableConfig, error) {
 		return nil, fmt.Errorf("failed to parse table config: %w", err)
 	}
 
+	// Apply overrides
+	if Overrides.Table.AccountID != "" {
+		config.AccountID = Overrides.Table.AccountID
+	}
+	if Overrides.Table.FilenameField != "" {
+		config.FilenameField = Overrides.Table.FilenameField
+	}
+	if Overrides.Table.ContentField != "" {
+		config.ContentField = Overrides.Table.ContentField
+	}
+
 	return &config, nil
 }
 

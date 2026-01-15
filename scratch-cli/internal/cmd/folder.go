@@ -20,7 +20,7 @@ var folderCmd = &cobra.Command{
 
 // folderLinkCmd represents the folder link command
 var folderLinkCmd = &cobra.Command{
-	Use:   "link <account-name> <table-id> [folder-name]",
+	Use:   "link [folder-name]",
 	Short: "[NON-INTERACTIVE] Link a remote table to a local folder",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
@@ -29,26 +29,34 @@ Create a local folder linked to a remote CMS table/collection.
 This creates the folder structure and configuration files needed to sync content.
 If folder-name is not provided, the table's slug will be used.
 
+Requires --account.name and --table-id flags.
+
 After linking, use 'content download <folder>' to fetch records.
 
 Examples:
-  scratchmd folder link webflow 6789abc
-  scratchmd folder link webflow 6789abc blog-posts`,
-	Args: cobra.RangeArgs(2, 3),
+  scratchmd folder link --account.name=webflow --table-id=6789abc
+  scratchmd folder link blog-posts --account.name=webflow --table-id=6789abc`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runFolderLink,
 }
 
 func init() {
 	rootCmd.AddCommand(folderCmd)
 	folderCmd.AddCommand(folderLinkCmd)
+
+	folderLinkCmd.Flags().String("account.name", "", "Account name to link (required)")
+	folderLinkCmd.Flags().String("table-id", "", "Table ID to link (required)")
+	folderLinkCmd.MarkFlagRequired("account.name")
+	folderLinkCmd.MarkFlagRequired("table-id")
 }
 
 func runFolderLink(cmd *cobra.Command, args []string) error {
-	accountName := args[0]
-	tableID := args[1]
+	accountName, _ := cmd.Flags().GetString("account.name")
+	tableID, _ := cmd.Flags().GetString("table-id")
+
 	var folderName string
-	if len(args) > 2 {
-		folderName = args[2]
+	if len(args) > 0 {
+		folderName = args[0]
 	}
 
 	// Load config and secrets

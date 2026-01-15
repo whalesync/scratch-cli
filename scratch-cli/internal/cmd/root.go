@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/whalesync/scratch-cli/internal/config"
 )
 
 // Version information (set at build time via ldflags)
@@ -66,6 +67,17 @@ built: %s
 	// Global flags that apply to all commands
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 	rootCmd.PersistentFlags().String("config", "", "Config file path (default: .scratchmd.config.yaml)")
+
+	// Config overrides
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Account.Name, "account.name", "", "Override account name")
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Account.Provider, "account.provider", "", "Override provider")
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Account.APIKey, "account.api-key", "", "Override API key")
+
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Table.AccountID, "table.account", "", "Override table account (name or ID)")
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Table.FilenameField, "table.filename-field", "", "Override filename field")
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Table.ContentField, "table.content-field", "", "Override content field")
+
+	rootCmd.PersistentFlags().StringVar(&config.Overrides.Settings.ScratchServerURL, "scratch-url", "", "Override scratch server URL")
 
 	// Add subcommands here as they are implemented, or in the init method of each subcommand
 	// rootCmd.AddCommand(setupCmd)
