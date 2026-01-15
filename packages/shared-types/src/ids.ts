@@ -33,6 +33,7 @@ export enum IdPrefixes {
   ACTION = 'act_', // Action
   FILE = 'fil_', // File
   FOLDER = 'fld_', // Folder
+  AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -294,4 +295,15 @@ export function isFolderId(id: unknown): id is FolderId {
 
 export function createFolderId(): FolderId {
   return createId(IdPrefixes.FOLDER) as FolderId;
+}
+
+// ------- AuthorizationCode -------
+export type AuthorizationCodeId = PrefixedId<IdPrefixes.AUTHORIZATION_CODE>;
+
+export function isAuthorizationCodeId(id: unknown): id is AuthorizationCodeId {
+  return isId(id, IdPrefixes.AUTHORIZATION_CODE);
+}
+
+export function createAuthorizationCodeId(): AuthorizationCodeId {
+  return createId(IdPrefixes.AUTHORIZATION_CODE) as AuthorizationCodeId;
 }

@@ -79,10 +79,13 @@ set -e
 VERSION=${1:-"dev"}
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+SCRATCH_API_SERVER_URL="https://api.scratch.md"
 
 LDFLAGS="-X 'github.com/whalesync/scratch-cli/internal/cmd.version=${VERSION}' \
          -X 'github.com/whalesync/scratch-cli/internal/cmd.commit=${COMMIT}' \
-         -X 'github.com/whalesync/scratch-cli/internal/cmd.buildDate=${BUILD_DATE}'"
+         -X 'github.com/whalesync/scratch-cli/internal/cmd.buildDate=${BUILD_DATE}' \
+         -X 'github.com/whalesync/scratch-cli/internal/api.DefaultScratchServerURL=${SCRATCH_API_SERVER_URL}'" \
+
 
 mkdir -p dist
 

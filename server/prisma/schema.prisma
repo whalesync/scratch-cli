@@ -466,6 +466,32 @@ model Organization {
 /// End "keep in sync" section
 ///
 
+/// Authorization codes for CLI login flow (similar to gcloud auth login)
+model AuthorizationCode {
+  id        String   @id // type: AuthorizationCodeId
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  // The short user code displayed in CLI and entered by user in browser (e.g., "ABCD-1234")
+  userCode String @unique
+
+  // The longer code used by CLI to poll for authorization status
+  pollingCode String @unique
+
+  // Authorization status
+  status String @default("pending") // "pending" | "approved" | "denied" | "expired"
+
+  // Once approved, link to the user who authorized it
+  userId String?
+
+  // The generated API token (set when approved)
+  apiToken String?
+
+  @@index([userCode])
+  @@index([pollingCode])
+  @@index([expiresAt])
+}
+
 /// org's actions that are billable and we need to account for.
 model Action {
   id             String       @id // type: ActionId
