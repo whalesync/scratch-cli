@@ -264,7 +264,7 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	fmt.Printf("📥 Downloading '%s' from %s...\n", tableConfig.TableName, account.Name)
 
 	// Create API client with base URL from config
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
@@ -1171,7 +1171,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		}
 
 		// Create API client
-		client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+		client := newAPIClient(cfg.Settings.ScratchServerURL)
 
 		// Build connector credentials
 		creds := &api.ConnectorCredentials{

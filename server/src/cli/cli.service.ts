@@ -4,9 +4,11 @@ import { createConnectorAccountId, Service, SnapshotRecordId } from '@spinner/sh
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
+import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
+import { Actor } from 'src/users/types';
 import { normalizeFileName } from 'src/workbook/util';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
@@ -21,6 +23,7 @@ export class CliService {
   constructor(
     private readonly config: ScratchpadConfigService,
     private readonly connectorsService: ConnectorsService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   /**
@@ -81,29 +84,39 @@ export class CliService {
     });
   }
 
-  async testConnection(credentials: CliConnectorCredentials): Promise<TestConnectionResponseDto> {
+  async testConnection(credentials: CliConnectorCredentials, actor?: Actor): Promise<TestConnectionResponseDto> {
     try {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
       await connector.testConnection();
 
-      return {
+      const result = {
         success: true,
         service: credentials.service,
       };
+
+      return result;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
+      const result = {
         success: false,
         error: errorMessage,
         service: credentials.service,
       };
+
+      return result;
+    } finally {
+      if (actor) {
+        this.posthogService.captureEvent(PostHogEventName.CLI_TEST_CONNECTION, actor.userId, {
+          service: credentials.service,
+        });
+      }
     }
   }
 
   /**
    * Gets a list of all available tables formatted as TableInfo objects
    */
-  async listTables(credentials: CliConnectorCredentials): Promise<ListTablesResponseDto> {
+  async listTables(credentials: CliConnectorCredentials, actor?: Actor): Promise<ListTablesResponseDto> {
     try {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
       const tablePreviews = await connector.listTables();
@@ -168,9 +181,18 @@ export class CliService {
         return tableInfo;
       });
 
-      return {
+      const result = {
         tables,
       };
+
+      if (actor) {
+        this.posthogService.captureEvent(PostHogEventName.CLI_LIST_TABLES, actor.userId, {
+          service: credentials.service,
+          tableCount: result.tables?.length || 0,
+        });
+      }
+
+      return result;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       WSLogger.error({
@@ -187,6 +209,7 @@ export class CliService {
   async download(
     credentials: CliConnectorCredentials,
     downloadRequest: DownloadRequestDto,
+    actor?: Actor,
   ): Promise<DownloadedFilesResponseDto> {
     if (!downloadRequest.tableId || downloadRequest.tableId.length === 0) {
       throw new BadRequestException('Table ID is missing from request');
@@ -249,9 +272,19 @@ export class CliService {
         };
       });
 
-      return {
+      const result = {
         files,
       };
+
+      if (actor) {
+        this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD, actor.userId, {
+          service: credentials.service,
+          fileCount: result.files?.length || 0,
+          tableCount: downloadRequest.tableId?.length || 0,
+        });
+      }
+
+      return result;
     } catch (error: unknown) {
       WSLogger.error({
         source: 'CliService',
@@ -268,6 +301,7 @@ export class CliService {
   async upload(
     credentials: CliConnectorCredentials,
     uploadChanges: UploadChangesDto,
+    actor?: Actor,
   ): Promise<UploadChangesResponseDto> {
     WSLogger.info({
       source: 'CliService',
@@ -368,7 +402,23 @@ export class CliService {
         }
       }
 
-      return { results };
+      const result = { results };
+
+      if (actor) {
+        const operationCount =
+          (uploadChanges.creates?.length || 0) +
+          (uploadChanges.updates?.length || 0) +
+          (uploadChanges.deletes?.length || 0);
+        this.posthogService.captureEvent(PostHogEventName.CLI_UPLOAD, actor.userId, {
+          service: credentials.service,
+          operationCount,
+          createCount: uploadChanges.creates?.length || 0,
+          updateCount: uploadChanges.updates?.length || 0,
+          deleteCount: uploadChanges.deletes?.length || 0,
+        });
+      }
+
+      return result;
     } catch (error: unknown) {
       WSLogger.error({
         source: 'CliService',

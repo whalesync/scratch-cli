@@ -473,7 +473,7 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Test connection via API
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: provider,
 		Params:  map[string]string{"apiKey": apiKey},
@@ -566,7 +566,7 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	// 2. Fetch remote tables
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authProps,
@@ -645,7 +645,7 @@ func runAccountTest(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create API client
-	client := api.NewClient(api.WithBaseURL(serverURL))
+	client := newAPIClient(serverURL)
 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
@@ -749,7 +749,7 @@ func updateCredentialsForAccount(cfg *config.Config, secrets *config.SecretsConf
 	// Test connection via API
 	fmt.Print("\n⏳ Testing connection...")
 
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authValues,
@@ -801,7 +801,7 @@ func performAccountTest(cfg *config.Config, secrets *config.SecretsConfig, accou
 	}
 
 	// Create API client
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{

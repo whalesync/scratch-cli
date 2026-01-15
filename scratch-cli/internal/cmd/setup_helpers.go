@@ -4,12 +4,37 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/providers"
 )
+
+// newAPIClient creates an API client for the given server URL, automatically
+// including the API token from stored credentials if available and not expired.
+func newAPIClient(serverURL string) *api.Client {
+	opts := []api.ClientOption{api.WithBaseURL(serverURL)}
+
+	// Try to load credentials for this server and add the token if valid
+	creds, err := config.LoadGlobalCredentials(serverURL)
+	if err == nil && creds.APIToken != "" {
+		// Check if token is expired
+		isExpired := false
+		if creds.ExpiresAt != "" {
+			expiresAt, err := time.Parse(time.RFC3339, creds.ExpiresAt)
+			if err == nil && time.Now().After(expiresAt) {
+				isExpired = true
+			}
+		}
+		if !isExpired {
+			opts = append(opts, api.WithAPIToken(creds.APIToken))
+		}
+	}
+
+	return api.NewClient(opts...)
+}
 
 // setupTablesForAccountInteractive is a version of setupTablesInteractive that works on a pre-selected account
 func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
@@ -23,7 +48,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 	fmt.Println()
 	fmt.Println("   Fetching tables from server...")
 
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authProps,

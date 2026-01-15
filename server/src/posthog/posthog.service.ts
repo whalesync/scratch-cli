@@ -188,4 +188,8 @@ export enum PostHogEventName {
   AGENT_CREDENTIAL_DELETED = 'agent_credential_deleted',
   TRIAL_STARTED = 'trial_started',
   SUBSCRIPTION_CANCELLED = 'subscription_cancelled',
+  CLI_TEST_CONNECTION = 'cli_test_connection',
+  CLI_LIST_TABLES = 'cli_list_tables',
+  CLI_DOWNLOAD = 'cli_download',
+  CLI_UPLOAD = 'cli_upload',
 }

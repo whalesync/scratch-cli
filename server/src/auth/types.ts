@@ -44,7 +44,10 @@ export interface CliConnectorCredentials {
 /**
  * Extended Express Request type for CLI endpoints that may include optional connector credentials
  * parsed from the X-Scratch-Connector header.
+ * Note: user can be AuthenticatedUser when API token is valid, or boolean (true) when
+ * request is valid but no API token was provided.
  */
-export interface CliRequest {
+export interface CliRequestWithUser extends Request {
   connectorCredentials?: CliConnectorCredentials;
+  user?: AuthenticatedUser | boolean;
 }

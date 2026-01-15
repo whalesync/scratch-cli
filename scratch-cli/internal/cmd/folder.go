@@ -83,7 +83,7 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 	}
 
 	// List tables via API to find the one we want
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
 		Params:  authProps,

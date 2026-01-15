@@ -10,20 +10,15 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
-import { CliConnectorCredentials } from 'src/auth/types';
+import type { CliConnectorCredentials, CliRequestWithUser } from 'src/auth/types';
+import { Actor, userToActor } from 'src/users/types';
 import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
-
-/**
- * CLI Request type with optional connector credentials from X-Scratch-Connector header
- */
-type CliRequest = Request & { connectorCredentials?: CliConnectorCredentials };
 
 @Controller('cli/v1')
 @UseGuards(CliAuthGuard)
@@ -43,32 +38,35 @@ export class CliController {
   }
 
   @Get('test-connection')
-  async testConnection(@Req() req: CliRequest): Promise<TestConnectionResponseDto> {
+  async testConnection(@Req() req: CliRequestWithUser): Promise<TestConnectionResponseDto> {
     this.validateCredentials(req.connectorCredentials);
+    const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.testConnection(req.connectorCredentials as CliConnectorCredentials);
+    return this.cliService.testConnection(req.connectorCredentials as CliConnectorCredentials, actor);
   }
 
   @Get('list-tables')
-  async listTables(@Req() req: CliRequest): Promise<ListTablesResponseDto> {
+  async listTables(@Req() req: CliRequestWithUser): Promise<ListTablesResponseDto> {
     this.validateCredentials(req.connectorCredentials);
+    const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.listTables(req.connectorCredentials as CliConnectorCredentials);
+    return this.cliService.listTables(req.connectorCredentials as CliConnectorCredentials, actor);
   }
 
   @Post('download')
-  @Post('download')
-  async download(@Req() req: CliRequest, @Body() dto: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
+  async download(@Req() req: CliRequestWithUser, @Body() dto: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
     this.validateCredentials(req.connectorCredentials);
+    const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto);
+    return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto, actor);
   }
 
   @Post('upload')
-  async upload(@Req() req: CliRequest, @Body() dto: UploadChangesDto): Promise<UploadChangesResponseDto> {
+  async upload(@Req() req: CliRequestWithUser, @Body() dto: UploadChangesDto): Promise<UploadChangesResponseDto> {
     this.validateCredentials(req.connectorCredentials);
+    const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return await this.cliService.upload(req.connectorCredentials as CliConnectorCredentials, dto);
+    return await this.cliService.upload(req.connectorCredentials as CliConnectorCredentials, dto, actor);
   }
 
   private validateCredentials(credentials?: CliConnectorCredentials): void {
@@ -79,5 +77,13 @@ export class CliController {
     if (!credentials?.service) {
       throw new BadRequestException('No data service provided in connector credentials');
     }
+  }
+
+  private getActorFromRequest(req: CliRequestWithUser): Actor | undefined {
+    // req.user can be true (valid request, no auth) or AuthenticatedUser (valid API token)
+    if (req.user && typeof req.user !== 'boolean') {
+      return userToActor(req.user);
+    }
+    return undefined;
   }
 }

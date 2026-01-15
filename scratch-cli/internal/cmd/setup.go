@@ -241,7 +241,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	fmt.Println()
 	fmt.Println("   Fetching tables from server...")
 
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: selectedAccount.Provider,
 		Params:  authProps,
@@ -528,7 +528,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 	// Test connection via API
 	fmt.Print("\n⏳ Testing connection...")
 
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: providerName,
 		Params:  authValues,
@@ -644,7 +644,7 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	fmt.Printf("\n📥 Downloading records from '%s'...\n\n", tableConfig.TableName)
 
 	// Create API client
-	client := api.NewClient(api.WithBaseURL(cfg.Settings.ScratchServerURL))
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
 
 	// Build connector credentials
 	creds := &api.ConnectorCredentials{
@@ -778,7 +778,7 @@ func setScratchServerURLInteractive(cfg *config.Config) error {
 
 	fmt.Print("\n⏳ Testing connection to server...")
 
-	client := api.NewClient(api.WithBaseURL(newURL))
+	client := newAPIClient(newURL)
 	if err := client.CheckHealth(); err != nil {
 		fmt.Printf(" ❌ Failed\n")
 		fmt.Printf("   Error: %s\n\n", err)

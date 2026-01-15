@@ -33,6 +33,7 @@ func SupportedDataSources() []string {
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
+	apiToken   string // API token for authenticated requests
 }
 
 // ConnectorCredentials represents the credentials for a connector.
@@ -159,6 +160,14 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 	}
 }
 
+// WithAPIToken sets the API token for authenticated requests.
+// When set, requests will include an Authorization header with the format "API-Token <token>".
+func WithAPIToken(token string) ClientOption {
+	return func(c *Client) {
+		c.apiToken = token
+	}
+}
+
 // NewClient creates a new API client with the given options.
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
@@ -211,6 +220,11 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", DefaultUserAgent)
+
+	// Add Authorization header if API token is set
+	if c.apiToken != "" {
+		req.Header.Set("Authorization", "API-Token "+c.apiToken)
+	}
 
 	if creds != nil {
 		headerValue, err := buildConnectorHeader(creds)
