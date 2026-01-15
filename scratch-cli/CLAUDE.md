@@ -89,10 +89,12 @@ Configuration management:
 
 ### `internal/providers/`
 
-CMS provider implementations:
+Providers describe the various data sources that are supported via the CLI.
 
-- `WebflowProvider` - Tests via `/v2/token/introspect` endpoint
-- `WordPressProvider` - Tests via WordPress.com REST API `/me` endpoint
+- Data sources are services like Webflow, Wordpress and Notion
+- each provider has common attributes for display name and authentication
+- providers may define custom features or data conversion options that can be presented to the user in standard CLI operaions
+- new providers must be added to the SupportedProviders() and GetProvider() functions
 
 ## Configuration Files
 

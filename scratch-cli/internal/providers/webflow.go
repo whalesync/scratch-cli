@@ -63,6 +63,13 @@ type webflowField struct {
 	HelpText    string `json:"helpText"`
 }
 
+// Record represents a single record from a CMS table
+type Record struct {
+	ID      string                 // Record ID
+	Slug    string                 // URL-friendly slug (used as filename)
+	RawData map[string]interface{} // Raw data from the API
+}
+
 // ecommerceCollectionSlugs contains slugs of Webflow ecommerce collections to skip
 var ecommerceCollectionSlugs = []string{"products", "categories", "skus"}
 

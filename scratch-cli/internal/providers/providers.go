@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TODO: move this to the api package once all provider implementations are removed
 // TableInfo represents a table/collection from a CMS
 type TableInfo struct {
 	ID           string            `json:"id,omitempty"`           // Unique identifier (e.g., collection ID)
@@ -19,6 +20,7 @@ type TableInfo struct {
 	ExtraInfo    map[string]string `json:"extraInfo,omitempty"`    // Provider-specific info
 }
 
+// TODO: move this to the api package once all provider implementations are removed
 // FieldInfo represents a field/column in a table
 type FieldInfo struct {
 	ID       string `json:"id,omitempty"`       // Field ID
@@ -51,25 +53,10 @@ type Provider interface {
 	AuthProperties() []AuthProperty
 }
 
-// TableLister is implemented by providers that can list available tables
-// @deprecated: use api instead
-type TableLister interface {
-	Provider
-	// ListTables returns all available tables/collections
-	// The progress callback is called with status updates during the operation
-	ListTables(apiKey string, progress ProgressCallback) ([]TableInfo, error)
-}
-
-// Record represents a single record from a CMS table
-type Record struct {
-	ID      string                 // Record ID
-	Slug    string                 // URL-friendly slug (used as filename)
-	RawData map[string]interface{} // Raw data from the API
-}
-
 // SupportedProviders returns the list of supported provider names
 func SupportedProviders() []string {
 	return []string{"webflow", "wordpress"}
+	// return []string{"airtable", "notion", "webflow", "wordpress" }
 }
 
 // GetProvider returns a provider by name
@@ -77,6 +64,8 @@ func GetProvider(name string) (Provider, error) {
 	switch name {
 	case "airtable":
 		return &AirtableProvider{}, nil
+	case "notion":
+		return &NotionProvider{}, nil
 	case "webflow":
 		return &WebflowProvider{}, nil
 	case "wordpress":
