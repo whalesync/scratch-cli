@@ -1,128 +1,28 @@
-release-cli-patch:
+.release_job:
   stage: deploy
   image:
     name: goreleaser/goreleaser:latest
     entrypoint: [""]
   variables:
     GIT_DEPTH: 0
-    GITHUB_REPO_URL: "https://github.com/whalesync/scratch-cli.git"
-    RELEASE_TYPE: "patch"
   script:
-    - 'echo "🚀 Starting release process (PATCH)..."'
-    - 'git config --global user.email "ci@whalesync.com"'
-    - 'git config --global user.name "GitLab CI"'
-    - "git fetch --tags"
-
-    # Find latest tag
-    - 'LATEST_TAG=$(git tag -l "cli-*" --sort=-v:refname | head -n1)'
-    - 'if [ -z "$LATEST_TAG" ]; then LATEST_TAG="cli-0.2.0"; fi'
-    - 'echo "Latest tag: $LATEST_TAG"'
-
-    # Calc next version
-    - "VERSION=${LATEST_TAG#cli-}"
-    - 'IFS="." read -r MAJOR MINOR PATCH <<< "$VERSION"'
-    - "PATCH=$((PATCH + 1))"
-
-    - 'NEW_VERSION="v$MAJOR.$MINOR.$PATCH"'
-    - 'CLI_TAG="cli-$MAJOR.$MINOR.$PATCH"'
-    - 'echo "🎯 Target Version: $NEW_VERSION"'
-
-    # Release
-    - "git tag $NEW_VERSION"
-    - 'REMOTE_SHA=$(git ls-remote $GITHUB_REPO_URL HEAD | awk "{ print \$1 }")'
-    - 'git push "https://${GITHUB_TOKEN}@github.com/whalesync/scratch-cli.git" $REMOTE_SHA:refs/tags/$NEW_VERSION'
-    - "goreleaser release --clean"
-
-    # Internal Tag
-    - "git tag $CLI_TAG"
-    - 'git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" $CLI_TAG'
+    - chmod +x scratch-cli/scripts/release_public.sh
+    - scratch-cli/scripts/release_public.sh $RELEASE_TYPE
   when: manual
   only:
     - master
+
+release-cli-patch:
+  extends: .release_job
+  variables:
+    RELEASE_TYPE: "patch"
 
 release-cli-minor:
-  stage: deploy
-  image:
-    name: goreleaser/goreleaser:latest
-    entrypoint: [""]
+  extends: .release_job
   variables:
-    GIT_DEPTH: 0
-    GITHUB_REPO_URL: "https://github.com/whalesync/scratch-cli.git"
     RELEASE_TYPE: "minor"
-  script:
-    - 'echo "🚀 Starting release process (MINOR)..."'
-    - 'git config --global user.email "ci@whalesync.com"'
-    - 'git config --global user.name "GitLab CI"'
-    - "git fetch --tags"
-
-    # Find latest tag
-    - 'LATEST_TAG=$(git tag -l "cli-*" --sort=-v:refname | head -n1)'
-    - 'if [ -z "$LATEST_TAG" ]; then LATEST_TAG="cli-0.2.0"; fi'
-    - 'echo "Latest tag: $LATEST_TAG"'
-
-    # Calc next version
-    - "VERSION=${LATEST_TAG#cli-}"
-    - 'IFS="." read -r MAJOR MINOR PATCH <<< "$VERSION"'
-    - "MINOR=$((MINOR + 1))"
-    - "PATCH=0"
-
-    - 'NEW_VERSION="v$MAJOR.$MINOR.$PATCH"'
-    - 'CLI_TAG="cli-$MAJOR.$MINOR.$PATCH"'
-    - 'echo "🎯 Target Version: $NEW_VERSION"'
-
-    # Release
-    - "git tag $NEW_VERSION"
-    - 'REMOTE_SHA=$(git ls-remote $GITHUB_REPO_URL HEAD | awk "{ print \$1 }")'
-    - 'git push "https://${GITHUB_TOKEN}@github.com/whalesync/scratch-cli.git" $REMOTE_SHA:refs/tags/$NEW_VERSION'
-    - "goreleaser release --clean"
-
-    # Internal Tag
-    - "git tag $CLI_TAG"
-    - 'git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" $CLI_TAG'
-  when: manual
-  only:
-    - master
 
 release-cli-major:
-  stage: deploy
-  image:
-    name: goreleaser/goreleaser:latest
-    entrypoint: [""]
+  extends: .release_job
   variables:
-    GIT_DEPTH: 0
-    GITHUB_REPO_URL: "https://github.com/whalesync/scratch-cli.git"
     RELEASE_TYPE: "major"
-  script:
-    - 'echo "🚀 Starting release process (MAJOR)..."'
-    - 'git config --global user.email "ci@whalesync.com"'
-    - 'git config --global user.name "GitLab CI"'
-    - "git fetch --tags"
-
-    # Find latest tag
-    - 'LATEST_TAG=$(git tag -l "cli-*" --sort=-v:refname | head -n1)'
-    - 'if [ -z "$LATEST_TAG" ]; then LATEST_TAG="cli-0.2.0"; fi'
-    - 'echo "Latest tag: $LATEST_TAG"'
-
-    # Calc next version
-    - "VERSION=${LATEST_TAG#cli-}"
-    - 'IFS="." read -r MAJOR MINOR PATCH <<< "$VERSION"'
-    - "MAJOR=$((MAJOR + 1))"
-    - "MINOR=0"
-    - "PATCH=0"
-
-    - 'NEW_VERSION="v$MAJOR.$MINOR.$PATCH"'
-    - 'CLI_TAG="cli-$MAJOR.$MINOR.$PATCH"'
-    - 'echo "🎯 Target Version: $NEW_VERSION"'
-
-    # Release
-    - "git tag $NEW_VERSION"
-    - 'REMOTE_SHA=$(git ls-remote $GITHUB_REPO_URL HEAD | awk "{ print \$1 }")'
-    - 'git push "https://${GITHUB_TOKEN}@github.com/whalesync/scratch-cli.git" $REMOTE_SHA:refs/tags/$NEW_VERSION'
-    - "goreleaser release --clean"
-
-    # Internal Tag
-    - "git tag $CLI_TAG"
-    - 'git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" $CLI_TAG'
-  when: manual
-  only:
-    - master
