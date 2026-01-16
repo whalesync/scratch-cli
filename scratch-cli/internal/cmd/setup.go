@@ -714,6 +714,33 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 	}
 
 	fmt.Printf("\n✅ Downloaded %d record(s) to '%s/'\n", totalSaved, selectedTable)
+
+	// Phase 2: Create assets folders if the provider supports attachments and has attachment fields
+	provider, providerErr := providers.GetProvider(tableConfig.Provider)
+	if providerErr == nil && provider.SupportsAttachments() {
+		schema, err := config.LoadTableSchema(selectedTable)
+		if err != nil {
+			fmt.Printf("   ⚠️  Failed to load schema for attachment check: %v\n", err)
+		} else if schema != nil {
+			attachmentFields := getAttachmentFields(schema)
+			if len(attachmentFields) > 0 {
+				// Create assets folder in the content folder
+				assetsDir := filepath.Join(selectedTable, "assets")
+				if err := os.MkdirAll(assetsDir, 0755); err != nil {
+					fmt.Printf("   ⚠️  Failed to create assets directory: %v\n", err)
+				}
+
+				// Create assets folder in the original folder
+				originalAssetsDir := filepath.Join(originalDir, "assets")
+				if err := os.MkdirAll(originalAssetsDir, 0755); err != nil {
+					fmt.Printf("   ⚠️  Failed to create original assets directory: %v\n", err)
+				}
+
+				fmt.Printf("📁 Created assets folders for attachment fields: %v\n", attachmentFields)
+			}
+		}
+	}
+
 	return nil
 }
 

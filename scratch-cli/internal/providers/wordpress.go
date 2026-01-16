@@ -37,3 +37,8 @@ func (w *WordPressProvider) AuthProperties() []AuthProperty {
 		},
 	}
 }
+
+// SupportsAttachments returns whether the provider supports downloading attachments
+func (w *WordPressProvider) SupportsAttachments() bool {
+	return false
+}

@@ -25,3 +25,8 @@ func (p *NotionProvider) AuthProperties() []AuthProperty {
 		},
 	}
 }
+
+// SupportsAttachments returns whether the provider supports downloading attachments
+func (p *NotionProvider) SupportsAttachments() bool {
+	return false
+}

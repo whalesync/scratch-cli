@@ -52,6 +52,8 @@ type Provider interface {
 	DisplayName() string
 	// AuthProperties returns the list of authentication properties needed for this provider
 	AuthProperties() []AuthProperty
+	// SupportsAttachments returns whether the provider supports downloading attachments
+	SupportsAttachments() bool
 }
 
 // SupportedProviders returns the list of supported provider names

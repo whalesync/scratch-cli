@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
+	"github.com/whalesync/scratch-cli/internal/providers"
 	"gopkg.in/yaml.v3"
 )
 
@@ -232,6 +233,19 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 		return fmt.Errorf("table config not found for '%s'", tableName)
 	}
 
+	schema, err := config.LoadTableSchema(tableName)
+	if err != nil {
+		return fmt.Errorf("failed to load schema for table '%s': %w", tableName, err)
+	}
+	if schema == nil {
+		return fmt.Errorf("schema not found for table '%s'", tableName)
+	}
+
+	provider, err := providers.GetProvider(tableConfig.Provider)
+	if err != nil {
+		return fmt.Errorf("failed to load provider for table '%s': %w", tableName, err)
+	}
+
 	// Get the account for this table
 	account := cfg.GetAccountByID(tableConfig.AccountID)
 	if account == nil {
@@ -372,6 +386,28 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 	tableConfig.LastDownload = time.Now().Format(time.RFC3339)
 	if err := config.SaveTableConfig(tableName, tableConfig); err != nil {
 		fmt.Printf("   ⚠️  Failed to update lastDownload: %v\n", err)
+	}
+
+	// Phase 2: Create assets folders if the provider supports attachments and has attachment fields
+	if provider.SupportsAttachments() {
+		attachmentFields := getAttachmentFields(schema)
+		if len(attachmentFields) > 0 {
+			// Create assets folder in the content folder
+			assetsDir := filepath.Join(tableName, "assets")
+			if err := os.MkdirAll(assetsDir, 0755); err != nil {
+				fmt.Printf("   ⚠️  Failed to create assets directory: %v\n", err)
+			}
+
+			// Create assets folder in the original folder
+			originalAssetsDir := filepath.Join(originalDir, "assets")
+			if err := os.MkdirAll(originalAssetsDir, 0755); err != nil {
+				fmt.Printf("   ⚠️  Failed to create original assets directory: %v\n", err)
+			}
+
+			fmt.Printf("📁 Created assets folders for attachment fields: %v\n", attachmentFields)
+		} else {
+			fmt.Printf("No attachment fields found for table '%s'\n", tableName)
+		}
 	}
 
 	return nil
@@ -1595,6 +1631,20 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return os.WriteFile(dst, content, 0644)
+}
+
+// getAttachmentFields returns the field slugs that have attachment metadata.
+// It checks for fields with metadata.attachments set to "single" or "multiple".
+func getAttachmentFields(schema config.TableSchema) []string {
+	var attachmentFields []string
+	for slug, field := range schema {
+		if field.Metadata != nil {
+			if attachments, ok := field.Metadata["attachments"]; ok && (attachments == "single" || attachments == "multiple") {
+				attachmentFields = append(attachmentFields, slug)
+			}
+		}
+	}
+	return attachmentFields
 }
 
 // addRemoteIDToFile adds or updates the remoteId field in the YAML frontmatter of a markdown file

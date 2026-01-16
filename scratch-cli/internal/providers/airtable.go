@@ -25,3 +25,8 @@ func (p *AirtableProvider) AuthProperties() []AuthProperty {
 		},
 	}
 }
+
+// SupportsAttachments returns whether the provider supports downloading attachments
+func (p *AirtableProvider) SupportsAttachments() bool {
+	return true
+}

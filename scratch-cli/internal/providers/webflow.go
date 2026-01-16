@@ -31,6 +31,11 @@ func (w *WebflowProvider) AuthProperties() []AuthProperty {
 	}
 }
 
+// SupportsAttachments returns whether the provider supports downloading attachments
+func (w *WebflowProvider) SupportsAttachments() bool {
+	return false
+}
+
 // Webflow API response types
 type webflowSitesResponse struct {
 	Sites []webflowSite `json:"sites"`

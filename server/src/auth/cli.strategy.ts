@@ -29,7 +29,7 @@ export class CliStrategy extends PassportStrategy(Strategy, 'CLI_STRATEGY') {
   async validate(req: Request): Promise<AuthenticatedUser | boolean> {
     const userAgent = req.headers['user-agent'];
 
-    if (!userAgent || userAgent !== 'Scratch-CLI/1.0') {
+    if (!userAgent || !userAgent.toLowerCase().startsWith('scratch-cli/')) {
       throw new UnauthorizedException('Invalid User-Agent');
     }
 
