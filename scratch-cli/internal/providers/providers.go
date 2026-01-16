@@ -23,12 +23,13 @@ type TableInfo struct {
 // TODO: move this to the api package once all provider implementations are removed
 // FieldInfo represents a field/column in a table
 type FieldInfo struct {
-	ID       string `json:"id,omitempty"`       // Field ID
-	Name     string `json:"name,omitempty"`     // Display name
-	Slug     string `json:"slug,omitempty"`     // URL-friendly slug (used as key in records)
-	Type     string `json:"type,omitempty"`     // Field type (text, richtext, image, etc.)
-	Required bool   `json:"required,omitempty"` // Whether field is required
-	HelpText string `json:"helpText,omitempty"` // Description/help text
+	ID        string            `json:"id,omitempty"`        // Field ID
+	Name      string            `json:"name,omitempty"`      // Display name
+	Slug      string            `json:"slug,omitempty"`      // URL-friendly slug (used as key in records)
+	Type      string            `json:"type,omitempty"`      // Field type (text, richtext, image, etc.)
+	Required  bool              `json:"required,omitempty"`  // Whether field is required
+	HelpText  string            `json:"helpText,omitempty"`  // Description/help text
+	ExtraInfo map[string]string `json:"extraInfo,omitempty"` // Provider-specific info
 }
 
 // ProgressCallback is called to report progress during long operations

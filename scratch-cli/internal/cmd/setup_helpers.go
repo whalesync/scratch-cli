@@ -36,6 +36,25 @@ func newAPIClient(serverURL string) *api.Client {
 	return api.NewClient(opts...)
 }
 
+// fieldInfoToSchema converts a FieldInfo to a FieldSchema with metadata
+func fieldInfoToSchema(f providers.FieldInfo) config.FieldSchema {
+	metadata := make(map[string]string)
+	if f.Required {
+		metadata["required"] = "true"
+	}
+	if f.HelpText != "" {
+		metadata["helpText"] = f.HelpText
+	}
+	// Copy any extra info from the provider
+	for k, v := range f.ExtraInfo {
+		metadata[k] = v
+	}
+	return config.FieldSchema{
+		Type:     f.Type,
+		Metadata: metadata,
+	}
+}
+
 // setupTablesForAccountInteractive is a version of setupTablesInteractive that works on a pre-selected account
 func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
 	// Get the authentication properties for this account
@@ -201,20 +220,20 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		fmt.Printf("   ✅ Created %s/%s\n", folderName, config.TableConfigFileName)
 		fmt.Printf("   ✅ Created .scratchmd/%s/ for tracking changes\n", folderName)
 
-		// Create simplified schema (field slug -> type)
+		// Create schema with field metadata
 		schema := make(config.TableSchema)
 
 		// Add system fields first
 		for _, f := range table.SystemFields {
 			if f.Slug != "" {
-				schema[f.Slug] = f.Type
+				schema[f.Slug] = fieldInfoToSchema(f)
 			}
 		}
 
 		// Add user-defined fields (from fieldData)
 		for _, f := range table.Fields {
 			if f.Slug != "" {
-				schema[f.Slug] = f.Type
+				schema[f.Slug] = fieldInfoToSchema(f)
 			}
 		}
 

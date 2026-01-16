@@ -394,20 +394,20 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		fmt.Printf("   ✅ Created %s/%s\n", folderName, config.TableConfigFileName)
 		fmt.Printf("   ✅ Created .scratchmd/%s/ for tracking changes\n", folderName)
 
-		// Create simplified schema (field slug -> type)
+		// Create schema with field metadata
 		schema := make(config.TableSchema)
 
 		// Add system fields first
 		for _, f := range table.SystemFields {
 			if f.Slug != "" {
-				schema[f.Slug] = f.Type
+				schema[f.Slug] = fieldInfoToSchema(f)
 			}
 		}
 
 		// Add user-defined fields (from fieldData)
 		for _, f := range table.Fields {
 			if f.Slug != "" {
-				schema[f.Slug] = f.Type
+				schema[f.Slug] = fieldInfoToSchema(f)
 			}
 		}
 

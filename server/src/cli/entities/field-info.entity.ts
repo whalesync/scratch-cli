@@ -9,4 +9,5 @@ export class FieldInfo {
   type?: string;
   required?: boolean;
   helpText?: string;
+  extraInfo?: Record<string, string>;
 }

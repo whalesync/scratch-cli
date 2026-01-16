@@ -138,6 +138,8 @@ export class AirtableSchemaParser {
         }
         return { textFormat: 'rich_text' };
 
+      case AirtableDataType.MULTIPLE_ATTACHMENTS:
+        return { attachments: 'multiple' };
       default:
         return undefined;
     }

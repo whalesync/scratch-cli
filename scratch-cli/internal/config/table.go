@@ -28,8 +28,23 @@ type TableConfig struct {
 	LastDownload  string `yaml:"lastDownload,omitempty"` // Timestamp of last download (RFC3339)
 }
 
-// TableSchema represents the schema of a synced table (simplified: field -> type)
-type TableSchema map[string]string
+// CurrentSchemaVersion is the current version of the schema file format
+const CurrentSchemaVersion = "1"
+
+// FieldSchema represents the schema information for a single field
+type FieldSchema struct {
+	Type     string            `yaml:"type"`               // Field type (text, richtext, image, etc.)
+	Metadata map[string]string `yaml:"metadata,omitempty"` // Additional field metadata (id, name, required, helpText, etc.)
+}
+
+// TableSchemaFile represents the full schema file with version
+type TableSchemaFile struct {
+	Version string                 `yaml:"version"`          // Schema file format version
+	Fields  map[string]FieldSchema `yaml:"fields,omitempty"` // Field slug -> field schema
+}
+
+// TableSchema is an alias for the fields map for convenience
+type TableSchema = map[string]FieldSchema
 
 // LoadTableConfig loads a table configuration from a folder
 func LoadTableConfig(folderPath string) (*TableConfig, error) {
@@ -98,16 +113,45 @@ func LoadTableSchema(folderPath string) (TableSchema, error) {
 		return nil, fmt.Errorf("failed to read table schema: %w", err)
 	}
 
-	var schema TableSchema
-	if err := yaml.Unmarshal(data, &schema); err != nil {
+	var schemaFile TableSchemaFile
+	if err := yaml.Unmarshal(data, &schemaFile); err != nil {
 		return nil, fmt.Errorf("failed to parse table schema: %w", err)
 	}
 
-	return schema, nil
+	return schemaFile.Fields, nil
+}
+
+// LoadTableSchemaFile loads a table schema file (with version) from a folder
+func LoadTableSchemaFile(folderPath string) (*TableSchemaFile, error) {
+	path := filepath.Join(folderPath, TableSchemaFileName)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // No schema exists
+		}
+		return nil, fmt.Errorf("failed to read table schema: %w", err)
+	}
+
+	var schemaFile TableSchemaFile
+	if err := yaml.Unmarshal(data, &schemaFile); err != nil {
+		return nil, fmt.Errorf("failed to parse table schema: %w", err)
+	}
+
+	return &schemaFile, nil
 }
 
 // SaveTableSchema saves a table schema to a folder
 func SaveTableSchema(folderPath string, schema TableSchema) error {
+	schemaFile := &TableSchemaFile{
+		Version: CurrentSchemaVersion,
+		Fields:  schema,
+	}
+	return SaveTableSchemaFile(folderPath, schemaFile)
+}
+
+// SaveTableSchemaFile saves a table schema file (with version) to a folder
+func SaveTableSchemaFile(folderPath string, schemaFile *TableSchemaFile) error {
 	// Ensure folder exists
 	if err := os.MkdirAll(folderPath, 0755); err != nil {
 		return fmt.Errorf("failed to create folder: %w", err)
@@ -115,12 +159,12 @@ func SaveTableSchema(folderPath string, schema TableSchema) error {
 
 	path := filepath.Join(folderPath, TableSchemaFileName)
 
-	data, err := yaml.Marshal(schema)
+	data, err := yaml.Marshal(schemaFile)
 	if err != nil {
 		return fmt.Errorf("failed to serialize table schema: %w", err)
 	}
 
-	header := "# scratchmd table schema (auto-generated)\n# Field name -> field type mapping\n\n"
+	header := "# scratchmd table schema (auto-generated)\n\n"
 	content := []byte(header + string(data))
 
 	if err := os.WriteFile(path, content, 0644); err != nil {

@@ -7,7 +7,7 @@ import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
+import { BaseColumnSpec, ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
 import { normalizeFileName } from 'src/workbook/util';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
@@ -155,6 +155,7 @@ export class CliService {
             fieldInfo.slug = col.slug ?? col.id.remoteId[0];
             fieldInfo.type = col.pgType;
             fieldInfo.required = col.required;
+            fieldInfo.extraInfo = this.extractExtraInfo(col);
             return fieldInfo;
           });
 
@@ -167,6 +168,7 @@ export class CliService {
             fieldInfo.slug = col.slug ?? col.id.remoteId[0];
             fieldInfo.type = col.pgType;
             fieldInfo.required = col.required;
+            fieldInfo.extraInfo = this.extractExtraInfo(col);
             return fieldInfo;
           });
 
@@ -436,5 +438,13 @@ export class CliService {
    */
   private convertOperationDataToFields(data: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'remoteId'));
+  }
+
+  private extractExtraInfo(col: BaseColumnSpec): Record<string, string> {
+    const extraInfo: Record<string, string> = {};
+    if (col.metadata?.attachments) {
+      extraInfo.attachments = col.metadata.attachments;
+    }
+    return extraInfo;
   }
 }

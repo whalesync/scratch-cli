@@ -20,8 +20,8 @@ const (
 
 // Version constants
 const (
-	ConfigFileVersion  = "1.0.0" // Current config file format version
-	SecretsFileVersion = "1.0.0" // Current secrets file format version
+	ConfigFileVersion  = "1" // Current config file format version
+	SecretsFileVersion = "1" // Current secrets file format version
 )
 
 // Settings represents global settings for the CLI (stored in config file)
@@ -53,7 +53,7 @@ type AccountSecret struct {
 
 // Config holds the main configuration (committable to git)
 type Config struct {
-	Version  string    `yaml:"version"`  // Format version (e.g., "1.0.0")
+	Version  string    `yaml:"version"`  // Format version
 	Settings *Settings `yaml:"settings"` // Global settings
 	Defaults *Defaults `yaml:"defaults"` // Default values
 	Accounts []Account `yaml:"accounts"`
@@ -61,7 +61,7 @@ type Config struct {
 
 // SecretsConfig holds the secrets configuration (gitignored)
 type SecretsConfig struct {
-	Version string          `yaml:"version"` // Format version (e.g., "1.0.0")
+	Version string          `yaml:"version"` // Format version
 	Secrets []AccountSecret `yaml:"secrets"`
 }
 
@@ -147,7 +147,7 @@ func SaveConfigTo(dir string, config *Config) error {
 		return fmt.Errorf("failed to serialize config: %w", err)
 	}
 
-	header := "# scratchmd configuration\n# This file can be committed to git\n# Format version: " + config.Version + "\n\n"
+	header := "# scratchmd configuration\n# This file can be committed to git\n\n"
 	content := []byte(header + string(data))
 
 	if err := os.WriteFile(path, content, 0644); err != nil {
@@ -209,7 +209,7 @@ func SaveSecretsTo(dir string, secrets *SecretsConfig) error {
 		return fmt.Errorf("failed to serialize secrets: %w", err)
 	}
 
-	header := "# scratchmd secrets - DO NOT COMMIT THIS FILE\n# Contains API keys and credentials\n# Format version: " + secrets.Version + "\n\n"
+	header := "# scratchmd secrets - DO NOT COMMIT THIS FILE\n# Contains API keys and credentials\n\n"
 	content := []byte(header + string(data))
 
 	// Use restrictive permissions for secrets

@@ -150,13 +150,13 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save table config: %w", err)
 	}
 
-	// Create schema from table fields
+	// Create schema from table fields with metadata
 	schema := make(config.TableSchema)
 	for _, field := range targetTable.Fields {
-		schema[field.Slug] = field.Type
+		schema[field.Slug] = fieldInfoToSchema(field)
 	}
 	for _, field := range targetTable.SystemFields {
-		schema[field.Slug] = field.Type
+		schema[field.Slug] = fieldInfoToSchema(field)
 	}
 
 	if err := config.SaveTableSchema(folderName, schema); err != nil {

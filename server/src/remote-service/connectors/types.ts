@@ -60,6 +60,11 @@ export type ColumnMetadata = {
    * scratch columns are not saved to the connector and are only internally by the UI and the agents.
    */
   scratch?: boolean;
+
+  /**
+   * If the column is an attachment column, this defines the type of the attachments.
+   */
+  attachments?: 'single' | 'multiple';
 };
 
 export type ColumnOptions = {
