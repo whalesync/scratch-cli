@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 )
 
@@ -91,6 +92,13 @@ func SetVersionInfo(v, c, d string) {
 	version = v
 	commit = c
 	buildDate = d
+	// Also set the API package version for request headers
+	api.Version = v
+}
+
+// GetVersion returns the current CLI version.
+func GetVersion() string {
+	return version
 }
 
 // Helper function to exit with error message

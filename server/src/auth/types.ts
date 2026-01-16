@@ -1,5 +1,6 @@
 import { User as ClerkUser } from '@clerk/backend';
 import { APIToken } from '@prisma/client';
+import { Request as ExpressRequest } from 'express';
 import { Socket } from 'socket.io';
 import { UserCluster } from 'src/db/cluster-types';
 
@@ -15,7 +16,7 @@ export type AuthenticatedUser = UserCluster.User & {
 };
 
 // (Chris) I know there is likely a better Typescript way to do this globally for the server but I didn't have time to figure it out yet
-export interface RequestWithUser extends Request {
+export interface RequestWithUser extends ExpressRequest {
   user: AuthenticatedUser;
 }
 
@@ -47,7 +48,7 @@ export interface CliConnectorCredentials {
  * Note: user can be AuthenticatedUser when API token is valid, or boolean (true) when
  * request is valid but no API token was provided.
  */
-export interface CliRequestWithUser extends Request {
+export interface CliRequestWithUser extends ExpressRequest {
   connectorCredentials?: CliConnectorCredentials;
   user?: AuthenticatedUser | boolean;
 }

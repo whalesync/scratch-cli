@@ -24,6 +24,10 @@ const DefaultTimeout = 120 * time.Second
 // DefaultUserAgent is the default User-Agent header for API requests.
 const DefaultUserAgent = "Scratch-CLI/1.0"
 
+// Version is the CLI version sent to the server.
+// This should be set by the main package at startup.
+var Version = "dev"
+
 // SupportedProviders returns the list of supported provider names
 func SupportedDataSources() []string {
 	return []string{"webflow", "wordpress", "airtable", "notion"}
@@ -220,6 +224,7 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", DefaultUserAgent)
+	req.Header.Set("X-Scratch-CLI-Version", Version)
 
 	// Add Authorization header if API token is set
 	if c.apiToken != "" {
@@ -335,6 +340,7 @@ func (c *Client) CheckHealth() error {
 	}
 
 	req.Header.Set("User-Agent", DefaultUserAgent)
+	req.Header.Set("X-Scratch-CLI-Version", Version)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
