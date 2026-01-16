@@ -11,6 +11,7 @@ export class DownloadRequestDto {
   filenameFieldId?: string;
 
   @IsString()
+  @IsOptional()
   contentFieldId?: string;
 
   @IsNumber()
