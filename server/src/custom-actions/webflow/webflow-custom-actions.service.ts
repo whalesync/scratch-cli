@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AuthType } from '@prisma/client';
 import {
   Service,
   ValidatedWebflowPublishItemsDto,
@@ -76,7 +77,15 @@ export class WebflowCustomActionsService {
     }
 
     // Get the access token
-    const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+    let accessToken: string;
+    if (connectorAccount.authType === AuthType.OAUTH) {
+      accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+    } else {
+      if (!connectorAccount.apiKey) {
+        throw new Error('API key is required for Webflow');
+      }
+      accessToken = connectorAccount.apiKey;
+    }
 
     // Initialize custom actions
     const customActions = new WebflowCustomActions(accessToken);
@@ -109,7 +118,15 @@ export class WebflowCustomActionsService {
     this.validateWebflowService({ service: connectorAccount.service as Service });
 
     // Get the access token
-    const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+    let accessToken: string;
+    if (connectorAccount.authType === AuthType.OAUTH) {
+      accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+    } else {
+      if (!connectorAccount.apiKey) {
+        throw new Error('API key is required for Webflow');
+      }
+      accessToken = connectorAccount.apiKey;
+    }
 
     // Get the table spec from the snapshot table (it's stored as JSON)
     const tableSpec = snapshotTable.tableSpec as unknown as WebflowTableSpec;
