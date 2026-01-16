@@ -117,6 +117,10 @@ edit the config files directly:
 		if len(cfg.Accounts) == 0 {
 			fmt.Println("No accounts configured. Let's add one first!")
 			if err := addAccountInteractive(cfg, secrets); err != nil {
+				if err.Error() == "interrupt" {
+					fmt.Println("\nExiting setup.")
+					return nil
+				}
 				fmt.Printf("\n❌ Error: %s\n\n", err)
 				continue
 			}

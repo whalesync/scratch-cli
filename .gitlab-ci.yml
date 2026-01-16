@@ -7,3 +7,4 @@ include:
   - "/gitlab-ci/stages/04-run-migrations.yml"
   - "/gitlab-ci/stages/05-deploy.yml"
   - "/gitlab-ci/stages/06-integration-tests.yml"
+  - "scratch-cli/.gitlab-ci-release.yml"

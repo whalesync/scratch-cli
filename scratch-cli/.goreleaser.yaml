@@ -61,7 +61,6 @@ archives:
           - zip
     name_template: >-
       {{ .ProjectName }}_
-      {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}
 
@@ -77,7 +76,6 @@ archives:
           - zip
     name_template: >-
       {{ .ProjectName }}-test_
-      {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}
 
@@ -88,14 +86,7 @@ snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - "Merge pull request"
-      - "Merge branch"
+  disable: true
 
 release:
   github:
@@ -104,3 +95,37 @@ release:
   draft: false
   prerelease: auto
   name_template: "{{.ProjectName}} v{{.Version}}"
+  # Do not upload source code archives
+
+brews:
+  - name: scratchmd
+    ids:
+      - scratchmd-production
+    repository:
+      owner: whalesync
+      name: homebrew-scratch-cli
+    # Use the release with the binaries
+    url_template: "https://github.com/whalesync/scratch-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: whalesync-bot
+      email: ci@whalesync.com
+    homepage: "https://github.com/whalesync/scratch-cli"
+    description: "Sync local Markdown files with your CMS (Webflow, WordPress, etc)."
+    test: |
+      system "#{bin}/scratchmd --version"
+
+scoops:
+  - repository:
+      owner: whalesync
+      name: scratch-cli-bucket
+    ids:
+      - scratchmd-production
+    commit_author:
+      name: whalesync-bot
+      email: ci@whalesync.com
+    homepage: "https://github.com/whalesync/scratch-cli"
+    description: "Sync local Markdown files with your CMS."
+    license: "Proprietary"
+
+source:
+  enabled: false
