@@ -402,10 +402,12 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 				fmt.Printf("   ⚠️  Failed to create assets directory: %v\n", err)
 			}
 
-			// Create assets folder in the original folder
-			originalAssetsDir := filepath.Join(originalDir, "assets")
-			if err := os.MkdirAll(originalAssetsDir, 0755); err != nil {
-				fmt.Printf("   ⚠️  Failed to create original assets directory: %v\n", err)
+			// Load or create the asset manifest
+			assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
+			assetManifest, err := config.LoadAssetManifest(assetManifestPath)
+			if err != nil {
+				fmt.Printf("   ⚠️  Failed to load asset manifest: %v\n", err)
+				assetManifest = &config.AssetManifest{Assets: []config.AssetEntry{}}
 			}
 
 			// Check if provider implements AttachmentExtractor
@@ -433,7 +435,7 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 						}
 						totalAttachments += downloaded
 
-						// Copy downloaded files to original assets folder
+						// Track downloaded files in manifest
 						for _, att := range fileAttachments {
 							if att.Name == "" || att.ID == "" {
 								continue
@@ -442,16 +444,43 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 							nameWithoutExt := strings.TrimSuffix(att.Name, ext)
 							filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
 							srcPath := filepath.Join(assetsDir, filename)
-							dstPath := filepath.Join(originalAssetsDir, filename)
-							if err := copyFile(srcPath, dstPath); err != nil {
-								fmt.Printf("   ⚠️  Failed to copy attachment to original: %v\n", err)
+
+							// Get file info for the manifest
+							fileInfo, err := os.Stat(srcPath)
+							if err != nil {
+								// File may not exist if it was skipped (already exists)
+								continue
 							}
+
+							// Calculate checksum
+							checksum, err := config.CalculateFileChecksum(srcPath)
+							if err != nil {
+								fmt.Printf("   ⚠️  Failed to calculate checksum for '%s': %v\n", filename, err)
+								checksum = ""
+							}
+
+							// Create or update asset entry
+							assetEntry := config.AssetEntry{
+								ID:               att.ID,
+								FileID:           file.ID,
+								Filename:         filename,
+								FileSize:         fileInfo.Size(),
+								Checksum:         checksum,
+								MimeType:         att.Type,
+								LastDownloadDate: time.Now().UTC().Format(time.RFC3339),
+							}
+							assetManifest.UpsertAsset(assetEntry)
 						}
 					}
 				}
 
+				// Save the updated asset manifest
+				if err := config.SaveAssetManifest(assetManifestPath, assetManifest); err != nil {
+					fmt.Printf("   ⚠️  Failed to save asset manifest: %v\n", err)
+				}
+
 				if totalAttachments > 0 {
-					fmt.Printf("📎 Downloaded %d attachment(s) to assets folders\n", totalAttachments)
+					fmt.Printf("📎 Downloaded %d attachment(s) to assets folder\n", totalAttachments)
 				}
 			}
 		}
