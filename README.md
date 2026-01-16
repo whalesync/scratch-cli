@@ -1,6 +1,7 @@
 # scratchmd CLI
 
 Sync local Markdown files with your CMS (Webflow, WordPress, and more).
+Check out www.scratch.md for more info.
 
 ## Installation
 
@@ -9,7 +10,7 @@ Sync local Markdown files with your CMS (Webflow, WordPress, and more).
 The recommended way to install on macOS and Linux.
 
 ```bash
-brew tap whalesync/tap
+brew tap whalesync/scratch-cli
 brew install scratchmd
 ```
 
