@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
+	"github.com/whalesync/scratch-cli/internal/download"
 	"github.com/whalesync/scratch-cli/internal/providers"
 	"golang.org/x/term"
 )
@@ -625,202 +625,16 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 		return err
 	}
 
-	// Load table config
-	tableConfig, err := config.LoadTableConfig(selectedTable)
-	if err != nil {
-		return fmt.Errorf("failed to load table config: %w", err)
-	}
-	if tableConfig == nil {
-		return fmt.Errorf("table config not found for '%s'", selectedTable)
-	}
-
-	// Get the account for this table
-	account := cfg.GetAccountByID(tableConfig.AccountID)
-	if account == nil {
-		return fmt.Errorf("account not found for table '%s'", selectedTable)
+	// Use the shared download package
+	downloader := download.NewTableDownloader(cfg, secrets, cfg.Settings.ScratchServerURL)
+	opts := download.Options{
+		Clobber:             false, // Interactive mode doesn't clobber by default
+		DownloadAttachments: true,
+		OnProgress:          func(msg string) { fmt.Println(msg) },
 	}
 
-	// Get the authentication properties
-	authProps := secrets.GetSecretProperties(account.ID)
-	if len(authProps) == 0 {
-		return fmt.Errorf("no credentials found for account '%s'", account.Name)
-	}
-
-	fmt.Printf("\n📥 Downloading records from '%s'...\n\n", tableConfig.TableName)
-
-	// Create API client
-	client := newAPIClient(cfg.Settings.ScratchServerURL)
-
-	// Build connector credentials
-	creds := &api.ConnectorCredentials{
-		Service: account.Provider,
-		Params:  authProps,
-	}
-
-	// Build table ID array - if SiteID exists, use [siteId, tableId], otherwise just [tableId]
-	var tableID []string
-	if tableConfig.SiteID != "" {
-		tableID = []string{tableConfig.SiteID, tableConfig.TableID}
-	} else {
-		tableID = []string{tableConfig.TableID}
-	}
-
-	// Build download request
-	req := &api.DownloadRequest{
-		TableID:         tableID,
-		FilenameFieldID: tableConfig.FilenameField,
-		ContentFieldID:  tableConfig.ContentField,
-	}
-
-	// Call the download endpoint
-	resp, err := client.Download(creds, req)
-	if err != nil {
-		return fmt.Errorf("download failed: %w", err)
-	}
-
-	// Check for errors in response
-	if resp.Error != "" {
-		return fmt.Errorf("server error: %s", resp.Error)
-	}
-
-	// Create the .scratchmd/<folder>/original directory for tracking changes
-	originalDir := filepath.Join(".scratchmd", selectedTable, "original")
-	if err := os.MkdirAll(originalDir, 0755); err != nil {
-		return fmt.Errorf("failed to create original directory: %w", err)
-	}
-
-	// Save each file to both locations
-	totalSaved := 0
-	for _, file := range resp.Files {
-		// Use the slug directly as the filename (already sanitized by server)
-		filename := file.Slug
-		if filename == "" {
-			filename = file.ID
-		}
-
-		fileContent := []byte(file.Content)
-		mdFilename := filename + ".md"
-
-		// Save to the main folder (user-editable copy)
-		mainPath := filepath.Join(selectedTable, mdFilename)
-		if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
-			fmt.Printf("   ⚠️  Failed to save '%s': %v\n", mainPath, err)
-			continue
-		}
-
-		// Save to .scratchmd/<folder>/original (for change detection)
-		originalPath := filepath.Join(originalDir, mdFilename)
-		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
-			fmt.Printf("   ⚠️  Failed to save original '%s': %v\n", originalPath, err)
-			// Continue anyway, main file was saved
-		}
-
-		totalSaved++
-	}
-
-	fmt.Printf("\n✅ Downloaded %d record(s) to '%s/'\n", totalSaved, selectedTable)
-
-	// Phase 2: Download attachments if the provider supports them and has attachment fields
-	provider, providerErr := providers.GetProvider(tableConfig.Provider)
-	if providerErr == nil && provider.SupportsAttachments() {
-		schema, err := config.LoadTableSchema(selectedTable)
-		if err != nil {
-			fmt.Printf("   ⚠️  Failed to load schema for attachment check: %v\n", err)
-		} else if schema != nil {
-			attachmentFields := getAttachmentFields(schema)
-			if len(attachmentFields) > 0 {
-				// Create assets folder in the content folder
-				assetsDir := filepath.Join(selectedTable, "assets")
-				if err := os.MkdirAll(assetsDir, 0755); err != nil {
-					fmt.Printf("   ⚠️  Failed to create assets directory: %v\n", err)
-				}
-
-				// Load or create the asset manifest
-				assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
-				assetManifest, err := config.LoadAssetManifest(assetManifestPath)
-				if err != nil {
-					fmt.Printf("   ⚠️  Failed to load asset manifest: %v\n", err)
-					assetManifest = &config.AssetManifest{Assets: []config.AssetEntry{}}
-				}
-
-				// Check if provider implements AttachmentExtractor
-				extractor, ok := provider.(providers.AttachmentExtractor)
-				if ok {
-					fmt.Printf("📎 Downloading attachments for fields: %v\n", attachmentFields)
-					totalAttachments := 0
-
-					// Process each downloaded file to extract and download attachments
-					for _, file := range resp.Files {
-						// Parse the file content to get field values
-						fileAttachments, err := extractAttachmentsFromContent(file.Content, attachmentFields, extractor)
-						if err != nil {
-							fmt.Printf("   ⚠️  Failed to extract attachments from '%s': %v\n", file.Slug, err)
-							continue
-						}
-
-						if len(fileAttachments) > 0 {
-							// Download to content assets folder (overwrite=false since Airtable attachments are immutable)
-							downloaded, err := providers.DownloadAttachments(assetsDir, fileAttachments, false, func(msg string) {
-								fmt.Printf("   %s\n", msg)
-							})
-							if err != nil {
-								fmt.Printf("   ⚠️  Failed to download attachments for '%s': %v\n", file.Slug, err)
-							}
-							totalAttachments += downloaded
-
-							// Track downloaded files in manifest
-							for _, att := range fileAttachments {
-								if att.Name == "" || att.ID == "" {
-									continue
-								}
-								ext := filepath.Ext(att.Name)
-								nameWithoutExt := strings.TrimSuffix(att.Name, ext)
-								filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
-								srcPath := filepath.Join(assetsDir, filename)
-
-								// Get file info for the manifest
-								fileInfo, err := os.Stat(srcPath)
-								if err != nil {
-									// File may not exist if it was skipped (already exists)
-									continue
-								}
-
-								// Calculate checksum
-								checksum, err := config.CalculateFileChecksum(srcPath)
-								if err != nil {
-									fmt.Printf("   ⚠️  Failed to calculate checksum for '%s': %v\n", filename, err)
-									checksum = ""
-								}
-
-								// Create or update asset entry
-								assetEntry := config.AssetEntry{
-									ID:               att.ID,
-									FileID:           file.ID,
-									Filename:         filename,
-									FileSize:         fileInfo.Size(),
-									Checksum:         checksum,
-									MimeType:         att.Type,
-									LastDownloadDate: time.Now().UTC().Format(time.RFC3339),
-								}
-								assetManifest.UpsertAsset(assetEntry)
-							}
-						}
-					}
-
-					// Save the updated asset manifest
-					if err := config.SaveAssetManifest(assetManifestPath, assetManifest); err != nil {
-						fmt.Printf("   ⚠️  Failed to save asset manifest: %v\n", err)
-					}
-
-					if totalAttachments > 0 {
-						fmt.Printf("📎 Downloaded %d attachment(s) to assets folder\n", totalAttachments)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
+	_, err = downloader.Download(selectedTable, opts)
+	return err
 }
 
 // advancedSettingsInteractive allows users to configure advanced settings
