@@ -5,9 +5,11 @@ import { Text13Regular, TextMono12Regular } from '@/app/components/base/text';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useFileDetailsList } from '@/hooks/use-file-details-list';
+import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Center, Group, Text, useMantineColorScheme } from '@mantine/core';
-import { FileDetailsEntity, FileId, FolderId, WorkbookId } from '@spinner/shared-types';
+import { FileDetailsEntity, FileId, FolderId, FolderRefEntity, WorkbookId } from '@spinner/shared-types';
+import { FileIcon, FolderIcon } from 'lucide-react';
 import {
   AllCommunityModule,
   ColDef,
@@ -42,6 +44,28 @@ interface FolderDetailViewerProps {
   workbookId: WorkbookId;
   folderId: FolderId | null;
 }
+
+// Type icon cell renderer
+const typeIconRenderer = (params: ICellRendererParams) => {
+  const isFolder = params.data?.itemType === 'folder';
+  return (
+    <Group
+      style={{
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingLeft: '8px',
+        paddingRight: '8px',
+      }}
+    >
+      {isFolder ? (
+        <FolderIcon size={16} color="var(--fg-secondary)" />
+      ) : (
+        <FileIcon size={16} color="var(--fg-secondary)" />
+      )}
+    </Group>
+  );
+};
 
 // Minimal cell renderer matching FieldValueWrapper styling
 const cellRenderer = (params: ICellRendererParams) => {
@@ -164,10 +188,22 @@ const CustomHeaderComponent = (props: IHeaderParams) => {
 };
 
 export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerProps) => {
-  const { files, isLoading, error } = useFileDetailsList(workbookId, folderId);
+  const { files, isLoading: filesLoading, error: filesError } = useFileDetailsList(workbookId, folderId);
+  const { files: allItems, isLoading: foldersLoading, error: foldersError } = useFileList(workbookId);
   const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+
+  const isLoading = filesLoading || foldersLoading;
+  const error = filesError || foldersError;
+
+  // Get child folders for the current folder
+  const childFolders = useMemo(() => {
+    if (!allItems?.items) return [];
+    return allItems.items.filter(
+      (item): item is FolderRefEntity => item.type === 'folder' && item.parentFolderId === folderId
+    );
+  }, [allItems, folderId]);
 
   // Parse front matter from all files and extract metadata
   const { processedFiles, metadataColumns } = useMemo(() => {
@@ -225,8 +261,19 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
   const columnDefs = useMemo<ColDef[]>(() => {
     const baseColumns: ColDef[] = [
       {
-        field: 'fileName',
-        headerName: 'File Name',
+        field: 'itemType',
+        headerName: '',
+        width: 50,
+        minWidth: 50,
+        maxWidth: 50,
+        resizable: false,
+        sortable: false,
+        cellRenderer: typeIconRenderer,
+        suppressHeaderMenuButton: true,
+      },
+      {
+        field: 'name',
+        headerName: 'Name',
         minWidth: AG.grid.defaultMinWidth,
         flex: AG.grid.defaultFlex,
         cellRenderer: cellRenderer,
@@ -250,18 +297,36 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
     return [...baseColumns, ...metadataCols];
   }, [metadataColumns]);
 
-  // Transform processed files into row data format
+  // Transform processed files and folders into row data format
   const rowData = useMemo(() => {
-    return processedFiles.map((file) => ({
+    // Create folder rows
+    const folderRows = childFolders.map((folder) => ({
+      id: folder.id,
+      name: folder.name,
+      itemType: 'folder' as const,
+      folderId: folder.id,
+      path: folder.path,
+      metadata: {},
+    }));
+
+    // Create file rows
+    const fileRows = processedFiles.map((file) => ({
       id: file.ref.id,
-      fileName: file.ref.name,
+      name: file.ref.name,
+      itemType: 'file' as const,
       fileId: file.ref.id as FileId,
       filePath: file.ref.path,
       updatedAt: file.updatedAt,
       createdAt: file.createdAt,
       metadata: file.metadata,
     }));
-  }, [processedFiles]);
+
+    // Folders first, then files (both sorted alphabetically by name)
+    const sortedFolders = [...folderRows].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedFiles = [...fileRows].sort((a, b) => a.name.localeCompare(b.name));
+
+    return [...sortedFolders, ...sortedFiles];
+  }, [processedFiles, childFolders]);
 
   if (error) {
     return (
@@ -279,10 +344,10 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
     );
   }
 
-  if (!files) {
+  if (!files && childFolders.length === 0) {
     return (
       <Center h="100%">
-        <Text>No files found</Text>
+        <Text>No files or folders found</Text>
       </Center>
     );
   }
@@ -325,9 +390,11 @@ export const FolderDetailViewer = ({ workbookId, folderId }: FolderDetailViewerP
           suppressFocusAfterRefresh={true}
           maintainColumnOrder={true}
           stopEditingWhenCellsLoseFocus={false}
+          overlayNoRowsTemplate="<span>No files or folders in this folder</span>"
           onRowClicked={(event: RowClickedEvent) => {
-            if (event.data?.fileId) {
-              handleFileClick(event.data.fileId, event.data.fileName, event.data.filePath);
+            // Only handle file clicks, ignore folder clicks for now
+            if (event.data?.itemType === 'file' && event.data?.fileId) {
+              handleFileClick(event.data.fileId, event.data.name, event.data.filePath);
             }
           }}
         />
