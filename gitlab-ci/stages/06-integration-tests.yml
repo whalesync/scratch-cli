@@ -19,9 +19,13 @@ integration tests for test env post-deploy:
   script:
     - cd server
     - !reference [.use_nvm, script]
-    - yarn run test:integration --verbose
+    - yarn run test:integration --verbose --reporters=default --reporters=jest-junit
   cache: !reference [.caches, server]
   dependencies: []
+  artifacts:
+    when: always
+    reports:
+      junit: "server/junit.xml"
   rules:
     - !reference [.rules, on_merge_to_master]
 
@@ -38,8 +42,12 @@ integration tests for test env pre-deploy:
   script:
     - cd server
     - !reference [.use_nvm, script]
-    - yarn run test:integration --verbose
+    - yarn run test:integration --verbose --reporters=default --reporters=jest-junit
   cache: !reference [.caches, server]
+  artifacts:
+    when: always
+    reports:
+      junit: "server/junit.xml"
   rules:
     - !reference [.rules, on_merge_to_prod]
 

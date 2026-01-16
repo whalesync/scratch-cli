@@ -124,12 +124,15 @@ build and test server:
     - cd server
     - !reference [.use_nvm, script]
     - yarn lint-strict
-    - yarn test
+    - yarn test --reporters=default --reporters=jest-junit
     - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
     - echo "export const BUILD_VERSION = '$BUILD_VERSION';" > src/version.ts
     - echo "Labelling this build as $BUILD_VERSION"
     - yarn build
   artifacts:
+    when: always
+    reports:
+      junit: "server/junit.xml"
     paths:
       - server/dist
     expire_in: 1 hour
