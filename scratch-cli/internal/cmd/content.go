@@ -149,6 +149,7 @@ func init() {
 
 	// Flags for content download
 	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
+	contentDownloadCmd.Flags().Bool("no-attachments", false, "Skip downloading attachments")
 
 	// Flags for content dirty-fields
 	contentDirtyFieldsCmd.Flags().String("file", "", "Check a specific file only")
@@ -181,6 +182,7 @@ const (
 
 func runContentDownload(cmd *cobra.Command, args []string) error {
 	clobber, _ := cmd.Flags().GetBool("clobber")
+	noAttachments, _ := cmd.Flags().GetBool("no-attachments")
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -214,7 +216,7 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 
 	// Download each table
 	for _, tableName := range tablesToDownload {
-		if err := downloadTable(cfg, secrets, tableName, clobber); err != nil {
+		if err := downloadTable(cfg, secrets, tableName, clobber, !noAttachments); err != nil {
 			fmt.Printf("❌ Error downloading '%s': %v\n", tableName, err)
 			continue
 		}
@@ -223,7 +225,7 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName string, clobber bool) error {
+func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName string, clobber bool, downloadAttachments bool) error {
 	// Load table config
 	tableConfig, err := config.LoadTableConfig(tableName)
 	if err != nil {
@@ -271,7 +273,9 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 				}
 			}
 		}
-		// Remove original folder entirely
+		// Remove assets folder in main folder
+		os.RemoveAll(filepath.Join(tableName, "assets"))
+		// Remove original folder entirely (includes original/assets)
 		os.RemoveAll(originalDir)
 	}
 
@@ -388,8 +392,8 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 		fmt.Printf("   ⚠️  Failed to update lastDownload: %v\n", err)
 	}
 
-	// Phase 2: Create assets folders if the provider supports attachments and has attachment fields
-	if provider.SupportsAttachments() {
+	// Phase 2: Download attachments if enabled and the provider supports them
+	if downloadAttachments && provider.SupportsAttachments() {
 		attachmentFields := getAttachmentFields(schema)
 		if len(attachmentFields) > 0 {
 			// Create assets folder in the content folder
@@ -404,9 +408,52 @@ func downloadTable(cfg *config.Config, secrets *config.SecretsConfig, tableName 
 				fmt.Printf("   ⚠️  Failed to create original assets directory: %v\n", err)
 			}
 
-			fmt.Printf("📁 Created assets folders for attachment fields: %v\n", attachmentFields)
-		} else {
-			fmt.Printf("No attachment fields found for table '%s'\n", tableName)
+			// Check if provider implements AttachmentExtractor
+			extractor, ok := provider.(providers.AttachmentExtractor)
+			if ok {
+				fmt.Printf("📎 Downloading attachments for fields: %v\n", attachmentFields)
+				totalAttachments := 0
+
+				// Process each downloaded file to extract and download attachments
+				for _, file := range resp.Files {
+					// Parse the file content to get field values
+					fileAttachments, err := extractAttachmentsFromContent(file.Content, attachmentFields, extractor)
+					if err != nil {
+						fmt.Printf("   ⚠️  Failed to extract attachments from '%s': %v\n", file.Slug, err)
+						continue
+					}
+
+					if len(fileAttachments) > 0 {
+						// Download to content assets folder (overwrite=false since Airtable attachments are immutable)
+						downloaded, err := providers.DownloadAttachments(assetsDir, fileAttachments, false, func(msg string) {
+							fmt.Printf("   %s\n", msg)
+						})
+						if err != nil {
+							fmt.Printf("   ⚠️  Failed to download attachments for '%s': %v\n", file.Slug, err)
+						}
+						totalAttachments += downloaded
+
+						// Copy downloaded files to original assets folder
+						for _, att := range fileAttachments {
+							if att.Name == "" || att.ID == "" {
+								continue
+							}
+							ext := filepath.Ext(att.Name)
+							nameWithoutExt := strings.TrimSuffix(att.Name, ext)
+							filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
+							srcPath := filepath.Join(assetsDir, filename)
+							dstPath := filepath.Join(originalAssetsDir, filename)
+							if err := copyFile(srcPath, dstPath); err != nil {
+								fmt.Printf("   ⚠️  Failed to copy attachment to original: %v\n", err)
+							}
+						}
+					}
+				}
+
+				if totalAttachments > 0 {
+					fmt.Printf("📎 Downloaded %d attachment(s) to assets folders\n", totalAttachments)
+				}
+			}
 		}
 	}
 
@@ -1645,6 +1692,48 @@ func getAttachmentFields(schema config.TableSchema) []string {
 		}
 	}
 	return attachmentFields
+}
+
+// extractAttachmentsFromContent parses markdown content and extracts attachments from specified fields
+func extractAttachmentsFromContent(content string, attachmentFields []string, extractor providers.AttachmentExtractor) ([]providers.Attachment, error) {
+	// Check for YAML frontmatter
+	if !strings.HasPrefix(content, "---") {
+		return nil, nil
+	}
+
+	// Find the end of frontmatter
+	rest := content[3:] // Skip initial ---
+	endIndex := strings.Index(rest, "\n---")
+	if endIndex == -1 {
+		return nil, nil
+	}
+
+	yamlContent := rest[:endIndex]
+
+	// Parse YAML into map
+	var yamlData map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlContent), &yamlData); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML frontmatter: %w", err)
+	}
+
+	var allAttachments []providers.Attachment
+
+	// Extract attachments from each attachment field
+	for _, fieldName := range attachmentFields {
+		fieldValue, ok := yamlData[fieldName]
+		if !ok {
+			continue
+		}
+
+		attachments, err := extractor.ExtractAttachments(fieldValue)
+		if err != nil {
+			continue // Skip fields that fail to extract
+		}
+
+		allAttachments = append(allAttachments, attachments...)
+	}
+
+	return allAttachments, nil
 }
 
 // addRemoteIDToFile adds or updates the remoteId field in the YAML frontmatter of a markdown file

@@ -30,3 +30,51 @@ func (p *AirtableProvider) AuthProperties() []AuthProperty {
 func (p *AirtableProvider) SupportsAttachments() bool {
 	return true
 }
+
+// ExtractAttachments extracts attachments from an Airtable attachment field value.
+// Airtable attachments are stored as an array of objects with id, filename, url, type, and size fields.
+func (p *AirtableProvider) ExtractAttachments(fieldValue interface{}) ([]Attachment, error) {
+	// Airtable attachment fields are arrays of attachment objects
+	attachments, ok := fieldValue.([]interface{})
+	if !ok {
+		// Single attachment object (uncommon but possible)
+		if single, ok := fieldValue.(map[string]interface{}); ok {
+			attachments = []interface{}{single}
+		} else {
+			return nil, nil // Not an attachment field, return empty
+		}
+	}
+
+	result := make([]Attachment, 0, len(attachments))
+	for _, item := range attachments {
+		att, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		attachment := Attachment{}
+
+		if id, ok := att["id"].(string); ok {
+			attachment.ID = id
+		}
+		if filename, ok := att["filename"].(string); ok {
+			attachment.Name = filename
+		}
+		if url, ok := att["url"].(string); ok {
+			attachment.URL = url
+		}
+		if mimeType, ok := att["type"].(string); ok {
+			attachment.Type = mimeType
+		}
+		if size, ok := att["size"].(float64); ok {
+			attachment.Size = int64(size)
+		}
+
+		// Only include if we have at least a URL
+		if attachment.URL != "" {
+			result = append(result, attachment)
+		}
+	}
+
+	return result, nil
+}

@@ -2,8 +2,13 @@
 package providers
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -80,4 +85,93 @@ func GetProvider(name string) (Provider, error) {
 // HTTPClient is the shared HTTP client for API calls
 var HTTPClient = &http.Client{
 	Timeout: 30 * time.Second, // Increased for listing operations
+}
+
+// ErrAttachmentsNotSupported is returned when a provider does not support attachment extraction
+var ErrAttachmentsNotSupported = errors.New("provider does not support attachments")
+
+// Attachment represents a file attachment from a CMS record
+type Attachment struct {
+	ID   string // Provider-specific ID for the attachment
+	Name string // File name
+	URL  string // URL to download the attachment
+	Type string // Optional: MIME type of the attachment
+	Size int64  // Optional: Size of the file in bytes (0 if unknown)
+}
+
+// AttachmentExtractor is implemented by providers that support extracting attachments from record data
+type AttachmentExtractor interface {
+	// ExtractAttachments extracts a list of attachments from a data field value.
+	// The fieldValue is the raw value from a YAML record's field.
+	// Returns ErrAttachmentsNotSupported if the provider doesn't support attachments.
+	ExtractAttachments(fieldValue interface{}) ([]Attachment, error)
+}
+
+// DownloadAttachments downloads a list of attachments to the specified directory.
+// Files are saved using the attachment's Name field as the filename.
+// If overwrite is false, existing files are skipped (useful for immutable attachments like Airtable).
+// Returns the number of successfully downloaded files and any error encountered.
+func DownloadAttachments(destDir string, attachments []Attachment, overwrite bool, progress ProgressCallback) (int, error) {
+	if destDir == "" {
+		return 0, errors.New("destination directory is required")
+	}
+
+	downloaded := 0
+	for _, att := range attachments {
+		if att.URL == "" {
+			continue
+		}
+
+		if att.Name == "" || att.ID == "" {
+			continue // Skip if missing name or ID
+		}
+
+		// Build filename as {name}-{id}.{ext}
+		ext := filepath.Ext(att.Name)
+		nameWithoutExt := strings.TrimSuffix(att.Name, ext)
+		filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
+
+		destPath := filepath.Join(destDir, filename)
+
+		// Skip if file exists and overwrite is false
+		if !overwrite {
+			if _, err := os.Stat(destPath); err == nil {
+				progress(fmt.Sprintf("Skipping %s (already exists)", filename))
+				continue
+			}
+		}
+
+		progress(fmt.Sprintf("Downloading %s...", filename))
+
+		if err := downloadFile(att.URL, destPath); err != nil {
+			return downloaded, fmt.Errorf("failed to download %s: %w", filename, err)
+		}
+
+		downloaded++
+	}
+
+	progress(fmt.Sprintf("Downloaded %d attachment(s)", downloaded))
+	return downloaded, nil
+}
+
+// downloadFile downloads a file from a URL to a local path
+func downloadFile(url, destPath string) error {
+	resp, err := HTTPClient.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
 }

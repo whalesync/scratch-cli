@@ -715,7 +715,7 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 
 	fmt.Printf("\n✅ Downloaded %d record(s) to '%s/'\n", totalSaved, selectedTable)
 
-	// Phase 2: Create assets folders if the provider supports attachments and has attachment fields
+	// Phase 2: Download attachments if the provider supports them and has attachment fields
 	provider, providerErr := providers.GetProvider(tableConfig.Provider)
 	if providerErr == nil && provider.SupportsAttachments() {
 		schema, err := config.LoadTableSchema(selectedTable)
@@ -736,7 +736,52 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 					fmt.Printf("   ⚠️  Failed to create original assets directory: %v\n", err)
 				}
 
-				fmt.Printf("📁 Created assets folders for attachment fields: %v\n", attachmentFields)
+				// Check if provider implements AttachmentExtractor
+				extractor, ok := provider.(providers.AttachmentExtractor)
+				if ok {
+					fmt.Printf("📎 Downloading attachments for fields: %v\n", attachmentFields)
+					totalAttachments := 0
+
+					// Process each downloaded file to extract and download attachments
+					for _, file := range resp.Files {
+						// Parse the file content to get field values
+						fileAttachments, err := extractAttachmentsFromContent(file.Content, attachmentFields, extractor)
+						if err != nil {
+							fmt.Printf("   ⚠️  Failed to extract attachments from '%s': %v\n", file.Slug, err)
+							continue
+						}
+
+						if len(fileAttachments) > 0 {
+							// Download to content assets folder (overwrite=false since Airtable attachments are immutable)
+							downloaded, err := providers.DownloadAttachments(assetsDir, fileAttachments, false, func(msg string) {
+								fmt.Printf("   %s\n", msg)
+							})
+							if err != nil {
+								fmt.Printf("   ⚠️  Failed to download attachments for '%s': %v\n", file.Slug, err)
+							}
+							totalAttachments += downloaded
+
+							// Copy downloaded files to original assets folder
+							for _, att := range fileAttachments {
+								if att.Name == "" || att.ID == "" {
+									continue
+								}
+								ext := filepath.Ext(att.Name)
+								nameWithoutExt := strings.TrimSuffix(att.Name, ext)
+								filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
+								srcPath := filepath.Join(assetsDir, filename)
+								dstPath := filepath.Join(originalAssetsDir, filename)
+								if err := copyFile(srcPath, dstPath); err != nil {
+									fmt.Printf("   ⚠️  Failed to copy attachment to original: %v\n", err)
+								}
+							}
+						}
+					}
+
+					if totalAttachments > 0 {
+						fmt.Printf("📎 Downloaded %d attachment(s) to assets folders\n", totalAttachments)
+					}
+				}
 			}
 		}
 	}
