@@ -12,6 +12,9 @@ export class AirtableSchemaParser {
         remoteId: [base.id, table.id],
       },
       displayName: `${base.name} - ${table.name}`,
+      metadata: {
+        baseName: base.name,
+      },
     };
   }
 

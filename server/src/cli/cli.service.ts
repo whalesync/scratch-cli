@@ -136,8 +136,12 @@ export class CliService {
           tableInfo.id = spec.id.remoteId[1];
 
           // The site name, might be stored in the TablePreview metadata
-          if (tablePreview && tablePreview.metadata && 'siteName' in tablePreview.metadata) {
-            tableInfo.siteName = tablePreview.metadata.siteName as string;
+          if (tablePreview && tablePreview.metadata) {
+            if ('siteName' in tablePreview.metadata) {
+              tableInfo.siteName = tablePreview.metadata.siteName as string;
+            } else if ('baseName' in tablePreview.metadata) {
+              tableInfo.siteName = tablePreview.metadata.baseName as string;
+            }
           }
         } else {
           tableInfo.id = spec.id.remoteId[0];

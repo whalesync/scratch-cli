@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
@@ -1005,7 +1007,6 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 
 	// Upload changes via API
 	for _, tc := range allTableChanges {
-		fmt.Printf("Uploading changes for '%s'...\n", tc.tableName)
 		if tc.tableConfig == nil {
 			fmt.Printf("❌ Skipping '%s': no table config found\n", tc.tableName)
 			continue
@@ -1024,6 +1025,10 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			fmt.Printf("❌ Skipping '%s': no credentials found for account '%s'\n", tc.tableName, account.Name)
 			continue
 		}
+
+		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
+		s.Start()
 
 		// Create API client
 		client := newAPIClient(cfg.Settings.ScratchServerURL)
@@ -1089,6 +1094,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 
 		// Call the upload endpoint
 		resp, err := client.Upload(creds, tableID, operations)
+		s.Stop()
 		if err != nil {
 			fmt.Printf("❌ Error uploading to '%s': %v\n", tc.tableName, err)
 			continue

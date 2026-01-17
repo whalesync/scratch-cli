@@ -7,11 +7,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/sergi/go-diff v1.4.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+	golang.org/x/term v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
+	github.com/briandowns/spinner v1.23.2 // indirect
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect

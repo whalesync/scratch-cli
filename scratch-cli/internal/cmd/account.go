@@ -6,8 +6,10 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
@@ -566,6 +568,10 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	// 2. Fetch remote tables
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Fetching tables from server..."
+	s.Start()
+
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
 		Service: account.Provider,
@@ -573,6 +579,7 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	resp, err := client.ListTables(creds)
+	s.Stop()
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}

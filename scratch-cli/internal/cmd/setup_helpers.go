@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/briandowns/spinner"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/providers"
@@ -65,7 +66,9 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 
 	// List available tables via API
 	fmt.Println()
-	fmt.Println("   Fetching tables from server...")
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Fetching tables from server..."
+	s.Start()
 
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
@@ -74,6 +77,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 	}
 
 	resp, err := client.ListTables(creds)
+	s.Stop()
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}

@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
@@ -244,7 +247,9 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 
 	// List available tables via API
 	fmt.Println()
-	fmt.Println("   Fetching tables from server...")
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Fetching tables from server..."
+	s.Start()
 
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
@@ -253,6 +258,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	}
 
 	resp, err := client.ListTables(creds)
+	s.Stop()
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}
@@ -273,6 +279,19 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	for _, t := range configuredTables {
 		configuredSet[t] = true
 	}
+
+	// Sort tables alphabetically by display name
+	sort.Slice(tables, func(i, j int) bool {
+		nameI := tables[i].Name
+		nameJ := tables[j].Name
+		if tables[i].SiteName != "" {
+			nameI = tables[i].SiteName + " - " + tables[i].Name
+		}
+		if tables[j].SiteName != "" {
+			nameJ = tables[j].SiteName + " - " + tables[j].Name
+		}
+		return strings.ToLower(nameI) < strings.ToLower(nameJ)
+	})
 
 	// Build table options with sync status
 	fmt.Println()
