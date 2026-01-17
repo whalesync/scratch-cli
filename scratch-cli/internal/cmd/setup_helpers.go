@@ -37,7 +37,10 @@ func newAPIClient(serverURL string) *api.Client {
 	return api.NewClient(opts...)
 }
 
-// fieldInfoToSchema converts a FieldInfo to a FieldSchema with metadata
+// fieldInfoToSchema converts provider field metadata to the cached schema format.
+//
+// Extracts type, required flag, help text, and any provider-specific ExtraInfo
+// (like "attachments": "single" for attachment fields) into a FieldSchema for storage.
 func fieldInfoToSchema(f providers.FieldInfo) config.FieldSchema {
 	metadata := make(map[string]string)
 	if f.Required {

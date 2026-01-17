@@ -175,6 +175,10 @@ edit the config files directly:
 	}
 }
 
+// saveConfigs persists both config and secrets files, and ensures .gitignore is updated.
+//
+// Config (scratchmd.config.yaml) is committable. Secrets (.scratchmd.secrets.yaml) is
+// gitignored and saved with restrictive permissions (0600).
 func saveConfigs(cfg *config.Config, secrets *config.SecretsConfig) {
 	// Save config (committable)
 	if err := config.SaveConfig(cfg); err != nil {
@@ -195,6 +199,13 @@ func saveConfigs(cfg *config.Config, secrets *config.SecretsConfig) {
 	fmt.Println()
 }
 
+// setupTablesInteractive configures local folders to sync with remote CMS tables.
+//
+// Flow: select account -> fetch available tables from CMS -> multi-select tables ->
+// for each table: choose filename field, choose content field -> create folder structure:
+//   - <table>/scratchmd.table.yaml (table config)
+//   - <table>/scratchmd.schema.yaml (field definitions cached from CMS)
+//   - .scratchmd/<table>/ (directory for change tracking)
 func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) error {
 	fmt.Println()
 
@@ -446,6 +457,11 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	return nil
 }
 
+// addAccountInteractive walks the user through adding a CMS account.
+//
+// Flow: select provider -> enter name -> collect auth credentials (provider-specific) ->
+// test connection via API -> optionally save even if test fails. Existing accounts
+// with the same name can be overwritten after confirmation.
 func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) error {
 	fmt.Println()
 

@@ -107,10 +107,11 @@ type AttachmentExtractor interface {
 	ExtractAttachments(fieldValue interface{}) ([]Attachment, error)
 }
 
-// DownloadAttachments downloads a list of attachments to the specified directory.
-// Files are saved using the attachment's Name field as the filename.
-// If overwrite is false, existing files are skipped (useful for immutable attachments like Airtable).
-// Returns the number of successfully downloaded files and any error encountered.
+// DownloadAttachments downloads attachments to destDir with collision-safe filenames.
+//
+// Files are saved as "<name>-<id>.<ext>" to avoid collisions when different records
+// have attachments with the same name. If overwrite is false, existing files are
+// skipped (useful for immutable sources like Airtable where re-downloading is wasteful).
 func DownloadAttachments(destDir string, attachments []Attachment, overwrite bool, progress ProgressCallback) (int, error) {
 	if destDir == "" {
 		return 0, errors.New("destination directory is required")

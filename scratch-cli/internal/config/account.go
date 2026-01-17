@@ -283,7 +283,10 @@ func (s *SecretsConfig) SetSecret(id, apiKey string) {
 	})
 }
 
-// SetSecretProperties adds or updates authentication properties for an account
+// SetSecretProperties stores authentication properties for an account by UUID.
+//
+// Maintains backwards compatibility: if properties contains "apiKey", also sets the
+// legacy APIKey field so older code paths continue to work.
 func (s *SecretsConfig) SetSecretProperties(id string, properties map[string]string) {
 	for i, secret := range s.Secrets {
 		if secret.ID == id {
@@ -323,7 +326,10 @@ func (s *SecretsConfig) GetSecret(id string) string {
 	return ""
 }
 
-// GetSecretProperties retrieves all authentication properties for an account
+// GetSecretProperties retrieves all authentication properties for an account by UUID.
+//
+// Handles backwards compatibility: if Properties map is empty but legacy APIKey exists,
+// returns a map with {"apiKey": value} to support old config files.
 func (s *SecretsConfig) GetSecretProperties(id string) map[string]string {
 
 	for _, secret := range s.Secrets {
@@ -467,7 +473,13 @@ var Overrides = struct {
 	}
 }{}
 
-// ApplyAccountOverrides applies overrides to the config
+// ApplyAccountOverrides merges CLI flag overrides and config defaults into the account list.
+//
+// Resolution order for account settings: CLI flags > config defaults > existing values.
+//
+// If an account name is specified (via flag or default) but doesn't exist, a transient
+// account is created. This allows one-off operations without persisting account config.
+// Also applies server URL override to settings if specified.
 func (c *Config) ApplyAccountOverrides() {
 	// Apply global settings overrides
 	if Overrides.Settings.ScratchServerURL != "" {
@@ -552,7 +564,10 @@ func (c *Config) ApplyAccountOverrides() {
 	}
 }
 
-// GetSecretPropertiesWithOverrides retrieves secrets applying overrides
+// GetSecretPropertiesWithOverrides retrieves secrets with CLI flag overrides applied.
+//
+// Starts with stored secrets for the account, then overlays any values from the global
+// Overrides struct. This allows passing credentials via flags without storing them.
 func (s *SecretsConfig) GetSecretPropertiesWithOverrides(accountID string) map[string]string {
 	// Start with stored secrets
 	props := s.GetSecretProperties(accountID)

@@ -50,7 +50,10 @@ func GetGlobalCredentialsPath() (string, error) {
 	return filepath.Join(homeDir, GlobalCredentialsDir, GlobalCredentialsFileName), nil
 }
 
-// normalizeServerURL extracts the hostname (without port) from a server URL for use as a key in the credentials file.
+// normalizeServerURL extracts just the hostname from a URL for use as a credentials key.
+//
+// Examples: "https://api.scratch.md:443/v1" -> "api.scratch.md"
+// This ensures credentials work regardless of protocol, port, or path differences.
 func normalizeServerURL(serverURL string) string {
 	parsed, err := url.Parse(serverURL)
 	if err != nil {
@@ -65,7 +68,11 @@ func normalizeServerURL(serverURL string) string {
 	return serverURL
 }
 
-// loadCredentialsFile loads the raw credentials file from disk
+// loadCredentialsFile loads and migrates the credentials file from ~/.scratchmd/.
+//
+// Handles format migration: if the file uses the old single-environment format
+// (apiToken at root level), it's automatically converted to the new multi-environment
+// format with credentials stored under the "default" key.
 func loadCredentialsFile() (*GlobalCredentialsFile, error) {
 	path, err := GetGlobalCredentialsPath()
 	if err != nil {

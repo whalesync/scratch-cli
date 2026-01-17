@@ -695,7 +695,11 @@ func printFieldValue(value, color string) {
 	fmt.Printf("    %s%s%s\n", color, value, colorReset)
 }
 
-// printFieldValueChange prints old -> new values with character-level diff highlighting
+// printFieldValueChange displays a character-level diff using ANSI colors.
+//
+// Uses diffmatchpatch to compute inline diffs, then renders deleted text with
+// red background and inserted text with green background. Unchanged text
+// appears without highlighting.
 func printFieldValueChange(oldVal, newVal string) {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(oldVal, newVal, false)
@@ -1145,7 +1149,11 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// getSingleFileChange gets the change for a single file
+// getSingleFileChange detects what changed for a single file by comparing against its original.
+//
+// Returns nil if no changes detected. Determines operation type (create/update/delete) by
+// checking file existence in current vs original directories. For updates, only changed
+// fields are included in the result.
 func getSingleFileChange(tableName, originalDir, fileName, contentFieldName string) (*UploadChange, error) {
 	currentPath := filepath.Join(tableName, fileName)
 	originalPath := filepath.Join(originalDir, fileName)
@@ -1222,7 +1230,14 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 	}, nil
 }
 
-// getFolderChanges gets all changes for a folder
+// getFolderChanges scans a folder and detects all changes compared to original copies.
+//
+// Compares .md files in tableName/ against .scratchmd/<tableName>/original/ to find:
+// - Deleted: files in original but not in current (only if includeDeletes=true)
+// - Created: files in current but not in original
+// - Updated: files in both with different content
+//
+// Results are sorted by operation (delete, create, update) then filename.
 func getFolderChanges(tableName, originalDir, contentFieldName string, includeDeletes bool) ([]UploadChange, error) {
 	var changes []UploadChange
 
@@ -1334,7 +1349,11 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 	return changes, nil
 }
 
-// getChangedFields compares two field maps and returns list of changed field names (for folder view)
+// getChangedFields compares field maps and returns changed field names with annotations.
+//
+// Returns a sorted list where modified fields appear as-is, removed fields have " (removed)"
+// suffix, and added fields have " (added)" suffix. Used for upload operations where
+// annotations help identify the type of change.
 func getChangedFields(current, original map[string]string) []string {
 	var changed []string
 
@@ -1360,7 +1379,10 @@ func getChangedFields(current, original map[string]string) []string {
 	return changed
 }
 
-// getChangedFieldsDetailed compares two field maps and returns separate lists for modified, added, and removed fields
+// getChangedFieldsDetailed compares field maps and returns changes categorized by type.
+//
+// Unlike getChangedFields which annotates names, this returns three separate sorted lists
+// for UI display where different change types need different styling (colors, icons).
 func getChangedFieldsDetailed(current, original map[string]string) (modified, added, removed []string) {
 	// Check for modified and removed fields
 	for field, originalValue := range original {
@@ -1395,9 +1417,18 @@ func stringMapToInterface(m map[string]string) map[string]interface{} {
 	return result
 }
 
-// parseMarkdownFile parses a markdown file with YAML frontmatter and returns field values.
-// If contentFieldName is provided, the markdown body is stored under that field name with "(content)" suffix.
-// Otherwise it's stored as "_content".
+// parseMarkdownFile extracts field values from a markdown file with YAML frontmatter.
+//
+// File format expected:
+//
+//	---
+//	title: My Post
+//	slug: my-post
+//	---
+//	Markdown content here...
+//
+// Returns a map where YAML keys become fields, and the markdown body is stored under
+// contentFieldName (or "_content" if not specified). All values are stringified for comparison.
 func parseMarkdownFile(filePath string, contentFieldName string) (map[string]string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -1458,7 +1489,11 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, content, 0644)
 }
 
-// addRemoteIDToFile adds or updates the remoteId field in the YAML frontmatter of a markdown file
+// addRemoteIDToFile injects or updates the remoteId field in YAML frontmatter.
+//
+// Called after a successful create operation to link the local file with its CMS record.
+// If the file has no frontmatter, creates one with just remoteId. If frontmatter exists,
+// parses and re-marshals it to add/update the remoteId field.
 func addRemoteIDToFile(filePath, remoteID string) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {

@@ -49,7 +49,15 @@ func NewTableDownloader(cfg *config.Config, secrets *config.SecretsConfig, serve
 	}
 }
 
-// Download downloads records for the specified table.
+// Download fetches records from the CMS and writes them as markdown files.
+//
+// Change detection: Compares the current file against the stored "original" copy.
+// If the user has edited a file locally (current != original), that file is skipped
+// to preserve local changes. The original copy is always updated for future comparisons.
+//
+// File structure created:
+//   - <tableName>/*.md - User-editable markdown files
+//   - .scratchmd/<tableName>/original/*.md - Pristine copies for change detection
 func (d *TableDownloader) Download(tableName string, opts Options) (*Result, error) {
 	progress := opts.OnProgress
 	if progress == nil {
@@ -233,7 +241,15 @@ func (d *TableDownloader) Download(tableName string, opts Options) (*Result, err
 	return result, nil
 }
 
-// downloadAttachments handles downloading file attachments for a table.
+// downloadAttachments downloads file attachments and updates markdown frontmatter.
+//
+// For each file's attachment fields, it:
+//  1. Extracts attachment URLs from YAML frontmatter
+//  2. Downloads files to <tableName>/assets/ with format: <name>-<id>.<ext>
+//  3. Updates the asset manifest for tracking downloaded files
+//  4. Rewrites frontmatter to reference local asset paths instead of remote URLs
+//
+// Attachments are not re-downloaded if they already exist (immutable sources like Airtable).
 func (d *TableDownloader) downloadAttachments(
 	tableName string,
 	originalDir string,
@@ -361,8 +377,11 @@ func getAttachmentFields(schema config.TableSchema) []string {
 	return attachmentFields
 }
 
-// extractAttachmentsFromContentByField parses markdown content and extracts attachments organized by field name.
-// Returns a map of field name -> attachments, and a flat list of all attachments.
+// extractAttachmentsFromContentByField parses YAML frontmatter to extract attachment metadata.
+//
+// Parses the "---" delimited frontmatter, looks up each attachmentField in the YAML,
+// and uses the provider's ExtractAttachments to convert field values to Attachment structs.
+// Returns both a per-field map (for updating frontmatter) and a flat list (for downloading).
 func extractAttachmentsFromContentByField(content string, attachmentFields []string, extractor providers.AttachmentExtractor) (map[string][]providers.Attachment, []providers.Attachment) {
 	fieldAttachments := make(map[string][]providers.Attachment)
 	var allAttachments []providers.Attachment
@@ -408,7 +427,11 @@ func extractAttachmentsFromContentByField(content string, attachmentFields []str
 	return fieldAttachments, allAttachments
 }
 
-// updateFrontmatterAttachments updates the frontmatter in a file to replace attachment fields with local asset paths.
+// updateFrontmatterAttachments rewrites a markdown file's YAML frontmatter to use local asset paths.
+//
+// For each attachment field, replaces the original value (remote URL structure) with
+// an array of local paths like ["assets/image-abc123.jpg"]. This enables the markdown
+// files to reference downloaded assets instead of remote URLs.
 func updateFrontmatterAttachments(filePath string, fieldAttachments map[string][]providers.Attachment) error {
 	if len(fieldAttachments) == 0 {
 		return nil
