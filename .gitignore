@@ -25,3 +25,6 @@ local
 # Node.js compiled output and packages.
 dist/
 node_modules/
+
+# Scratch CLI hidden dir.
+.scratchmd/

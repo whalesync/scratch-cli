@@ -16,3 +16,6 @@ dist/
 # Test artifacts
 coverage.out
 *.test
+
+# Downloaded content via scratchmd
+test-files/
