@@ -125,4 +125,4 @@ The following commands are planned for future releases:
 
 ## License
 
-MIT
+Private
