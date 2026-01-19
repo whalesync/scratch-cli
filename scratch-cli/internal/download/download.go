@@ -245,9 +245,10 @@ func (d *TableDownloader) Download(tableName string, opts Options) (*Result, err
 //
 // For each file's attachment fields, it:
 //  1. Extracts attachment URLs from YAML frontmatter
-//  2. Downloads files to <tableName>/assets/ with format: <name>-<id>.<ext>
-//  3. Updates the asset manifest for tracking downloaded files
-//  4. Rewrites frontmatter to reference local asset paths instead of remote URLs
+//  2. Creates subfolder structure: <tableName>/assets/<fileSlug>/<fieldName>/
+//  3. Downloads files to the field-specific folder with format: <name>-<id>.<ext>
+//  4. Updates the asset manifest with Path property for tracking downloaded files
+//  5. Rewrites frontmatter to reference the folder path instead of individual files
 //
 // Attachments are not re-downloaded if they already exist (immutable sources like Airtable).
 func (d *TableDownloader) downloadAttachments(
@@ -258,7 +259,7 @@ func (d *TableDownloader) downloadAttachments(
 	provider providers.Provider,
 	progress func(string),
 ) (int, error) {
-	// Create assets folder in the content folder
+	// Base assets folder in the content folder
 	assetsDir := filepath.Join(tableName, "assets")
 	if err := os.MkdirAll(assetsDir, 0755); err != nil {
 		return 0, fmt.Errorf("failed to create assets directory: %w", err)
@@ -283,71 +284,100 @@ func (d *TableDownloader) downloadAttachments(
 
 	// Process each downloaded file to extract and download attachments
 	for _, file := range files {
+		// Get the file slug (used for folder name)
+		fileSlug := file.Slug
+		if fileSlug == "" {
+			fileSlug = file.ID
+		}
+
 		// Parse the file content to get field values, organized by field
-		fieldAttachments, allAttachments := extractAttachmentsFromContentByField(file.Content, attachmentFields, extractor)
+		fieldAttachments, _ := extractAttachmentsFromContentByField(file.Content, attachmentFields, extractor)
 
-		if len(allAttachments) > 0 {
-			// Download to content assets folder (overwrite=false since Airtable attachments are immutable)
-			downloaded, err := providers.DownloadAttachments(assetsDir, allAttachments, false, func(msg string) {
-				progress(fmt.Sprintf("   %s", msg))
-			})
-			if err != nil {
-				progress(fmt.Sprintf("   ⚠️  Failed to download attachments for '%s': %v", file.Slug, err))
+		// Always create asset folders for each attachment field, even if empty
+		for _, fieldName := range attachmentFields {
+			// Create subfolder: assets/<fileSlug>/<fieldName>/
+			fieldAssetsDir := filepath.Join(assetsDir, fileSlug, fieldName)
+			if err := os.MkdirAll(fieldAssetsDir, 0755); err != nil {
+				progress(fmt.Sprintf("   ⚠️  Failed to create assets directory '%s': %v", fieldAssetsDir, err))
+				continue
 			}
-			totalAttachments += downloaded
 
-			// Track downloaded files in manifest
-			for _, att := range allAttachments {
-				if att.Name == "" || att.ID == "" {
-					continue
-				}
-				ext := filepath.Ext(att.Name)
-				nameWithoutExt := strings.TrimSuffix(att.Name, ext)
-				filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
-				srcPath := filepath.Join(assetsDir, filename)
-
-				// Get file info for the manifest
-				fileInfo, err := os.Stat(srcPath)
+			// Download attachments if any exist for this field
+			attachments, hasAttachments := fieldAttachments[fieldName]
+			if hasAttachments && len(attachments) > 0 {
+				// Download attachments to the field-specific folder
+				downloaded, err := providers.DownloadAttachments(fieldAssetsDir, attachments, false, func(msg string) {
+					progress(fmt.Sprintf("   %s", msg))
+				})
 				if err != nil {
-					// File may not exist if it was skipped (already exists)
-					continue
+					progress(fmt.Sprintf("   ⚠️  Failed to download attachments for '%s/%s': %v", fileSlug, fieldName, err))
 				}
+				totalAttachments += downloaded
 
-				// Calculate checksum
-				checksum, err := config.CalculateFileChecksum(srcPath)
-				if err != nil {
-					progress(fmt.Sprintf("   ⚠️  Failed to calculate checksum for '%s': %v", filename, err))
-					checksum = ""
-				}
+				// Track downloaded files in manifest with Path property
+				for idx, att := range attachments {
+					if att.Name == "" || att.ID == "" {
+						continue
+					}
+					ext := filepath.Ext(att.Name)
+					nameWithoutExt := strings.TrimSuffix(att.Name, ext)
+					// Use same filename format as DownloadAttachments: {index}-{name}-{id}.{ext}
+					filename := fmt.Sprintf("%02d-%s-%s%s", idx+1, nameWithoutExt, att.ID, ext)
+					srcPath := filepath.Join(fieldAssetsDir, filename)
 
-				// Create or update asset entry
-				assetEntry := config.AssetEntry{
-					ID:               att.ID,
-					FileID:           file.ID,
-					Filename:         filename,
-					FileSize:         fileInfo.Size(),
-					Checksum:         checksum,
-					MimeType:         att.Type,
-					LastDownloadDate: time.Now().UTC().Format(time.RFC3339),
+					// Relative path from content folder: assets/<fileSlug>/<fieldName>/<filename>
+					relativePath := filepath.Join("assets", fileSlug, fieldName, filename)
+
+					// Get file info for the manifest
+					fileInfo, err := os.Stat(srcPath)
+					if err != nil {
+						// File may not exist if it was skipped (already exists)
+						// Try to update existing entry with path if it exists
+						for i := range assetManifest.Assets {
+							if assetManifest.Assets[i].ID == att.ID {
+								assetManifest.Assets[i].Path = relativePath
+								break
+							}
+						}
+						continue
+					}
+
+					// Calculate checksum
+					checksum, err := config.CalculateFileChecksum(srcPath)
+					if err != nil {
+						progress(fmt.Sprintf("   ⚠️  Failed to calculate checksum for '%s': %v", filename, err))
+						checksum = ""
+					}
+
+					// Create or update asset entry with Path
+					assetEntry := config.AssetEntry{
+						ID:               att.ID,
+						FileID:           file.ID,
+						Filename:         filename,
+						Path:             relativePath,
+						FileSize:         fileInfo.Size(),
+						Checksum:         checksum,
+						MimeType:         att.Type,
+						LastDownloadDate: time.Now().UTC().Format(time.RFC3339),
+					}
+					assetManifest.UpsertAsset(assetEntry)
 				}
-				assetManifest.UpsertAsset(assetEntry)
 			}
+		}
 
-			// Update frontmatter in main files with local asset paths
-			filename := file.Slug
-			if filename == "" {
-				filename = file.ID
-			}
-			mdFilename := filename + ".md"
+		// Update frontmatter in main files with folder paths (only for fields that have attachments)
+		if len(fieldAttachments) > 0 {
+			mdFilename := fileSlug + ".md"
 			mainPath := filepath.Join(tableName, mdFilename)
-			// originalPath := filepath.Join(originalDir, mdFilename)
+			originalPath := filepath.Join(originalDir, mdFilename)
 
-			if err := updateFrontmatterAttachments(mainPath, fieldAttachments); err != nil {
+			if err := updateFrontmatterAttachments(mainPath, fileSlug, fieldAttachments); err != nil {
 				progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", mainPath, err))
 			}
-			// if err := updateFrontmatterAttachments(originalPath, fieldAttachments); err != nil {
-			// 	progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", originalPath, err))
-			// }
+
+			if err := updateFrontmatterAttachments(originalPath, fileSlug, fieldAttachments); err != nil {
+				progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", originalPath, err))
+			}
 		}
 	}
 
@@ -427,12 +457,12 @@ func extractAttachmentsFromContentByField(content string, attachmentFields []str
 	return fieldAttachments, allAttachments
 }
 
-// updateFrontmatterAttachments rewrites a markdown file's YAML frontmatter to use local asset paths.
+// updateFrontmatterAttachments rewrites a markdown file's YAML frontmatter to use local asset folder paths.
 //
 // For each attachment field, replaces the original value (remote URL structure) with
-// an array of local paths like ["assets/image-abc123.jpg"]. This enables the markdown
-// files to reference downloaded assets instead of remote URLs.
-func updateFrontmatterAttachments(filePath string, fieldAttachments map[string][]providers.Attachment) error {
+// the path to the field's asset folder like "assets/my_wedding/Photos". This enables the markdown
+// files to reference the folder containing downloaded assets instead of remote URLs.
+func updateFrontmatterAttachments(filePath string, fileSlug string, fieldAttachments map[string][]providers.Attachment) error {
 	if len(fieldAttachments) == 0 {
 		return nil
 	}
@@ -465,21 +495,11 @@ func updateFrontmatterAttachments(filePath string, fieldAttachments map[string][
 		return fmt.Errorf("failed to parse YAML frontmatter: %w", err)
 	}
 
-	// Update each attachment field with local file paths
-	for fieldName, attachments := range fieldAttachments {
-		var assetPaths []string
-		for _, att := range attachments {
-			if att.Name == "" || att.ID == "" {
-				continue
-			}
-			ext := filepath.Ext(att.Name)
-			nameWithoutExt := strings.TrimSuffix(att.Name, ext)
-			filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
-			assetPaths = append(assetPaths, fmt.Sprintf("assets/%s", filename))
-		}
-		if len(assetPaths) > 0 {
-			yamlData[fieldName] = assetPaths
-		}
+	// Update each attachment field with the folder path
+	for fieldName := range fieldAttachments {
+		// Set the field value to the folder path: assets/<fileSlug>/<fieldName>
+		folderPath := filepath.Join("assets", fileSlug, fieldName)
+		yamlData[fieldName] = folderPath
 	}
 
 	// Marshal back to YAML

@@ -109,8 +109,8 @@ type AttachmentExtractor interface {
 
 // DownloadAttachments downloads attachments to destDir with collision-safe filenames.
 //
-// Files are saved as "<name>-<id>.<ext>" to avoid collisions when different records
-// have attachments with the same name. If overwrite is false, existing files are
+// Files are saved as "<index>-<name>-<id>.<ext>" where index is a two-digit number (01, 02, etc.)
+// preserving the order from the source. If overwrite is false, existing files are
 // skipped (useful for immutable sources like Airtable where re-downloading is wasteful).
 func DownloadAttachments(destDir string, attachments []Attachment, overwrite bool, progress ProgressCallback) (int, error) {
 	if destDir == "" {
@@ -118,7 +118,7 @@ func DownloadAttachments(destDir string, attachments []Attachment, overwrite boo
 	}
 
 	downloaded := 0
-	for _, att := range attachments {
+	for idx, att := range attachments {
 		if att.URL == "" {
 			continue
 		}
@@ -127,10 +127,10 @@ func DownloadAttachments(destDir string, attachments []Attachment, overwrite boo
 			continue // Skip if missing name or ID
 		}
 
-		// Build filename as {name}-{id}.{ext}
+		// Build filename as {index}-{name}-{id}.{ext} with two-digit index
 		ext := filepath.Ext(att.Name)
 		nameWithoutExt := strings.TrimSuffix(att.Name, ext)
-		filename := fmt.Sprintf("%s-%s%s", nameWithoutExt, att.ID, ext)
+		filename := fmt.Sprintf("%02d-%s-%s%s", idx+1, nameWithoutExt, att.ID, ext)
 
 		destPath := filepath.Join(destDir, filename)
 

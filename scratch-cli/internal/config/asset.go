@@ -19,6 +19,7 @@ type AssetEntry struct {
 	ID               string `yaml:"id"`                 // Attachment ID from the provider
 	FileID           string `yaml:"file_id"`            // Record/file ID the attachment came from
 	Filename         string `yaml:"filename"`           // Downloaded filename (includes ID suffix)
+	Path             string `yaml:"path"`               // Relative path to the attachment file from content folder
 	FileSize         int64  `yaml:"file_size"`          // Size of the downloaded file in bytes
 	Checksum         string `yaml:"checksum"`           // MD5 checksum of the file
 	MimeType         string `yaml:"mime_type"`          // MIME type of the file (if available)
