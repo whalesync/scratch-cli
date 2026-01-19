@@ -59,6 +59,7 @@ import {
   PostgresColumnType,
   SnapshotRecord,
 } from '../remote-service/connectors/types';
+import { DownloadFilesPublicProgress } from '../worker/jobs/job-definitions/download-files.job';
 import { DownloadRecordsPublicProgress } from '../worker/jobs/job-definitions/download-records.job';
 import { PublishRecordsPublicProgress } from '../worker/jobs/job-definitions/publish-records.job';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
@@ -1291,6 +1292,75 @@ export class WorkbookService {
     await this.db.client.snapshotTable.updateMany({
       where: {
         id: { in: snapshotTablesToProcess.map((t) => t.id) },
+      },
+      data: {
+        lock: 'download',
+      },
+    });
+
+    return {
+      jobId: job.id as string,
+    };
+  }
+
+  async downloadFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    // Verify the workbook exists and the user has access
+    await this.findOneOrThrow(id, actor);
+
+    // Fetch workbook with folder relation included for initial progress
+    const workbook = await this.db.client.workbook.findUnique({
+      where: { id },
+      include: {
+        snapshotTables: {
+          include: {
+            connectorAccount: true,
+            folder: true,
+          },
+        },
+      },
+    });
+
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Filter to tables that have folders
+    let tablesToProcess = (workbook.snapshotTables || []).filter((st) => st.folderId);
+    if (snapshotTableIds && snapshotTableIds.length > 0) {
+      tablesToProcess = tablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
+    }
+
+    if (tablesToProcess.length === 0) {
+      throw new BadRequestException('No tables with folders found to download files from');
+    }
+
+    const initialPublicProgressFolders: DownloadFilesPublicProgress['folders'] = [];
+    for (const st of tablesToProcess) {
+      initialPublicProgressFolders.push({
+        id: st.folderId!,
+        name: st.folder?.name ?? (st.tableSpec as AnyTableSpec).name,
+        connector: st.connectorService,
+        files: 0,
+        status: 'pending' as const,
+      });
+    }
+
+    const initialPublicProgress: DownloadFilesPublicProgress = {
+      totalFiles: 0,
+      folders: initialPublicProgressFolders,
+    };
+
+    const job = await this.bullEnqueuerService.enqueueDownloadFilesJob(
+      id,
+      actor,
+      tablesToProcess.map((t) => t.id),
+      initialPublicProgress,
+    );
+
+    // Set lock='download' for all tables immediately after enqueuing
+    await this.db.client.snapshotTable.updateMany({
+      where: {
+        id: { in: tablesToProcess.map((t) => t.id) },
       },
       data: {
         lock: 'download',

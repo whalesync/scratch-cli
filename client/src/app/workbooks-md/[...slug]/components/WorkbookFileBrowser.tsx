@@ -6,7 +6,7 @@ import { useFileList } from '@/hooks/use-file-list';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { filesApi, foldersApi } from '@/lib/api/files';
 import { workbookApi } from '@/lib/api/workbook';
-import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import {
   ActionIcon,
   Box,
@@ -420,9 +420,7 @@ function TreeNodeRenderer({
                       e.stopPropagation();
                       onOpenAllFilesInFolder(nodeData.id as FolderId);
                     }}
-                    disabled={
-                      !treeData.some((n) => n.parent === nodeData.id && n.data?.isFile)
-                    }
+                    disabled={!treeData.some((n) => n.parent === nodeData.id && n.data?.isFile)}
                   >
                     Open all files
                   </Menu.Item>
@@ -672,6 +670,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
+  const showModal = useWorkbookEditorUIStore((state) => state.showModal);
   // Use the file list hook
   const { files, isLoading, refreshFiles } = useFileList(workbook?.id ?? null);
   // Local state for tree data (required for drag-and-drop to work)
@@ -737,6 +736,11 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     setSelectedNodes(new Set());
     setLastSelectedNodeId(null);
   }, [files]);
+
+  // Handle downloading files from remote source (sync) - opens the folder selection modal
+  const handleDownloadFilesFromRemote = useCallback(() => {
+    showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE });
+  }, [showModal]);
 
   // Get path for a node from its stored data (provided by server)
   const getNodePath = useCallback(
@@ -1212,9 +1216,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const handleOpenAllFilesInFolder = useCallback(
     (folderId: FolderId) => {
       // Find all files that are direct children of this folder
-      const filesInFolder = treeData.filter(
-        (node) => node.parent === folderId && node.data?.isFile
-      );
+      const filesInFolder = treeData.filter((node) => node.parent === folderId && node.data?.isFile);
 
       if (filesInFolder.length === 0) return;
 
@@ -1394,8 +1396,14 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                 <CopyMinusIcon size={14} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label="Refresh" openDelay={500}>
-              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => refreshFiles()} loading={isLoading}>
+            <Tooltip label="Sync from remote" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={handleDownloadFilesFromRemote}
+                loading={isLoading}
+              >
                 <RefreshCwIcon size={14} />
               </ActionIcon>
             </Tooltip>
@@ -1746,6 +1754,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           </Group>
         </Stack>
       </Modal>
+
     </DndProvider>
   );
 }

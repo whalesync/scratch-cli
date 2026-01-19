@@ -5,7 +5,7 @@ import { SelectTableRow } from '@/app/components/SelectTableRow';
 import { Alert, Box, Text as MantineText, Stack } from '@mantine/core';
 import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { AlertCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
 import { workbookApi } from '../../../../../../lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
@@ -17,6 +17,7 @@ import { TableSelection } from '../../../../../components/TableSelectionComponen
 export const RefreshTableDataModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
   const dismissModal = useWorkbookEditorUIStore((state) => state.dismissModal);
+  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const isOpen = activeModal?.type === WorkbookModals.CONFIRM_REFRESH_SOURCE;
 
   const { workbook, activeTable } = useActiveWorkbook();
@@ -25,7 +26,11 @@ export const RefreshTableDataModal = () => {
   const startRefresh = async (tableSelection: TableSelection) => {
     if (!workbook) return;
     try {
-      const result = await workbookApi.download(workbook.id, tableSelection.tableIds);
+      // Use downloadFiles API when in files mode, download API otherwise
+      const result =
+        workbookMode === 'files'
+          ? await workbookApi.downloadFiles(workbook.id, tableSelection.tableIds)
+          : await workbookApi.download(workbook.id, tableSelection.tableIds);
       setRefreshInProgress(result);
       dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE);
     } catch (e) {
@@ -37,15 +42,18 @@ export const RefreshTableDataModal = () => {
     }
   };
 
+  const isFilesMode = workbookMode === 'files';
+
   return (
     <>
-      {workbook && activeTable && (
+      {workbook && (
         <ConfirmRefreshModal
           isOpen={isOpen}
           onClose={() => dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE)}
           onConfirm={startRefresh}
           workbook={workbook}
-          activeTable={activeTable}
+          activeTable={activeTable ?? null}
+          isFilesMode={isFilesMode}
         />
       )}
 
@@ -64,21 +72,45 @@ const ConfirmRefreshModal = ({
   onConfirm,
   workbook,
   activeTable,
+  isFilesMode,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (tableSelection: TableSelection) => void;
   workbook: Workbook;
-  activeTable: SnapshotTable;
+  activeTable: SnapshotTable | null;
+  isFilesMode: boolean;
 }) => {
-  const [selectedTableIds, setSelectedTableIds] = useState<string[]>([activeTable.id]);
+  const [selectedTableIds, setSelectedTableIds] = useState<string[]>(activeTable ? [activeTable.id] : []);
+
+  // Filter tables based on mode
+  // In files mode: only show tables with folderId (linked to a folder/remote service)
+  // In tables mode: show all non-hidden tables without deleted connections
+  const availableTables = useMemo(
+    () =>
+      workbook.snapshotTables?.filter((table: SnapshotTable) => {
+        if (hasDeletedConnection(table) || table.hidden) {
+          return false;
+        }
+        if (isFilesMode) {
+          return !!table.connectorAccountId; // Only tables with folders in files mode
+        }
+        return true;
+      }) || [],
+    [workbook.snapshotTables, isFilesMode],
+  );
 
   // Initialize selection on open
   useEffect(() => {
-    if (isOpen && activeTable) {
-      setSelectedTableIds([activeTable.id]);
+    if (isOpen) {
+      if (activeTable && availableTables.some((t) => t.id === activeTable.id)) {
+        setSelectedTableIds([activeTable.id]);
+      } else if (availableTables.length > 0) {
+        // Select all available tables/folders by default
+        setSelectedTableIds(availableTables.map((t) => t.id));
+      }
     }
-  }, [isOpen, activeTable]);
+  }, [isOpen, activeTable, availableTables]);
 
   const toggleTable = (tableId: string) => {
     setSelectedTableIds((prev) => (prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId]));
@@ -91,11 +123,12 @@ const ConfirmRefreshModal = ({
     });
   };
 
-  const availableTables =
-    workbook.snapshotTables?.filter((table: SnapshotTable) => !hasDeletedConnection(table) && !table.hidden) || [];
   const hasDirtyTables = availableTables.some(
     (table: SnapshotTable) => selectedTableIds.includes(table.id) && table.dirty,
   );
+
+  const title = isFilesMode ? 'Select folders to refresh' : 'Select tables to refresh';
+  const itemLabel = isFilesMode ? 'folders' : 'tables';
 
   return (
     <ModalWrapper
@@ -111,31 +144,38 @@ const ConfirmRefreshModal = ({
       }}
       opened={isOpen}
       onClose={onClose}
-      title="Select tables to refresh"
+      title={title}
     >
       <Stack gap="md">
-        <Stack gap="xs">
-          {availableTables.map((table) => {
-            const isSyncing = !!table.lock;
-            const isDirty = table.dirty;
-            const statusText = (
-              <MantineText size="sm" c={isDirty ? 'orange' : 'dimmed'}>
-                {isDirty ? 'Contains unpublished changes' : ''}
-              </MantineText>
-            );
+        {availableTables.length === 0 ? (
+          <MantineText size="sm" c="dimmed">
+            No {itemLabel} with remote connections available to refresh.
+          </MantineText>
+        ) : (
+          <Stack gap="xs">
+            {availableTables.map((table) => {
+              const isSyncing = !!table.lock;
+              const isDirty = table.dirty;
+              const statusText = (
+                <MantineText size="sm" c={isDirty ? 'orange' : 'dimmed'}>
+                  {isDirty ? 'Contains unpublished changes' : ''}
+                </MantineText>
+              );
 
-            return (
-              <SelectTableRow
-                key={table.id}
-                table={table}
-                isSelected={selectedTableIds.includes(table.id)}
-                disabled={isSyncing}
-                onToggle={toggleTable}
-                statusText={statusText}
-              />
-            );
-          })}
-        </Stack>
+              return (
+                <SelectTableRow
+                  key={table.id}
+                  table={table}
+                  isSelected={selectedTableIds.includes(table.id)}
+                  disabled={isSyncing}
+                  onToggle={toggleTable}
+                  statusText={statusText}
+                  displayName={isFilesMode ? table.folder?.name : undefined}
+                />
+              );
+            })}
+          </Stack>
+        )}
 
         <Box mih={40}>
           {hasDirtyTables && (

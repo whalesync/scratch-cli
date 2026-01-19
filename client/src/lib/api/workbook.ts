@@ -148,6 +148,16 @@ export const workbookApi = {
     }
   },
 
+  async downloadFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/download-files`, { snapshotTableIds });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to start files download');
+    }
+  },
+
   async publish(
     id: WorkbookId,
     snapshotTableIds?: string[],

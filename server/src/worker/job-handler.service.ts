@@ -11,6 +11,7 @@ import { WorkbookService } from 'src/workbook/workbook.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
+import { DownloadFilesJobHandler } from './jobs/job-definitions/download-files.job';
 import { DownloadRecordsJobHandler } from './jobs/job-definitions/download-records.job';
 import { PublishFilesJobHandler } from './jobs/job-definitions/publish-files.job';
 import { PublishRecordsJobHandler } from './jobs/job-definitions/publish-records.job';
@@ -42,6 +43,15 @@ export class JobHandlerService {
         return new AddThreeNumbersJobHandler(prisma) as JobHandler<JobDefinition>;
       case 'download-records':
         return new DownloadRecordsJobHandler(
+          prisma,
+          this.connectorService,
+          this.snapshotDbService.snapshotDb,
+          this.workbookDbService.workbookDb,
+          this.connectorAccountService,
+          this.snapshotEventService,
+        ) as JobHandler<JobDefinition>;
+      case 'download-files':
+        return new DownloadFilesJobHandler(
           prisma,
           this.connectorService,
           this.snapshotDbService.snapshotDb,

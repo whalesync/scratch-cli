@@ -616,10 +616,12 @@ export class WorkbookDb {
 
           fullPath = `${prefix}/${fileName}`;
 
+          // Check if another file (not this record) has the same filename
           const existingFileWithPath = await trx<FileDbRecord>(FILES_TABLE)
             .withSchema(workbookId)
             .where(FOLDER_ID_COLUMN, folderId)
             .where(FILE_NAME_COLUMN, fileName)
+            .whereNot(REMOTE_ID_COLUMN, record.id) // Exclude the current record's file
             .first();
 
           if (!existingFileWithPath) {
@@ -642,11 +644,13 @@ export class WorkbookDb {
           .first();
 
         if (existingFile) {
-          // Update existing file
+          // Update existing file - including name/path if title column changed
           await trx(FILES_TABLE)
             .withSchema(workbookId)
             .where(FILE_ID_COLUMN, existingFile[FILE_ID_COLUMN])
             .update({
+              [FILE_NAME_COLUMN]: fileName,
+              [PATH_COLUMN]: fullPath,
               [ORIGINAL_COLUMN]: frontMatterContent, // this resets the original content new value from the connector
               [CONTENT_COLUMN]: frontMatterContent,
               [METADATA_COLUMN]: frontMatterMetadata,

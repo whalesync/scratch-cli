@@ -9,9 +9,11 @@ interface Props {
   disabled: boolean;
   onToggle: (tableId: string) => void;
   statusText: ReactNode;
+  /** Optional display name override (e.g., for showing folder name instead of table name) */
+  displayName?: string;
 }
 
-export const SelectTableRow: FC<Props> = ({ table, isSelected, disabled, onToggle, statusText }) => {
+export const SelectTableRow: FC<Props> = ({ table, isSelected, disabled, onToggle, statusText, displayName }) => {
   return (
     <Group
       p="xs"
@@ -38,7 +40,7 @@ export const SelectTableRow: FC<Props> = ({ table, isSelected, disabled, onToggl
       />
       <ConnectorIcon connector={table.connectorService} size={22} />
       <Text fw={500} c={disabled ? 'dimmed' : undefined}>
-        {table.tableSpec.name}
+        {displayName ?? table.tableSpec.name}
       </Text>
       <Box ml="auto">{statusText}</Box>
     </Group>

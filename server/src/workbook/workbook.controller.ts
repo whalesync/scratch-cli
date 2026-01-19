@@ -235,6 +235,16 @@ export class WorkbookController {
     return this.service.download(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
+  @Post(':id/download-files')
+  async downloadFiles(
+    @Param('id') id: WorkbookId,
+    @Body() downloadDto: DownloadRecordsDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ jobId: string }> {
+    const dto = downloadDto;
+    return this.service.downloadFiles(id, userToActor(req.user), dto.snapshotTableIds);
+  }
+
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
