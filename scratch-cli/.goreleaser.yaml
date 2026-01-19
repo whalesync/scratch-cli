@@ -3,9 +3,8 @@ version: 2
 
 project_name: scratchmd
 
-before:
-  hooks:
-    - go mod tidy
+# Note: go mod tidy is run in release_public.sh before goreleaser
+# to catch dependency issues early and provide better error messages
 
 builds:
   # Production build - points to production server

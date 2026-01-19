@@ -74,10 +74,37 @@ curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
      "https://api.github.com/repos/whalesync/scratch-cli/git/refs" \
      -d "{\"ref\": \"refs/tags/$NEW_VERSION\", \"sha\": \"$REMOTE_SHA\"}"
 
-# 5. Run Goreleaser
+# 5. Prepare for Goreleaser
+# Run go mod tidy before goreleaser to ensure dependencies are clean
+# This is done here instead of in goreleaser's before hooks to catch issues early
+echo "Running go mod tidy..."
+go mod tidy
+
+# Check if repo is clean before running goreleaser
+echo "Checking git status before goreleaser..."
+git status
+
+# If go mod tidy made changes, the repo will be dirty
+# This indicates go.mod/go.sum weren't properly committed - reset to avoid release failure
+if ! git diff --quiet go.mod go.sum 2>/dev/null; then
+  echo "⚠️  Warning: go mod tidy modified go.mod or go.sum"
+  echo "   This suggests dependencies weren't properly committed."
+  echo "   Resetting go.mod and go.sum to continue release..."
+  git checkout -- go.mod go.sum
+fi
+
+# Final check - if still dirty for other reasons, show what's wrong
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "❌ Error: Repository has uncommitted changes:"
+  git status --short
+  echo "   Please ensure all changes are committed before releasing."
+  exit 1
+fi
+
+# 6. Run Goreleaser
 goreleaser release --clean
 
-# 6. Tag GitLab with proper cli-X.Y.Z tag to save state for next time
+# 7. Tag GitLab with proper cli-X.Y.Z tag to save state for next time
 echo "Labeling current commit with $CLI_TAG..."
 git tag "$CLI_TAG"
 
