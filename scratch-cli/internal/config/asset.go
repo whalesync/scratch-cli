@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
 	"gopkg.in/yaml.v3"
 )
@@ -87,4 +88,54 @@ func (m *AssetManifest) UpsertAsset(entry AssetEntry) {
 		}
 	}
 	m.Assets = append(m.Assets, entry)
+}
+
+// VerifyChecksum verifies that a file's current checksum matches the stored value in the manifest.
+// It takes an attachment ID and the base path to resolve the file location.
+// Returns true if the checksum matches, false if it doesn't match or the file doesn't exist.
+// Returns an error if the attachment ID is not found in the manifest or if there's an error reading the file.
+func (m *AssetManifest) VerifyChecksum(attachmentID string, basePath string) (bool, error) {
+	// Find the asset entry by attachment ID
+	var entry *AssetEntry
+	for i := range m.Assets {
+		if m.Assets[i].ID == attachmentID {
+			entry = &m.Assets[i]
+			break
+		}
+	}
+
+	if entry == nil {
+		return false, fmt.Errorf("attachment ID %q not found in manifest", attachmentID)
+	}
+
+	// Construct the full file path
+	filePath := basePath + "/" + entry.Path
+	if entry.Path == "" {
+		filePath = basePath + "/" + entry.Filename
+	}
+
+	// Calculate the current checksum
+	currentChecksum, err := CalculateFileChecksum(filePath)
+	if err != nil {
+		return false, fmt.Errorf("failed to calculate checksum for %q: %w", filePath, err)
+	}
+
+	return currentChecksum == entry.Checksum, nil
+}
+
+// GetAssetsByFileID returns all asset entries for a specific file ID, ordered by path.
+func (m *AssetManifest) GetAssetsByFileID(fileID string) []AssetEntry {
+	var entries []AssetEntry
+	for _, asset := range m.Assets {
+		if asset.FileID == fileID {
+			entries = append(entries, asset)
+		}
+	}
+
+	// Sort by path
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+
+	return entries
 }

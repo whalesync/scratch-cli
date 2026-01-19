@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/config"
+	"github.com/whalesync/scratch-cli/internal/providers"
 )
 
 // statusCmd shows which files have changed across all linked tables
@@ -246,6 +247,18 @@ func getTableStatus(tableName string) tableStatus {
 		status.lastDownload = tableConfig.LastDownload
 	}
 
+	// Check if provider supports attachments and get attachment fields
+	var attachmentFields []string
+	if tableConfig != nil {
+		provider, err := providers.GetProvider(tableConfig.Provider)
+		if err == nil && provider.SupportsAttachments() {
+			schema, err := config.LoadTableSchema(tableName)
+			if err == nil && schema != nil {
+				attachmentFields = getAttachmentFieldsFromSchema(schema)
+			}
+		}
+	}
+
 	// Get list of .md files in both directories
 	currentFiles := make(map[string]bool)
 	originalFiles := make(map[string]bool)
@@ -290,7 +303,17 @@ func getTableStatus(tableName string) tableStatus {
 				continue
 			}
 
-			if !bytes.Equal(currentContent, originalContent) {
+			isModified := !bytes.Equal(currentContent, originalContent)
+
+			// Also check for attachment changes if provider supports them
+			if !isModified && len(attachmentFields) > 0 {
+				fileSlug := strings.TrimSuffix(filename, ".md")
+				if hasAttachmentChanges(tableName, originalDir, fileSlug, attachmentFields) {
+					isModified = true
+				}
+			}
+
+			if isModified {
 				status.modified = append(status.modified, filename)
 			} else {
 				status.unchanged++
@@ -365,10 +388,32 @@ func runSingleFileStatus(tableName, fileName string) error {
 		return fmt.Errorf("failed to read original file: %w", err)
 	}
 
-	if bytes.Equal(currentContent, originalContent) {
-		fmt.Printf("%s (clean)\n", fileName)
-	} else {
+	isModified := !bytes.Equal(currentContent, originalContent)
+
+	// Also check for attachment changes if provider supports them
+	if !isModified {
+		tableConfig, err := config.LoadTableConfig(tableName)
+		if err == nil && tableConfig != nil {
+			provider, err := providers.GetProvider(tableConfig.Provider)
+			if err == nil && provider.SupportsAttachments() {
+				schema, err := config.LoadTableSchema(tableName)
+				if err == nil && schema != nil {
+					attachmentFields := getAttachmentFieldsFromSchema(schema)
+					if len(attachmentFields) > 0 {
+						fileSlug := strings.TrimSuffix(fileName, ".md")
+						if hasAttachmentChanges(tableName, originalDir, fileSlug, attachmentFields) {
+							isModified = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if isModified {
 		fmt.Printf("%s%s (modified)%s\n", colorOrange, fileName, colorReset)
+	} else {
+		fmt.Printf("%s (clean)\n", fileName)
 	}
 
 	return nil

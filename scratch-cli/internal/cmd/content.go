@@ -17,6 +17,7 @@ import (
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/download"
+	"github.com/whalesync/scratch-cli/internal/providers"
 	"gopkg.in/yaml.v3"
 )
 
@@ -284,16 +285,39 @@ func runAllFilesDiff(tableName, originalDir string) error {
 		}
 	}
 
+	// Check if provider supports attachments and get attachment fields
+	var attachmentFields []string
+	if providerSupportsAttachments(tableName) {
+		schema, err := config.LoadTableSchema(tableName)
+		if err == nil && schema != nil {
+			attachmentFields = getAttachmentFieldsFromSchema(schema)
+		}
+	}
+
 	// Collect all files that need diffing
 	var filesToDiff []string
+	filesWithAttachmentChanges := make(map[string]bool) // Track which files have attachment changes
 	for filename := range originalFiles {
 		if currentFiles[filename] {
-			// Check if actually modified
+			needsDiff := false
+			fileSlug := strings.TrimSuffix(filename, ".md")
+
+			// Check if markdown content is actually modified
 			currentPath := filepath.Join(tableName, filename)
 			originalPath := filepath.Join(originalDir, filename)
 			currentContent, _ := os.ReadFile(currentPath)
 			originalContent, _ := os.ReadFile(originalPath)
 			if !bytes.Equal(currentContent, originalContent) {
+				needsDiff = true
+			}
+
+			// Check for attachment changes if provider supports them
+			if len(attachmentFields) > 0 && hasAttachmentChanges(tableName, originalDir, fileSlug, attachmentFields) {
+				needsDiff = true
+				filesWithAttachmentChanges[filename] = true
+			}
+
+			if needsDiff {
 				filesToDiff = append(filesToDiff, filename)
 			}
 		}
@@ -313,6 +337,28 @@ func runAllFilesDiff(tableName, originalDir string) error {
 		fmt.Printf("=== %s ===\n", filename)
 		if err := runFileDiff(tableName, originalDir, filename); err != nil {
 			fmt.Printf("Error: %v\n", err)
+		}
+
+		// Show attachment changes if any
+		if filesWithAttachmentChanges[filename] {
+			fileSlug := strings.TrimSuffix(filename, ".md")
+			for _, fieldName := range attachmentFields {
+				changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+				if err != nil || len(changes) == 0 {
+					continue
+				}
+				fmt.Printf("\n%sAttachment changes in '%s' field '%s':%s\n", colorOrange, filename, fieldName, colorReset)
+				for _, change := range changes {
+					switch change.Type {
+					case "removed":
+						fmt.Printf("  %s- %s%s\n", colorRed, change.Filename, colorReset)
+					case "added":
+						fmt.Printf("  %s+ %s%s\n", colorGreen, change.Filename, colorReset)
+					case "modified":
+						fmt.Printf("  %s~ %s%s\n", colorOrange, change.Filename, colorReset)
+					}
+				}
+			}
 		}
 	}
 
@@ -457,10 +503,45 @@ func runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName
 		return fmt.Errorf("failed to parse original file: %w", err)
 	}
 
+	// Load schema and check for attachment fields if provider supports attachments
+	var attachmentFields []string
+	if providerSupportsAttachments(tableName) {
+		schema, err := config.LoadTableSchema(tableName)
+		if err == nil && schema != nil {
+			attachmentFields = getAttachmentFieldsFromSchema(schema)
+		}
+	}
+
 	// Compare fields
 	modifiedFields, addedFields, removedFields := getChangedFieldsDetailed(currentFields, originalFields)
 
-	if len(modifiedFields) == 0 && len(addedFields) == 0 && len(removedFields) == 0 {
+	// For attachment fields, we need special comparison logic
+	// The field value in markdown just points to a folder path, so we compare the folder contents
+	// against the AssetManifest to detect actual attachment changes
+	attachmentChanges := make(map[string][]AttachmentChange) // fieldName -> changes
+	fileSlug := strings.TrimSuffix(fileName, ".md")
+
+	for _, fieldName := range attachmentFields {
+		changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+		if err != nil {
+			// Silently skip attachment fields that fail to compare
+			continue
+		}
+		if len(changes) > 0 {
+			attachmentChanges[fieldName] = changes
+		}
+
+		// Remove attachment fields from the regular modified/added/removed lists
+		// since we handle them specially
+		modifiedFields = removeFromSlice(modifiedFields, fieldName)
+		addedFields = removeFromSlice(addedFields, fieldName)
+		removedFields = removeFromSlice(removedFields, fieldName)
+	}
+
+	// Check if there are any changes at all
+	hasChanges := len(modifiedFields) > 0 || len(addedFields) > 0 || len(removedFields) > 0 || len(attachmentChanges) > 0
+
+	if !hasChanges {
 		fmt.Println("No field changes detected.")
 		return nil
 	}
@@ -479,7 +560,33 @@ func runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName
 		fmt.Printf("  %s%s%s\n", colorOrange, f, colorReset)
 	}
 
+	// Show attachment field changes with detailed file-level information
+	for fieldName, changes := range attachmentChanges {
+		fmt.Printf("  %s%s (attachments)%s\n", colorOrange, fieldName, colorReset)
+		for _, change := range changes {
+			switch change.Type {
+			case "removed":
+				fmt.Printf("    %s- %s%s\n", colorRed, change.Filename, colorReset)
+			case "added":
+				fmt.Printf("    %s+ %s%s\n", colorGreen, change.Filename, colorReset)
+			case "modified":
+				fmt.Printf("    %s~ %s%s\n", colorOrange, change.Filename, colorReset)
+			}
+		}
+	}
+
 	return nil
+}
+
+// removeFromSlice removes a value from a string slice and returns the new slice
+func removeFromSlice(slice []string, value string) []string {
+	result := make([]string, 0, len(slice))
+	for _, v := range slice {
+		if v != value {
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 func runContentDiffFields(cmd *cobra.Command, args []string) error {
@@ -1539,4 +1646,180 @@ func addRemoteIDToFile(filePath, remoteID string) error {
 	// Reconstruct the file
 	newContent := fmt.Sprintf("---\n%s---\n%s", string(newYAML), strings.TrimPrefix(markdownContent, "\n"))
 	return os.WriteFile(filePath, []byte(newContent), 0644)
+}
+
+// AttachmentChange represents a change to an attachment file
+type AttachmentChange struct {
+	Filename string // The filename of the attachment
+	Type     string // "added", "removed", or "modified"
+}
+
+// getAttachmentFieldChanges compares the current state of an asset folder against the original
+// AssetManifest to detect changes in attachment files.
+//
+// The comparison logic:
+// 1. Removed files: files in the manifest that no longer exist in the folder
+// 2. Added files: files in the folder that are not in the manifest
+// 3. Modified files: files that exist in both but have different checksums
+//
+// Parameters:
+//   - tableName: the name of the table folder (e.g., "blog-posts")
+//   - originalDir: path to .scratchmd/<tableName>/original
+//   - fileSlug: the slug of the markdown file (without .md extension)
+//   - fieldName: the name of the attachment field
+//
+// Returns a slice of AttachmentChange describing what changed, or nil if no changes.
+func getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName string) ([]AttachmentChange, error) {
+	var changes []AttachmentChange
+
+	// Load the asset manifest from the original folder
+	assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
+	manifest, err := config.LoadAssetManifest(assetManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load asset manifest: %w", err)
+	}
+
+	// Build the path to the current asset folder
+	// Asset folder structure: <tableName>/assets/<fileSlug>/<fieldName>/
+	assetFolderPath := filepath.Join(tableName, "assets", fileSlug, fieldName)
+
+	// Get manifest entries for this specific field by filtering on path prefix
+	// Manifest entries have Path like "assets/<fileSlug>/<fieldName>/<filename>"
+	pathPrefix := filepath.Join("assets", fileSlug, fieldName)
+	manifestFiles := make(map[string]config.AssetEntry) // filename -> entry
+	for _, entry := range manifest.Assets {
+		// Check if this entry belongs to the target field
+		if strings.HasPrefix(entry.Path, pathPrefix+string(filepath.Separator)) || strings.HasPrefix(entry.Path, pathPrefix+"/") {
+			// Extract just the filename from the path
+			filename := filepath.Base(entry.Path)
+			manifestFiles[filename] = entry
+		}
+	}
+
+	// Get current files in the asset folder
+	currentFiles := make(map[string]bool)
+	entries, err := os.ReadDir(assetFolderPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Folder doesn't exist - if manifest had files, they're all removed
+			for filename := range manifestFiles {
+				changes = append(changes, AttachmentChange{
+					Filename: filename,
+					Type:     "removed",
+				})
+			}
+			return changes, nil
+		}
+		return nil, fmt.Errorf("failed to read asset folder: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			currentFiles[entry.Name()] = true
+		}
+	}
+
+	// Check for removed files (in manifest but not in folder)
+	for filename := range manifestFiles {
+		if !currentFiles[filename] {
+			changes = append(changes, AttachmentChange{
+				Filename: filename,
+				Type:     "removed",
+			})
+		}
+	}
+
+	// Check for added files (in folder but not in manifest)
+	for filename := range currentFiles {
+		if _, inManifest := manifestFiles[filename]; !inManifest {
+			changes = append(changes, AttachmentChange{
+				Filename: filename,
+				Type:     "added",
+			})
+		}
+	}
+
+	// Check for modified files (in both, compare checksums)
+	for filename, entry := range manifestFiles {
+		if currentFiles[filename] {
+			// File exists in both - compare checksums
+			filePath := filepath.Join(assetFolderPath, filename)
+			currentChecksum, err := config.CalculateFileChecksum(filePath)
+			if err != nil {
+				// If we can't read the file, treat it as modified
+				changes = append(changes, AttachmentChange{
+					Filename: filename,
+					Type:     "modified",
+				})
+				continue
+			}
+
+			if currentChecksum != entry.Checksum {
+				changes = append(changes, AttachmentChange{
+					Filename: filename,
+					Type:     "modified",
+				})
+			}
+		}
+	}
+
+	// Sort changes by filename for consistent output
+	sort.Slice(changes, func(i, j int) bool {
+		return changes[i].Filename < changes[j].Filename
+	})
+
+	return changes, nil
+}
+
+// getAttachmentFieldsFromSchema returns the field slugs that have attachment metadata.
+func getAttachmentFieldsFromSchema(schema config.TableSchema) []string {
+	var attachmentFields []string
+	for slug, field := range schema {
+		if field.Metadata != nil {
+			if attachments, ok := field.Metadata["attachments"]; ok && (attachments == "single" || attachments == "multiple") {
+				attachmentFields = append(attachmentFields, slug)
+			}
+		}
+	}
+	return attachmentFields
+}
+
+// isAttachmentField checks if a field name is an attachment field based on the schema
+func isAttachmentField(fieldName string, attachmentFields []string) bool {
+	for _, af := range attachmentFields {
+		if af == fieldName {
+			return true
+		}
+	}
+	return false
+}
+
+// providerSupportsAttachments checks if the table's provider supports attachments
+func providerSupportsAttachments(tableName string) bool {
+	tableConfig, err := config.LoadTableConfig(tableName)
+	if err != nil || tableConfig == nil {
+		return false
+	}
+
+	provider, err := providers.GetProvider(tableConfig.Provider)
+	if err != nil {
+		return false
+	}
+
+	return provider.SupportsAttachments()
+}
+
+// hasAttachmentChanges checks if a file has any attachment field changes.
+// It returns true if there are any added, removed, or modified attachment files.
+func hasAttachmentChanges(tableName, originalDir, fileSlug string, attachmentFields []string) bool {
+	for _, fieldName := range attachmentFields {
+		changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+		if err != nil {
+			continue
+		}
+		if len(changes) > 0 {
+			return true
+		}
+	}
+	return false
 }
