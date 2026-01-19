@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
@@ -40,14 +41,39 @@ Examples:
 	RunE: runFolderLink,
 }
 
+// folderRemoveCmd represents the folder remove command
+var folderRemoveCmd = &cobra.Command{
+	Use:   "remove <folder-name>",
+	Short: "[NON-INTERACTIVE] Remove a linked folder",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Remove a local folder and its associated .scratchmd metadata.
+
+This deletes:
+  - The content folder (folder-name/)
+  - The metadata folder (.scratchmd/folder-name/)
+
+By default, shows what will be deleted and asks for confirmation.
+Use --no-review to skip the confirmation prompt.
+
+Examples:
+  scratchmd folder remove blog-posts
+  scratchmd folder remove blog-posts --no-review`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFolderRemove,
+}
+
 func init() {
 	rootCmd.AddCommand(folderCmd)
 	folderCmd.AddCommand(folderLinkCmd)
+	folderCmd.AddCommand(folderRemoveCmd)
 
 	folderLinkCmd.Flags().String("account.name", "", "Account name to link (required)")
 	folderLinkCmd.Flags().String("table-id", "", "Table ID to link (required)")
 	folderLinkCmd.MarkFlagRequired("account.name")
 	folderLinkCmd.MarkFlagRequired("table-id")
+
+	folderRemoveCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
 }
 
 func runFolderLink(cmd *cobra.Command, args []string) error {
@@ -166,5 +192,67 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Linked table '%s' to folder '%s'.\n", targetTable.Name, folderName)
 	fmt.Printf("Created .scratchmd/%s/ for tracking changes.\n", folderName)
 	fmt.Printf("Run 'scratchmd content download %s' to download records.\n", folderName)
+	return nil
+}
+
+func runFolderRemove(cmd *cobra.Command, args []string) error {
+	folderName := args[0]
+	noReview, _ := cmd.Flags().GetBool("no-review")
+
+	contentDir := folderName
+	metadataDir := filepath.Join(".scratchmd", folderName)
+
+	// Check if either directory exists
+	contentExists := false
+	metadataExists := false
+
+	if info, err := os.Stat(contentDir); err == nil && info.IsDir() {
+		contentExists = true
+	}
+	if info, err := os.Stat(metadataDir); err == nil && info.IsDir() {
+		metadataExists = true
+	}
+
+	if !contentExists && !metadataExists {
+		return fmt.Errorf("folder '%s' not found (checked %s/ and %s/)", folderName, contentDir, metadataDir)
+	}
+
+	// Show what will be deleted
+	if !noReview {
+		fmt.Println("The following will be deleted:")
+		if contentExists {
+			fmt.Printf("  - %s/ (content folder)\n", contentDir)
+		}
+		if metadataExists {
+			fmt.Printf("  - %s/ (metadata folder)\n", metadataDir)
+		}
+		fmt.Println()
+
+		fmt.Print("Proceed with removal? [y/N] ")
+		var response string
+		fmt.Scanln(&response)
+		if strings.ToLower(response) != "y" {
+			fmt.Println("Removal cancelled.")
+			return nil
+		}
+	}
+
+	// Delete content folder
+	if contentExists {
+		if err := os.RemoveAll(contentDir); err != nil {
+			return fmt.Errorf("failed to remove content folder: %w", err)
+		}
+		fmt.Printf("Removed %s/\n", contentDir)
+	}
+
+	// Delete metadata folder
+	if metadataExists {
+		if err := os.RemoveAll(metadataDir); err != nil {
+			return fmt.Errorf("failed to remove metadata folder: %w", err)
+		}
+		fmt.Printf("Removed %s/\n", metadataDir)
+	}
+
+	fmt.Printf("Folder '%s' removed successfully.\n", folderName)
 	return nil
 }
