@@ -28,3 +28,6 @@ node_modules/
 
 # Scratch CLI hidden dir.
 .scratchmd/
+
+# Docker image exports from CI builds.
+*.tar
