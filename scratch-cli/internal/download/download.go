@@ -333,21 +333,21 @@ func (d *TableDownloader) downloadAttachments(
 				assetManifest.UpsertAsset(assetEntry)
 			}
 
-			// Update frontmatter in both main and original files with local asset paths
+			// Update frontmatter in main files with local asset paths
 			filename := file.Slug
 			if filename == "" {
 				filename = file.ID
 			}
 			mdFilename := filename + ".md"
 			mainPath := filepath.Join(tableName, mdFilename)
-			originalPath := filepath.Join(originalDir, mdFilename)
+			// originalPath := filepath.Join(originalDir, mdFilename)
 
 			if err := updateFrontmatterAttachments(mainPath, fieldAttachments); err != nil {
 				progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", mainPath, err))
 			}
-			if err := updateFrontmatterAttachments(originalPath, fieldAttachments); err != nil {
-				progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", originalPath, err))
-			}
+			// if err := updateFrontmatterAttachments(originalPath, fieldAttachments); err != nil {
+			// 	progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", originalPath, err))
+			// }
 		}
 	}
 

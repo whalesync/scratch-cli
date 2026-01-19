@@ -126,3 +126,31 @@ The following commands are planned for future releases:
 ## License
 
 Private
+
+
+## Enabling Command Completion
+
+Cobra CLI automatically generates command completion scripts for a variety of terminals.  
+
+Details can be found in [their docs](https://airtable.com/developers/web/api/upload-attachment).
+
+### Zsh Completion
+
+#### Setup command completion for Zsh
+
+You only have to do this once:
+
+```zsh
+mkdir -p ~/.zsh/completions
+echo 'fpath=(~/.zsh/completions $fpath)' >> ~/.zshrc
+echo 'autoload -U compinit && compinit' >> ~/.zshrc
+```
+
+#### Update your Scratchmd completion file
+
+Anytime the command is updated with new options you need to regenerate the completion script and update Zsh
+
+```zsh
+scratchmd completion zsh > _scratchmd
+cp _scratchmd ~/.zsh/completions/
+```
