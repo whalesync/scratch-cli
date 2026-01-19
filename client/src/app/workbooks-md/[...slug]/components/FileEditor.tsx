@@ -1,14 +1,20 @@
 'use client';
 
+import { IconButtonOutline } from '@/app/components/base/buttons';
 import { useFile } from '@/hooks/use-file';
 import { foldersApi } from '@/lib/api/files';
 import { markdown } from '@codemirror/lang-markdown';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
-import { Box, Button, Group, Select, Text } from '@mantine/core';
+import { Box, Button, Group, Modal, Select, Text, Tooltip } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import type { FileId, WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
-import { DownloadIcon, SaveIcon } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import matter from 'gray-matter';
+import { DownloadIcon, EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
+import htmlParser from 'prettier/plugins/html';
+import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type ViewMode = 'original' | 'original-current' | 'current' | 'current-suggested' | 'suggested';
@@ -84,6 +90,63 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     if (!fileId) return;
     foldersApi.downloadFile(workbookId, fileId);
   }, [workbookId, fileId]);
+
+  // Content formatting (Preview, Prettify, Minify) - same logic as HtmlActionButtons
+  const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
+
+  // Check if content editing is allowed in current view mode
+  const isEditable = viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested';
+
+  // Extract the body content (after front matter) for preview
+  const bodyContent = useMemo(() => {
+    try {
+      const parsed = matter(content);
+      return parsed.content || '';
+    } catch {
+      return content;
+    }
+  }, [content]);
+
+  const handlePrettifyBody = useCallback(async () => {
+    if (!isEditable) {
+      return;
+    }
+    try {
+      const parsed = matter(content);
+      const formatted = await prettier.format(parsed.content || '', {
+        parser: 'html',
+        plugins: [htmlParser],
+        printWidth: 80,
+        tabWidth: 2,
+      });
+      const result = matter.stringify(formatted.trim(), parsed.data);
+      setContent(result);
+      setHasChanges(true);
+    } catch {
+      // If formatting fails, leave as-is
+    }
+  }, [content, isEditable]);
+
+  const handleMinifyBody = useCallback(() => {
+    if (!isEditable) {
+      return;
+    }
+    try {
+      const parsed = matter(content);
+      const minified = (parsed.content || '')
+        .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+        .replace(/\s+/g, ' ') // Collapse whitespace
+        .replace(/>\s+</g, '><') // Remove whitespace between tags
+        .replace(/\s+>/g, '>') // Remove whitespace before closing >
+        .replace(/<\s+/g, '<') // Remove whitespace after opening <
+        .trim();
+      const result = matter.stringify(minified, parsed.data);
+      setContent(result);
+      setHasChanges(true);
+    } catch {
+      // If minifying fails, leave as-is
+    }
+  }, [content, isEditable]);
 
   const extensions = useMemo(() => {
     switch (viewMode) {
@@ -171,84 +234,116 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   }
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Toolbar */}
-      <Group
-        h={32}
-        px="xs"
-        justify="space-between"
-        style={{
-          borderBottom: '0.5px solid var(--fg-divider)',
-          flexShrink: 0,
-        }}
-      >
-        <Select
-          size="xs"
-          w={200}
-          value={viewMode}
-          onChange={(value) => setViewMode(value as ViewMode)}
-          data={viewModeOptionsWithState}
+    <>
+      {/* HTML Preview Modal - shows only body content (after front matter) */}
+      <Modal opened={previewOpened} onClose={closePreview} title="HTML Preview" size="xl" centered>
+        <iframe
+          srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:8px;font-family:system-ui,sans-serif;">${DOMPurify.sanitize(bodyContent)}</body></html>`}
+          style={{ width: '100%', height: 400, border: 'none' }}
+          sandbox="allow-same-origin"
+          title="HTML Preview"
         />
-        <Group gap="xs">
-          <Button size="compact-xs" variant="subtle" leftSection={<DownloadIcon size={12} />} onClick={handleDownload}>
-            Download
-          </Button>
-          {hasChanges && (
-            <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
-              Save
-            </Button>
-          )}
-        </Group>
-      </Group>
+      </Modal>
 
-      {/* CodeMirror markdown editor */}
-      <Box
-        className={viewMode === 'original-current' ? 'hide-accept-button' : undefined}
-        style={{ flex: 1, overflow: 'auto' }}
-      >
-        <style>{`
-          .hide-accept-button .cm-deletedChunk .cm-chunkButtons button[name="accept"] {
-            display: none;
-          }
-        `}</style>
-        <CodeMirror
-          key={editorKey}
-          value={editorValue}
-          onChange={handleContentChange}
-          extensions={extensions}
-          basicSetup={{
-            lineNumbers: true,
-            highlightActiveLineGutter: true,
-            highlightSpecialChars: true,
-            history: true,
-            foldGutter: true,
-            drawSelection: true,
-            dropCursor: true,
-            allowMultipleSelections: true,
-            indentOnInput: true,
-            syntaxHighlighting: true,
-            bracketMatching: true,
-            closeBrackets: true,
-            autocompletion: true,
-            rectangularSelection: true,
-            crosshairCursor: true,
-            highlightActiveLine: viewMode === 'current' || viewMode === 'original-current',
-            highlightSelectionMatches: true,
-            closeBracketsKeymap: true,
-            defaultKeymap: true,
-            searchKeymap: true,
-            historyKeymap: true,
-            foldKeymap: true,
-            completionKeymap: true,
-            lintKeymap: true,
-          }}
+      <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Toolbar */}
+        <Group
+          h={32}
+          px="xs"
+          justify="space-between"
           style={{
-            fontSize: '14px',
-            height: '100%',
-            border: 'none',
+            borderBottom: '0.5px solid var(--fg-divider)',
+            flexShrink: 0,
           }}
-        />
+        >
+          <Group gap="xs">
+            <Select
+              size="xs"
+              w={200}
+              value={viewMode}
+              onChange={(value) => setViewMode(value as ViewMode)}
+              data={viewModeOptionsWithState}
+            />
+            {/* Content formatting buttons - same as HtmlActionButtons */}
+            <Group gap={4}>
+              <Tooltip label="Preview body content" position="bottom" withArrow>
+                <IconButtonOutline size="compact-xs" onClick={openPreview}>
+                  <EyeIcon size={13} />
+                </IconButtonOutline>
+              </Tooltip>
+              <Tooltip label="Prettify body content" position="bottom" withArrow>
+                <IconButtonOutline size="compact-xs" onClick={handlePrettifyBody} disabled={!isEditable}>
+                  <TextAlignEndIcon size={13} />
+                </IconButtonOutline>
+              </Tooltip>
+              <Tooltip label="Minify body content" position="bottom" withArrow>
+                <IconButtonOutline size="compact-xs" onClick={handleMinifyBody} disabled={!isEditable}>
+                  <TextAlignJustifyIcon size={13} />
+                </IconButtonOutline>
+              </Tooltip>
+            </Group>
+          </Group>
+          <Group gap="xs">
+            <Button size="compact-xs" variant="subtle" leftSection={<DownloadIcon size={12} />} onClick={handleDownload}>
+              Download
+            </Button>
+            {hasChanges && (
+              <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
+                Save
+              </Button>
+            )}
+          </Group>
+        </Group>
+
+        {/* CodeMirror markdown editor */}
+        <Box
+          className={viewMode === 'original-current' ? 'hide-accept-button' : undefined}
+          style={{ flex: 1, overflow: 'auto' }}
+        >
+          <style>{`
+            .hide-accept-button .cm-deletedChunk .cm-chunkButtons button[name="accept"] {
+              display: none;
+            }
+          `}</style>
+          <CodeMirror
+            key={editorKey}
+            value={editorValue}
+            onChange={handleContentChange}
+            extensions={extensions}
+            basicSetup={{
+              lineNumbers: true,
+              highlightActiveLineGutter: true,
+              highlightSpecialChars: true,
+              history: true,
+              foldGutter: true,
+              drawSelection: true,
+              dropCursor: true,
+              allowMultipleSelections: true,
+              indentOnInput: true,
+              syntaxHighlighting: true,
+              bracketMatching: true,
+              closeBrackets: true,
+              autocompletion: true,
+              rectangularSelection: true,
+              crosshairCursor: true,
+              highlightActiveLine: viewMode === 'current' || viewMode === 'original-current',
+              highlightSelectionMatches: true,
+              closeBracketsKeymap: true,
+              defaultKeymap: true,
+              searchKeymap: true,
+              historyKeymap: true,
+              foldKeymap: true,
+              completionKeymap: true,
+              lintKeymap: true,
+            }}
+            style={{
+              fontSize: '14px',
+              height: '100%',
+              border: 'none',
+            }}
+          />
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 }
