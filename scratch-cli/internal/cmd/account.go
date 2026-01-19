@@ -204,7 +204,10 @@ func runAccountSetup(cmd *cobra.Command, args []string) error {
 				Message: "Select an account to manage:",
 				Options: options,
 			}
-			if err := survey.AskOne(prompt, &selection); err != nil {
+			if err := askOne(prompt, &selection); err != nil {
+				if shouldGoBack(err) {
+					return nil // Escape exits cleanly
+				}
 				return err
 			}
 
@@ -236,7 +239,10 @@ func runAccountSetup(cmd *cobra.Command, args []string) error {
 				Message: "What would you like to do?",
 				Options: []string{manageLabel, createLabel, cancelLabel},
 			}
-			if err := survey.AskOne(prompt, &selection); err != nil {
+			if err := askOne(prompt, &selection); err != nil {
+				if shouldGoBack(err) {
+					return nil // Escape exits cleanly
+				}
 				return err
 			}
 
@@ -281,7 +287,7 @@ func manageAccountFlow(cfg *config.Config, secrets *config.SecretsConfig, accoun
 		Message: fmt.Sprintf("Action for '%s':", account.Name),
 		Options: actionOptions,
 	}
-	if err := survey.AskOne(prompt, &action); err != nil {
+	if err := askOne(prompt, &action); err != nil {
 		return err
 	}
 
@@ -309,7 +315,7 @@ func manageAccountFlow(cfg *config.Config, secrets *config.SecretsConfig, accoun
 			Message: fmt.Sprintf("Are you sure you want to delete account '%s'?", account.Name),
 			Default: false,
 		}
-		if err := survey.AskOne(prompt, &confirm); err != nil {
+		if err := askOne(prompt, &confirm); err != nil {
 			return err
 		}
 		if confirm {
@@ -390,7 +396,7 @@ func runAccountRemove(cmd *cobra.Command, args []string) error {
 		Message: fmt.Sprintf("Remove account '%s' (%s)?", account.Name, account.Provider),
 		Default: false,
 	}
-	if err := survey.AskOne(prompt, &confirm); err != nil {
+	if err := askOne(prompt, &confirm); err != nil {
 		return err
 	}
 
@@ -725,7 +731,7 @@ func updateCredentialsForAccount(cfg *config.Config, secrets *config.SecretsConf
 				Message: fmt.Sprintf("Enter %s%s:", prop.DisplayName, defaultHint),
 				Help:    prop.Description,
 			}
-			if err := survey.AskOne(prompt, &value); err != nil {
+			if err := askOne(prompt, &value); err != nil {
 				return err
 			}
 
@@ -740,7 +746,7 @@ func updateCredentialsForAccount(cfg *config.Config, secrets *config.SecretsConf
 				Help:    prop.Description,
 				Default: existingValue,
 			}
-			if err := survey.AskOne(prompt, &value); err != nil {
+			if err := askOne(prompt, &value); err != nil {
 				return err
 			}
 		}
@@ -782,7 +788,7 @@ func updateCredentialsForAccount(cfg *config.Config, secrets *config.SecretsConf
 			Message: "Save credentials anyway? (You can test again later)",
 			Default: false,
 		}
-		if err := survey.AskOne(savePrompt, &saveAnyway); err != nil {
+		if err := askOne(savePrompt, &saveAnyway); err != nil {
 			return err
 		}
 		if !saveAnyway {

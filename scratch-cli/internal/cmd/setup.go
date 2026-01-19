@@ -121,7 +121,7 @@ edit the config files directly:
 		if len(cfg.Accounts) == 0 {
 			fmt.Println("No accounts configured. Let's add one first!")
 			if err := addAccountInteractive(cfg, secrets); err != nil {
-				if err.Error() == "interrupt" {
+				if shouldGoBack(err) {
 					fmt.Println("\nExiting setup.")
 					return nil
 				}
@@ -137,7 +137,12 @@ edit the config files directly:
 			Message: "What would you like to do?",
 			Options: options,
 		}
-		if err := survey.AskOne(prompt, &action); err != nil {
+		if err := askOne(prompt, &action); err != nil {
+			if shouldGoBack(err) {
+				fmt.Println()
+				fmt.Println("👋 Setup complete! Run 'scratchmd --help' to see available commands.")
+				return nil
+			}
 			return err
 		}
 
@@ -149,26 +154,34 @@ edit the config files directly:
 
 		case "Add a new account":
 			if err := addAccountInteractive(cfg, secrets); err != nil {
-				fmt.Printf("\n❌ Error: %s\n\n", err)
+				if !shouldGoBack(err) {
+					fmt.Printf("\n❌ Error: %s\n\n", err)
+				}
 				continue
 			}
 			saveConfigs(cfg, secrets)
 
 		case "Set up tables":
 			if err := setupTablesInteractive(cfg, secrets); err != nil {
-				fmt.Printf("\n❌ Error: %s\n\n", err)
+				if !shouldGoBack(err) {
+					fmt.Printf("\n❌ Error: %s\n\n", err)
+				}
 				continue
 			}
 
 		case "Download records":
 			if err := downloadRecordsInteractive(cfg, secrets); err != nil {
-				fmt.Printf("\n❌ Error: %s\n\n", err)
+				if !shouldGoBack(err) {
+					fmt.Printf("\n❌ Error: %s\n\n", err)
+				}
 				continue
 			}
 
 		case "Advanced settings":
 			if err := advancedSettingsInteractive(cfg); err != nil {
-				fmt.Printf("\n❌ Error: %s\n\n", err)
+				if !shouldGoBack(err) {
+					fmt.Printf("\n❌ Error: %s\n\n", err)
+				}
 				continue
 			}
 		}
@@ -232,7 +245,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 			Message: "Select an account:",
 			Options: accountOptions,
 		}
-		if err := survey.AskOne(prompt, &selected); err != nil {
+		if err := askOne(prompt, &selected); err != nil {
 			return err
 		}
 
@@ -325,7 +338,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		Message: "Select tables to set up (space to toggle, enter to confirm):",
 		Options: tableOptions,
 	}
-	if err := survey.AskOne(multiPrompt, &selectedTables); err != nil {
+	if err := askOne(multiPrompt, &selectedTables); err != nil {
 		return err
 	}
 
@@ -381,7 +394,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 				Options: allFieldSlugs,
 				Default: defaultField,
 			}
-			if err := survey.AskOne(filenamePrompt, &filenameField); err != nil {
+			if err := askOne(filenamePrompt, &filenameField); err != nil {
 				return err
 			}
 		} else {
@@ -396,7 +409,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 			Options: contentFieldOptions,
 			Default: "(none)",
 		}
-		if err := survey.AskOne(contentPrompt, &contentField); err != nil {
+		if err := askOne(contentPrompt, &contentField); err != nil {
 			return err
 		}
 		if contentField == "(none)" {
@@ -478,7 +491,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		Message: "Select your CMS provider:",
 		Options: displayOptions,
 	}
-	if err := survey.AskOne(providerPrompt, &selectedProvider); err != nil {
+	if err := askOne(providerPrompt, &selectedProvider); err != nil {
 		return err
 	}
 
@@ -498,7 +511,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 		Default: providerName,
 		Help:    "A friendly name to identify this account. Useful if you have multiple accounts.",
 	}
-	if err := survey.AskOne(namePrompt, &accountName); err != nil {
+	if err := askOne(namePrompt, &accountName); err != nil {
 		return err
 	}
 
@@ -516,7 +529,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 			Message: fmt.Sprintf("Account '%s' already exists. Overwrite?", accountName),
 			Default: false,
 		}
-		if err := survey.AskOne(confirmPrompt, &overwrite); err != nil {
+		if err := askOne(confirmPrompt, &overwrite); err != nil {
 			return err
 		}
 		if !overwrite {
@@ -543,7 +556,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 				Message: fmt.Sprintf("Enter %s:", prop.DisplayName),
 				Help:    prop.Description,
 			}
-			if err := survey.AskOne(prompt, &value); err != nil {
+			if err := askOne(prompt, &value); err != nil {
 				return err
 			}
 		} else {
@@ -552,7 +565,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 				Message: fmt.Sprintf("Enter %s:", prop.DisplayName),
 				Help:    prop.Description,
 			}
-			if err := survey.AskOne(prompt, &value); err != nil {
+			if err := askOne(prompt, &value); err != nil {
 				return err
 			}
 		}
@@ -594,7 +607,7 @@ func addAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig) er
 			Message: "Save account anyway? (You can test again later)",
 			Default: false,
 		}
-		if err := survey.AskOne(savePrompt, &saveAnyway); err != nil {
+		if err := askOne(savePrompt, &saveAnyway); err != nil {
 			return err
 		}
 		if !saveAnyway {
@@ -656,7 +669,7 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 		Message: "Select a table to download:",
 		Options: tables,
 	}
-	if err := survey.AskOne(tablePrompt, &selectedTable); err != nil {
+	if err := askOne(tablePrompt, &selectedTable); err != nil {
 		return err
 	}
 
@@ -689,7 +702,7 @@ func advancedSettingsInteractive(cfg *config.Config) error {
 			Message: "What would you like to configure?",
 			Options: options,
 		}
-		if err := survey.AskOne(prompt, &action); err != nil {
+		if err := askOne(prompt, &action); err != nil {
 			return err
 		}
 
@@ -699,7 +712,9 @@ func advancedSettingsInteractive(cfg *config.Config) error {
 
 		case "Update Scratch.md Server URL":
 			if err := setScratchServerURLInteractive(cfg); err != nil {
-				fmt.Printf("\n❌ Error: %s\n\n", err)
+				if !shouldGoBack(err) {
+					fmt.Printf("\n❌ Error: %s\n\n", err)
+				}
 				continue
 			}
 			config.SaveConfig(cfg)
@@ -719,7 +734,7 @@ func setScratchServerURLInteractive(cfg *config.Config) error {
 		Default: cfg.Settings.ScratchServerURL,
 		Help:    "The URL for the Scratch.md API server (e.g., https://api.scratch.md)",
 	}
-	if err := survey.AskOne(prompt, &newURL); err != nil {
+	if err := askOne(prompt, &newURL); err != nil {
 		return err
 	}
 
@@ -744,7 +759,7 @@ func setScratchServerURLInteractive(cfg *config.Config) error {
 			Message: "Save URL anyway?",
 			Default: false,
 		}
-		if err := survey.AskOne(savePrompt, &saveAnyway); err != nil {
+		if err := askOne(savePrompt, &saveAnyway); err != nil {
 			return err
 		}
 		if !saveAnyway {

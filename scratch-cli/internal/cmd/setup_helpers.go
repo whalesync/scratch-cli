@@ -123,7 +123,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		Message: "Select tables to set up (space to toggle, enter to confirm):",
 		Options: tableOptions,
 	}
-	if err := survey.AskOne(multiPrompt, &selectedTables); err != nil {
+	if err := askOne(multiPrompt, &selectedTables); err != nil {
 		return err
 	}
 
@@ -179,7 +179,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 				Options: allFieldSlugs,
 				Default: defaultField,
 			}
-			if err := survey.AskOne(filenamePrompt, &filenameField); err != nil {
+			if err := askOne(filenamePrompt, &filenameField); err != nil {
 				return err
 			}
 		} else {
@@ -194,7 +194,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 			Options: contentFieldOptions,
 			Default: "(none)",
 		}
-		if err := survey.AskOne(contentPrompt, &contentField); err != nil {
+		if err := askOne(contentPrompt, &contentField); err != nil {
 			return err
 		}
 		if contentField == "(none)" {
