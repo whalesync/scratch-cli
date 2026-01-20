@@ -669,6 +669,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+  const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const showModal = useWorkbookEditorUIStore((state) => state.showModal);
   // Use the file list hook
@@ -736,6 +737,25 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     setSelectedNodes(new Set());
     setLastSelectedNodeId(null);
   }, [files]);
+
+  // Auto-open "New Linked Folder" tab when workbook is empty in file mode
+  useEffect(() => {
+    // Only trigger when loading is complete
+    if (isLoading) {
+      return;
+    }
+
+    // Check if workbook is empty (no files or folders)
+    const hasContent = files?.items && files.items.length > 0;
+
+    // Check if no tabs are open
+    const hasNoOpenTabs = openFileTabs.length === 0;
+
+    // If workbook is empty and no tabs open, auto-open the "New Linked Folder" tab
+    if (!hasContent && hasNoOpenTabs) {
+      openFileTab({ id: 'add-table', type: 'add-table', title: 'New Table', path: '' });
+    }
+  }, [isLoading, files, openFileTabs.length, openFileTab]);
 
   // Handle downloading files from remote source (sync) - opens the folder selection modal
   const handleDownloadFilesFromRemote = useCallback(() => {
