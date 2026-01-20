@@ -90,6 +90,9 @@ var HTTPClient = &http.Client{
 // ErrAttachmentsNotSupported is returned when a provider does not support attachment extraction
 var ErrAttachmentsNotSupported = errors.New("provider does not support attachments")
 
+// ErrUploadNotSupported is returned when a provider does not support attachment uploads
+var ErrUploadNotSupported = errors.New("provider does not support attachment uploads")
+
 // Attachment represents a file attachment from a CMS record
 type Attachment struct {
 	ID   string // Provider-specific ID for the attachment
@@ -105,6 +108,34 @@ type AttachmentExtractor interface {
 	// The fieldValue is the raw value from a YAML record's field.
 	// Returns ErrAttachmentsNotSupported if the provider doesn't support attachments.
 	ExtractAttachments(fieldValue interface{}) ([]Attachment, error)
+}
+
+// UploadFile contains the file data to upload
+type UploadFile struct {
+	ContentType string // MIME type of the file
+	Filename    string // Name of the file
+	Content     string // File content
+}
+
+// FileAttachment represents an uploaded attachment
+type FileAttachment struct {
+	ID       string // The new ID for the attachment
+	Filename string // Name of the file
+	URL      string // URL of the uploaded file
+}
+
+// ConnectorCredentials represents the credentials for a connector.
+type ConnectorCredentials struct {
+	Service string            `json:"service"`
+	Params  map[string]string `json:"params,omitempty"`
+}
+
+// AttachmentUploader is implemented by providers that support uploading attachments
+type AttachmentUploader interface {
+	// UploadAttachment uploads a file attachment to the provider.
+	// For Airtable: siteID=baseID, tableID=tableID, recordID=recordID, fieldID=attachmentFieldID
+	// Returns ErrUploadNotSupported if the provider doesn't support uploads.
+	UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error)
 }
 
 // DownloadAttachments downloads attachments to destDir with collision-safe filenames.

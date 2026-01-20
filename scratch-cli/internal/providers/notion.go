@@ -30,3 +30,9 @@ func (p *NotionProvider) AuthProperties() []AuthProperty {
 func (p *NotionProvider) SupportsAttachments() bool {
 	return false
 }
+
+// UploadAttachment uploads a file attachment to Notion.
+// Currently returns ErrUploadNotSupported as this is not yet implemented.
+func (p *NotionProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {
+	return nil, ErrUploadNotSupported
+}

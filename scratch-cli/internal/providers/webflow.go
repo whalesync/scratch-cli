@@ -36,6 +36,12 @@ func (w *WebflowProvider) SupportsAttachments() bool {
 	return false
 }
 
+// UploadAttachment uploads a file attachment to Webflow.
+// Currently returns ErrUploadNotSupported as this is not yet implemented.
+func (w *WebflowProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {
+	return nil, ErrUploadNotSupported
+}
+
 // Webflow API response types
 type webflowSitesResponse struct {
 	Sites []webflowSite `json:"sites"`

@@ -42,3 +42,9 @@ func (w *WordPressProvider) AuthProperties() []AuthProperty {
 func (w *WordPressProvider) SupportsAttachments() bool {
 	return false
 }
+
+// UploadAttachment uploads a file attachment to WordPress.
+// Currently returns ErrUploadNotSupported as this is not yet implemented.
+func (w *WordPressProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {
+	return nil, ErrUploadNotSupported
+}
