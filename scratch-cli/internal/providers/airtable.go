@@ -120,17 +120,23 @@ func (p *AirtableProvider) UploadAttachment(creds ConnectorCredentials, siteID, 
 
 	// Extract the attachment from the fields map
 	// The response contains fields keyed by field ID, each containing an array of attachments
-	// We need to find the attachment matching the filename we uploaded
+	// We need to find the last attachment matching the filename we uploaded
+	// (newly uploaded files are appended to the end, and there may be duplicates based on filename)
+	var matchedAttachment *airtableAttachmentIn
 	for _, attachments := range uploadResp.Fields {
-		for _, att := range attachments {
-			if att.Filename == file.Filename {
-				return &FileAttachment{
-					ID:       att.ID,
-					Filename: att.Filename,
-					URL:      att.URL,
-				}, nil
+		for i := range attachments {
+			if attachments[i].Filename == file.Filename && attachments[i].Size == file.Size {
+				matchedAttachment = &attachments[i]
 			}
 		}
+	}
+
+	if matchedAttachment != nil {
+		return &FileAttachment{
+			ID:       matchedAttachment.ID,
+			Filename: matchedAttachment.Filename,
+			URL:      matchedAttachment.URL,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("no attachment with filename %q found in response", file.Filename)

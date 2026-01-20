@@ -115,6 +115,7 @@ type UploadFile struct {
 	ContentType string // MIME type of the file
 	Filename    string // Name of the file
 	Content     string // File content
+	Size        int64  // Size of the file in bytes
 }
 
 // FileAttachment represents an uploaded attachment

@@ -139,3 +139,33 @@ func (m *AssetManifest) GetAssetsByFileID(fileID string) []AssetEntry {
 
 	return entries
 }
+
+// RemoveAsset removes an asset entry from the manifest by its attachment ID.
+// Returns true if the asset was found and removed, false if not found.
+func (m *AssetManifest) RemoveAsset(attachmentID string) bool {
+	for i := range m.Assets {
+		if m.Assets[i].ID == attachmentID {
+			// Remove by replacing with last element and truncating
+			m.Assets[i] = m.Assets[len(m.Assets)-1]
+			m.Assets = m.Assets[:len(m.Assets)-1]
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveAssetsByPath removes all asset entries whose Path starts with the given prefix.
+// Returns the number of assets removed.
+func (m *AssetManifest) RemoveAssetsByPath(pathPrefix string) int {
+	removed := 0
+	filtered := m.Assets[:0]
+	for _, asset := range m.Assets {
+		if len(asset.Path) >= len(pathPrefix) && asset.Path[:len(pathPrefix)] == pathPrefix {
+			removed++
+		} else {
+			filtered = append(filtered, asset)
+		}
+	}
+	m.Assets = filtered
+	return removed
+}

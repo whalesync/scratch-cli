@@ -3,7 +3,9 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
+	"mime"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1158,6 +1160,95 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			tableID = []string{tc.tableConfig.TableID}
 		}
 
+		// Load schema to identify attachment fields
+		schema, _ := config.LoadTableSchema(tc.tableName)
+		var attachmentFields []string
+		if schema != nil {
+			attachmentFields = getAttachmentFieldsFromSchema(schema)
+		}
+
+		// Check if provider supports attachments
+		supportsAttachments := providerSupportsAttachments(tc.tableName)
+
+		// originalDir for attachment ID lookups
+		originalDir := filepath.Join(".scratchmd", tc.tableName, "original")
+
+		// Upload new attachment files BEFORE building operations
+		// This ensures newly uploaded attachments get their IDs registered in the manifest
+		// so they can be included in the attachment field data
+		if supportsAttachments && len(attachmentFields) > 0 {
+			// Get the provider's uploader interface
+			provider, _ := providers.GetProvider(tc.tableConfig.Provider)
+			uploader, isUploader := provider.(providers.AttachmentUploader)
+
+			if isUploader {
+				s.Suffix = fmt.Sprintf(" Uploading new attachments for '%s'...", tc.tableName)
+
+				// Progress callback that works with the spinner
+				uploadProgress := func(msg string) {
+					s.Stop()
+					fmt.Println(msg)
+					s.Start()
+				}
+
+				// Process each change that has a remoteId (updates) or will get one (creates need special handling)
+				for _, change := range tc.changes {
+					// Skip deletes - no attachments to upload
+					if change.Operation == "delete" {
+						continue
+					}
+
+					// For creates, we cannot upload attachments yet because there's no recordID
+					// The record must be created first, then attachments can be added in a follow-up
+					if change.Operation == "create" {
+						// Check if there are any attachment changes for this new file
+						_, baseFilename := filepath.Split(change.Filename)
+						fileSlug := strings.TrimSuffix(baseFilename, ".md")
+
+						for _, fieldName := range attachmentFields {
+							changes, _ := getAttachmentFieldChanges(tc.tableName, originalDir, fileSlug, fieldName)
+							for _, c := range changes {
+								if c.Type == "added" {
+									uploadProgress(fmt.Sprintf("    ⚠️  Skipping attachment upload for new record '%s' - attachments will need to be uploaded after record creation", change.Filename))
+									break
+								}
+							}
+						}
+						continue
+					}
+
+					// For updates, we have a remoteId to upload to
+					if change.RemoteID == "" {
+						continue
+					}
+
+					_, baseFilename := filepath.Split(change.Filename)
+					fileSlug := strings.TrimSuffix(baseFilename, ".md")
+
+					for _, fieldName := range attachmentFields {
+						uploaded, err := uploadNewAndModifiedAttachments(
+							tc.tableName,
+							originalDir,
+							fileSlug,
+							fieldName,
+							tc.tableConfig,
+							creds,
+							uploader,
+							change.RemoteID,
+							uploadProgress,
+						)
+						if err != nil {
+							uploadProgress(fmt.Sprintf("    ⚠️  Error uploading attachments for %s/%s: %v", fileSlug, fieldName, err))
+						} else if uploaded > 0 {
+							uploadProgress(fmt.Sprintf("    ✓ Uploaded %d new attachment(s) for %s/%s", uploaded, fileSlug, fieldName))
+						}
+					}
+				}
+
+				s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
+			}
+		}
+
 		// Convert UploadChange to api.UploadOperation
 		var operations []api.UploadOperation
 		for _, change := range tc.changes {
@@ -1195,6 +1286,34 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				}
 			}
 
+			// Convert attachment field values from folder paths to attachment IDs
+			// Only do this if the provider supports attachments and we have attachment fields
+			if supportsAttachments && len(attachmentFields) > 0 && data != nil {
+				// Get the file slug from the filename (e.g., "blog-posts/my-post.md" -> "my-post")
+				_, baseFilename := filepath.Split(change.Filename)
+				fileSlug := strings.TrimSuffix(baseFilename, ".md")
+
+				for _, fieldName := range attachmentFields {
+					if _, hasField := data[fieldName]; hasField {
+						// This field is an attachment field and is being modified
+						// Convert the folder path to a list of attachment IDs
+						attachmentIDs, err := getAttachmentIDsForField(tc.tableName, originalDir, fileSlug, fieldName)
+						if err != nil {
+							// Log warning but continue - the field value will remain as the folder path
+							// which will likely cause an error on the server side
+							continue
+						}
+						// Replace the folder path with a list of attachment objects
+						// Each object has a single "id" property, e.g., [{"id": "att123"}, {"id": "att456"}]
+						var attachmentObjects []map[string]string
+						for _, id := range attachmentIDs {
+							attachmentObjects = append(attachmentObjects, map[string]string{"id": id})
+						}
+						data[fieldName] = attachmentObjects
+					}
+				}
+			}
+
 			operations = append(operations, api.UploadOperation{
 				Op:       op,
 				ID:       change.RemoteID,
@@ -1212,7 +1331,6 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 		}
 
 		// Report results and update local file system for each file
-		originalDir := filepath.Join(".scratchmd", tc.tableName, "original")
 		for _, result := range resp.Results {
 			if result.Error != "" {
 				fmt.Printf("  %s❌ %s: %s%s\n", colorRed, result.Filename, result.Error, colorReset)
@@ -1246,6 +1364,62 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				// Delete the original file (current file already doesn't exist for deletes)
 				if err := os.Remove(originalPath); err != nil && !os.IsNotExist(err) {
 					fmt.Printf("    ⚠️  Failed to remove original: %v\n", err)
+				}
+			}
+		}
+
+		// Update AssetManifest: remove entries for deleted attachments
+		if supportsAttachments && len(attachmentFields) > 0 {
+			assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
+			manifest, err := config.LoadAssetManifest(assetManifestPath)
+			if err == nil {
+				manifestModified := false
+
+				// For each successfully uploaded file, check for removed attachments
+				for _, result := range resp.Results {
+					if result.Error != "" {
+						continue // Skip failed uploads
+					}
+
+					// Only process updates (creates won't have removed attachments, deletes remove the whole file)
+					if result.Op != "update" {
+						continue
+					}
+
+					_, baseFilename := filepath.Split(result.Filename)
+					fileSlug := strings.TrimSuffix(baseFilename, ".md")
+
+					// Check each attachment field for removed files
+					for _, fieldName := range attachmentFields {
+						changes, err := getAttachmentFieldChanges(tc.tableName, originalDir, fileSlug, fieldName)
+						if err != nil {
+							continue
+						}
+
+						// Remove manifest entries for deleted attachments
+						for _, change := range changes {
+							if change.Type == "removed" {
+								// Build the path prefix to find the entry in manifest
+								// Manifest paths are like "assets/<fileSlug>/<fieldName>/<filename>"
+								assetPath := filepath.Join("assets", fileSlug, fieldName, change.Filename)
+								// Find and remove the entry by path
+								for i := range manifest.Assets {
+									if manifest.Assets[i].Path == assetPath {
+										manifest.RemoveAsset(manifest.Assets[i].ID)
+										manifestModified = true
+										break
+									}
+								}
+							}
+						}
+					}
+				}
+
+				// Save the manifest if it was modified
+				if manifestModified {
+					if err := config.SaveAssetManifest(assetManifestPath, manifest); err != nil {
+						fmt.Printf("    ⚠️  Failed to update asset manifest: %v\n", err)
+					}
 				}
 			}
 		}
@@ -1324,6 +1498,32 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 	}
 
 	changedFields := getChangedFields(currentFields, originalFields)
+
+	// Check for attachment field changes if provider supports attachments
+	if providerSupportsAttachments(tableName) {
+		schema, _ := config.LoadTableSchema(tableName)
+		if schema != nil {
+			attachmentFields := getAttachmentFieldsFromSchema(schema)
+			fileSlug := strings.TrimSuffix(fileName, ".md")
+			for _, fieldName := range attachmentFields {
+				changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+				if err == nil && len(changes) > 0 {
+					// Add the attachment field to changed fields if not already present
+					found := false
+					for _, cf := range changedFields {
+						if cf == fieldName {
+							found = true
+							break
+						}
+					}
+					if !found {
+						changedFields = append(changedFields, fieldName)
+					}
+				}
+			}
+		}
+	}
+
 	if len(changedFields) == 0 {
 		return nil, nil // No changes
 	}
@@ -1415,6 +1615,16 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 		}
 	}
 
+	// Load schema and check for attachment support once for the folder
+	var attachmentFields []string
+	supportsAttachments := providerSupportsAttachments(tableName)
+	if supportsAttachments {
+		schema, _ := config.LoadTableSchema(tableName)
+		if schema != nil {
+			attachmentFields = getAttachmentFieldsFromSchema(schema)
+		}
+	}
+
 	// Check for modified files
 	for filename := range originalFiles {
 		if currentFiles[filename] {
@@ -1431,6 +1641,28 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 			}
 
 			changedFields := getChangedFields(currentFields, originalFields)
+
+			// Check for attachment field changes if provider supports attachments
+			if supportsAttachments && len(attachmentFields) > 0 {
+				fileSlug := strings.TrimSuffix(filename, ".md")
+				for _, fieldName := range attachmentFields {
+					attChanges, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+					if err == nil && len(attChanges) > 0 {
+						// Add the attachment field to changed fields if not already present
+						found := false
+						for _, cf := range changedFields {
+							if cf == fieldName {
+								found = true
+								break
+							}
+						}
+						if !found {
+							changedFields = append(changedFields, fieldName)
+						}
+					}
+				}
+			}
+
 			if len(changedFields) > 0 {
 				changes = append(changes, UploadChange{
 					Operation:     "update",
@@ -1822,4 +2054,453 @@ func hasAttachmentChanges(tableName, originalDir, fileSlug string, attachmentFie
 		}
 	}
 	return false
+}
+
+// getAttachmentIDsForField returns a list of attachment IDs for files currently in an attachment field folder.
+// It looks up each file in the AssetManifest to obtain the provider's attachment ID.
+// For files not in the manifest (newly added files), they are skipped.
+//
+// Parameters:
+//   - tableName: the name of the table folder (e.g., "blog-posts")
+//   - originalDir: path to .scratchmd/<tableName>/original
+//   - fileSlug: the slug of the markdown file (without .md extension)
+//   - fieldName: the name of the attachment field
+//
+// Returns a slice of attachment IDs in order of filenames, or an error if the manifest cannot be loaded.
+func getAttachmentIDsForField(tableName, originalDir, fileSlug, fieldName string) ([]string, error) {
+	// Load the asset manifest from the original folder
+	assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
+	manifest, err := config.LoadAssetManifest(assetManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load asset manifest: %w", err)
+	}
+
+	// Build the path to the current asset folder
+	assetFolderPath := filepath.Join(tableName, "assets", fileSlug, fieldName)
+
+	// Build a lookup map from filename to attachment ID from the manifest
+	// Manifest entries have Path like "assets/<fileSlug>/<fieldName>/<filename>"
+	pathPrefix := filepath.Join("assets", fileSlug, fieldName)
+	manifestByFilename := make(map[string]string) // filename -> attachment ID
+	for _, entry := range manifest.Assets {
+		if strings.HasPrefix(entry.Path, pathPrefix+string(filepath.Separator)) || strings.HasPrefix(entry.Path, pathPrefix+"/") {
+			filename := filepath.Base(entry.Path)
+			manifestByFilename[filename] = entry.ID
+		}
+	}
+
+	// Get current files in the asset folder, sorted by name
+	entries, err := os.ReadDir(assetFolderPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// No attachment folder exists - return empty list
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("failed to read asset folder: %w", err)
+	}
+
+	// Collect filenames and sort them
+	var filenames []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			filenames = append(filenames, entry.Name())
+		}
+	}
+	sort.Strings(filenames)
+
+	// Build the list of attachment IDs
+	var attachmentIDs []string
+	for _, filename := range filenames {
+		if id, ok := manifestByFilename[filename]; ok {
+			attachmentIDs = append(attachmentIDs, id)
+		}
+		// Note: files not in manifest (newly added) are skipped - they cannot be uploaded this way
+		// and need to be handled by separate attachment upload logic
+	}
+
+	return attachmentIDs, nil
+}
+
+// uploadNewAndModifiedAttachments uploads new attachment files and re-uploads modified ones.
+//
+// For new files (added):
+// 1. Uploads the attachment via the provider's AttachmentUploader
+// 2. Renames the file to include the returned attachment ID and proper index
+// 3. Registers the file in the AssetManifest
+//
+// For modified files (checksum changed):
+// 1. Extracts the base filename without index prefix or attachment ID
+// 2. Uploads the attachment via the provider's AttachmentUploader using the base name
+// 3. Updates the filename to replace the old attachment ID with the new one
+// 4. Removes the old manifest entry and creates a new one
+//
+// Parameters:
+//   - tableName: the name of the table folder (e.g., "blog-posts")
+//   - originalDir: path to .scratchmd/<tableName>/original
+//   - fileSlug: the slug of the markdown file (without .md extension)
+//   - fieldName: the name of the attachment field
+//   - tableConfig: the table configuration (for provider credentials)
+//   - creds: connector credentials for the provider API
+//   - uploader: the provider's attachment uploader interface
+//   - recordID: the remote record ID for this file
+//   - progress: callback for progress messages
+//
+// Returns the number of attachments uploaded, or an error.
+func uploadNewAndModifiedAttachments(
+	tableName, originalDir, fileSlug, fieldName string,
+	tableConfig *config.TableConfig,
+	creds *api.ConnectorCredentials,
+	uploader providers.AttachmentUploader,
+	recordID string,
+	progress func(string),
+) (int, error) {
+	// Get the changes to identify added and modified files
+	changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get attachment changes: %w", err)
+	}
+
+	// Separate added and modified files
+	var addedFiles []string
+	var modifiedFiles []string
+	for _, change := range changes {
+		switch change.Type {
+		case "added":
+			addedFiles = append(addedFiles, change.Filename)
+		case "modified":
+			modifiedFiles = append(modifiedFiles, change.Filename)
+		}
+	}
+
+	if len(addedFiles) == 0 && len(modifiedFiles) == 0 {
+		return 0, nil
+	}
+
+	// Build paths
+	assetFolderPath := filepath.Join(tableName, "assets", fileSlug, fieldName)
+	assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
+
+	// Load the asset manifest
+	manifest, err := config.LoadAssetManifest(assetManifestPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to load asset manifest: %w", err)
+	}
+
+	// Build a lookup map from filename to manifest entry for modified file handling
+	pathPrefix := filepath.Join("assets", fileSlug, fieldName)
+	manifestByFilename := make(map[string]config.AssetEntry)
+	for _, entry := range manifest.Assets {
+		if strings.HasPrefix(entry.Path, pathPrefix+string(filepath.Separator)) || strings.HasPrefix(entry.Path, pathPrefix+"/") {
+			filename := filepath.Base(entry.Path)
+			manifestByFilename[filename] = entry
+		}
+	}
+
+	// Get the highest existing index in the folder
+	highestIndex := getHighestIndexInFolder(assetFolderPath)
+
+	// Build provider credentials for the uploader
+	providerCreds := providers.ConnectorCredentials{
+		Service: creds.Service,
+		Params:  creds.Params,
+	}
+
+	uploaded := 0
+
+	// Process added files
+	for _, filename := range addedFiles {
+		filePath := filepath.Join(assetFolderPath, filename)
+
+		// Read the file content
+		fileContent, err := os.ReadFile(filePath)
+		if err != nil {
+			progress(fmt.Sprintf("    ⚠️  Failed to read attachment %s: %v", filename, err))
+			continue
+		}
+
+		// Detect content type from extension
+		contentType := detectContentType(filename)
+
+		// Get the base filename (without index prefix) for upload
+		_, nameWithoutIndex := parseAttachmentFilename(filename)
+		if nameWithoutIndex == "" {
+			nameWithoutIndex = filename
+		}
+
+		// Create the upload file
+		uploadFile := providers.UploadFile{
+			ContentType: contentType,
+			Filename:    nameWithoutIndex,
+			Content:     base64.StdEncoding.EncodeToString(fileContent),
+			Size:        int64(len(fileContent)),
+		}
+
+		// Upload the attachment
+		progress(fmt.Sprintf("    📤 Uploading new attachment %s...", filename))
+		result, err := uploader.UploadAttachment(
+			providerCreds,
+			tableConfig.SiteID,
+			tableConfig.TableID,
+			recordID,
+			fieldName,
+			uploadFile,
+		)
+		if err != nil {
+			progress(fmt.Sprintf("    ⚠️  Failed to upload %s: %v", filename, err))
+			continue
+		}
+
+		// Build the new filename with proper index and attachment ID
+		newFilename := buildAttachmentFilename(filename, result.ID, highestIndex+uploaded+1)
+		newFilePath := filepath.Join(assetFolderPath, newFilename)
+
+		// Rename the file if the name changed
+		if newFilename != filename {
+			if err := os.Rename(filePath, newFilePath); err != nil {
+				progress(fmt.Sprintf("    ⚠️  Failed to rename %s to %s: %v", filename, newFilename, err))
+				continue
+			}
+			progress(fmt.Sprintf("    📝 Renamed %s -> %s", filename, newFilename))
+		}
+
+		// Calculate checksum and file info for manifest
+		fileInfo, _ := os.Stat(newFilePath)
+		checksum, _ := config.CalculateFileChecksum(newFilePath)
+
+		// Register in manifest
+		entry := config.AssetEntry{
+			ID:               result.ID,
+			FileID:           fileSlug,
+			Filename:         newFilename,
+			Path:             filepath.Join("assets", fileSlug, fieldName, newFilename),
+			FileSize:         fileInfo.Size(),
+			Checksum:         checksum,
+			MimeType:         contentType,
+			LastDownloadDate: time.Now().Format(time.RFC3339),
+		}
+		manifest.UpsertAsset(entry)
+
+		uploaded++
+		progress(fmt.Sprintf("    ✓ Uploaded %s (id: %s)", newFilename, result.ID))
+	}
+
+	// Process modified files
+	for _, filename := range modifiedFiles {
+		filePath := filepath.Join(assetFolderPath, filename)
+
+		// Get the old manifest entry for this file
+		oldEntry, hasOldEntry := manifestByFilename[filename]
+		if !hasOldEntry {
+			progress(fmt.Sprintf("    ⚠️  Modified file %s not found in manifest, skipping", filename))
+			continue
+		}
+
+		// Read the file content
+		fileContent, err := os.ReadFile(filePath)
+		if err != nil {
+			progress(fmt.Sprintf("    ⚠️  Failed to read attachment %s: %v", filename, err))
+			continue
+		}
+
+		// Detect content type from extension
+		contentType := detectContentType(filename)
+
+		// Extract the base filename without index prefix AND without attachment ID
+		// e.g., "01-myfile-att0000000.jpg" -> "myfile.jpg"
+		baseName := extractBaseFilename(filename)
+
+		// Create the upload file with the base name
+		uploadFile := providers.UploadFile{
+			ContentType: contentType,
+			Filename:    baseName,
+			Content:     base64.StdEncoding.EncodeToString(fileContent),
+			Size:        int64(len(fileContent)),
+		}
+
+		// Upload the attachment
+		progress(fmt.Sprintf("    📤 Re-uploading modified attachment %s, %s...", filename, baseName))
+		result, err := uploader.UploadAttachment(
+			providerCreds,
+			tableConfig.SiteID,
+			tableConfig.TableID,
+			recordID,
+			fieldName,
+			uploadFile,
+		)
+		if err != nil {
+			progress(fmt.Sprintf("    ⚠️  Failed to upload %s: %v", filename, err))
+			continue
+		}
+
+		// Build the new filename replacing the old attachment ID with the new one
+		// Preserve the existing index
+		existingIndex, _ := parseAttachmentFilename(filename)
+		if existingIndex == 0 {
+			existingIndex = 1
+		}
+		newFilename := fmt.Sprintf("%02d-%s-%s%s", existingIndex, strings.TrimSuffix(baseName, filepath.Ext(baseName)), result.ID, filepath.Ext(baseName))
+		newFilePath := filepath.Join(assetFolderPath, newFilename)
+
+		// Rename the file to update the attachment ID
+		if newFilename != filename {
+			if err := os.Rename(filePath, newFilePath); err != nil {
+				progress(fmt.Sprintf("    ⚠️  Failed to rename %s to %s: %v", filename, newFilename, err))
+				continue
+			}
+			progress(fmt.Sprintf("    📝 Renamed %s -> %s", filename, newFilename))
+		}
+
+		// Remove the old manifest entry
+		manifest.RemoveAsset(oldEntry.ID)
+
+		// Calculate checksum and file info for the new manifest entry
+		fileInfo, _ := os.Stat(newFilePath)
+		checksum, _ := config.CalculateFileChecksum(newFilePath)
+
+		// Create new manifest entry
+		newEntry := config.AssetEntry{
+			ID:               result.ID,
+			FileID:           fileSlug,
+			Filename:         newFilename,
+			Path:             filepath.Join("assets", fileSlug, fieldName, newFilename),
+			FileSize:         fileInfo.Size(),
+			Checksum:         checksum,
+			MimeType:         contentType,
+			LastDownloadDate: time.Now().Format(time.RFC3339),
+		}
+		manifest.UpsertAsset(newEntry)
+
+		uploaded++
+		progress(fmt.Sprintf("    ✓ Re-uploaded %s (old id: %s, new id: %s)", newFilename, oldEntry.ID, result.ID))
+	}
+
+	// Save the updated manifest
+	if uploaded > 0 {
+		if err := config.SaveAssetManifest(assetManifestPath, manifest); err != nil {
+			return uploaded, fmt.Errorf("failed to save asset manifest: %w", err)
+		}
+	}
+
+	return uploaded, nil
+}
+
+// extractBaseFilename extracts the base filename without index prefix and attachment ID.
+// Examples:
+//
+//	"01-myfile-att0000000.jpg" -> "myfile.jpg"
+//	"01-my-photo-attXYZ123.png" -> "my-photo.png"
+//	"photo.jpg" -> "photo.jpg"
+//	"01-photo.jpg" -> "photo.jpg"
+func extractBaseFilename(filename string) string {
+	// First, remove the index prefix if present
+	_, nameWithoutIndex := parseAttachmentFilename(filename)
+
+	// Get the extension
+	ext := filepath.Ext(nameWithoutIndex)
+	nameWithoutExt := strings.TrimSuffix(nameWithoutIndex, ext)
+
+	// Try to find and remove the attachment ID suffix
+	// Attachment IDs are typically like "-attXXXXXX" at the end
+	// Look for the last occurrence of "-att" followed by alphanumeric characters
+	lastDashIdx := strings.LastIndex(nameWithoutExt, "-att")
+	if lastDashIdx > 0 {
+		// Verify the part after "-att" looks like an ID (alphanumeric)
+		suffix := nameWithoutExt[lastDashIdx+4:] // skip "-att"
+		if len(suffix) > 0 && isAlphanumeric(suffix) {
+			return nameWithoutExt[:lastDashIdx] + ext
+		}
+	}
+
+	// No attachment ID found, return as-is
+	return nameWithoutIndex
+}
+
+// isAlphanumeric checks if a string contains only alphanumeric characters
+func isAlphanumeric(s string) bool {
+	for _, c := range s {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+			return false
+		}
+	}
+	return true
+}
+
+// getHighestIndexInFolder scans an attachment folder and returns the highest 2-digit index prefix found.
+// Returns 0 if no indexed files exist.
+func getHighestIndexInFolder(folderPath string) int {
+	entries, err := os.ReadDir(folderPath)
+	if err != nil {
+		return 0
+	}
+
+	highest := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		idx, _ := parseAttachmentFilename(entry.Name())
+		if idx > highest {
+			highest = idx
+		}
+	}
+	return highest
+}
+
+// parseAttachmentFilename parses a filename with the format "<NN>-<name>-<id>.<ext>" or "<name>.<ext>".
+// Returns the index (0 if none), and the name part (without index prefix but with extension).
+// Examples:
+//
+//	"01-photo-attXYZ.jpg" -> 1, "photo-attXYZ.jpg"
+//	"photo.jpg" -> 0, "photo.jpg"
+//	"02-my-image.png" -> 2, "my-image.png"
+func parseAttachmentFilename(filename string) (int, string) {
+	// Check if filename starts with 2-digit index followed by dash
+	if len(filename) >= 3 && filename[2] == '-' {
+		var idx int
+		if n, err := fmt.Sscanf(filename[:2], "%02d", &idx); err == nil && n == 1 {
+			return idx, filename[3:]
+		}
+	}
+	return 0, filename
+}
+
+// buildAttachmentFilename creates a properly formatted attachment filename.
+// If the file already has an ID suffix (from the manifest), it's preserved.
+// If the file needs an index, a 2-digit index is prepended.
+//
+// The format is: "<NN>-<name>-<id>.<ext>"
+// Examples:
+//
+//	buildAttachmentFilename("photo.jpg", "attXYZ", 1) -> "01-photo-attXYZ.jpg"
+//	buildAttachmentFilename("01-photo.jpg", "attXYZ", 1) -> "01-photo-attXYZ.jpg"
+func buildAttachmentFilename(originalFilename, attachmentID string, index int) string {
+	// Parse out any existing index
+	existingIdx, nameWithoutIndex := parseAttachmentFilename(originalFilename)
+
+	// Use the existing index if present and valid, otherwise use the provided index
+	finalIndex := index
+	if existingIdx > 0 {
+		finalIndex = existingIdx
+	}
+
+	// Check if the name already ends with the attachment ID
+	ext := filepath.Ext(nameWithoutIndex)
+	nameWithoutExt := strings.TrimSuffix(nameWithoutIndex, ext)
+
+	// If the filename already contains the ID, don't add it again
+	if strings.HasSuffix(nameWithoutExt, "-"+attachmentID) {
+		return fmt.Sprintf("%02d-%s", finalIndex, nameWithoutIndex)
+	}
+
+	// Build the new filename: NN-name-id.ext
+	return fmt.Sprintf("%02d-%s-%s%s", finalIndex, nameWithoutExt, attachmentID, ext)
+}
+
+// detectContentType returns the MIME type based on file extension.
+func detectContentType(filename string) string {
+	ext := filepath.Ext(filename)
+	if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+		return mimeType
+	}
+	return "application/octet-stream"
 }
