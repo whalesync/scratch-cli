@@ -113,7 +113,6 @@ edit the config files directly:
 			"Add a new account",
 			"Set up tables",
 			"Download records",
-			"Advanced settings",
 			"Exit setup",
 		}
 
@@ -171,14 +170,6 @@ edit the config files directly:
 
 		case "Download records":
 			if err := downloadRecordsInteractive(cfg, secrets); err != nil {
-				if !shouldGoBack(err) {
-					fmt.Printf("\n❌ Error: %s\n\n", err)
-				}
-				continue
-			}
-
-		case "Advanced settings":
-			if err := advancedSettingsInteractive(cfg); err != nil {
 				if !shouldGoBack(err) {
 					fmt.Printf("\n❌ Error: %s\n\n", err)
 				}
@@ -683,94 +674,4 @@ func downloadRecordsInteractive(cfg *config.Config, secrets *config.SecretsConfi
 
 	_, err = downloader.Download(selectedTable, opts)
 	return err
-}
-
-// advancedSettingsInteractive allows users to configure advanced settings
-func advancedSettingsInteractive(cfg *config.Config) error {
-	fmt.Println()
-	fmt.Println("⚙️  Advanced Settings")
-	fmt.Println()
-
-	for {
-		options := []string{
-			"Update Scratch.md Server URL",
-			"Back to main menu",
-		}
-
-		action := ""
-		prompt := &survey.Select{
-			Message: "What would you like to configure?",
-			Options: options,
-		}
-		if err := askOne(prompt, &action); err != nil {
-			return err
-		}
-
-		switch action {
-		case "Back to main menu":
-			return nil
-
-		case "Update Scratch.md Server URL":
-			if err := setScratchServerURLInteractive(cfg); err != nil {
-				if !shouldGoBack(err) {
-					fmt.Printf("\n❌ Error: %s\n\n", err)
-				}
-				continue
-			}
-			config.SaveConfig(cfg)
-		}
-	}
-}
-
-// setScratchServerURLInteractive allows users to set the Scratch server URL
-func setScratchServerURLInteractive(cfg *config.Config) error {
-	fmt.Println()
-	fmt.Printf("Current Scratch.md server URL: %s\n", cfg.Settings.ScratchServerURL)
-	fmt.Println()
-
-	var newURL string
-	prompt := &survey.Input{
-		Message: "Enter new Scratch.md server URL:",
-		Default: cfg.Settings.ScratchServerURL,
-		Help:    "The URL for the Scratch.md API server (e.g., https://api.scratch.md)",
-	}
-	if err := askOne(prompt, &newURL); err != nil {
-		return err
-	}
-
-	newURL = strings.TrimSpace(newURL)
-	if newURL == "" {
-		return fmt.Errorf("Scratch.md server URL cannot be empty")
-	}
-
-	// Remove trailing slash if present
-	newURL = strings.TrimSuffix(newURL, "/")
-
-	fmt.Print("\n⏳ Testing connection to server...")
-
-	client := newAPIClient(newURL)
-	if err := client.CheckHealth(); err != nil {
-		fmt.Printf(" ❌ Failed\n")
-		fmt.Printf("   Error: %s\n\n", err)
-
-		// Ask if they want to save anyway
-		saveAnyway := false
-		savePrompt := &survey.Confirm{
-			Message: "Save URL anyway?",
-			Default: false,
-		}
-		if err := askOne(savePrompt, &saveAnyway); err != nil {
-			return err
-		}
-		if !saveAnyway {
-			return fmt.Errorf("URL change cancelled - health check failed")
-		}
-	} else {
-		fmt.Printf(" ✅ Success!\n")
-	}
-
-	cfg.Settings.ScratchServerURL = newURL
-
-	fmt.Printf("\n✅ Scratch server URL updated to: %s\n\n", newURL)
-	return nil
 }
