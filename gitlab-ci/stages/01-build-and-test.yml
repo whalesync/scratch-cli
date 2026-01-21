@@ -169,7 +169,7 @@ build server docker image:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - server/Dockerfile
+        - server/Dockerfile.monorepo
         - server/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
