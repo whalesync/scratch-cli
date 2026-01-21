@@ -1,11 +1,11 @@
-FROM node:22.20.0-alpine AS deps
+FROM node:22.22.0-alpine AS deps
 
 WORKDIR /app
 COPY ./package.json ./yarn.lock /app/
 
 RUN yarn install --frozen-lockfile --ignore-scripts
 
-FROM node:22.20.0-alpine AS builder
+FROM node:22.22.0-alpine AS builder
 
 ARG BUILD_VERSION=0.0.0-local
 
@@ -19,7 +19,7 @@ COPY ./nest-cli.json ./package.json ./tsconfig.build.json ./tsconfig.json /app/
 RUN sed -i "s/0.0.0-local/${BUILD_VERSION}/g" /app/src/version.ts && \
     yarn run prisma generate && yarn run build
 
-FROM node:22.20.0-alpine AS runner
+FROM node:22.22.0-alpine AS runner
 
 ## https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html
 RUN apk add --no-cache dumb-init curl
