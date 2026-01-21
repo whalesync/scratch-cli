@@ -36,6 +36,16 @@ func (w *WebflowProvider) SupportsAttachments() bool {
 	return false
 }
 
+// MaxAttachmentUploadSize returns 0 as Webflow does not support attachment uploads
+func (w *WebflowProvider) MaxAttachmentUploadSize() int64 {
+	return 0
+}
+
+// ValidateAttachmentFile returns an empty slice as Webflow does not support attachment uploads
+func (w *WebflowProvider) ValidateAttachmentFile(filePath string) []string {
+	return []string{}
+}
+
 // UploadAttachment uploads a file attachment to Webflow.
 // Currently returns ErrUploadNotSupported as this is not yet implemented.
 func (w *WebflowProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {

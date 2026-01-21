@@ -57,6 +57,14 @@ go build -o scratchmd ./cmd/scratchmd
 go build -ldflags "-X 'github.com/whalesync/scratch-cli/internal/cmd.version=0.1.0'" -o scratchmd ./cmd/scratchmd
 ```
 
+## Code formatting
+
+Use the standard `gofmt` after generating code
+
+```bash
+gotfmt -w .
+```
+
 ## Implemented Commands
 
 ### `setup`

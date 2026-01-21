@@ -351,13 +351,17 @@ func runAllFilesDiff(tableName, originalDir string) error {
 				}
 				fmt.Printf("\n%sAttachment changes in '%s' field '%s':%s\n", colorOrange, filename, fieldName, colorReset)
 				for _, change := range changes {
+					var warning string
+					if change.Warning != "" {
+						warning = fmt.Sprintf(" %s⚠️  %s%s", colorOrange, change.Warning, colorReset)
+					}
 					switch change.Type {
 					case "removed":
 						fmt.Printf("  %s- %s%s\n", colorRed, change.Filename, colorReset)
 					case "added":
-						fmt.Printf("  %s+ %s%s\n", colorGreen, change.Filename, colorReset)
+						fmt.Printf("  %s+ %s%s%s\n", colorGreen, change.Filename, colorReset, warning)
 					case "modified":
-						fmt.Printf("  %s~ %s%s\n", colorOrange, change.Filename, colorReset)
+						fmt.Printf("  %s~ %s%s%s\n", colorOrange, change.Filename, colorReset, warning)
 					}
 				}
 			}
@@ -566,13 +570,17 @@ func runSingleFileDirtyFields(tableName, originalDir, fileName, contentFieldName
 	for fieldName, changes := range attachmentChanges {
 		fmt.Printf("  %s%s (attachments)%s\n", colorOrange, fieldName, colorReset)
 		for _, change := range changes {
+			var warning string
+			if change.Warning != "" {
+				warning = fmt.Sprintf(" %s⚠️  %s%s", colorOrange, change.Warning, colorReset)
+			}
 			switch change.Type {
 			case "removed":
 				fmt.Printf("    %s- %s%s\n", colorRed, change.Filename, colorReset)
 			case "added":
-				fmt.Printf("    %s+ %s%s\n", colorGreen, change.Filename, colorReset)
+				fmt.Printf("    %s+ %s%s%s\n", colorGreen, change.Filename, colorReset, warning)
 			case "modified":
-				fmt.Printf("    %s~ %s%s\n", colorOrange, change.Filename, colorReset)
+				fmt.Printf("    %s~ %s%s%s\n", colorOrange, change.Filename, colorReset, warning)
 			}
 		}
 	}
@@ -1884,6 +1892,7 @@ func addRemoteIDToFile(filePath, remoteID string) error {
 type AttachmentChange struct {
 	Filename string // The filename of the attachment
 	Type     string // "added", "removed", or "modified"
+	Warning  string // Optional warning message (e.g., file too large)
 }
 
 // getAttachmentFieldChanges compares the current state of an asset folder against the original
@@ -1903,6 +1912,9 @@ type AttachmentChange struct {
 // Returns a slice of AttachmentChange describing what changed, or nil if no changes.
 func getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName string) ([]AttachmentChange, error) {
 	var changes []AttachmentChange
+
+	// Get the provider for validation
+	provider := getProviderForTable(tableName)
 
 	// Load the asset manifest from the original folder
 	assetManifestPath := filepath.Join(originalDir, config.AssetManifestFileName)
@@ -1964,10 +1976,18 @@ func getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName strin
 	// Check for added files (in folder but not in manifest)
 	for filename := range currentFiles {
 		if _, inManifest := manifestFiles[filename]; !inManifest {
-			changes = append(changes, AttachmentChange{
+			change := AttachmentChange{
 				Filename: filename,
 				Type:     "added",
-			})
+			}
+			// Validate file using provider
+			if provider != nil {
+				filePath := filepath.Join(assetFolderPath, filename)
+				if warnings := provider.ValidateAttachmentFile(filePath); len(warnings) > 0 {
+					change.Warning = strings.Join(warnings, "; ")
+				}
+			}
+			changes = append(changes, change)
 		}
 	}
 
@@ -1987,10 +2007,17 @@ func getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName strin
 			}
 
 			if currentChecksum != entry.Checksum {
-				changes = append(changes, AttachmentChange{
+				change := AttachmentChange{
 					Filename: filename,
 					Type:     "modified",
-				})
+				}
+				// Validate file using provider
+				if provider != nil {
+					if warnings := provider.ValidateAttachmentFile(filePath); len(warnings) > 0 {
+						change.Warning = strings.Join(warnings, "; ")
+					}
+				}
+				changes = append(changes, change)
 			}
 		}
 	}
@@ -2039,6 +2066,21 @@ func providerSupportsAttachments(tableName string) bool {
 	}
 
 	return provider.SupportsAttachments()
+}
+
+// getProviderForTable returns the provider for a table, or nil if not found.
+func getProviderForTable(tableName string) providers.Provider {
+	tableConfig, err := config.LoadTableConfig(tableName)
+	if err != nil || tableConfig == nil {
+		return nil
+	}
+
+	provider, err := providers.GetProvider(tableConfig.Provider)
+	if err != nil {
+		return nil
+	}
+
+	return provider
 }
 
 // hasAttachmentChanges checks if a file has any attachment field changes.

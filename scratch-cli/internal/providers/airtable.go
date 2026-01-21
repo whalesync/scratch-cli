@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 // AirtableProvider implements the Provider interface for Airtable
@@ -39,6 +40,30 @@ func (p *AirtableProvider) SupportsAttachments() bool {
 	return true
 }
 
+// MaxAttachmentUploadSize returns the maximum attachment upload size in bytes (5 MB for Airtable)
+func (p *AirtableProvider) MaxAttachmentUploadSize() int64 {
+	return 5 * 1024 * 1024 // 5 MB
+}
+
+// ValidateAttachmentFile checks a file for potential issues before upload.
+// For Airtable, this validates that the file size is within the 5 MB limit.
+func (p *AirtableProvider) ValidateAttachmentFile(filePath string) []string {
+	var warnings []string
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return warnings
+	}
+
+	maxSize := p.MaxAttachmentUploadSize()
+	if info.Size() > maxSize {
+		warnings = append(warnings, fmt.Sprintf("file is too large (%s); maximum upload size is %s",
+			FormatFileSize(info.Size()), FormatFileSize(maxSize)))
+	}
+
+	return warnings
+}
+
 // airtableUploadRequest represents the request body for uploading an attachment
 type airtableUploadRequest struct {
 	ContentType string `json:"contentType"`
@@ -65,6 +90,12 @@ type airtableAttachmentIn struct {
 // siteID is the Airtable base ID, recordID is the record ID, and fieldID is the attachment field ID or name.
 // Note: tableID parameter is unused for Airtable but kept for interface compatibility.
 func (p *AirtableProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {
+	// Check file size against maximum allowed
+	maxSize := p.MaxAttachmentUploadSize()
+	if file.Size > maxSize {
+		return nil, fmt.Errorf("file %q is too large (%s); maximum upload size for Airtable is %s", file.Filename, FormatFileSize(file.Size), FormatFileSize(maxSize))
+	}
+
 	apiKey := creds.Params["apiKey"]
 	if apiKey == "" {
 		return nil, fmt.Errorf("apiKey is required in credentials")

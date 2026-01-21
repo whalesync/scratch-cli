@@ -59,6 +59,12 @@ type Provider interface {
 	AuthProperties() []AuthProperty
 	// SupportsAttachments returns whether the provider supports downloading attachments
 	SupportsAttachments() bool
+	// MaxAttachmentUploadSize returns the maximum attachment upload size in bytes.
+	// Returns 0 if the provider does not support attachment uploads.
+	MaxAttachmentUploadSize() int64
+	// ValidateAttachmentFile checks a file for potential issues before upload.
+	// Returns a slice of warning messages, or an empty slice if no issues found.
+	ValidateAttachmentFile(filePath string) []string
 }
 
 // SupportedProviders returns the list of supported provider names
@@ -207,4 +213,24 @@ func downloadFile(url, destPath string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+// FormatFileSize formats a file size in bytes to a human-readable string (KB, MB, GB)
+func FormatFileSize(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+		GB = MB * 1024
+	)
+
+	switch {
+	case bytes >= GB:
+		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%d bytes", bytes)
+	}
 }

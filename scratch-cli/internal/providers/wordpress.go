@@ -43,6 +43,16 @@ func (w *WordPressProvider) SupportsAttachments() bool {
 	return false
 }
 
+// MaxAttachmentUploadSize returns 0 as WordPress does not support attachment uploads
+func (w *WordPressProvider) MaxAttachmentUploadSize() int64 {
+	return 0
+}
+
+// ValidateAttachmentFile returns an empty slice as WordPress does not support attachment uploads
+func (w *WordPressProvider) ValidateAttachmentFile(filePath string) []string {
+	return []string{}
+}
+
 // UploadAttachment uploads a file attachment to WordPress.
 // Currently returns ErrUploadNotSupported as this is not yet implemented.
 func (w *WordPressProvider) UploadAttachment(creds ConnectorCredentials, siteID, tableID, recordID, fieldID string, file UploadFile) (*FileAttachment, error) {
