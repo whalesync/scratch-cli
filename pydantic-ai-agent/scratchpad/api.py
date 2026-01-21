@@ -367,3 +367,120 @@ class ScratchpadApi:
             raise ScratchpadApiError(
                 f"Failed to remove scratch column: {response.status_code} - {response.text}"
             )
+
+    # ============================================================
+    # File Agent API Methods
+    # ============================================================
+
+    @staticmethod
+    def list_files_by_path(
+        user_id: str, workbook_id: str, path: str = "/"
+    ) -> Dict[str, Any]:
+        """
+        List files and folders at a given path (like `ls`).
+        Returns items directly under the path, not recursive.
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/list/by-path"
+        params = {"path": path}
+        response = requests.get(
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
+        )
+        return _handle_response(response, f"Failed to list files at path: {path}")
+
+    @staticmethod
+    def get_file_by_path(user_id: str, workbook_id: str, path: str) -> Dict[str, Any]:
+        """
+        Get a single file by its path (like `cat`).
+        Returns file content and metadata.
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/by-path"
+        params = {"path": path}
+        response = requests.get(
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
+        )
+        return _handle_response(response, f"Failed to get file at path: {path}")
+
+    @staticmethod
+    def list_all_files(user_id: str, workbook_id: str) -> Dict[str, Any]:
+        """
+        List all files and folders in the workbook (flat list).
+        Used for `find` to search by pattern.
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/list"
+        response = requests.get(url, headers=API_CONFIG.get_api_headers(user_id))
+        return _handle_response(response, "Failed to list all files")
+
+    @staticmethod
+    def find_files(
+        user_id: str,
+        workbook_id: str,
+        pattern: str,
+        path: Optional[str] = None,
+        recursive: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Find files matching a name pattern (like `find`).
+        @param pattern - Glob pattern for file name (e.g., "*.md", "test*")
+        @param path - Optional path prefix to search within
+        @param recursive - If true, search valid subfolders
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/find"
+        params = {"pattern": pattern, "recursive": str(recursive).lower()}
+        if path:
+            params["path"] = path
+        response = requests.get(
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
+        )
+        return _handle_response(
+            response, f"Failed to find files matching pattern: {pattern}"
+        )
+
+    @staticmethod
+    def grep_files(
+        user_id: str, workbook_id: str, pattern: str, path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Search file contents for a pattern (like `grep`).
+        @param pattern - Text to search for in file contents (case-insensitive)
+        @param path - Optional path prefix to search within
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/grep"
+        params = {"pattern": pattern}
+        if path:
+            params["path"] = path
+        response = requests.get(
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
+        )
+        return _handle_response(
+            response, f"Failed to grep files for pattern: {pattern}"
+        )
+
+    @staticmethod
+    def write_file(
+        user_id: str, workbook_id: str, path: str, content: str
+    ) -> Dict[str, Any]:
+        """
+        Write/update a file by path (like `write` or `echo >`).
+        Creates the file if it doesn't exist, updates if it does.
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/write-by-path"
+        payload = {"path": path, "content": content}
+        response = requests.put(
+            url, headers=API_CONFIG.get_api_headers(user_id), json=payload
+        )
+        return _handle_response(response, f"Failed to write file: {path}")
+
+    @staticmethod
+    def delete_file(user_id: str, workbook_id: str, path: str) -> None:
+        """
+        Delete a file by path (like `rm`).
+        """
+        url = f"{API_CONFIG.get_api_url()}/workbooks/{workbook_id}/files/by-path"
+        params = {"path": path}
+        response = requests.delete(
+            url, headers=API_CONFIG.get_api_headers(user_id), params=params
+        )
+        if not response.ok:
+            raise ScratchpadApiError(
+                f"Failed to delete file {path}: {response.status_code} - {response.text}"
+            )

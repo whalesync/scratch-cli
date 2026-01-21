@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no" />
       </head>
 
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <MantineProvider theme={SCRATCHPAD_MANTINE_THEME} defaultColorScheme="light">
           <DatesProviderWrapper>
             <Notifications />

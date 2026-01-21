@@ -1,8 +1,6 @@
 'use client';
 
 import { AdvancedAgentInput, AdvancedAgentInputRef } from '@/app/components/AdvancedAgentInput/AdvancedAgentInput';
-import { Command } from '@/app/components/AdvancedAgentInput/CommandSuggestions';
-import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import {
   ButtonSecondaryInline,
   ButtonSecondaryOutline,
@@ -19,7 +17,6 @@ import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contex
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
-import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import {
   trackChangeAgentCapabilities,
@@ -36,9 +33,10 @@ import { RouteUrls } from '@/utils/route-urls';
 import { formatTokenCount } from '@/utils/token-counter';
 import { Alert, Anchor, Box, Center, Divider, Group, Loader, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import {
-  AGENT_CAPABILITIES,
   Capability,
   ChatMessage,
+  DATA_AGENT_CAPABILITIES,
+  FILE_AGENT_CAPABILITIES,
   SendMessageRequestDTO,
   SnapshotTableId,
 } from '@spinner/shared-types';
@@ -52,7 +50,6 @@ import {
   Trash2Icon,
   XIcon,
 } from 'lucide-react';
-import pluralize from 'pluralize';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useAgentPricing } from '../../../../../hooks/use-agent-pricing';
@@ -64,6 +61,8 @@ import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ProgressMessageGroup } from './ProgressMessageGroup';
+import { useDataAgentCommands } from './use-data-agent-commands';
+import { useFileAgentCommands } from './use-file-agent-commands';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
@@ -110,7 +109,6 @@ export default function AIChatPanel() {
   const { models: agentPricingModels, isLoading: isLoadingPricing } = useAgentPricing();
   const { markStepCompleted } = useOnboardingUpdate();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
-  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
   const [message, setMessage] = useState('');
   const [limitWarningAlert, setLimitWarningAlert] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +130,7 @@ export default function AIChatPanel() {
     setAccumulatedCost,
     resetCost,
     accumulatedCost,
+    agentType,
   } = useAgentChatContext();
 
   const {
@@ -150,181 +149,21 @@ export default function AIChatPanel() {
 
   const { promptAssets } = usePromptAssets();
 
-  // Get snapshot table records for accept/reject commands
-  const {
-    records,
-    acceptAllSuggestions,
-    rejectAllSuggestions,
-    acceptCellValues,
-    rejectCellValues,
-    refreshRecords,
-  } = useSnapshotTableRecords({
-    workbookId: workbook?.id ?? null,
-    tableId: activeTable?.id ?? null,
-  });
+  // Build commands based on agent type using hooks
+  const dataAgentCommands = useDataAgentCommands({ setShowToolsModal });
+  const fileAgentCommands = useFileAgentCommands({ setShowToolsModal });
+  const commands = agentType === 'data' ? dataAgentCommands : fileAgentCommands;
 
-  // Commands for the AdvancedAgentInput
-  const commands: Command[] = [
-    {
-      id: 'cmd1',
-      display: 'tools',
-      description: 'Open tools modal',
-      execute: () => setShowToolsModal(true),
-    },
-    {
-      id: 'cmd2',
-      display: 'publish',
-      description: 'Publish data to remote service',
-      execute: () => handlePublish(),
-    },
-    {
-      id: 'cmd3',
-      display: '/',
-      description: 'Revert last action',
-      execute: () => {
-        console.debug('TODO: Implement revert last action logic');
-      },
-    },
-    {
-      id: 'cmd4',
-      display: 'acceptAll',
-      description: 'Accept all suggestions in table',
-      execute: async () => {
-        try {
-          const { recordsUpdated, totalChangesAccepted } = await acceptAllSuggestions();
-          ScratchpadNotifications.success({
-            title: 'Suggestions Accepted',
-            message: `Accepted ${totalChangesAccepted} ${pluralize('change', totalChangesAccepted)} for ${recordsUpdated} ${pluralize('record', recordsUpdated)} in the table`,
-          });
-          await refreshRecords();
-        } catch (error) {
-          ScratchpadNotifications.error({
-            title: 'Error Accepting Suggestions',
-            message: error instanceof Error ? error.message : 'Failed to accept all suggestions',
-          });
-        }
-      },
-    },
-    {
-      id: 'cmd5',
-      display: 'rejectAll',
-      description: 'Reject all suggestions in table',
-      execute: async () => {
-        try {
-          const { recordsRejected, totalChangesRejected } = await rejectAllSuggestions();
-          ScratchpadNotifications.success({
-            title: 'Suggestions Rejected',
-            message: `Rejected ${totalChangesRejected} ${pluralize('change', totalChangesRejected)} for ${recordsRejected} ${pluralize('record', recordsRejected)} in the table`,
-          });
-          await refreshRecords();
-        } catch (error) {
-          ScratchpadNotifications.error({
-            title: 'Error Rejecting Suggestions',
-            message: error instanceof Error ? error.message : 'Failed to reject all suggestions',
-          });
-        }
-      },
-    },
-    // Only show accept/reject commands in record view
-    ...(dataScope === 'record' && activeRecordId
-      ? [
-          {
-            id: 'cmd6',
-            display: 'accept',
-            description: 'Accept suggestions for current record',
-            execute: async () => {
-              const record = records?.find((r) => r.id.wsId === activeRecordId);
-              if (!record) {
-                ScratchpadNotifications.error({
-                  title: 'Record Not Found',
-                  message: 'Could not find the current record',
-                });
-                return;
-              }
+  // Get the appropriate capabilities list based on agent type
+  const availableCapabilities = agentType === 'data' ? DATA_AGENT_CAPABILITIES : FILE_AGENT_CAPABILITIES;
+  const capabilitiesStorageKey =
+    agentType === 'data' ? 'ai-chat-selected-capabilities' : 'ai-chat-selected-file-capabilities';
 
-              const suggestions = Object.entries(record.__suggested_values ?? {});
-              if (suggestions.length === 0) {
-                ScratchpadNotifications.info({
-                  title: 'No Suggestions',
-                  message: 'This record has no pending suggestions',
-                });
-                return;
-              }
-
-              try {
-                const itemsToAccept = suggestions.map(([columnId]) => ({
-                  wsId: record.id.wsId,
-                  columnId,
-                }));
-
-                await acceptCellValues(itemsToAccept);
-                ScratchpadNotifications.success({
-                  title: 'Suggestions Accepted',
-                  message: `Accepted ${itemsToAccept.length} ${pluralize('change', itemsToAccept.length)}`,
-                });
-                await refreshRecords();
-              } catch (error) {
-                ScratchpadNotifications.error({
-                  title: 'Error Accepting Suggestions',
-                  message: error instanceof Error ? error.message : 'Failed to accept suggestions for this record',
-                });
-              }
-            },
-          },
-          {
-            id: 'cmd7',
-            display: 'reject',
-            description: 'Reject suggestions for current record',
-            execute: async () => {
-              const record = records?.find((r) => r.id.wsId === activeRecordId);
-              if (!record) {
-                ScratchpadNotifications.error({
-                  title: 'Record Not Found',
-                  message: 'Could not find the current record',
-                });
-                return;
-              }
-
-              const suggestions = Object.entries(record.__suggested_values ?? {});
-              if (suggestions.length === 0) {
-                ScratchpadNotifications.info({
-                  title: 'No Suggestions',
-                  message: 'This record has no pending suggestions',
-                });
-                return;
-              }
-
-              try {
-                const itemsToReject = suggestions.map(([columnId]) => ({
-                  wsId: record.id.wsId,
-                  columnId,
-                }));
-
-                await rejectCellValues(itemsToReject);
-                ScratchpadNotifications.success({
-                  title: 'Suggestions Rejected',
-                  message: `Rejected ${itemsToReject.length} ${pluralize('change', itemsToReject.length)}`,
-                });
-                await refreshRecords();
-              } catch (error) {
-                ScratchpadNotifications.error({
-                  title: 'Error Rejecting Suggestions',
-                  message: error instanceof Error ? error.message : 'Failed to reject suggestions for this record',
-                });
-              }
-            },
-          },
-        ]
-      : []),
-  ];
-
-  // const [availableCapabilities, setAvailableCapabilities] = useState<Capability[]>([]);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
   // Load selected capabilities from localStorage on mount, or use defaults
   useEffect(() => {
-    const STORAGE_KEY = 'ai-chat-selected-capabilities';
-    const savedCapabilities = localStorage.getItem(STORAGE_KEY);
+    const savedCapabilities = localStorage.getItem(capabilitiesStorageKey);
 
     if (savedCapabilities) {
       try {
@@ -333,19 +172,19 @@ export default function AIChatPanel() {
       } catch (error) {
         console.warn('Failed to parse saved capabilities:', error);
         // Fall back to defaults
-        const defaultCapabilities = AGENT_CAPABILITIES.filter((cap: Capability) => cap.enabledByDefault).map(
-          (cap: Capability) => cap.code,
-        );
+        const defaultCapabilities = availableCapabilities
+          .filter((cap: Capability) => cap.enabledByDefault)
+          .map((cap: Capability) => cap.code);
         setSelectedCapabilities(defaultCapabilities);
       }
     } else {
       // No saved capabilities, use defaults
-      const defaultCapabilities = AGENT_CAPABILITIES.filter((cap: Capability) => cap.enabledByDefault).map(
-        (cap: Capability) => cap.code,
-      );
+      const defaultCapabilities = availableCapabilities
+        .filter((cap: Capability) => cap.enabledByDefault)
+        .map((cap: Capability) => cap.code);
       setSelectedCapabilities(defaultCapabilities);
     }
-  }, []); // availableCapabilities is a constant, no need to include in dependencies
+  }, [agentType, availableCapabilities, capabilitiesStorageKey]);
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
@@ -421,7 +260,7 @@ export default function AIChatPanel() {
       await disconnect();
       await sleep(100);
       const { session } = await createSession(workbook.id);
-      connect(session.id);
+      connect(session.id, agentType);
       trackStartAgentSession(workbook);
       setError(null);
       setMessage('');
@@ -448,7 +287,7 @@ export default function AIChatPanel() {
         await disconnect();
         try {
           await activateSession(sessionId);
-          await connect(sessionId);
+          await connect(sessionId, agentType);
           trackOpenOldChatSession(workbook);
           setMessage('');
           resetCost(); // Reset cost tracking when switching sessions
@@ -467,6 +306,7 @@ export default function AIChatPanel() {
       disconnect,
       activateSession,
       connect,
+      agentType,
       workbook,
       setMessage,
       resetCost,
@@ -578,11 +418,6 @@ export default function AIChatPanel() {
       console.error('Exception while sending message:', error);
       setAgentTaskRunning(false);
     }
-  };
-
-  const handlePublish = () => {
-    if (!workbook) return;
-    openPublishConfirmation();
   };
 
   const handleTextInputFocus = async () => {
@@ -857,7 +692,7 @@ export default function AIChatPanel() {
           {/* Tools Selection */}
           <CapabilitiesButton
             selectedCapabilities={selectedCapabilities}
-            availableCapabilitiesCount={AGENT_CAPABILITIES.length}
+            availableCapabilitiesCount={availableCapabilities.length}
             onClick={() => setShowToolsModal(true)}
           />
 
@@ -928,10 +763,10 @@ export default function AIChatPanel() {
         opened={showToolsModal}
         onClose={() => setShowToolsModal(false)}
         selectedCapabilities={selectedCapabilities}
+        availableCapabilities={availableCapabilities}
         onCapabilitiesChange={(caps) => {
           setSelectedCapabilities(caps);
-          const STORAGE_KEY = 'ai-chat-selected-capabilities';
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(caps));
+          localStorage.setItem(capabilitiesStorageKey, JSON.stringify(caps));
           trackChangeAgentCapabilities(caps, workbook);
           setShowToolsModal(false);
         }}

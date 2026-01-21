@@ -21,6 +21,8 @@ import { create } from 'zustand';
   - Optimized Selectors: Use granular selectors to prevent unnecessary re-renders
  */
 
+export type AgentType = 'data' | 'file';
+
 type State = {
   ws: WebSocket | null;
   connectionStatus: 'offline' | 'connecting' | 'connected';
@@ -31,6 +33,7 @@ type State = {
 
   // Internal state (not meant to be observed directly)
   sessionId: string | null;
+  agentType: AgentType;
   shouldReconnect: boolean;
   reconnectAttempts: number;
   reconnectTimeout: NodeJS.Timeout | null;
@@ -40,7 +43,7 @@ type State = {
 };
 
 type Actions = {
-  connect: (sessionId: string) => Promise<void>;
+  connect: (sessionId: string, agentType?: AgentType) => Promise<void>;
   disconnect: () => Promise<void>;
   sendAgentMessage: (payload: SendMessageRequestDTO) => void;
   sendPing: () => void;
@@ -126,6 +129,7 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
   messageHistory: [],
   isReconnecting: false,
   sessionId: null,
+  agentType: 'data',
   shouldReconnect: false,
   reconnectAttempts: 0,
   reconnectTimeout: null,
@@ -141,7 +145,9 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
     })),
 
   _createWebSocket: (sessionId: string, isReconnect: boolean = false) => {
-    const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/ws/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
+    const agentType = get().agentType;
+    const wsPath = agentType === 'file' ? 'ws-files' : 'ws';
+    const wsUrl = `${API_CONFIG.getAiAgentWebSocketUrl()}/${wsPath}/${sessionId}?auth=${API_CONFIG.getAgentJwt()}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -285,9 +291,9 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
     });
   },
 
-  connect: async (sessionId: string) => {
+  connect: async (sessionId: string, agentType: AgentType = 'data') => {
     const state = get();
-    console.debug('Connecting WebSocket', sessionId);
+    console.debug('Connecting WebSocket', sessionId, 'agent type:', agentType);
 
     if (state.ws != null && (state.connectionStatus === 'connecting' || state.connectionStatus === 'connected')) {
       return;
@@ -300,6 +306,7 @@ export const useAgentChatWebSocketStore = create<AgentChatWebSocketStore>((set, 
 
     set({
       sessionId,
+      agentType,
       shouldReconnect: true,
       reconnectAttempts: 0,
       isReconnecting: false,
@@ -478,3 +485,5 @@ export const useAgentMessageHistory = () => useAgentChatWebSocketStore((state) =
 export const useAgentConnectedSessionId = () => useAgentChatWebSocketStore((state) => state.connectedSessionId);
 
 export const useAgentIsReconnecting = () => useAgentChatWebSocketStore((state) => state.isReconnecting);
+
+export const useAgentType = () => useAgentChatWebSocketStore((state) => state.agentType);

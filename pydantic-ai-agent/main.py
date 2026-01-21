@@ -19,9 +19,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from server.controllers.admin_controller import router as admin_router
 from server.controllers.chat_controller import router as chat_router
+from server.controllers.file_websocket_handler import file_websocket_endpoint
 from server.controllers.websocket_handler import websocket_endpoint
 from server.services import (
     AgentTaskManagerDep,
+    FileAgentTaskManagerDep,
     WebSocketConnectionManagerDep,
     get_session_service,
     initialize_services,
@@ -87,7 +89,7 @@ def get_templates():
     return templates
 
 
-# WebSocket endpoint
+# WebSocket endpoint for data agent
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint_handler(
     connection_manager: WebSocketConnectionManagerDep,
@@ -96,9 +98,24 @@ async def websocket_endpoint_handler(
     session_id: str,
     auth: Optional[str] = None,
 ):
-    """WebSocket endpoint for real-time chat"""
+    """WebSocket endpoint for real-time chat with data agent"""
     await websocket_endpoint(
         connection_manager, agent_task_manager, websocket, session_id, auth
+    )
+
+
+# WebSocket endpoint for file agent
+@app.websocket("/ws-files/{session_id}")
+async def file_websocket_endpoint_handler(
+    connection_manager: WebSocketConnectionManagerDep,
+    file_agent_task_manager: FileAgentTaskManagerDep,
+    websocket: WebSocket,
+    session_id: str,
+    auth: Optional[str] = None,
+):
+    """WebSocket endpoint for real-time chat with file agent"""
+    await file_websocket_endpoint(
+        connection_manager, file_agent_task_manager, websocket, session_id, auth
     )
 
 

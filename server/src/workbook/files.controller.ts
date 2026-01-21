@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -53,7 +54,7 @@ export class FilesController {
 
   /**
    * List all of the files in a folder including full file content.
-   * GET /workbooks/:workbookId/files/list/details?path=path/to/folder
+   * GET /workbooks/:workbookId/files/list/details?folderId=folder-id
    */
   @Get('list/details')
   async listFilesDetails(
@@ -68,6 +69,95 @@ export class FilesController {
     );
     return filesMetadata;
   }
+
+  /**
+   * List files and folders at a given path (non-recursive, like `ls`).
+   * GET /workbooks/:workbookId/files/list/by-path?path=/folder/path
+   */
+  @Get('list/by-path')
+  async listFilesByPath(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') path: string = '/',
+    @Req() req: RequestWithUser,
+  ): Promise<ListFilesResponseDto> {
+    return await this.filesService.listByPath(workbookId, path, userToActor(req.user));
+  }
+
+  /**
+   * Get a single file by its path.
+   * GET /workbooks/:workbookId/files/by-path?path=/folder/file.md
+   */
+  @Get('by-path')
+  async getFileByPath(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') path: string,
+    @Req() req: RequestWithUser,
+  ): Promise<FileDetailsResponseDto> {
+    return await this.filesService.getFileByPath(workbookId, path, userToActor(req.user));
+  }
+
+  /**
+   * Find files matching a name pattern (like `find`).
+   * GET /workbooks/:workbookId/files/find?pattern=*.md&path=/emails
+   * @param pattern - Glob pattern for file name (e.g., "*.md", "test*", "file?.txt")
+   * @param path - Optional path prefix to search within
+   */
+  @Get('find')
+  async findFiles(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('pattern') pattern: string,
+    @Query('path') path?: string,
+    @Query('recursive') recursive: string = 'true',
+    @Req() req?: RequestWithUser,
+  ): Promise<ListFilesResponseDto> {
+    const isRecursive = recursive !== 'false';
+    return await this.filesService.findFiles(workbookId, pattern, path, isRecursive, userToActor(req!.user));
+  }
+
+  /**
+   * Search file contents for a pattern (like `grep`).
+   * GET /workbooks/:workbookId/files/grep?pattern=searchText&path=/emails
+   * @param pattern - Text to search for in file contents (case-insensitive)
+   * @param path - Optional path prefix to search within
+   */
+  @Get('grep')
+  async grepFiles(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('pattern') pattern: string,
+    @Query('path') path?: string,
+    @Req() req?: RequestWithUser,
+  ): Promise<{ matches: Array<{ file: FileRefEntity; matchCount: number; excerpts: string[] }> }> {
+    return await this.filesService.grepFiles(workbookId, pattern, path, userToActor(req!.user));
+  }
+
+  /**
+   * Write/update a file by path (like `write` or `echo >`).
+   * Creates the file if it doesn't exist, updates if it does.
+   * PUT /workbooks/:workbookId/files/write-by-path
+   */
+  @Put('write-by-path')
+  async writeFileByPath(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() body: { path: string; content: string },
+    @Req() req: RequestWithUser,
+  ): Promise<FileRefEntity> {
+    return await this.filesService.writeFileByPath(workbookId, body.path, body.content, userToActor(req.user));
+  }
+
+  /**
+   * Delete a file by path (like `rm`).
+   * DELETE /workbooks/:workbookId/files/by-path?path=/folder/file.md
+   */
+  @Delete('by-path')
+  @HttpCode(204)
+  async deleteFileByPath(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') path: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.filesService.deleteFileByPath(workbookId, path, userToActor(req.user));
+  }
+
   /**
    * Create a new file
    * POST /workbooks/:workbookId/files

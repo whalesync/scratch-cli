@@ -97,6 +97,32 @@ class SendMessageResponseDTO(BaseModel):
     request_summary: str
 
 
+class FileAgentSendMessageRequestDTO(BaseModel):
+    """Request to send a message to the file agent"""
+
+    message: str
+    agent_jwt: Optional[str] = Field(
+        default=None, description="Agent JWT token for authentication"
+    )
+    credential_id: Optional[str] = Field(
+        default=None, description="ID of the credentials to use for the agent"
+    )
+    model: Optional[str] = Field(
+        default="anthropic/claude-haiku-4.5",
+        description="Model to use for AI generation",
+    )
+    model_context_length: Optional[int] = Field(
+        default=None,
+        description="Maximum context length (tokens) supported by the model",
+    )
+    active_folder_path: Optional[str] = Field(
+        default="/", description="Current working directory path"
+    )
+    active_file_path: Optional[str] = Field(
+        default=None, description="Currently selected file path"
+    )
+
+
 class ChatSessionSummary(BaseModel):
     """Chat session summary for client responses"""
 

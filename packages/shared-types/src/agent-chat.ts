@@ -101,9 +101,12 @@ export type CancelAgentRunResponse = {
   message: string;
 };
 
-export type CapabilityGroup = 'data' | 'views' | 'table' | 'other';
+export type CapabilityGroup = 'data' | 'views' | 'table' | 'other' | 'file-read' | 'file-write';
 
-export const AGENT_CAPABILITIES: Capability[] = [
+/**
+ * Capabilities for the data agent (workbook tables)
+ */
+export const DATA_AGENT_CAPABILITIES: Capability[] = [
   {
     code: 'data:create',
     displayName: 'Create new records',
@@ -166,8 +169,61 @@ export const AGENT_CAPABILITIES: Capability[] = [
   },
 ];
 
+/**
+ * Capabilities for the file agent (workbook files/markdown)
+ */
+export const FILE_AGENT_CAPABILITIES: Capability[] = [
+  // Read tools
+  {
+    code: 'file-read:ls',
+    displayName: 'List files (ls)',
+    enabledByDefault: true,
+    description: 'List files and folders in a directory.',
+  },
+  {
+    code: 'file-read:cat',
+    displayName: 'Read file (cat)',
+    enabledByDefault: true,
+    description: 'Read and display the contents of a file.',
+  },
+  {
+    code: 'file-read:find',
+    displayName: 'Find files (find)',
+    enabledByDefault: true,
+    description: 'Search for files by name pattern.',
+  },
+  {
+    code: 'file-read:grep',
+    displayName: 'Search content (grep)',
+    enabledByDefault: true,
+    description: 'Search for text patterns within files.',
+  },
+  // Write tools
+  {
+    code: 'file-write:write',
+    displayName: 'Write file',
+    enabledByDefault: true,
+    description: 'Create or overwrite a file with new content.',
+  },
+  {
+    code: 'file-write:rm',
+    displayName: 'Delete file (rm)',
+    enabledByDefault: false,
+    description: 'Delete a file from the workbook.',
+  },
+];
+
+/**
+ * @deprecated Use DATA_AGENT_CAPABILITIES instead
+ */
+export const AGENT_CAPABILITIES = DATA_AGENT_CAPABILITIES;
+
 export function capabilityGroupDisplayName(group: CapabilityGroup): string {
-  return capitalize(group);
+  // Handle hyphenated names like 'file-read' -> 'File Read'
+  return group
+    .split('-')
+    .map((word) => capitalize(word))
+    .join(' ');
 }
 
 export function capabilitiesForGroup(group: CapabilityGroup, availableCapabilities?: Capability[]): Capability[] {

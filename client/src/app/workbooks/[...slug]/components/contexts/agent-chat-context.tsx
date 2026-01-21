@@ -3,6 +3,7 @@
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { AgentType } from '@/stores/agent-chat-websocket-store';
 import {
   DEFAULT_AGENT_MODEL_CONTEXT_LENGTH,
   DEFAULT_AGENT_MODEL_ID,
@@ -23,8 +24,10 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
  * - Read and write focus
  * - Active resources/style guides
  * - Session cost tracking
+ * - Agent type (data agent vs file agent)
  */
 interface AgentChatContextValue {
+  agentType: AgentType;
   dataScope: DataScope;
   activeRecordId: string | undefined;
   activeColumnId: string | undefined;
@@ -45,9 +48,14 @@ export const AgentChatContext = createContext<AgentChatContextValue | undefined>
 interface AgentChatContextProviderProps {
   children: ReactNode;
   workbookId: WorkbookId;
+  agentType?: AgentType;
 }
 
-export const AgentChatContextProvider = ({ children, workbookId }: AgentChatContextProviderProps) => {
+export const AgentChatContextProvider = ({
+  children,
+  workbookId,
+  agentType = 'data',
+}: AgentChatContextProviderProps) => {
   const { getUserSetting } = useScratchPadUser();
   const { isModelAllowed } = useSubscription();
   const [dataScope, setDataScope] = useState<DataScope>('table');
@@ -129,6 +137,7 @@ export const AgentChatContextProvider = ({ children, workbookId }: AgentChatCont
   }, []);
 
   const value: AgentChatContextValue = {
+    agentType,
     dataScope,
     activeRecordId,
     activeColumnId,

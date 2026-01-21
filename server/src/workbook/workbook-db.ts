@@ -239,6 +239,95 @@ export class WorkbookDb {
   }
 
   /**
+   * Finds files matching a name pattern within an optional path prefix.
+   * Supports glob-like patterns: * matches any characters, ? matches single character.
+   * @param workbookId - The workbook ID
+   * @param namePattern - Glob pattern for file name (e.g., "*.md", "test*", "file?.txt")
+   * @param pathPrefix - Optional path prefix to search within (e.g., "/emails")
+   * @returns Matching FileDbRecords
+   */
+  async findFilesByPattern(
+    workbookId: WorkbookId,
+    namePattern: string,
+    pathPrefix?: string,
+    recursive: boolean = true,
+  ): Promise<FileDbRecord[]> {
+    // Convert glob pattern to SQL LIKE pattern
+    // * -> % (match any characters)
+    // ? -> _ (match single character)
+    // Escape existing % and _ characters
+    const sqlPattern = namePattern.replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/\*/g, '%').replace(/\?/g, '_');
+
+    let query = this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(DELETED_COLUMN, false)
+      .where(FILE_NAME_COLUMN, 'like', sqlPattern);
+
+    // If path prefix is specified, filter by path
+    if (pathPrefix) {
+      const normalizedPrefix = pathPrefix.endsWith('/') ? pathPrefix : `${pathPrefix}/`;
+
+      if (recursive) {
+        // Recursive: match any path starting with the prefix
+        query = query.where(PATH_COLUMN, 'like', `${normalizedPrefix}%`);
+      } else {
+        // Non-recursive: match direct children only
+        // We use a regex to ensure there are no more slashes after the prefix+filename
+        // escaped regex for postgres: ^/prefix/[^/]+$
+        // Note: PATH_COLUMN includes the filename.
+        // So we want paths that start with prefix, and have NO additional slashes after the prefix.
+
+        // Example: prefix = '/F4/'
+        // Match: '/F4/file.txt'
+        // No match: '/F4/sub/file.txt'
+
+        // Postgres regex: ^/prefix/[^/]+$
+        const regex = `^${normalizedPrefix}[^/]+$`;
+        query = query.where(PATH_COLUMN, '~', regex);
+      }
+    } else if (!recursive) {
+      // Non-recursive search at root (/)
+      // Match paths that have NO slashes (except leading slash if paths store it)
+      // Our paths start with slash. So root files are /filename.
+      // Regex: ^/[^/]+$
+      query = query.where(PATH_COLUMN, '~', '^/[^/]+$');
+    }
+
+    const results = await query.orderBy(PATH_COLUMN, 'asc').select('*');
+
+    return results;
+  }
+
+  /**
+   * Searches file contents for a pattern (like grep).
+   * Uses SQL ILIKE for case-insensitive search.
+   * @param workbookId - The workbook ID
+   * @param searchPattern - Text pattern to search for in file content
+   * @param pathPrefix - Optional path prefix to search within
+   * @returns Matching FileDbRecords
+   */
+  async grepFiles(workbookId: WorkbookId, searchPattern: string, pathPrefix?: string): Promise<FileDbRecord[]> {
+    // Escape special SQL LIKE characters in the search pattern
+    const escapedPattern = searchPattern.replace(/%/g, '\\%').replace(/_/g, '\\_');
+
+    let query = this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(DELETED_COLUMN, false)
+      .whereNotNull(CONTENT_COLUMN)
+      .where(CONTENT_COLUMN, 'ilike', `%${escapedPattern}%`);
+
+    // If path prefix is specified, filter by path
+    if (pathPrefix) {
+      const normalizedPrefix = pathPrefix.endsWith('/') ? pathPrefix : `${pathPrefix}/`;
+      query = query.where(PATH_COLUMN, 'like', `${normalizedPrefix}%`);
+    }
+
+    const results = await query.orderBy(PATH_COLUMN, 'asc').select('*');
+
+    return results;
+  }
+
+  /**
    * Accepts suggestions for a file by path
    * Copies the suggested column value to content, sets suggested to null, and updates the timestamp
    * Only updates files where suggested is not null

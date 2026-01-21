@@ -104,6 +104,310 @@ export class FilesService {
   }
 
   /**
+   * Lists files and folders under a given path.
+   * Used by the file agent's `ls` command.
+   * @param path - The path to list (e.g., "/" for root, "/emails" for a subfolder)
+   * @returns Files and folders directly under the given path (not recursive)
+   */
+  async listByPath(workbookId: WorkbookId, path: string, actor: Actor): Promise<ListFilesResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path - ensure it starts with / and doesn't end with / (unless root)
+    let normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    if (normalizedPath !== '/' && normalizedPath.endsWith('/')) {
+      normalizedPath = normalizedPath.slice(0, -1);
+    }
+
+    // Get all folders in the workbook
+    const allFolders = await this.db.client.folder.findMany({
+      where: { workbookId },
+      orderBy: { name: 'asc' },
+      include: {
+        snapshotTables: {
+          select: { connectorService: true, id: true },
+        },
+      },
+    });
+
+    // Filter folders to only those directly under the given path
+    const childFolders = allFolders.filter((f) => {
+      const folderPath = f.path ?? `/${f.name}`;
+      if (normalizedPath === '/') {
+        // Root: folders with no parent (path is just /name)
+        return f.parentId === null;
+      }
+      // Check if folder's parent path matches the given path
+      const parentPath = folderPath.substring(0, folderPath.lastIndexOf('/')) || '/';
+      return parentPath === normalizedPath;
+    });
+
+    // Get all files in the workbook
+    const allFiles = await this.workbookDbService.workbookDb.listAllFiles(workbookId);
+
+    // Filter files to only those directly under the given path
+    const childFiles = allFiles.filter((f) => {
+      const fileParentPath = f.path.substring(0, f.path.lastIndexOf('/')) || '/';
+      return fileParentPath === normalizedPath;
+    });
+
+    // Convert to response entities
+    const folderEntities: FolderRefEntity[] = childFolders.map((f) => {
+      const snapshotTable = f.snapshotTables.length === 1 ? f.snapshotTables[0] : null;
+      return {
+        type: 'folder' as const,
+        id: f.id as FolderId,
+        name: f.name,
+        parentFolderId: f.parentId as FolderId | null,
+        path: f.path ?? `/${f.name}`,
+        connectorService: snapshotTable?.connectorService as Service | null,
+        snapshotTableId: (snapshotTable?.id as SnapshotTableId) ?? null,
+      };
+    });
+
+    const fileEntities: FileRefEntity[] = childFiles.map((f) => ({
+      type: 'file' as const,
+      id: f.id as FileId,
+      name: f.name,
+      parentFolderId: (f.folder_id || null) as FolderId | null,
+      path: f.path,
+      dirty: f.dirty,
+    }));
+
+    const items: FileOrFolderRefEntity[] = [...folderEntities, ...fileEntities];
+    return { items };
+  }
+
+  /**
+   * Get a single file by its path.
+   * Used by the file agent's `cat` command.
+   */
+  async getFileByPath(workbookId: WorkbookId, path: string, actor: Actor): Promise<FileDetailsResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, normalizedPath);
+
+    if (!file) {
+      throw new NotFoundException(`File not found: ${normalizedPath}`);
+    }
+
+    return {
+      file: {
+        ref: {
+          type: 'file',
+          id: file.id as FileId,
+          name: file.name,
+          parentFolderId: file.folder_id as FolderId | null,
+          path: file.path,
+        },
+        content: file.content,
+        originalContent: file.original,
+        suggestedContent: file.suggested,
+        createdAt: file.created_at.toISOString(),
+        updatedAt: file.updated_at.toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Write a file by path. Creates if doesn't exist, updates if it does.
+   * Used by the file agent's `write` command.
+   */
+  async writeFileByPath(workbookId: WorkbookId, path: string, content: string, actor: Actor): Promise<FileRefEntity> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    // Check if file already exists
+    const existingFile = await this.workbookDbService.workbookDb.getFileByPath(workbookId, normalizedPath);
+
+    if (existingFile) {
+      // Update existing file
+      await this.workbookDbService.workbookDb.updateFileById(workbookId, existingFile.id as FileId, { content });
+
+      return {
+        type: 'file',
+        id: existingFile.id as FileId,
+        name: existingFile.name,
+        parentFolderId: (existingFile.folder_id || null) as FolderId | null,
+        path: existingFile.path,
+      };
+    }
+
+    // Create new file - extract folder path and filename
+    const lastSlashIndex = normalizedPath.lastIndexOf('/');
+    const parentPath = lastSlashIndex > 0 ? normalizedPath.substring(0, lastSlashIndex) : '/';
+    const fileName = normalizedPath.substring(lastSlashIndex + 1);
+
+    if (!fileName) {
+      throw new BadRequestException('Invalid path: filename is required');
+    }
+
+    // Find or verify parent folder
+    let parentFolderId: FolderId | null = null;
+    if (parentPath !== '/') {
+      // Look up folder by path
+      const folder = await this.db.client.folder.findFirst({
+        where: { workbookId, path: parentPath },
+      });
+      if (!folder) {
+        throw new NotFoundException(`Parent folder not found: ${parentPath}`);
+      }
+      parentFolderId = folder.id as FolderId;
+    }
+
+    // Create the file
+    const fileId = await this.workbookDbService.workbookDb.createFileWithFolderId(
+      workbookId,
+      fileName,
+      parentFolderId,
+      normalizedPath,
+      content,
+    );
+
+    return {
+      type: 'file',
+      id: fileId,
+      name: fileName,
+      parentFolderId,
+      path: normalizedPath,
+    };
+  }
+
+  /**
+   * Delete a file by path.
+   * Used by the file agent's `rm` command.
+   */
+  async deleteFileByPath(workbookId: WorkbookId, path: string, actor: Actor): Promise<void> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    // Find file by path
+    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, normalizedPath);
+
+    if (!file) {
+      throw new NotFoundException(`File not found: ${normalizedPath}`);
+    }
+
+    // Delete the file
+    await this.workbookDbService.workbookDb.deleteFileById(workbookId, file.id as FileId, false);
+  }
+
+  /**
+   * Find files matching a name pattern.
+   * Used by the file agent's `find` command.
+   * @param namePattern - Glob pattern (e.g., "*.md", "test*")
+   * @param path - Optional path prefix to search within
+   */
+  async findFiles(
+    workbookId: WorkbookId,
+    namePattern: string,
+    path: string | undefined,
+    recursive: boolean,
+    actor: Actor,
+  ): Promise<ListFilesResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path prefix if provided
+    let normalizedPath: string | undefined;
+    if (path) {
+      normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      if (normalizedPath !== '/' && normalizedPath.endsWith('/')) {
+        normalizedPath = normalizedPath.slice(0, -1);
+      }
+    }
+
+    const files = await this.workbookDbService.workbookDb.findFilesByPattern(
+      workbookId,
+      namePattern,
+      normalizedPath,
+      recursive,
+    );
+
+    const fileEntities: FileRefEntity[] = files.map((f) => ({
+      type: 'file' as const,
+      id: f.id as FileId,
+      name: f.name,
+      parentFolderId: (f.folder_id || null) as FolderId | null,
+      path: f.path,
+      dirty: f.dirty,
+    }));
+
+    return { items: fileEntities };
+  }
+
+  /**
+   * Search file contents for a pattern (like grep).
+   * Returns files containing the search pattern with matching line excerpts.
+   * @param searchPattern - Text to search for (case-insensitive)
+   * @param path - Optional path prefix to search within
+   */
+  async grepFiles(
+    workbookId: WorkbookId,
+    searchPattern: string,
+    path: string | undefined,
+    actor: Actor,
+  ): Promise<{ matches: Array<{ file: FileRefEntity; matchCount: number; excerpts: string[] }> }> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    // Normalize path prefix if provided
+    let normalizedPath: string | undefined;
+    if (path) {
+      normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      if (normalizedPath !== '/' && normalizedPath.endsWith('/')) {
+        normalizedPath = normalizedPath.slice(0, -1);
+      }
+    }
+
+    const files = await this.workbookDbService.workbookDb.grepFiles(workbookId, searchPattern, normalizedPath);
+
+    // For each matching file, extract excerpts showing the matches
+    const matches = files.map((f) => {
+      const content = f.content || '';
+      const lines = content.split('\n');
+      const excerpts: string[] = [];
+      let matchCount = 0;
+
+      const lowerPattern = searchPattern.toLowerCase();
+
+      lines.forEach((line, index) => {
+        if (line.toLowerCase().includes(lowerPattern)) {
+          matchCount++;
+          // Include line number and truncate long lines
+          const truncatedLine = line.length > 200 ? line.substring(0, 200) + '...' : line;
+          excerpts.push(`${index + 1}: ${truncatedLine}`);
+        }
+      });
+
+      // Limit excerpts to first 5 matches per file
+      const limitedExcerpts = excerpts.slice(0, 5);
+      if (excerpts.length > 5) {
+        limitedExcerpts.push(`... and ${excerpts.length - 5} more matches`);
+      }
+
+      return {
+        file: {
+          type: 'file' as const,
+          id: f.id as FileId,
+          name: f.name,
+          parentFolderId: (f.folder_id || null) as FolderId | null,
+          path: f.path,
+          dirty: f.dirty,
+        },
+        matchCount,
+        excerpts: limitedExcerpts,
+      };
+    });
+
+    return { matches };
+  }
+
+  /**
    * Lists all of the files in a folder including full file content.
    */
   async getFilesByFolderId(

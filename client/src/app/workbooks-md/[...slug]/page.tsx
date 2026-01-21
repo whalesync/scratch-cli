@@ -9,6 +9,7 @@ import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { AddTableTab } from '@/app/workbooks/[...slug]/components/AddTableTab';
+import AIChatPanel from '@/app/workbooks/[...slug]/components/AIChatPanel/AIChatPanel';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
@@ -40,6 +41,10 @@ const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 600;
 
+const DEFAULT_CHAT_WIDTH = '360px';
+const MIN_CHAT_WIDTH = 300;
+const MAX_CHAT_WIDTH = 800;
+
 function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId: pathTableId } = useWorkbookParams();
@@ -47,7 +52,7 @@ function WorkbookFilesPageContent() {
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
-  // const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
+  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   // File tab state is now managed in the store
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
@@ -146,15 +151,13 @@ function WorkbookFilesPageContent() {
                 </Stack>
               </Split.Pane>
 
-              <Split.Resizer w="6px" m={0} hoverColor="transparent" />
-
               {/* Optional Right Pane: Agent Chat*/}
-              {/* https://linear.app/whalesync/issue/DEV-9228/remove-some-unused-ui */}
-              {/* {chatOpen && (
+              {chatOpen && <Split.Resizer w="6px" m={0} hoverColor="transparent" />}
+              {chatOpen && (
                 <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
                   <AIChatPanel />
                 </Split.Pane>
-              )} */}
+              )}
             </Split>
           </Box>
 
@@ -224,7 +227,7 @@ export default function WorkbookNewPage() {
   }, [workbook, reconcileWithWorkbook]);
 
   return (
-    <AgentChatContextProvider workbookId={params.workbookId}>
+    <AgentChatContextProvider workbookId={params.workbookId} agentType="file">
       <AIAgentSessionManagerProvider workbookId={params.workbookId}>
         <UpdateRecordsProvider>
           <WorkbookFilesPageContent />

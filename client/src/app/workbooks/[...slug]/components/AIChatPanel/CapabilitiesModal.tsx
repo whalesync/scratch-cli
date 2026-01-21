@@ -3,19 +3,25 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { TextTitle3 } from '@/app/components/base/text';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
-import { capabilitiesForGroup, Capability } from '@spinner/shared-types';
 import { Checkbox, Group, Stack, Text } from '@mantine/core';
-import capitalize from 'lodash/capitalize';
-import { useEffect, useState } from 'react';
+import { capabilitiesForGroup, Capability, CapabilityGroup, capabilityGroupDisplayName } from '@spinner/shared-types';
+import { Fragment, useEffect, useState } from 'react';
 
-interface ToolsModalProps {
+export interface ToolsModalProps {
   opened: boolean;
   onClose: () => void;
   selectedCapabilities: string[];
+  availableCapabilities: Capability[];
   onCapabilitiesChange: (capabilities: string[]) => void;
 }
 
-export default function ToolsModal({ opened, onClose, selectedCapabilities, onCapabilitiesChange }: ToolsModalProps) {
+export default function ToolsModal({
+  opened,
+  onClose,
+  selectedCapabilities,
+  availableCapabilities,
+  onCapabilitiesChange,
+}: ToolsModalProps) {
   const [tempSelectedCapabilities, setTempSelectedCapabilities] = useState<string[]>([]);
 
   const handleSave = () => {
@@ -42,9 +48,9 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
 
   const renderCapabilityGroup = (groupName: string, capabilities: Capability[]) => {
     return (
-      <>
-        <TextTitle3 c="primary">{capitalize(groupName)}</TextTitle3>
-        <Stack gap="xs" key={groupName}>
+      <Fragment key={groupName}>
+        <TextTitle3 c="primary">{capabilityGroupDisplayName(groupName as CapabilityGroup)}</TextTitle3>
+        <Stack gap="xs">
           {capabilities.map((capability) => (
             <Checkbox
               key={capability.code}
@@ -55,7 +61,7 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
             />
           ))}
         </Stack>
-      </>
+      </Fragment>
     );
   };
 
@@ -80,10 +86,13 @@ export default function ToolsModal({ opened, onClose, selectedCapabilities, onCa
         </Text>
         <Group gap="md" grow align="flex-start">
           <Stack>
-            {renderCapabilityGroup('data', capabilitiesForGroup('data'))}
-            {renderCapabilityGroup('views', capabilitiesForGroup('views'))}
-            {renderCapabilityGroup('table', capabilitiesForGroup('table'))}
-            {renderCapabilityGroup('other', capabilitiesForGroup('other'))}
+            {/* Extract unique groups from available capabilities and render each */}
+            {Array.from(new Set(availableCapabilities.map((cap) => cap.code.split(':')[0]))).map((groupName) =>
+              renderCapabilityGroup(
+                groupName,
+                capabilitiesForGroup(groupName as CapabilityGroup, availableCapabilities),
+              ),
+            )}
           </Stack>
         </Group>
       </Stack>

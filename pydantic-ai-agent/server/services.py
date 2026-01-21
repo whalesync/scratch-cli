@@ -11,6 +11,8 @@ from typing import Annotated
 from fastapi import Depends
 from server.agent_task_manager import AgentTaskManager
 from server.chat_service import ChatService
+from server.file_agent_chat_service import FileAgentChatService
+from server.file_agent_task_manager import FileAgentTaskManager
 from server.session_service import SessionService
 from server.websocket_connection_manager import ConnectionManager
 
@@ -19,6 +21,8 @@ _session_service: SessionService | None = None
 _chat_service: ChatService | None = None
 _websocket_connection_manager: ConnectionManager | None = None
 _agent_task_manager: AgentTaskManager | None = None
+_file_agent_chat_service: FileAgentChatService | None = None
+_file_agent_task_manager: FileAgentTaskManager | None = None
 
 
 def initialize_services() -> None:
@@ -26,12 +30,19 @@ def initialize_services() -> None:
     Initialize all services. Should be called during application startup.
     """
     global _session_service, _chat_service, _agent_task_manager, _websocket_connection_manager
+    global _file_agent_chat_service, _file_agent_task_manager
 
     _session_service = SessionService()
     _chat_service = ChatService(_session_service)
     _agent_task_manager = AgentTaskManager(_chat_service, _session_service)
     _websocket_connection_manager = ConnectionManager(
         _chat_service, _session_service, _agent_task_manager
+    )
+
+    # File agent services
+    _file_agent_chat_service = FileAgentChatService(_session_service)
+    _file_agent_task_manager = FileAgentTaskManager(
+        _file_agent_chat_service, _session_service
     )
 
 
@@ -89,6 +100,17 @@ def get_agent_task_manager() -> AgentTaskManager:
     return _agent_task_manager
 
 
+def get_file_agent_task_manager() -> FileAgentTaskManager:
+    """
+    Dependency injection for FileAgentTaskManager.
+    """
+    if _file_agent_task_manager is None:
+        raise RuntimeError(
+            "Services not initialized. Call initialize_services() first."
+        )
+    return _file_agent_task_manager
+
+
 # Type aliases for cleaner endpoint signatures
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
 
@@ -97,3 +119,6 @@ WebSocketConnectionManagerDep = Annotated[
     ConnectionManager, Depends(get_websocket_connection_manager)
 ]
 AgentTaskManagerDep = Annotated[AgentTaskManager, Depends(get_agent_task_manager)]
+FileAgentTaskManagerDep = Annotated[
+    FileAgentTaskManager, Depends(get_file_agent_task_manager)
+]
