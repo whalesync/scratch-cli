@@ -49,7 +49,9 @@ The client uses a standardized UI component library built on Mantine. **All deve
 
 Full [Documentation](./pydantic-ai-agent/README.md)
 
-# Deployments
+# Devops Play Books
+
+## Deployments
 
 The client, server and agent are all automatically deployed to GCP from the `prod` branch.
 
@@ -57,7 +59,7 @@ A scheduled pipeline in Gitlab triggers the deployment by merging the current st
 
 [Gitlab Pipeline Schedules](https://gitlab.com/whalesync/spinner/-/pipeline_schedules)
 
-## Manual Deployments
+### Manual Deployments
 
 To manually trigger a new deployment, you must have **Maintainer** permissions on the repository. Then you need to do a merge from `master` to `prod` and push changes. First make sure your `master` and `prod` branches are up to date, then from the `prod` branch create a merge with the comment included below.
 
@@ -72,3 +74,61 @@ git checkout master
 ```
 
 Once done, make sure to leave the `prod` branch immediately to avoid accidently branching from it or pushing new changes. The `prod` branch **must** always be equal or behind the `master` branch.
+
+## Upgrading Node
+
+Upgrading to a new version of Node.js requires several steps.
+
+1. Update the CI/CD image used to builds in Gitlab
+
+- This image is managed in the [whalesync Gitlab project](https://gitlab.com/whalesync/whalesync)
+- Open the `Dockerfile` in the root of the 'whalesync' project and update the list of `nvm installs`:
+
+```bash
+# NOTE: Remove an older version after you add a new version.
+RUN nvm install -b 22.19.0
+RUN nvm install -b 22.20.0
+RUN nvm install -b 22.22.0
+```
+
+- Remove the oldest version and add the new version at the end
+- Create an MR and merge it. The Whalesync pipeline will generate a new docker image
+- This takes ~30 minutes to build and deploy to Docker hub
+- You can find the new image on [Docker Hub](https://hub.docker.com/r/unawareguitar/leaning-basket)
+
+2. Update Gitlab pipeline to use the new image
+
+Update the hard-coded tag for the `unawareguitar/leaning-basket` image in [common.yml](gitlab-ci/common.yml) to match the new image generated in Step 1.
+
+```YAML
+# default image used by all jobs unless overridden
+image:
+  name: unawareguitar/leaning-basket:91d4003e
+  #pull_policy: if-not-present
+```
+
+For some, unknown reason, using the `:latest` tag fo the image doesn't work. We've tried a few times but it never seems to pick the right version.
+
+3. Update `.nvmrc` files
+
+Set the Node version in all the `.nvmrc` files in the project
+
+4. Update `Dockerfile.monorepo` files
+
+The client and server Docker files define the Node version used to build the application images
+
+You need to update all of the `node:22.22.0-alpine` references to use the update Node version.
+
+5. Update module `package.json` for the server project
+
+Set the new version in the engines property:
+
+```JSON
+  "engines": {
+    "node": "22.22.0"
+  },
+```
+
+6. Test local builds
+
+- Run `yarn install` and `yarn build` for both the client and server
