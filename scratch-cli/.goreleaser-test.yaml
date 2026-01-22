@@ -7,7 +7,7 @@ builds:
   # Test build - points to test/staging server
   - id: scratchmd-test
     main: ./cmd/scratchmd
-    binary: scratchmd
+    binary: scratchmd-test
     env:
       - CGO_ENABLED=0
     goos:
@@ -61,7 +61,7 @@ release:
   # Do not upload source code archives
 
 brews:
-  - name: scratchmd
+  - name: scratchmd-test
     ids:
       - scratchmd-test
     repository:
@@ -75,7 +75,7 @@ brews:
     homepage: "https://github.com/whalesync/scratch-cli"
     description: "Sync local Markdown files with your CMS (Webflow, WordPress, etc). (TEST RELEASE)"
     test: |
-      system "#{bin}/scratchmd --version"
+      system "#{bin}/scratchmd-test --version"
 
 scoops:
   - repository:

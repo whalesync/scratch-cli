@@ -27,26 +27,6 @@ builds:
       - -X github.com/whalesync/scratch-cli/internal/cmd.buildDate={{.Date}}
       - -X github.com/whalesync/scratch-cli/internal/api.DefaultScratchServerURL=https://api.scratch.md
 
-  # Test build - points to test/staging server
-  - id: scratchmd-test
-    main: ./cmd/scratchmd
-    binary: scratchmd
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    ldflags:
-      - -s -w
-      - -X github.com/whalesync/scratch-cli/internal/cmd.version={{.Version}}-test
-      - -X github.com/whalesync/scratch-cli/internal/cmd.commit={{.Commit}}
-      - -X github.com/whalesync/scratch-cli/internal/cmd.buildDate={{.Date}}
-      - -X github.com/whalesync/scratch-cli/internal/api.DefaultScratchServerURL=https://test-api.scratch.md
-
 archives:
   # Production archives
   - id: scratchmd-production
@@ -60,21 +40,6 @@ archives:
           - zip
     name_template: >-
       {{ .ProjectName }}_
-      {{- .Os }}_
-      {{- .Arch }}
-
-  # Test archives - with "-test" suffix
-  - id: scratchmd-test
-    ids:
-      - scratchmd-test
-    formats:
-      - tar.gz
-    format_overrides:
-      - goos: windows
-        formats:
-          - zip
-    name_template: >-
-      {{ .ProjectName }}-test_
       {{- .Os }}_
       {{- .Arch }}
 

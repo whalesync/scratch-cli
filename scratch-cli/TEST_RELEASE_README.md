@@ -1,4 +1,4 @@
-# scratchmd CLI (TEST)
+# scratchmd-test CLI (TEST)
 
 Test build pointing to `test-api.scratch.md`. For internal testing only.
 
@@ -8,49 +8,31 @@ Test build pointing to `test-api.scratch.md`. For internal testing only.
 
 ```bash
 brew tap whalesync/scratch-cli-test
-brew install scratchmd
+brew install scratchmd-test
 ```
 
 ### Scoop (Windows)
 
 ```powershell
 scoop bucket add whalesync-test https://github.com/whalesync/scratch-cli-bucket-test
-scoop install scratchmd
+scoop install scratchmd-test
 ```
 
-## Switching Between Test and Prod
+## Coexistence with Production
 
-If you have **both** taps/buckets installed, Homebrew/Scoop may get confused.
-
-### Homebrew
+The test binary is named `scratchmd-test` so it can coexist with the production `scratchmd`.
 
 ```bash
-# Uninstall current
-brew uninstall scratchmd
+# Production
+scratchmd --version
 
-# Switch to test
-brew install whalesync/scratch-cli-test/scratchmd
-
-# Switch to prod
-brew install whalesync/scratch-cli/scratchmd
-```
-
-### Scoop
-
-```powershell
-# Uninstall current
-scoop uninstall scratchmd
-
-# Switch to test
-scoop install whalesync-test/scratchmd
-
-# Switch to prod
-scoop install whalesync/scratchmd
+# Test
+scratchmd-test --version
 ```
 
 ## Verify
 
 ```bash
-scratchmd --version
-# Should show version ending in "-test" for test builds
+scratchmd-test --version
+# The binary connects to test-api.scratch.md
 ```
