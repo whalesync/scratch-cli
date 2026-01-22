@@ -127,30 +127,44 @@ The following commands are planned for future releases:
 
 Private
 
-
 ## Enabling Command Completion
 
-Cobra CLI automatically generates command completion scripts for a variety of terminals.  
-
-Details can be found in [their docs](https://airtable.com/developers/web/api/upload-attachment).
+Cobra CLI automatically generates command completion scripts for a variety of terminals.
 
 ### Zsh Completion
 
-#### Setup command completion for Zsh
-
-You only have to do this once:
+Add the following to your `~/.zshrc`:
 
 ```zsh
-mkdir -p ~/.zsh/completions
-echo 'fpath=(~/.zsh/completions $fpath)' >> ~/.zshrc
-echo 'autoload -U compinit && compinit' >> ~/.zshrc
+# scratchmd completion caching
+_scratchmd_cache=~/.zsh/cache/_scratchmd
+
+# Generate cache once (from first available executable)
+if [[ ! -f $_scratchmd_cache ]]; then
+  mkdir -p ~/.zsh/cache
+  for cmd in scratchmd scratchmd-test scratchmd-local; do
+    if command -v $cmd &>/dev/null; then
+      $cmd completion zsh > $_scratchmd_cache
+      break
+    fi
+  done
+fi
+
+# Load cached completion
+[[ -f $_scratchmd_cache ]] && source $_scratchmd_cache
+
+# Map each executable to the completion function
+if command -v scratchmd &>/dev/null; then
+  compdef _scratchmd scratchmd
+fi
+if command -v scratchmd-test &>/dev/null; then
+  compdef _scratchmd scratchmd-test
+fi
+if command -v scratchmd-local &>/dev/null; then
+  compdef _scratchmd scratchmd-local
+fi
+
+unset _scratchmd_cache
 ```
 
-#### Update your Scratchmd completion file
-
-Anytime the command is updated with new options you need to regenerate the completion script and update Zsh
-
-```zsh
-scratchmd completion zsh > _scratchmd
-cp _scratchmd ~/.zsh/completions/
-```
+This caches completions to `~/.zsh/cache/_scratchmd` on first run and reuses them for all `scratchmd` variants.
