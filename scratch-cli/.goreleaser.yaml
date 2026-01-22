@@ -94,6 +94,7 @@ release:
   draft: false
   prerelease: auto
   name_template: "{{.ProjectName}} v{{.Version}}"
+  header: "Sync local Markdown files with your CMS."
   # Do not upload source code archives
 
 brews:

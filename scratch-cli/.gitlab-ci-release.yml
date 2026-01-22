@@ -28,7 +28,7 @@ release-cli-major:
   variables:
     RELEASE_TYPE: "major"
 
-# TEST RELEASE JOBS (Protects master branch)
+# TEST RELEASE JOBS (master branch, excludes scheduled pipelines)
 .release_test_job:
   stage: deploy
   image:
@@ -39,9 +39,9 @@ release-cli-major:
   script:
     - chmod +x scratch-cli/scripts/release_test.sh
     - scratch-cli/scripts/release_test.sh $RELEASE_TYPE
-  when: manual
-  only:
-    - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"'
+      when: manual
 
 release-cli-test-patch:
   extends: .release_test_job
