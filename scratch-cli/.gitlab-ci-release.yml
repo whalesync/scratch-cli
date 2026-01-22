@@ -1,4 +1,4 @@
-# PROD RELEASE JOBS (Procects prod branch)
+# PROD RELEASE JOBS (Protects prod branch)
 .release_prod_job:
   stage: deploy
   image:
@@ -6,6 +6,7 @@
     entrypoint: [""]
   variables:
     GIT_DEPTH: 0
+  dependencies: []
   script:
     - chmod +x scratch-cli/scripts/release_public.sh
     - scratch-cli/scripts/release_public.sh $RELEASE_TYPE
@@ -36,6 +37,7 @@ release-cli-major:
     entrypoint: [""]
   variables:
     GIT_DEPTH: 0
+  dependencies: []
   script:
     - chmod +x scratch-cli/scripts/release_test.sh
     - scratch-cli/scripts/release_test.sh $RELEASE_TYPE
