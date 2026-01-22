@@ -2,8 +2,6 @@
 
 Test build pointing to `test-api.scratch.md`. For internal testing only.
 
-The binary is named `scratchmd-test` so it can coexist with the production `scratchmd`.
-
 ## Installation
 
 ### Homebrew (macOS, Linux)
@@ -20,8 +18,21 @@ scoop bucket add whalesync-test https://github.com/whalesync/scratch-cli-bucket-
 scoop install scratchmd-test
 ```
 
+## Coexistence with Production
+
+The test binary is named `scratchmd-test` so it can coexist with the production `scratchmd`.
+
+```bash
+# Production
+scratchmd --version
+
+# Test
+scratchmd-test --version
+```
+
 ## Verify
 
 ```bash
 scratchmd-test --version
+# The binary connects to test-api.scratch.md
 ```
