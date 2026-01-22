@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"mime"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/spf13/cobra"
@@ -145,20 +147,25 @@ Examples:
 
 // contentValidateCmd represents the content validate command
 var contentValidateCmd = &cobra.Command{
-	Use:   "validate [folder[/file.md]]",
-	Short: "[NON-INTERACTIVE] Validate files against CMS schema",
-	Long: `[NON-INTERACTIVE - safe for LLM use]
+	Use:   "validate [folder[/file.md]...]",
+	Short: "Validate files against CMS schema",
+	Long: `Validate local content files against the CMS schema before publishing.
 
-Validate local content files against the CMS schema before publishing.
+INTERACTIVE MODE (no arguments in terminal):
+  Prompts to select validation scope and allows multi-selection of folders/files.
 
-Without arguments, validates all files across all linked tables.
-With folder argument, validates all files in that collection only.
-With folder/file.md argument, validates a single file.
+NON-INTERACTIVE MODE (with arguments or piped input):
+  Accepts multiple folders and/or files as arguments.
+  Use --all to validate all files without prompting.
 
 Examples:
-  scratchmd content validate                      # validate all files
-  scratchmd content validate blog-posts           # validate one collection
-  scratchmd content validate blog-posts/post.md   # validate one file`,
+  scratchmd content validate                                    # interactive: select what to validate
+  scratchmd content validate --all                              # non-interactive: validate all files
+  scratchmd content validate blog-posts                         # validate one collection
+  scratchmd content validate blog-posts articles                # validate multiple collections
+  scratchmd content validate blog-posts/post.md                 # validate one file
+  scratchmd content validate blog-posts/a.md articles/b.md      # validate multiple files
+  scratchmd content validate blog-posts articles/post.md        # mix folders and files`,
 	RunE: runContentValidate,
 }
 
@@ -188,6 +195,9 @@ func init() {
 	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
 	contentUploadCmd.Flags().Bool("sync-deletes", false, "Delete remote records that are missing locally")
 	contentUploadCmd.Flags().Bool("simulate", false, "Output operations to a text file instead of uploading")
+
+	// Flags for content validate
+	contentValidateCmd.Flags().Bool("all", false, "Validate all files without prompting (non-interactive)")
 }
 
 // ANSI color codes
@@ -1469,17 +1479,59 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load secrets: %w", err)
 	}
 
-	// Parse the argument to determine scope
-	var tableName, fileName string
-	if len(args) > 0 {
-		arg := args[0]
-		// Check if it's folder/file.md format
-		if strings.Contains(arg, "/") {
-			parts := strings.SplitN(arg, "/", 2)
-			tableName = parts[0]
-			fileName = parts[1]
-		} else {
-			tableName = arg
+	// Check for --all flag
+	validateAll, _ := cmd.Flags().GetBool("all")
+
+	// Determine if we should run in interactive mode
+	// Interactive mode: no args, no --all flag, and stdin is a terminal
+	isInteractive := len(args) == 0 && !validateAll && isInteractiveTerminal()
+
+	// Variables to track what to validate
+	// specificFiles: List of "folder/file.md" paths (for both interactive and non-interactive multi-select)
+	// specificFolders: List of folder names to validate all files in
+	var specificFiles []string
+	var specificFolders []string
+
+	if isInteractive {
+		// Interactive mode: prompt user to select what to validate
+		selectedFiles, err := promptValidateSelection()
+		if err != nil {
+			if err == ErrGoBack {
+				fmt.Println("Validation cancelled.")
+				return nil
+			}
+			return fmt.Errorf("failed to get selection: %w", err)
+		}
+		if len(selectedFiles) == 0 {
+			fmt.Println("No files selected for validation.")
+			return nil
+		}
+		specificFiles = selectedFiles
+	} else if len(args) > 0 {
+		// Non-interactive with arguments - can be multiple folders and/or files
+		for _, arg := range args {
+			// Normalize path separators to forward slashes for consistent cross-platform handling
+			normalizedArg := filepath.ToSlash(arg)
+
+			// Check if it's folder/file.md format (contains / and ends with .md)
+			if strings.Contains(normalizedArg, "/") && strings.HasSuffix(normalizedArg, ".md") {
+				specificFiles = append(specificFiles, normalizedArg)
+			} else if strings.Contains(normalizedArg, "/") {
+				// It's a folder path with subdir, treat as folder
+				specificFolders = append(specificFolders, arg) // Keep original for os.ReadDir
+			} else {
+				// It's a folder name
+				specificFolders = append(specificFolders, arg)
+			}
+		}
+
+		// Expand folders to get all their files
+		if len(specificFolders) > 0 {
+			folderFiles, err := getAllFilesFromTables(specificFolders)
+			if err != nil {
+				return fmt.Errorf("failed to get files from folders: %w", err)
+			}
+			specificFiles = append(specificFiles, folderFiles...)
 		}
 	}
 
@@ -1488,10 +1540,23 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 
 	// Determine which tables to validate
 	var tablesToValidate []string
-	if tableName != "" {
-		tablesToValidate = []string{tableName}
+	if len(specificFiles) > 0 {
+		// We have specific files selected (interactive or non-interactive multi-select)
+		// Group files by table
+		tableFilesMap := make(map[string][]string)
+		for _, file := range specificFiles {
+			parts := strings.SplitN(file, "/", 2)
+			if len(parts) == 2 {
+				tableFilesMap[parts[0]] = append(tableFilesMap[parts[0]], parts[1])
+			}
+		}
+		for tbl := range tableFilesMap {
+			tablesToValidate = append(tablesToValidate, tbl)
+		}
+		// Store for later use in the loop
+		cmd.SetContext(context.WithValue(cmd.Context(), "tableFilesMap", tableFilesMap))
 	} else {
-		// Validate all configured tables
+		// Validate all configured tables (--all flag or no args in non-interactive)
 		tables, err := config.ListConfiguredTables(".")
 		if err != nil {
 			return fmt.Errorf("failed to list tables: %w", err)
@@ -1546,13 +1611,24 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		// Collect files to validate
 		var filesToValidate []api.FileToValidate
 
-		if fileName != "" {
-			// Validate single file
-			file, err := loadFileForValidation(tblName, fileName, tableConfig.ContentField)
-			if err != nil {
-				return fmt.Errorf("failed to load file '%s': %w", fileName, err)
+		// Check if we have specific files from interactive mode
+		var tableFilesMap map[string][]string
+		if ctx := cmd.Context(); ctx != nil {
+			if tfm, ok := ctx.Value("tableFilesMap").(map[string][]string); ok {
+				tableFilesMap = tfm
 			}
-			filesToValidate = append(filesToValidate, *file)
+		}
+
+		if tableFilesMap != nil && len(tableFilesMap[tblName]) > 0 {
+			// Specific files selected (interactive or non-interactive with multiple args)
+			for _, fName := range tableFilesMap[tblName] {
+				file, err := loadFileForValidation(tblName, fName, tableConfig.ContentField)
+				if err != nil {
+					fmt.Printf("   ⚠️  Failed to load '%s': %v\n", fName, err)
+					continue
+				}
+				filesToValidate = append(filesToValidate, *file)
+			}
 		} else {
 			// Validate all .md files in the table folder
 			entries, err := os.ReadDir(tblName)
@@ -1621,7 +1697,8 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 
 // loadFileForValidation reads a markdown file and returns it in the format needed for validation.
 func loadFileForValidation(tableName, fileName, contentFieldName string) (*api.FileToValidate, error) {
-	filePath := filepath.Join(tableName, fileName)
+	// Convert from forward-slash internal format to OS-specific path
+	filePath := filepath.Join(filepath.FromSlash(tableName), fileName)
 
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -1682,6 +1759,108 @@ func loadFileForValidation(tableName, fileName, contentFieldName string) (*api.F
 		Filename: fileName,
 		Data:     data,
 	}, nil
+}
+
+// promptValidateSelection prompts the user to select what to validate interactively.
+// Returns a list of "folder/file.md" paths to validate.
+func promptValidateSelection() ([]string, error) {
+	// Get all configured tables
+	tables, err := config.ListConfiguredTables(".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tables: %w", err)
+	}
+	if len(tables) == 0 {
+		fmt.Println("No tables configured.")
+		fmt.Println("Run 'scratchmd setup' and select 'Set up tables' first.")
+		return nil, nil
+	}
+
+	// Ask user what scope they want to validate
+	scopeOptions := []string{
+		"All files",
+		"Select folders",
+		"Select files",
+	}
+
+	var selectedScope string
+	scopePrompt := &survey.Select{
+		Message: "What would you like to validate?",
+		Options: scopeOptions,
+	}
+	if err := askOne(scopePrompt, &selectedScope); err != nil {
+		return nil, err
+	}
+
+	switch selectedScope {
+	case "All files":
+		// Return all files from all tables
+		return getAllFilesFromTables(tables)
+
+	case "Select folders":
+		// Let user select folders
+		var selectedFolders []string
+		folderPrompt := &survey.MultiSelect{
+			Message: "Select folders to validate (type to filter, space to select):",
+			Options: tables,
+		}
+		if err := askOne(folderPrompt, &selectedFolders); err != nil {
+			return nil, err
+		}
+		if len(selectedFolders) == 0 {
+			return nil, nil
+		}
+		return getAllFilesFromTables(selectedFolders)
+
+	case "Select files":
+		// Collect all files from all tables
+		allFiles, err := getAllFilesFromTables(tables)
+		if err != nil {
+			return nil, err
+		}
+		if len(allFiles) == 0 {
+			fmt.Println("No files found in any configured table.")
+			return nil, nil
+		}
+
+		// Let user select specific files
+		var selectedFiles []string
+		filePrompt := &survey.MultiSelect{
+			Message:  "Select files to validate (type to filter, space to select):",
+			Options:  allFiles,
+			PageSize: 15,
+		}
+		if err := askOne(filePrompt, &selectedFiles); err != nil {
+			return nil, err
+		}
+		return selectedFiles, nil
+	}
+
+	return nil, nil
+}
+
+// getAllFilesFromTables returns all .md files from the specified tables as "folder/file.md" paths.
+// Uses forward slashes consistently for cross-platform compatibility in parsing.
+func getAllFilesFromTables(tables []string) ([]string, error) {
+	var allFiles []string
+	for _, tbl := range tables {
+		// Convert to OS-specific path for filesystem operations
+		osPath := filepath.FromSlash(tbl)
+		entries, err := os.ReadDir(osPath)
+		if err != nil {
+			// Skip tables that don't have a folder yet
+			continue
+		}
+		// Normalize table name to forward slashes for consistent internal representation
+		normalizedTbl := filepath.ToSlash(tbl)
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+				continue
+			}
+			// Use forward slash consistently for cross-platform path handling
+			allFiles = append(allFiles, normalizedTbl+"/"+entry.Name())
+		}
+	}
+	return allFiles, nil
 }
 
 // getSingleFileChange detects what changed for a single file by comparing against its original.
