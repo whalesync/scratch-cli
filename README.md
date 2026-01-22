@@ -7,83 +7,59 @@ Check out www.scratch.md for more info.
 
 ### Homebrew (macOS, Linux, WSL)
 
-The recommended way to install on macOS and Linux.
-
 ```bash
 brew tap whalesync/scratch-cli
 brew install scratchmd
 ```
 
-### Windows
-
-**Option 1: Scoop (Recommended)**
+### Scoop (Windows)
 
 ```powershell
 scoop bucket add whalesync https://github.com/whalesync/scratch-cli-bucket
 scoop install scratchmd
 ```
 
-**Option 2: PowerShell One-Liner**
-
-```powershell
-powershell -c "irm https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_windows_amd64.zip -OutFile scratchmd.zip; Expand-Archive scratchmd.zip -DestinationPath C:\scratchmd; [Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\scratchmd', [EnvironmentVariableTarget]::User)"
-```
-
-**Option 3: Manual Download**
-
-1. Download the zip file from [Latest Release](https://github.com/whalesync/scratch-cli/releases/latest):
-   - `scratchmd_windows_amd64.zip` (Standard 64-bit)
-   - `scratchmd_windows_arm64.zip` (ARM64)
-2. Extract the zip.
-3. Open PowerShell/Command Prompt in that folder or add `scratchmd.exe` to your PATH.
-
-### Manual Download (Linux / macOS)
-
-### macOS (Apple Silicon / M1-M3):\*\*
+### Version Check & Manual Installation
 
 ```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_arm64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
+scratchmd --version
 ```
 
-**macOS (Intel):**
-
-```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_amd64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
-```
-
-**Linux (x86_64):**
-
-```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_amd64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
-```
-
-**Linux (ARM64):**
-
-```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_arm64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
-```
+For manual installation options, see [MANUAL_INSTALL.md](MANUAL_INSTALL.md).
 
 ---
 
 ## Getting Started
 
-1. **Setup:**
+### Option 1: quick setup (recommended)
 
-   ```bash
-   scratchmd setup
-   ```
+```bash
+scratchmd setup
+```
 
-2. **Or Add Account manually:**
+### Option 2: Manual setup
 
-   ```bash
-   scratchmd account add my-site --provider=webflow --api-key=YOUR_KEY
-   ```
+```bash
+# 1. Add your CMS account
+scratchmd account add my-site --provider=webflow --api-key=YOUR_KEY
 
-3. **Check Version:**
-   ```bash
-   scratchmd --version
-   ```
+# 2. Link a local folder to a CMS collection
+scratchmd folder link --table-id=TABLE_ID ./my-content
+
+# 3. Download content
+scratchmd content download
+```
+
+## Utilities
+
+### Shell Completion
+
+Add to your `~/.zshrc` or `~/.bashrc`:
+
+```bash
+source <(scratchmd completion $(basename $SHELL))
+```
+
+### VSCode Extension
+
+Coming Soon
