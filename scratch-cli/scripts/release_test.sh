@@ -70,16 +70,28 @@ REMOTE_EXISTS=$(git ls-remote --tags "$GITHUB_REPO_URL" "refs/tags/$NEW_VERSION"
 if [ -n "$REMOTE_EXISTS" ]; then
   echo "⚠️  Tag $NEW_VERSION already exists on remote. Cleaning up..."
   
-  # Delete remote tag
+  # 3a. Delete the GitHub Release first (to avoid orphaned Drafts)
+  echo "Checking for existing GitHub Release for $NEW_VERSION..."
+  # Fetch release info; assuming the first "id" field in the JSON is the Release ID is a common heuristic when jq isn't guaranteed.
+  RELEASE_JSON=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/whalesync/scratch-cli/releases/tags/$NEW_VERSION")
+  
+  # Extract ID (simple grep/cut). The Release object ID is the first "id" field.
+  RELEASE_ID=$(echo "$RELEASE_JSON" | grep -m 1 '"id":' | tr -d ' ",' | cut -d: -f2)
+  
+  if [ -n "$RELEASE_ID" ] && [ "$RELEASE_ID" != "null" ]; then
+    echo "Found existing Release ID: $RELEASE_ID. Deleting..."
+    curl -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+      "https://api.github.com/repos/whalesync/scratch-cli/releases/$RELEASE_ID" || echo "Warning: Failed to delete release (continuing)"
+  else
+    echo "No existing GitHub release found for tag $NEW_VERSION."
+  fi
+
+  # 3b. Delete remote tag
   echo "Deleting remote tag $NEW_VERSION..."
   # use local git with auth token in URL if accessible, or curl
   # Since we are in CI, we usually use the auth URL
   git push --delete "$GITHUB_AUTH_URL" "$NEW_VERSION" || echo "Failed to delete tag via git push, might be protected or not found (ignoring)"
-  
-  # Ideally we should also delete the GitHub Release associated with it to be clean
-  # But goreleaser --clean might handle overwriting artifacts if the tag is new.
-  # If the tag is deleted, the release becomes a "Draft" or floats.
-  # Let's hope goreleaser handles re-creating the release attached to the new tag.
+
 else
   echo "Tag $NEW_VERSION does not exist on remote. Proceeding."
 fi
