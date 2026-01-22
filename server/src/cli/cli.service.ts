@@ -15,6 +15,7 @@ import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './d
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
+import { ValidatedFileResult, ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
 import { FieldInfo } from './entities/field-info.entity';
 import { TableInfo } from './entities/table-info.entity';
 
@@ -432,6 +433,77 @@ export class CliService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
+    }
+  }
+
+  async validateFiles(
+    credentials: CliConnectorCredentials,
+    validateRequest: ValidateFilesRequestDto,
+    actor?: Actor,
+  ): Promise<ValidateFilesResponseDto> {
+    if (!validateRequest.tableId || validateRequest.tableId.length === 0) {
+      throw new BadRequestException('Table ID is missing from request');
+    }
+
+    if (!validateRequest.files || validateRequest.files.length === 0) {
+      throw new BadRequestException('No files provided for validation');
+    }
+
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
+
+      // Fetch the table spec using the tableId array as the remoteId
+      const tableSpec = await connector.fetchTableSpec({
+        wsId: validateRequest.tableId.join('-'),
+        remoteId: validateRequest.tableId,
+      });
+
+      // Check if the connector supports file validation
+      if (!connector.validateFiles) {
+        // If the connector doesn't support validation, return all files as publishable
+        const files: ValidatedFileResult[] = validateRequest.files.map((file) => ({
+          filename: file.filename ?? '',
+          id: file.id,
+          data: file.data ?? {},
+          publishable: true,
+        }));
+
+        return { files };
+      }
+
+      // Prepare files for validation
+      const filesToValidate = validateRequest.files.map((file) => ({
+        filename: file.filename ?? '',
+        id: file.id,
+        data: file.data ?? {},
+      }));
+
+      // Call the connector's validateFiles method
+      const validationResults = await connector.validateFiles(tableSpec, filesToValidate);
+
+      const result = {
+        files: validationResults,
+      };
+
+      if (actor) {
+        this.posthogService.captureEvent(PostHogEventName.CLI_VALIDATE_FILES, actor.userId, {
+          service: credentials.service,
+          fileCount: validateRequest.files.length,
+          publishableCount: validationResults.filter((f) => f.publishable).length,
+        });
+      }
+
+      return result;
+    } catch (error: unknown) {
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error validating files',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        error: errorMessage,
+      };
     }
   }
 

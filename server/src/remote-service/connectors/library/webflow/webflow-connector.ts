@@ -5,7 +5,7 @@ import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
-import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
+import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';
 import { WebflowSchemaParser } from './webflow-schema-parser';
 import {
@@ -70,6 +70,183 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   public downloadRecordDeep = undefined;
+
+  /**
+   * Validate files against the Webflow table schema.
+   * Checks for:
+   * - Missing required fields
+   * - Unknown fields not in schema
+   * - Data type validation (boolean, number, email, url, etc.)
+   */
+  async validateFiles(
+    tableSpec: WebflowTableSpec,
+    files: { filename: string; id?: string; data: Record<string, unknown> }[],
+  ): Promise<
+    { filename: string; id?: string; data: Record<string, unknown>; publishable: boolean; errors?: string[] }[]
+  > {
+    // Build a map of field names to column specs for easy lookup
+    const columnMap = new Map<string, (typeof tableSpec.columns)[0]>();
+    const requiredFields: string[] = [];
+
+    for (const column of tableSpec.columns) {
+      columnMap.set(column.id.wsId, column);
+      if (column.required && !column.readonly) {
+        requiredFields.push(column.id.wsId);
+      }
+    }
+
+    // Fields that are metadata/internal and should be ignored during validation
+    const ignoredFields = new Set(['remoteId', '_content']);
+
+    const results = files.map((file) => {
+      const errors: string[] = [];
+
+      // Check for missing required fields
+      for (const requiredField of requiredFields) {
+        const value = file.data[requiredField];
+        if (value === undefined || value === null || value === '') {
+          const column = columnMap.get(requiredField);
+          const fieldName = column?.name || requiredField;
+          errors.push(`Missing required field: "${fieldName}"`);
+        }
+      }
+
+      // Check for unknown fields and validate data types
+      for (const [fieldKey, value] of Object.entries(file.data)) {
+        if (ignoredFields.has(fieldKey)) {
+          continue;
+        }
+
+        const column = columnMap.get(fieldKey);
+
+        // Check for unknown fields
+        if (!column) {
+          errors.push(`Unknown field not in schema: "${fieldKey}"`);
+          continue;
+        }
+
+        // Skip type validation for null/undefined values (handled by required check)
+        if (value === undefined || value === null || value === '') {
+          continue;
+        }
+
+        // Validate data types based on pgType and metadata
+        const typeError = this.validateFieldType(fieldKey, value, column);
+        if (typeError) {
+          errors.push(typeError);
+        }
+      }
+
+      return {
+        filename: file.filename,
+        id: file.id,
+        data: file.data,
+        publishable: errors.length === 0,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+    });
+
+    return Promise.resolve(results);
+  }
+
+  /**
+   * Validates a field value against its expected type.
+   * Returns an error message if validation fails, or undefined if valid.
+   */
+  private validateFieldType(
+    fieldKey: string,
+    value: unknown,
+    column: WebflowTableSpec['columns'][0],
+  ): string | undefined {
+    const fieldName = column.name || fieldKey;
+    const pgType = column.pgType;
+    const metadata = column.metadata;
+
+    switch (pgType) {
+      case PostgresColumnType.BOOLEAN: {
+        if (typeof value !== 'boolean' && value !== 'true' && value !== 'false') {
+          return `Invalid type for "${fieldName}": expected boolean, got ${typeof value}`;
+        }
+        break;
+      }
+
+      case PostgresColumnType.NUMERIC: {
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        if (typeof numValue !== 'number' || isNaN(numValue)) {
+          return `Invalid type for "${fieldName}": expected number, got ${typeof value}`;
+        }
+        // Check integer format if specified
+        if (metadata?.numberFormat === 'integer' && !Number.isInteger(numValue)) {
+          return `Invalid type for "${fieldName}": expected integer, got decimal`;
+        }
+        break;
+      }
+
+      case PostgresColumnType.TIMESTAMP: {
+        // Accept strings that can be parsed as dates
+        if (typeof value === 'string') {
+          const date = new Date(value);
+          if (isNaN(date.getTime())) {
+            return `Invalid type for "${fieldName}": expected valid date string, got "${value}"`;
+          }
+        } else if (!(value instanceof Date)) {
+          return `Invalid type for "${fieldName}": expected date, got ${typeof value}`;
+        }
+        break;
+      }
+
+      case PostgresColumnType.TEXT: {
+        // For text fields, check special formats in metadata
+        if (typeof value !== 'string') {
+          return `Invalid type for "${fieldName}": expected string, got ${typeof value}`;
+        }
+
+        // Validate email format
+        if (metadata?.textFormat === 'email') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            return `Invalid format for "${fieldName}": expected valid email address`;
+          }
+        }
+
+        // Validate URL format
+        if (metadata?.textFormat === 'url') {
+          try {
+            new URL(value);
+          } catch {
+            return `Invalid format for "${fieldName}": expected valid URL`;
+          }
+        }
+
+        // Validate option fields (if options are defined)
+        if (metadata?.options && metadata.options.length > 0 && !metadata.allowAnyOption) {
+          const validValues = metadata.options.map((opt) => opt.value);
+          if (!validValues.includes(value)) {
+            const validLabels = metadata.options.map((opt) => opt.label || opt.value).join(', ');
+            return `Invalid value for "${fieldName}": must be one of: ${validLabels}`;
+          }
+        }
+        break;
+      }
+
+      case PostgresColumnType.JSONB: {
+        // JSONB can be objects or arrays - just check it's not a primitive that should be something else
+        if (typeof value !== 'object' && !Array.isArray(value)) {
+          // Allow strings that might be JSON
+          if (typeof value === 'string') {
+            try {
+              JSON.parse(value);
+            } catch {
+              return `Invalid type for "${fieldName}": expected JSON object or array`;
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    return undefined;
+  }
 
   async downloadTableRecords(
     tableSpec: WebflowTableSpec,

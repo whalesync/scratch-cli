@@ -96,6 +96,23 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<void>;
 
   /**
+   * Validate files against the table schema before publishing.
+   * This is an optional method that connectors can override to provide custom validation logic.
+   * By default, returns undefined to indicate that the connector does not support validation.
+   *
+   * @param tableSpec - The table spec to validate files against.
+   * @param files - Array of files to validate, each containing filename, optional id, and data as key-value pairs.
+   * @returns Array of validation results, each containing the original file data plus a publishable boolean,
+   *          or undefined if the connector does not support validation.
+   */
+  validateFiles?(
+    tableSpec: TableSpecs[T],
+    files: { filename: string; id?: string; data: Record<string, unknown> }[],
+  ): Promise<
+    { filename: string; id?: string; data: Record<string, unknown>; publishable: boolean; errors?: string[] }[]
+  >;
+
+  /**
    * Sanitize the record for update. Usually involves removing fields that are not touched or are scratch fields that the connector does not know about.
    * @param record - The record to sanitize.
    * @param tableSpec - The table spec to sanitize the record for.

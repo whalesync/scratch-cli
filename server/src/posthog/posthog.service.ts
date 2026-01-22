@@ -192,4 +192,5 @@ export enum PostHogEventName {
   CLI_LIST_TABLES = 'cli_list_tables',
   CLI_DOWNLOAD = 'cli_download',
   CLI_UPLOAD = 'cli_upload',
+  CLI_VALIDATE_FILES = 'cli_validate_files',
 }

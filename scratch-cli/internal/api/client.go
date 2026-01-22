@@ -139,6 +139,34 @@ type AuthPollResponse struct {
 	Error          string `json:"error,omitempty"`
 }
 
+// FileToValidate represents a file to be validated against the table schema.
+type FileToValidate struct {
+	ID       string                 `json:"id,omitempty"` // The remote ID of the record (optional for new files)
+	Filename string                 `json:"filename"`     // The filename of the file
+	Data     map[string]interface{} `json:"data"`         // The content as key-value pairs (parsed frontmatter)
+}
+
+// ValidateFilesRequest represents the request body for the validate-files endpoint.
+type ValidateFilesRequest struct {
+	TableID []string         `json:"tableId"`
+	Files   []FileToValidate `json:"files"`
+}
+
+// ValidatedFileResult represents the validation result for a single file.
+type ValidatedFileResult struct {
+	ID          string                 `json:"id,omitempty"` // The remote ID of the record (if provided)
+	Filename    string                 `json:"filename"`     // The filename of the file
+	Data        map[string]interface{} `json:"data"`         // The content as key-value pairs
+	Publishable bool                   `json:"publishable"`  // Whether the file passed validation
+	Errors      []string               `json:"errors,omitempty"`
+}
+
+// ValidateFilesResponse represents the response from the validate-files endpoint.
+type ValidateFilesResponse struct {
+	Error string                `json:"error,omitempty"`
+	Files []ValidatedFileResult `json:"files,omitempty"`
+}
+
 // ClientOption is a function that configures a Client.
 type ClientOption func(*Client)
 
@@ -371,6 +399,15 @@ func (c *Client) PollAuth(pollingCode string) (*AuthPollResponse, error) {
 	body := map[string]string{"pollingCode": pollingCode}
 	var result AuthPollResponse
 	if err := c.doRequest(http.MethodPost, "auth/poll", nil, body, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ValidateFiles validates files against the table schema before publishing.
+func (c *Client) ValidateFiles(creds *ConnectorCredentials, req *ValidateFilesRequest) (*ValidateFilesResponse, error) {
+	var result ValidateFilesResponse
+	if err := c.doRequest(http.MethodPost, "validate-files", creds, req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

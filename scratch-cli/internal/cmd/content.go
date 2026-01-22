@@ -143,6 +143,25 @@ Examples:
 	RunE: runContentUpload,
 }
 
+// contentValidateCmd represents the content validate command
+var contentValidateCmd = &cobra.Command{
+	Use:   "validate [folder[/file.md]]",
+	Short: "[NON-INTERACTIVE] Validate files against CMS schema",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Validate local content files against the CMS schema before publishing.
+
+Without arguments, validates all files across all linked tables.
+With folder argument, validates all files in that collection only.
+With folder/file.md argument, validates a single file.
+
+Examples:
+  scratchmd content validate                      # validate all files
+  scratchmd content validate blog-posts           # validate one collection
+  scratchmd content validate blog-posts/post.md   # validate one file`,
+	RunE: runContentValidate,
+}
+
 func init() {
 	rootCmd.AddCommand(contentCmd)
 	contentCmd.AddCommand(contentDownloadCmd)
@@ -150,6 +169,7 @@ func init() {
 	contentCmd.AddCommand(contentDiffCmd)
 	contentCmd.AddCommand(contentDiffFieldsCmd)
 	contentCmd.AddCommand(contentUploadCmd)
+	contentCmd.AddCommand(contentValidateCmd)
 
 	// Flags for content download
 	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
@@ -1436,6 +1456,232 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	fmt.Println("Upload complete.")
 
 	return nil
+}
+
+func runContentValidate(cmd *cobra.Command, args []string) error {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	secrets, err := config.LoadSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to load secrets: %w", err)
+	}
+
+	// Parse the argument to determine scope
+	var tableName, fileName string
+	if len(args) > 0 {
+		arg := args[0]
+		// Check if it's folder/file.md format
+		if strings.Contains(arg, "/") {
+			parts := strings.SplitN(arg, "/", 2)
+			tableName = parts[0]
+			fileName = parts[1]
+		} else {
+			tableName = arg
+		}
+	}
+
+	// Create API client
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
+
+	// Determine which tables to validate
+	var tablesToValidate []string
+	if tableName != "" {
+		tablesToValidate = []string{tableName}
+	} else {
+		// Validate all configured tables
+		tables, err := config.ListConfiguredTables(".")
+		if err != nil {
+			return fmt.Errorf("failed to list tables: %w", err)
+		}
+		if len(tables) == 0 {
+			fmt.Println("No tables configured.")
+			fmt.Println("Run 'scratchmd setup' and select 'Set up tables' first.")
+			return nil
+		}
+		tablesToValidate = tables
+	}
+
+	// Process each table
+	for _, tblName := range tablesToValidate {
+		// Load table config
+		tableConfig, err := config.LoadTableConfig(tblName)
+		if err != nil {
+			fmt.Printf("❌ Failed to load config for '%s': %v\n", tblName, err)
+			continue
+		}
+		if tableConfig == nil {
+			fmt.Printf("❌ No config found for '%s'\n", tblName)
+			continue
+		}
+
+		// Get account credentials
+		account := cfg.GetAccountByID(tableConfig.AccountID)
+		if account == nil {
+			fmt.Printf("❌ Account not found for table '%s'\n", tblName)
+			continue
+		}
+
+		authProps := secrets.GetSecretPropertiesWithOverrides(account.ID)
+		if len(authProps) == 0 {
+			fmt.Printf("❌ No credentials found for account '%s'\n", account.Name)
+			continue
+		}
+
+		creds := &api.ConnectorCredentials{
+			Service: account.Provider,
+			Params:  authProps,
+		}
+
+		// Build table ID
+		var tableID []string
+		if tableConfig.SiteID != "" {
+			tableID = []string{tableConfig.SiteID, tableConfig.TableID}
+		} else {
+			tableID = []string{tableConfig.TableID}
+		}
+
+		// Collect files to validate
+		var filesToValidate []api.FileToValidate
+
+		if fileName != "" {
+			// Validate single file
+			file, err := loadFileForValidation(tblName, fileName, tableConfig.ContentField)
+			if err != nil {
+				return fmt.Errorf("failed to load file '%s': %w", fileName, err)
+			}
+			filesToValidate = append(filesToValidate, *file)
+		} else {
+			// Validate all .md files in the table folder
+			entries, err := os.ReadDir(tblName)
+			if err != nil {
+				fmt.Printf("❌ Failed to read folder '%s': %v\n", tblName, err)
+				continue
+			}
+
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+
+				file, err := loadFileForValidation(tblName, entry.Name(), tableConfig.ContentField)
+				if err != nil {
+					fmt.Printf("   ⚠️  Failed to load '%s': %v\n", entry.Name(), err)
+					continue
+				}
+				filesToValidate = append(filesToValidate, *file)
+			}
+		}
+
+		if len(filesToValidate) == 0 {
+			fmt.Printf("No files to validate in '%s'\n", tblName)
+			continue
+		}
+
+		fmt.Printf("🔍 Validating %d file(s) in '%s'...\n", len(filesToValidate), tblName)
+
+		// Call the validate-files endpoint
+		req := &api.ValidateFilesRequest{
+			TableID: tableID,
+			Files:   filesToValidate,
+		}
+
+		resp, err := client.ValidateFiles(creds, req)
+		if err != nil {
+			fmt.Printf("❌ Validation request failed: %v\n", err)
+			continue
+		}
+
+		if resp.Error != "" {
+			fmt.Printf("❌ Server error: %s\n", resp.Error)
+			continue
+		}
+
+		// Display results
+		publishableCount := 0
+		for _, file := range resp.Files {
+			if file.Publishable {
+				publishableCount++
+				fmt.Printf("   ✅ %s - publishable\n", file.Filename)
+			} else {
+				fmt.Printf("   ❌ %s - not publishable\n", file.Filename)
+				for _, e := range file.Errors {
+					fmt.Printf("      - %s\n", e)
+				}
+			}
+		}
+
+		fmt.Printf("   %d/%d file(s) are publishable\n", publishableCount, len(resp.Files))
+	}
+
+	return nil
+}
+
+// loadFileForValidation reads a markdown file and returns it in the format needed for validation.
+func loadFileForValidation(tableName, fileName, contentFieldName string) (*api.FileToValidate, error) {
+	filePath := filepath.Join(tableName, fileName)
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	contentStr := string(content)
+
+	// Determine the key to use for markdown content
+	contentKey := "_content"
+	if contentFieldName != "" {
+		contentKey = contentFieldName
+	}
+
+	data := make(map[string]interface{})
+
+	// Check for YAML frontmatter (starts with ---)
+	if !strings.HasPrefix(contentStr, "---") {
+		// No frontmatter, just content
+		data[contentKey] = strings.TrimSpace(contentStr)
+		return &api.FileToValidate{
+			Filename: fileName,
+			Data:     data,
+		}, nil
+	}
+
+	// Find the end of frontmatter
+	rest := contentStr[3:] // Skip initial ---
+	endIndex := strings.Index(rest, "\n---")
+	if endIndex == -1 {
+		// Malformed frontmatter
+		data[contentKey] = strings.TrimSpace(contentStr)
+		return &api.FileToValidate{
+			Filename: fileName,
+			Data:     data,
+		}, nil
+	}
+
+	yamlContent := rest[:endIndex]
+	markdownContent := strings.TrimPrefix(rest[endIndex+4:], "\n")
+
+	// Parse YAML into map (keeping original types)
+	if err := yaml.Unmarshal([]byte(yamlContent), &data); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML frontmatter: %w", err)
+	}
+
+	// Add markdown content under the appropriate key
+	data[contentKey] = strings.TrimSpace(markdownContent)
+
+	// Extract remoteId for the file
+	var remoteID string
+	if id, ok := data["remoteId"]; ok {
+		remoteID = fmt.Sprintf("%v", id)
+	}
+
+	return &api.FileToValidate{
+		ID:       remoteID,
+		Filename: fileName,
+		Data:     data,
+	}, nil
 }
 
 // getSingleFileChange detects what changed for a single file by comparing against its original.
