@@ -145,6 +145,7 @@ class FileAgentTaskManager:
                 request.credential_id,
                 request.active_folder_path,
                 request.active_file_path,
+                request.open_file_paths,
                 request.model_context_length,
                 1800.0,  # 30 minutes timeout
                 progress_callback,

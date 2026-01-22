@@ -7,6 +7,7 @@ import type {
   FolderRefEntity,
   Service,
   SnapshotTableId,
+  TableSpec,
   WorkbookId,
 } from '@spinner/shared-types';
 import {
@@ -64,7 +65,7 @@ export class FilesService {
       orderBy: { name: 'asc' },
       include: {
         snapshotTables: {
-          select: { connectorService: true, id: true },
+          select: { connectorService: true, id: true, tableSpec: true },
         },
       },
     });
@@ -76,6 +77,9 @@ export class FilesService {
     // If folder has exactly one snapshot table, include its service type
     const folderEntities: FolderRefEntity[] = folders.map((f) => {
       const snapshotTable = f.snapshotTables.length === 1 ? f.snapshotTables[0] : null;
+      const tableSpec = snapshotTable?.tableSpec as TableSpec | null;
+      const remoteId = tableSpec?.id.remoteId;
+
       return {
         type: 'folder' as const,
         id: f.id as FolderId,
@@ -84,6 +88,7 @@ export class FilesService {
         path: f.path ?? `/${f.name}`,
         connectorService: snapshotTable?.connectorService as Service | null,
         snapshotTableId: (snapshotTable?.id as SnapshotTableId) ?? null,
+        remoteId: remoteId as string[] | null,
       };
     });
 
@@ -124,7 +129,7 @@ export class FilesService {
       orderBy: { name: 'asc' },
       include: {
         snapshotTables: {
-          select: { connectorService: true, id: true },
+          select: { connectorService: true, id: true, tableSpec: true },
         },
       },
     });
@@ -153,6 +158,9 @@ export class FilesService {
     // Convert to response entities
     const folderEntities: FolderRefEntity[] = childFolders.map((f) => {
       const snapshotTable = f.snapshotTables.length === 1 ? f.snapshotTables[0] : null;
+      const tableSpec = snapshotTable?.tableSpec as TableSpec | null;
+      const remoteId = tableSpec?.id.remoteId;
+
       return {
         type: 'folder' as const,
         id: f.id as FolderId,
@@ -161,6 +169,7 @@ export class FilesService {
         path: f.path ?? `/${f.name}`,
         connectorService: snapshotTable?.connectorService as Service | null,
         snapshotTableId: (snapshotTable?.id as SnapshotTableId) ?? null,
+        remoteId: remoteId as string[] | null,
       };
     });
 

@@ -121,6 +121,9 @@ class FileAgentSendMessageRequestDTO(BaseModel):
     active_file_path: Optional[str] = Field(
         default=None, description="Currently selected file path"
     )
+    open_file_paths: Optional[List[str]] = Field(
+        default=None, description="List of currently open file paths"
+    )
 
 
 class ChatSessionSummary(BaseModel):

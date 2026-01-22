@@ -74,6 +74,8 @@ export interface SendMessageRequestDTO {
   max_records_in_prompt?: number;
   mentioned_table_ids?: string[];
   model_context_length?: number;
+  active_file_path?: string;
+  open_file_paths?: string[];
 }
 
 export type SendMessageResponse = {

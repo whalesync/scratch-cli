@@ -13,7 +13,7 @@ from typing import Optional
 from agents.file_agent.models import FileAgentResponse, FileAgentRunContext
 from agents.file_agent.tools_config import configure_tools
 from config import get_settings
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
@@ -63,6 +63,26 @@ def create_file_agent(
             model=model,
             deps_type=FileAgentRunContext,
         )
+
+        # Inject file context
+        @agent.system_prompt
+        def inject_file_context(ctx: RunContext[FileAgentRunContext]) -> str:
+            prompt_parts = []
+
+            if ctx.deps.active_file_path:
+                prompt_parts.append(
+                    f"Active File (User's primary focus): {ctx.deps.active_file_path}"
+                )
+
+            if ctx.deps.open_file_paths:
+                open_files_list = "\n- ".join(ctx.deps.open_file_paths)
+                prompt_parts.append(
+                    f"Open Files (Relevant context):\n- {open_files_list}"
+                )
+
+            if prompt_parts:
+                return "\n\n## Current User Context\n\n" + "\n\n".join(prompt_parts)
+            return ""
 
         # Configure tools
         configure_tools(agent)

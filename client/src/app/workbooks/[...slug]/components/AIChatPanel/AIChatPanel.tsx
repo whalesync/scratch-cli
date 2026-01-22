@@ -16,6 +16,7 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
+import { useFileList } from '@/hooks/use-file-list';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import {
@@ -61,11 +62,12 @@ import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
 import { ChatMessageElement } from './ChatMessageElement';
 import { ProgressMessageGroup } from './ProgressMessageGroup';
-import { useDataAgentCommands } from './use-data-agent-commands';
-import { useFileAgentCommands } from './use-file-agent-commands';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
 import { TokenUseButton } from './TokenUseButton';
+import { useDataAgentCommands } from './use-data-agent-commands';
+import { useFileAgentCommands } from './use-file-agent-commands';
+import { useFileAgentUpdates } from './use-file-agent-updates';
 
 /**
  * Groups consecutive progress messages into arrays.
@@ -109,6 +111,9 @@ export default function AIChatPanel() {
   const { models: agentPricingModels, isLoading: isLoadingPricing } = useAgentPricing();
   const { markStepCompleted } = useOnboardingUpdate();
   const closeChat = useWorkbookEditorUIStore((state) => state.closeChat);
+  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
+  const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const { files } = useFileList(workbook?.id ?? null);
   const [message, setMessage] = useState('');
   const [limitWarningAlert, setLimitWarningAlert] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +136,8 @@ export default function AIChatPanel() {
     resetCost,
     accumulatedCost,
     agentType,
+    includeActiveFile,
+    includeOpenFiles,
   } = useAgentChatContext();
 
   const {
@@ -153,6 +160,9 @@ export default function AIChatPanel() {
   const dataAgentCommands = useDataAgentCommands({ setShowToolsModal });
   const fileAgentCommands = useFileAgentCommands({ setShowToolsModal });
   const commands = agentType === 'data' ? dataAgentCommands : fileAgentCommands;
+
+  // Listen for file agent updates (refresh file list/content on response)
+  useFileAgentUpdates();
 
   // Get the appropriate capabilities list based on agent type
   const availableCapabilities = agentType === 'data' ? DATA_AGENT_CAPABILITIES : FILE_AGENT_CAPABILITIES;
@@ -401,6 +411,23 @@ export default function AIChatPanel() {
         messageData.data_scope = dataScope;
         messageData.record_id = activeRecordId;
         messageData.column_id = activeColumnId;
+      }
+
+      if (agentType === 'file') {
+        const resolvePath = (tabId: string) => {
+          const f = files?.items.find((item) => item.id === tabId);
+          return f?.path ?? null;
+        };
+
+        if (includeActiveFile && activeFileTabId) {
+          const path = resolvePath(activeFileTabId);
+          if (path) messageData.active_file_path = path;
+        }
+
+        if (includeOpenFiles) {
+          const paths = openFileTabs.map((t) => resolvePath(t.id)).filter((p): p is string => p !== null);
+          if (paths.length > 0) messageData.open_file_paths = paths;
+        }
       }
 
       trackSendMessage(message.length, selectedPromptAssets.length, dataScope, workbook);

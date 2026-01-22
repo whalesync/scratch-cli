@@ -1,7 +1,9 @@
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Group, Menu, Text } from '@mantine/core';
+import { Service } from '@spinner/shared-types';
 import { FileTextIcon, FolderIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import styles from './FileTabBar.module.css';
@@ -153,7 +155,17 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
               }}
             >
               {isFolder ? (
-                <FolderIcon size={12} color="var(--fg-secondary)" />
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (tabFile as any)?.connectorService ? (
+                  <ConnectorIcon
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    connector={(tabFile as any).connectorService as Service}
+                    size={12}
+                    p={0}
+                  />
+                ) : (
+                  <FolderIcon size={12} color="var(--fg-secondary)" />
+                )
               ) : tab.type === 'add-table' ? (
                 <PlusIcon size={12} color="var(--fg-secondary)" />
               ) : (

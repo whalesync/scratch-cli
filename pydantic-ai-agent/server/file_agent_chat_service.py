@@ -5,7 +5,7 @@ File Agent Chat Service for handling file agent communication and session manage
 
 import asyncio
 from logging import getLogger
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from agents.file_agent.agent import create_file_agent
 from agents.file_agent.models import FileAgentResponse, FileAgentRunContext
@@ -120,6 +120,7 @@ class FileAgentChatService:
         credential_id: Optional[str] = None,
         active_folder_path: Optional[str] = "/",
         active_file_path: Optional[str] = None,
+        open_file_paths: Optional[List[str]] = None,
         model_context_length: Optional[int] = None,
         timeout_seconds: float = 60.0,
         progress_callback: Optional[Callable[[str, str, dict], Awaitable[None]]] = None,
@@ -158,6 +159,7 @@ class FileAgentChatService:
                 user_id=user.userId,
                 active_folder_path=active_folder_path,
                 active_file_path=active_file_path,
+                open_file_paths=open_file_paths,
             )
 
             await progress_callback(

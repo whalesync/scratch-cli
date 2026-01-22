@@ -6,8 +6,9 @@ import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contex
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useMemo } from 'react';
+import { FileContextBadges } from './FileContextBadges';
 
-export const ContextBadges = () => {
+const DataContextBadges = () => {
   const { activeTable } = useActiveWorkbook();
 
   const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
@@ -52,4 +53,14 @@ export const ContextBadges = () => {
       icon={activeTable && <ConnectorIcon connector={activeTable.connectorService} size={14} p={0} />}
     />
   );
+};
+
+export const ContextBadges = () => {
+  const { agentType } = useAgentChatContext();
+
+  if (agentType === 'file') {
+    return <FileContextBadges />;
+  }
+
+  return <DataContextBadges />;
 };

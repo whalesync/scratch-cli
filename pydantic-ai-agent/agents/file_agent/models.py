@@ -3,7 +3,7 @@
 Data models for the file agent
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from session import ChatSession
@@ -52,4 +52,7 @@ class FileAgentRunContext(BaseModel):
     )
     active_file_path: Optional[str] = Field(
         default=None, description="Currently selected file path"
+    )
+    open_file_paths: Optional[List[str]] = Field(
+        default=None, description="List of currently open file paths"
     )

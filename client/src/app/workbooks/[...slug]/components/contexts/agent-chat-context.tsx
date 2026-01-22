@@ -41,6 +41,11 @@ interface AgentChatContextValue {
   accumulatedCost: number;
   setAccumulatedCost: (cost: number) => void;
   resetCost: () => void;
+  // File Agent Context
+  includeActiveFile: boolean;
+  setIncludeActiveFile: (include: boolean) => void;
+  includeOpenFiles: boolean;
+  setIncludeOpenFiles: (include: boolean) => void;
 }
 
 export const AgentChatContext = createContext<AgentChatContextValue | undefined>(undefined);
@@ -64,6 +69,8 @@ export const AgentChatContextProvider = ({
   const [autoIncludedResourses, setAutoIncludedResourses] = useState<boolean>(false);
   const [modelValidated, setModelValidated] = useState<boolean>(false);
   const [accumulatedCost, setAccumulatedCost] = useState<number>(0);
+  const [includeActiveFile, setIncludeActiveFile] = useState<boolean>(true);
+  const [includeOpenFiles, setIncludeOpenFiles] = useState<boolean>(true);
 
   const { promptAssets } = usePromptAssets();
 
@@ -151,6 +158,10 @@ export const AgentChatContextProvider = ({
     accumulatedCost,
     setAccumulatedCost,
     resetCost,
+    includeActiveFile,
+    setIncludeActiveFile,
+    includeOpenFiles,
+    setIncludeOpenFiles,
   };
 
   return <AgentChatContext.Provider value={value}>{children}</AgentChatContext.Provider>;

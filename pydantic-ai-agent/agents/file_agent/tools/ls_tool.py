@@ -82,7 +82,19 @@ def define_ls_tool(agent: Agent, context_type: type):
                 name = folder.get("name", "unknown")
                 folder_id = folder.get("id", "unknown")
                 folder_path = folder.get("path", "unknown")
-                lines.append(f"[D] {name}/ (ID: {folder_id}, Path: {folder_path})")
+
+                service = folder.get("connectorService")
+                remote_id = folder.get("remoteId")
+
+                sync_info = ""
+                if service:
+                    sync_info = f", Synced: {service}"
+                    if remote_id:
+                        sync_info += f" (Source: {remote_id})"
+
+                lines.append(
+                    f"[D] {name}/ (ID: {folder_id}, Path: {folder_path}{sync_info})"
+                )
 
             for file in files:
                 name = file.get("name", "unknown")

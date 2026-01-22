@@ -35,6 +35,8 @@ export interface FolderRefEntity {
   connectorService?: Service | null;
   /** Whether the folder is linked to a snapshot table */
   snapshotTableId?: SnapshotTableId | null;
+  /** Remote ID of the source table if synced */
+  remoteId?: string | string[] | null;
 }
 
 /**
