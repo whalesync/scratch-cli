@@ -1,4 +1,5 @@
-.release_job:
+# PROD RELEASE JOBS (Procects prod branch)
+.release_prod_job:
   stage: deploy
   image:
     name: goreleaser/goreleaser:latest
@@ -10,19 +11,49 @@
     - scratch-cli/scripts/release_public.sh $RELEASE_TYPE
   when: manual
   only:
-    - master
+    - prod
 
 release-cli-patch:
-  extends: .release_job
+  extends: .release_prod_job
   variables:
     RELEASE_TYPE: "patch"
 
 release-cli-minor:
-  extends: .release_job
+  extends: .release_prod_job
   variables:
     RELEASE_TYPE: "minor"
 
 release-cli-major:
-  extends: .release_job
+  extends: .release_prod_job
+  variables:
+    RELEASE_TYPE: "major"
+
+# TEST RELEASE JOBS (Protects master branch)
+.release_test_job:
+  stage: deploy
+  image:
+    name: goreleaser/goreleaser:latest
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - chmod +x scratch-cli/scripts/release_test.sh
+    - scratch-cli/scripts/release_test.sh $RELEASE_TYPE
+  when: manual
+  only:
+    - master
+
+release-cli-test-patch:
+  extends: .release_test_job
+  variables:
+    RELEASE_TYPE: "patch"
+
+release-cli-test-minor:
+  extends: .release_test_job
+  variables:
+    RELEASE_TYPE: "minor"
+
+release-cli-test-major:
+  extends: .release_test_job
   variables:
     RELEASE_TYPE: "major"
