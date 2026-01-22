@@ -2,8 +2,10 @@ import { Body, ClassSerializerInterceptor, Controller, Post, Req, UseGuards, Use
 import {
   ValidatedWebflowPublishItemsDto,
   ValidatedWebflowPublishSiteDto,
+  ValidatedWebflowValidateFilesDto,
   WebflowPublishItemsDto,
   WebflowPublishSiteDto,
+  WebflowValidateFilesDto,
 } from '@spinner/shared-types';
 import { userToActor } from 'src/users/types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
@@ -26,5 +28,11 @@ export class WebflowCustomActionsController {
   async publishSite(@Body() dtoParam: WebflowPublishSiteDto, @Req() req: RequestWithUser) {
     const dto = dtoParam as ValidatedWebflowPublishSiteDto;
     return this.service.publishSite(dto, userToActor(req.user));
+  }
+
+  @Post('validate-files')
+  async validateFiles(@Body() dtoParam: WebflowValidateFilesDto, @Req() req: RequestWithUser) {
+    const dto = dtoParam as ValidatedWebflowValidateFilesDto;
+    return this.service.validateFiles(dto, userToActor(req.user));
   }
 }

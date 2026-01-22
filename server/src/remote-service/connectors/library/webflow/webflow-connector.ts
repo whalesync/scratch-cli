@@ -106,7 +106,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         const value = file.data[requiredField];
         if (value === undefined || value === null || value === '') {
           const column = columnMap.get(requiredField);
-          const fieldName = column?.name || requiredField;
+          const fieldName = column?.slug || requiredField;
           errors.push(`Missing required field: "${fieldName}"`);
         }
       }
@@ -158,7 +158,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     value: unknown,
     column: WebflowTableSpec['columns'][0],
   ): string | undefined {
-    const fieldName = column.name || fieldKey;
+    const fieldName = column.slug || fieldKey;
     const pgType = column.pgType;
     const metadata = column.metadata;
 

@@ -1,3 +1,4 @@
+import { WebflowValidateFilesResponse } from '@spinner/shared-types';
 import { API_CONFIG } from '../config';
 import { handleAxiosError } from '../error';
 
@@ -8,6 +9,22 @@ export interface WebflowPublishItemsDto {
 
 export interface WebflowPublishSiteDto {
   snapshotTableId: string;
+}
+
+export interface WebflowValidateFileInput {
+  filename?: string;
+  id?: string;
+  /** Pre-parsed field data */
+  data?: Record<string, unknown>;
+  /** Raw markdown content with frontmatter - server will parse it */
+  rawContent?: string;
+}
+
+export interface WebflowValidateFilesDto {
+  snapshotTableId: string;
+  recordIds?: string[];
+  /** Inline file data - validates directly without fetching from database */
+  files?: WebflowValidateFileInput[];
 }
 
 export interface PublishItemsResponse {
@@ -49,6 +66,19 @@ export const customWebflowActionsApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to publish site');
+    }
+  },
+
+  /**
+   * Validate files against Webflow schema
+   */
+  validateFiles: async (dto: WebflowValidateFilesDto): Promise<WebflowValidateFilesResponse> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<WebflowValidateFilesResponse>('/custom-actions/webflow/validate-files', dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to validate files');
     }
   },
 };

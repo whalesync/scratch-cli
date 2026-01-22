@@ -47,6 +47,7 @@ export * from './dto/users/collapse-onboarding-step.dto';
 export * from './dto/users/update-settings.dto';
 export * from './dto/webflow/publish-items.dto';
 export * from './dto/webflow/publish-site.dto';
+export * from './dto/webflow/validate-files.dto';
 export * from './dto/wix/publish-draft-posts.dto';
 export * from './dto/workbook/accept-cell-value.dto';
 export * from './dto/workbook/add-table-to-workbook.dto';
