@@ -84,6 +84,9 @@ type DbRecord = {
   [key: string]: unknown;
 };
 
+/**
+ * @deprecated
+ */
 export class SnapshotDb {
   public knex!: Knex;
   private prisma!: PrismaClient;

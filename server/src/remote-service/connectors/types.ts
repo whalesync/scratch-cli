@@ -100,6 +100,17 @@ export type BaseColumnSpec = {
 };
 
 /**
+ * This is a placeholder type for the new ScratchSync JSON file format
+ */
+export type ConnectorFile = {
+  // Remote ID from the connector.
+  id: string;
+
+  // Nested object of data in the native connector format
+  data: Record<string, unknown>;
+};
+
+/**
  * A record from the connector.
  * Everything uses connector IDs.
  */

@@ -4,11 +4,12 @@ import { draftPosts } from '@wix/blog';
 import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
 import _ from 'lodash';
+import { WSLogger } from 'src/logger';
 import { MarkdownErrors } from 'src/remote-service/connectors/markdown-errors';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../../connector';
-import { ConnectorErrorDetails, ConnectorRecord, TablePreview } from '../../../types';
+import { ConnectorErrorDetails, ConnectorFile, ConnectorRecord, TablePreview } from '../../../types';
 import { WixBlogTableSpec } from '../../custom-spec-registry';
 import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
 import { createMarkdownParser, createTurndownService } from '../rich-content/markdown-helpers';
@@ -93,6 +94,15 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   }
 
   public downloadRecordDeep = undefined;
+
+  async downloadRecordFiles(
+    tableSpec: WixBlogTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
+    progress: JsonSafeObject,
+  ): Promise<void> {
+    WSLogger.info({ source: 'WixBlogConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
+  }
 
   async downloadTableRecords(
     tableSpec: WixBlogTableSpec,

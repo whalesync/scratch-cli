@@ -5,6 +5,7 @@ import type { SnapshotColumnSettingsMap } from '../../workbook/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
   ConnectorErrorDetails,
+  ConnectorFile,
   ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
@@ -74,6 +75,18 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
     tableSpec: TableSpecs[T],
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
+    progress: TConnectorProgress,
+  ): Promise<void>;
+
+  /**
+   * Does a full poll of target remote table and downloads all of the available records.
+   * @param tableSpec The table spec to download records for.
+   * @param callback The callback that will process batches of records as they are downloaded.
+   * @param progress The progress object to update with the download progress.
+   */
+  abstract downloadRecordFiles(
+    tableSpec: TableSpecs[T],
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
   ): Promise<void>;
 

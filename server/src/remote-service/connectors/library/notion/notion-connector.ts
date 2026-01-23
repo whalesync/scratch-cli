@@ -16,7 +16,14 @@ import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
 import { MarkdownErrors } from '../../markdown-errors';
-import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import {
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorRecord,
+  EntityId,
+  PostgresColumnType,
+  TablePreview,
+} from '../../types';
 import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
 import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
@@ -231,6 +238,15 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   }
 
   public downloadRecordDeep = undefined;
+
+  async downloadRecordFiles(
+    tableSpec: NotionTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
+    progress: NotionDownloadProgress,
+  ): Promise<void> {
+    WSLogger.info({ source: 'NotionConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
+  }
 
   private extractPropertyValue(
     property: PageObjectResponsePropertyTypes,

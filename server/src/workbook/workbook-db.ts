@@ -3,7 +3,7 @@ import matter from 'gray-matter';
 import { Knex } from 'knex';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { BaseColumnSpec, BaseTableSpec, ConnectorRecord } from '../remote-service/connectors/types';
+import { BaseColumnSpec, BaseTableSpec, ConnectorFile, ConnectorRecord } from '../remote-service/connectors/types';
 import { assertFolderPathIsValid, normalizeFileName } from './util';
 
 // Table name constant
@@ -955,6 +955,89 @@ export class WorkbookDb {
     });
 
     return result;
+  }
+
+  async upsertFilesFromConnectorFiles<T extends BaseColumnSpec>(
+    workbookId: WorkbookId,
+    folderId: string,
+    parentPath: string,
+    records: ConnectorFile[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    tableSpec: BaseTableSpec<T>,
+  ): Promise<void> {
+    const trx = await this.getKnex().transaction();
+    // Get prefix
+    const prefix = parentPath === '/' ? '' : parentPath;
+
+    try {
+      for (const record of records) {
+        // Convert to Front Matter markdown format
+
+        const content = JSON.stringify(record, null, 2);
+        const metadata = {};
+
+        // Generate a scratch ID for new records
+        const fileId = createFileId();
+
+        // Determine the file name - use title column if available, otherwise use the record ID
+        let fileName = record.id;
+
+        if (!fileName.endsWith('.md')) {
+          fileName += '.md';
+        }
+
+        const fullPath = `${prefix}/${fileName}`;
+
+        // Check if file with this remote_id already exists
+        const existingFile = await trx<FileDbRecord>(FILES_TABLE)
+          .withSchema(workbookId)
+          .where(REMOTE_ID_COLUMN, record.id)
+          .where(FOLDER_ID_COLUMN, folderId)
+          .first();
+
+        if (existingFile) {
+          // Update existing file - including name/path if title column changed
+          await trx(FILES_TABLE)
+            .withSchema(workbookId)
+            .where(FILE_ID_COLUMN, existingFile[FILE_ID_COLUMN])
+            .update({
+              [FILE_NAME_COLUMN]: fileName,
+              [PATH_COLUMN]: fullPath,
+              [ORIGINAL_COLUMN]: content, // this resets the original content new value from the connector
+              [CONTENT_COLUMN]: content,
+              [METADATA_COLUMN]: metadata,
+              [DIRTY_COLUMN]: false, // Reset dirty flag since content matches remote
+              [ERRORS_COLUMN]: {},
+              [UPDATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
+            });
+        } else {
+          // Insert new file
+          await trx(FILES_TABLE)
+            .withSchema(workbookId)
+            .insert({
+              [FILE_ID_COLUMN]: fileId,
+              [REMOTE_ID_COLUMN]: record.id,
+              [FOLDER_ID_COLUMN]: folderId,
+              [PATH_COLUMN]: fullPath,
+              [FILE_NAME_COLUMN]: fileName,
+              [CONTENT_COLUMN]: content,
+              [ORIGINAL_COLUMN]: content,
+              [SUGGESTED_COLUMN]: null,
+              [METADATA_COLUMN]: {},
+              [CREATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
+              [UPDATED_AT_COLUMN]: trx.raw('CURRENT_TIMESTAMP'),
+              [DELETED_COLUMN]: false,
+              [DIRTY_COLUMN]: false, // New files from connector are clean
+              [ERRORS_COLUMN]: {},
+            });
+        }
+      }
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   public getKnex(): Knex {

@@ -1,6 +1,7 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import MarkdownIt from 'markdown-it';
+import { WSLogger } from 'src/logger';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
@@ -9,6 +10,7 @@ import { validate } from '../../file-validator';
 import { sanitizeForTableWsId } from '../../ids';
 import {
   ConnectorErrorDetails,
+  ConnectorFile,
   ConnectorRecord,
   EntityId,
   FileValidationInput,
@@ -111,6 +113,15 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   }
 
   public downloadRecordDeep = undefined;
+
+  async downloadRecordFiles(
+    tableSpec: WordPressTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
+    progress: WordPressDownloadProgress,
+  ): Promise<void> {
+    WSLogger.info({ source: 'WordPressConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
+  }
 
   /**
    * Validate files against the WordPress table schema.

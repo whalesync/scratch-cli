@@ -3,12 +3,14 @@
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount } from '@prisma/client';
 import { Service } from '@spinner/shared-types';
+import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { YouTubeTableSpec } from '../../library/custom-spec-registry';
 import {
   ConnectorErrorDetails,
+  ConnectorFile,
   ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
@@ -236,6 +238,15 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
 
       nextPageToken = videosResponse.nextPageToken || undefined;
     } while (nextPageToken);
+  }
+
+  async downloadRecordFiles(
+    tableSpec: YouTubeTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
+    progress: JsonSafeObject,
+  ): Promise<void> {
+    WSLogger.info({ source: 'YouTubeConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
   }
 
   async downloadRecordDeep(

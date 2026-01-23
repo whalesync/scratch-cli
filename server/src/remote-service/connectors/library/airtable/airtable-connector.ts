@@ -1,11 +1,19 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import _ from 'lodash';
+import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import { ConnectorErrorDetails, ConnectorRecord, EntityId, PostgresColumnType, TablePreview } from '../../types';
+import {
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorRecord,
+  EntityId,
+  PostgresColumnType,
+  TablePreview,
+} from '../../types';
 import { AirtableTableSpec } from '../custom-spec-registry';
 import { AirtableApiClient } from './airtable-api-client';
 import { AirtableSchemaParser } from './airtable-schema-parser';
@@ -67,6 +75,15 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   }
 
   public downloadRecordDeep = undefined;
+
+  async downloadRecordFiles(
+    tableSpec: AirtableTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
+    progress: JsonSafeObject,
+  ): Promise<void> {
+    WSLogger.info({ source: 'AirtableConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
+  }
 
   async downloadTableRecords(
     tableSpec: AirtableTableSpec,

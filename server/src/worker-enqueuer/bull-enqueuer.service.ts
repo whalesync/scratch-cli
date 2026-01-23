@@ -9,6 +9,7 @@ import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/do
 import { PublishFilesJobDefinition } from 'src/worker/jobs/job-definitions/publish-files.job';
 import { PublishRecordsJobDefinition } from 'src/worker/jobs/job-definitions/publish-records.job';
 import { JobData } from 'src/worker/jobs/union-types';
+import { DownloadRecordFilesJobDefinition } from '../worker/jobs/job-definitions/download-record-files.job';
 
 @Injectable()
 export class BullEnqueuerService implements OnModuleDestroy {
@@ -81,6 +82,25 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       snapshotTableIds,
       type: 'download-files',
+      initialPublicProgress,
+    };
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueueDownloadRecordFilesJob(
+    workbookId: WorkbookId,
+    actor: Actor,
+    snapshotTableId: string,
+    initialPublicProgress?: DownloadRecordFilesJobDefinition['publicProgress'],
+  ): Promise<Job> {
+    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
+    const id = `download-files-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: DownloadRecordFilesJobDefinition['data'] = {
+      workbookId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      snapshotTableId,
+      type: 'download-record-files',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

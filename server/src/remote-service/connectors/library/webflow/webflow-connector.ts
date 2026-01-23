@@ -1,5 +1,6 @@
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
+import { WSLogger } from 'src/logger';
 import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
@@ -8,6 +9,7 @@ import { Connector } from '../../connector';
 import { validate } from '../../file-validator';
 import {
   ConnectorErrorDetails,
+  ConnectorFile,
   ConnectorRecord,
   EntityId,
   FileValidationInput,
@@ -78,6 +80,15 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   public downloadRecordDeep = undefined;
+
+  async downloadRecordFiles(
+    tableSpec: WebflowTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
+    progress: JsonSafeObject,
+  ): Promise<void> {
+    WSLogger.info({ source: 'WebflowConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    await callback({ files: [], connectorProgress: progress });
+  }
 
   /**
    * Validate files against the Webflow table schema.

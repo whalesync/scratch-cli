@@ -3,6 +3,7 @@ import { Progress } from './base-types';
 import { AddThreeNumbersJobDefinition } from './job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobDefinition } from './job-definitions/add-two-numbers.job';
 import { DownloadFilesJobDefinition } from './job-definitions/download-files.job';
+import { DownloadRecordFilesJobDefinition } from './job-definitions/download-record-files.job';
 import { DownloadRecordsJobDefinition } from './job-definitions/download-records.job';
 import { PublishFilesJobDefinition } from './job-definitions/publish-files.job';
 import { PublishRecordsJobDefinition } from './job-definitions/publish-records.job';
@@ -12,6 +13,7 @@ export type JobDefinition =
   | AddThreeNumbersJobDefinition
   | DownloadRecordsJobDefinition
   | DownloadFilesJobDefinition
+  | DownloadRecordFilesJobDefinition
   | PublishRecordsJobDefinition
   | PublishFilesJobDefinition;
 export type JobData = JobDefinition['data'];
