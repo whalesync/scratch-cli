@@ -48,11 +48,13 @@ import {
   InfoIcon,
   PencilIcon,
   RefreshCwIcon,
+  TableIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NativeTypes } from 'react-dnd-html5-backend';
-import { countMarkdownFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
+import { countSupportedFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
+import { CsvToMdModal } from './CsvToMdModal';
 import { FolderPickerModal } from './FolderPickerModal';
 import styles from './WorkbookFileBrowser.module.css';
 
@@ -130,6 +132,7 @@ interface TreeNodeRendererProps {
   onBulkDelete: () => void;
   onBulkMove: () => void;
   treeData: NodeModel<TreeNodeData>[];
+  onCsvConvert: (fileId: FileId, fileName: string, parentFolderId: FolderId | null) => void;
 }
 
 function TreeNodeRenderer({
@@ -162,6 +165,7 @@ function TreeNodeRenderer({
   onBulkDelete,
   onBulkMove,
   treeData,
+  onCsvConvert,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -569,6 +573,20 @@ function TreeNodeRenderer({
                   >
                     Duplicate
                   </Menu.Item>
+                  {nodeData.name.toLowerCase().endsWith('.csv') && (
+                    <>
+                      <Menu.Divider />
+                      <Menu.Item
+                        leftSection={<TableIcon size={16} />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCsvConvert(nodeData.id as FileId, nodeData.name, nodeData.parentFolderId);
+                        }}
+                      >
+                        Convert to MD Folder
+                      </Menu.Item>
+                    </>
+                  )}
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<CopyIcon size={16} />}
@@ -706,6 +724,13 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     confirmText?: string;
     confirmColor?: string;
     hideCancel?: boolean;
+  } | null>(null);
+
+  // State for CSV to MD modal
+  const [csvConvertFile, setCsvConvertFile] = useState<{
+    fileId: FileId;
+    fileName: string;
+    parentFolderId: FolderId | null;
   } | null>(null);
 
   // Sync server data to local state
@@ -892,12 +917,12 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
         try {
           // Scan the dropped items (files and folders)
           const pendingItems = await scanDataTransferItems(item.items);
-          const mdCount = countMarkdownFiles(pendingItems);
+          const mdCount = countSupportedFiles(pendingItems);
 
           if (mdCount === 0) {
             setConfirmModal({
               title: 'Upload Failed',
-              message: 'No markdown files found in the uploaded folder(s). Only .md files are supported.',
+              message: 'No supported files found in the uploaded folder(s). Only .md and .csv files are supported.',
               onConfirm: () => setConfirmModal(null),
               confirmText: 'OK',
               confirmColor: 'blue',
@@ -1645,6 +1670,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onBulkDelete={handleBulkDelete}
                     onBulkMove={handleBulkMove}
                     treeData={treeData}
+                    onCsvConvert={(fileId, fileName, parentFolderId) =>
+                      setCsvConvertFile({ fileId, fileName, parentFolderId })
+                    }
                   />
                 )}
               />
@@ -1774,6 +1802,22 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           </Group>
         </Stack>
       </Modal>
+
+      {/* CSV to MD Conversion Modal */}
+      {csvConvertFile && workbook && (
+        <CsvToMdModal
+          opened={!!csvConvertFile}
+          onClose={() => setCsvConvertFile(null)}
+          workbookId={workbook.id}
+          fileId={csvConvertFile.fileId}
+          fileName={csvConvertFile.fileName}
+          parentFolderId={csvConvertFile.parentFolderId}
+          onSuccess={async () => {
+            await refreshFiles();
+            setCsvConvertFile(null);
+          }}
+        />
+      )}
 
     </DndProvider>
   );

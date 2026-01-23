@@ -24,8 +24,10 @@ import {
 import * as archiver from 'archiver';
 import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
+import { WSLogger } from '../logger';
 import { Actor } from '../users/types';
 import { FolderService } from './folder.service';
+import { SnapshotDbService } from './snapshot-db.service';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -34,6 +36,7 @@ export class FilesService {
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly folderService: FolderService,
+    private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
   /**
@@ -783,10 +786,69 @@ export class FilesService {
       throw new NotFoundException('Folder not found');
     }
 
+    // Collect all folder IDs (this folder + all descendants) to delete files from
+    const folderIdsToDelete = await this.collectDescendantFolderIds(workbookId, folderId);
+
+    // Find and delete any SnapshotTables associated with these folders
+    const snapshotTables = await this.db.client.snapshotTable.findMany({
+      where: {
+        workbookId,
+        folderId: { in: folderIdsToDelete },
+      },
+    });
+
+    for (const snapshotTable of snapshotTables) {
+      // Drop the database table
+      try {
+        await this.snapshotDbService.snapshotDb.dropTableIfExists(workbookId, snapshotTable.tableName);
+      } catch (error) {
+        WSLogger.error({
+          source: 'FilesService.deleteFolder',
+          message: 'Failed to drop snapshot table',
+          error,
+          workbookId,
+          tableName: snapshotTable.tableName,
+        });
+        // Continue - table might not exist
+      }
+
+      // Delete the SnapshotTable record
+      await this.db.client.snapshotTable.delete({
+        where: { id: snapshotTable.id },
+      });
+    }
+
+    // Delete files from all folders (must happen before folder deletion)
+    for (const id of folderIdsToDelete) {
+      await this.workbookDbService.workbookDb.deleteFilesInFolder(workbookId, id);
+    }
+
     // Delete folder (cascade will handle children due to schema relation)
     await this.db.client.folder.delete({
       where: { id: folderId },
     });
+  }
+
+  /**
+   * Recursively collect all descendant folder IDs including the given folder
+   */
+  private async collectDescendantFolderIds(workbookId: WorkbookId, folderId: FolderId): Promise<FolderId[]> {
+    const result: FolderId[] = [folderId];
+
+    const children = await this.db.client.folder.findMany({
+      where: {
+        workbookId,
+        parentId: folderId,
+      },
+      select: { id: true },
+    });
+
+    for (const child of children) {
+      const descendantIds = await this.collectDescendantFolderIds(workbookId, child.id as FolderId);
+      result.push(...descendantIds);
+    }
+
+    return result;
   }
 
   /**

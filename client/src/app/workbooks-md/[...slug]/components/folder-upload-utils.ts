@@ -74,8 +74,8 @@ async function traverseEntry(entry: FileSystemEntry): Promise<PendingUploadItem 
 }
 
 async function processFileEntry(entry: FileSystemFileEntry): Promise<PendingUploadFile | null> {
-  // Filter for Markdown files
-  if (!entry.name.endsWith('.md')) {
+  // Filter for supported files (Markdown and CSV)
+  if (!entry.name.endsWith('.md') && !entry.name.endsWith('.csv')) {
     return null;
   }
 
@@ -140,15 +140,15 @@ async function readAllDirectoryEntries(reader: FileSystemDirectoryReader): Promi
 }
 
 /**
- * Counts the total number of markdown files in the pending structure
+ * Counts the total number of supported files (markdown and CSV) in the pending structure
  */
-export function countMarkdownFiles(items: PendingUploadItem[]): number {
+export function countSupportedFiles(items: PendingUploadItem[]): number {
   let count = 0;
   for (const item of items) {
     if (item.type === 'file') {
       count++;
     } else {
-      count += countMarkdownFiles(item.children);
+      count += countSupportedFiles(item.children);
     }
   }
   return count;
