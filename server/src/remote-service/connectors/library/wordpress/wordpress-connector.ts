@@ -5,8 +5,16 @@ import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { extractErrorMessageFromAxiosError } from '../../error';
+import { validate } from '../../file-validator';
 import { sanitizeForTableWsId } from '../../ids';
-import { ConnectorErrorDetails, ConnectorRecord, EntityId, TablePreview } from '../../types';
+import {
+  ConnectorErrorDetails,
+  ConnectorRecord,
+  EntityId,
+  FileValidationInput,
+  FileValidationResult,
+  TablePreview,
+} from '../../types';
 import { WordPressTableSpec } from '../custom-spec-registry';
 import {
   WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS,
@@ -103,6 +111,15 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   }
 
   public downloadRecordDeep = undefined;
+
+  /**
+   * Validate files against the WordPress table schema.
+   * Uses the shared file validator - WordPress stores dates as TEXT with dateFormat metadata,
+   * which the shared validator handles automatically.
+   */
+  validateFiles(tableSpec: WordPressTableSpec, files: FileValidationInput[]): Promise<FileValidationResult[]> {
+    return Promise.resolve(validate(tableSpec, files));
+  }
 
   getBatchSize(): number {
     return 1;

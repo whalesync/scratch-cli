@@ -185,3 +185,57 @@ export type RecordErrorsMetadata = {
   /** Indexed by the WSID of the field */
   byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
 };
+
+// ============================================================================
+// File Validation Types
+// ============================================================================
+
+export type FileValidationInput = {
+  filename: string;
+  id?: string;
+  data: Record<string, unknown>;
+};
+
+export type FileValidationResult = {
+  filename: string;
+  id?: string;
+  data: Record<string, unknown>;
+  publishable: boolean;
+  errors?: string[];
+};
+
+export type FieldValidationContext = {
+  fieldKey: string;
+  fieldName: string;
+  value: unknown;
+  pgType: PostgresColumnType;
+  metadata?: ColumnMetadata;
+};
+
+/**
+ * Options to customize validation behavior for different connectors.
+ * Allows connectors to override specific type validations or add custom logic.
+ */
+export type FileValidatorOptions = {
+  /**
+   * Fields that should be ignored during validation (e.g., internal metadata fields).
+   * These fields won't trigger "unknown field" errors and won't be type-checked.
+   */
+  ignoredFields?: Set<string>;
+
+  /**
+   * Custom type validators that override or extend the default validation.
+   * Return undefined to fall back to default validation.
+   * Return null to skip validation for this field entirely.
+   * Return a string to report an error.
+   */
+  customTypeValidators?: {
+    [K in PostgresColumnType]?: (ctx: FieldValidationContext) => string | null | undefined;
+  };
+
+  /**
+   * Additional validation to run after type validation.
+   * Useful for connector-specific business rules.
+   */
+  additionalValidators?: Array<(ctx: FieldValidationContext) => string | undefined>;
+};
