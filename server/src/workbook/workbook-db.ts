@@ -222,6 +222,29 @@ export class WorkbookDb {
     return result ?? null;
   }
 
+  async getFilesByFolderId(
+    workbookId: WorkbookId,
+    folderId: string,
+    options?: { limit?: number; offset?: number },
+  ): Promise<FileDbRecord[]> {
+    let query = this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FOLDER_ID_COLUMN, folderId)
+      .orderBy(FILE_NAME_COLUMN, 'asc');
+
+    if (options?.limit !== undefined) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset !== undefined) {
+      query = query.offset(options.offset);
+    }
+
+    const results = await query.select('*');
+
+    return results;
+  }
+
   /**
    * Returns FileDbRecords for a list of file IDs
    */

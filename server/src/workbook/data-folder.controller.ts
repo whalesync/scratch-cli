@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -15,6 +16,7 @@ import {
 import type {
   DataFolder,
   DataFolderId,
+  ListDataFolderFilesResponseDto,
   ValidatedCreateDataFolderDto,
   ValidatedMoveDataFolderDto,
   ValidatedRenameDataFolderDto,
@@ -80,6 +82,21 @@ export class DataFolderController {
       id as DataFolderId,
       dto.parentFolderId ?? null,
       userToActor(req.user),
+    );
+  }
+
+  @Get(':id/files')
+  async listFiles(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Req() req?: RequestWithUser,
+  ): Promise<ListDataFolderFilesResponseDto> {
+    return await this.dataFolderService.listFiles(
+      id as DataFolderId,
+      userToActor(req!.user),
+      limit ? parseInt(limit, 10) : undefined,
+      offset ? parseInt(offset, 10) : undefined,
     );
   }
 }

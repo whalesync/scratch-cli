@@ -4,6 +4,8 @@ import {
   createDataFolderId,
   DataFolderGroup,
   DataFolderId,
+  FileId,
+  ListDataFolderFilesResponseDto,
   Service,
   ValidatedCreateDataFolderDto,
   WorkbookId,
@@ -20,6 +22,7 @@ import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
+import { WorkbookDbService } from './workbook-db.service';
 import { WorkbookService } from './workbook.service';
 
 @Injectable()
@@ -32,6 +35,7 @@ export class DataFolderService {
     private readonly configService: ScratchpadConfigService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
+    private readonly workbookDbService: WorkbookDbService,
   ) {}
 
   async listGroupedByConnectorAccount(workbookId: WorkbookId, actor: Actor): Promise<DataFolderGroup[]> {
@@ -124,6 +128,44 @@ export class DataFolderService {
     }
 
     return new DataFolderEntity(dataFolder);
+  }
+
+  async listFiles(
+    id: DataFolderId,
+    actor: Actor,
+    limit?: number,
+    offset?: number,
+  ): Promise<ListDataFolderFilesResponseDto> {
+    const dataFolder = await this.db.client.dataFolder.findUnique({
+      where: { id },
+      include: DataFolderCluster._validator.include,
+    });
+
+    if (!dataFolder) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Get files from the workbook database using the data folder's path
+
+    const allFiles = await this.workbookDbService.workbookDb.getFilesByFolderId(
+      dataFolder.workbookId as WorkbookId,
+      id,
+      { offset, limit },
+    );
+
+    return {
+      files: allFiles.map((f) => ({
+        fileId: f.id as FileId,
+        filename: f.name,
+        path: f.path,
+      })),
+    };
   }
 
   async createFolder(dto: ValidatedCreateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {
