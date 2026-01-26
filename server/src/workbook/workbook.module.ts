@@ -22,6 +22,8 @@ import { WorkbookPublicController } from './workbook-public.controller';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
 
+import { DataFolderController } from './data-folder.controller';
+import { DataFolderService } from './data-folder.service';
 import { FolderService } from './folder.service';
 
 @Module({
@@ -46,6 +48,7 @@ import { FolderService } from './folder.service';
     FilesController,
     FoldersController,
     FilesPublicController,
+    DataFolderController,
   ],
   providers: [
     WorkbookService,
@@ -54,6 +57,7 @@ import { FolderService } from './folder.service';
     FilesService,
     FolderService,
     FilePublishingService,
+    DataFolderService,
   ],
   exports: [WorkbookService, SnapshotEventService, FolderService, FilePublishingService],
 })

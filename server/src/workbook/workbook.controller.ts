@@ -23,6 +23,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type {
+  DataFolderGroup,
   ValidatedAcceptCellValueDto,
   ValidatedAcceptCellValueItem,
   ValidatedAddScratchColumnDto,
@@ -73,6 +74,7 @@ import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { SnapshotRecord } from '../remote-service/connectors/types';
 import { userToActor } from '../users/types';
+import { DataFolderService } from './data-folder.service';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { SnapshotTable } from './entities/snapshot-table.entity';
@@ -89,6 +91,7 @@ export class WorkbookController {
     private readonly service: WorkbookService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly snapshotDbService: SnapshotDbService,
+    private readonly dataFolderService: DataFolderService,
   ) {}
 
   @Post()
@@ -702,5 +705,11 @@ export class WorkbookController {
     if (updateFolderDto.parentFolderId !== undefined) {
       await this.service.moveFolder(workbookId, folderId, updateFolderDto.parentFolderId, userToActor(req.user));
     }
+  }
+
+  /* Start new Data Folder functions */
+  @Get(':id/data-folders/list')
+  async listDataFolders(@Param('id') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<DataFolderGroup[]> {
+    return await this.dataFolderService.listGroupedByConnectorAccount(workbookId, userToActor(req.user));
   }
 }

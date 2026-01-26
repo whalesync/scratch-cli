@@ -33,6 +33,7 @@ export enum IdPrefixes {
   ACTION = 'act_', // Action
   FILE = 'fil_', // File
   FOLDER = 'fld_', // Folder
+  DATA_FOLDER = 'dfd_', // Data folder
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
 }
 
@@ -295,6 +296,17 @@ export function isFolderId(id: unknown): id is FolderId {
 
 export function createFolderId(): FolderId {
   return createId(IdPrefixes.FOLDER) as FolderId;
+}
+
+// ------- DataFolder -------
+export type DataFolderId = PrefixedId<IdPrefixes.DATA_FOLDER>;
+
+export function isDataFolderId(id: unknown): id is DataFolderId {
+  return isId(id, IdPrefixes.DATA_FOLDER);
+}
+
+export function createDataFolderId(): DataFolderId {
+  return createId(IdPrefixes.DATA_FOLDER) as DataFolderId;
 }
 
 // ------- AuthorizationCode -------

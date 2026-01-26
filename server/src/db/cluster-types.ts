@@ -40,3 +40,11 @@ export namespace StyleGuideCluster {
 
   export const _validator = Prisma.validator<Prisma.StyleGuideDefaultArgs>()({});
 }
+
+export namespace DataFolderCluster {
+  export type DataFolder = Prisma.DataFolderGetPayload<typeof _validator>;
+
+  export const _validator = Prisma.validator<Prisma.DataFolderDefaultArgs>()({
+    include: { connectorAccount: true },
+  });
+}

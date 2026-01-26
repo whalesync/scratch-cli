@@ -9,7 +9,7 @@ import {
   UpdateColumnSettingsDto,
   UpdateWorkbookDto,
 } from '@/types/server-entities/workbook';
-import { SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
+import { DataFolderGroup, SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -305,6 +305,16 @@ export const workbookApi = {
       await axios.patch(`/workbook/${workbookId}/folders/${folderId}`, { parentFolderId });
     } catch (error) {
       handleAxiosError(error, 'Failed to move folder');
+    }
+  },
+
+  listDataFolders: async (workbookId: WorkbookId): Promise<DataFolderGroup[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<DataFolderGroup[]>(`/workbook/${workbookId}/data-folders/list`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list data folders');
     }
   },
 };
