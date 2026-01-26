@@ -147,6 +147,7 @@ model ConnectorAccount {
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
   snapshotTables            SnapshotTable[]
+  dataFolders               DataFolder[]
 
   @@index([userId])
   @@index([organizationId])
@@ -174,6 +175,7 @@ model Workbook {
 
   snapshotTables    SnapshotTable[]
   folders           Folder[]
+  dataFolders       DataFolder[]
   onboardingForUser User?           @relation("OnboardingWorkbook")
 
   @@index([userId])
@@ -435,6 +437,58 @@ model AuditLogEvent {
   @@index([userId])
   @@index([organizationId])
   @@index([entityId])
+}
+
+// DataFolder: An entity representing a collection of related files
+// Two types of DataFolder:
+//  - Linked Folder: A folder that is attached to a data source via a connectorAccount with a schema
+//  - Scratch Folder: A folder that contains "local" folders for the user, not attached to an external data source
+model DataFolder {
+  id        String   @id // type: DataFolderId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A display name for the table, provided by the user or sourced from the data source table
+  name String
+
+  // Workbook ownership
+  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+  workbookId String
+
+  // Optional connector account link (like SnapshotTable)
+  connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
+  connectorAccountId String?
+
+  // Service type (required when linked to a connector, optional otherwise)
+  connectorService Service?
+
+  // A schema object that describes the data in the files stored in the folder
+  // Only used by Linked Folders
+  schema              Json?
+  lastSchemaRefreshAt DateTime
+
+  // Optional folder hierarchy
+  parent   DataFolder?  @relation("DataFolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String?
+  children DataFolder[] @relation("DataFolderHierarchy")
+
+  // Cached full path for efficient queries, e.g. "/parent/child"
+  path String?
+
+  // Lock indicating an operation in progress: "download", "publish", or null
+  lock String?
+
+  // Timestamp of the last successful sync (download or publish)
+  lastSyncTime DateTime?
+
+  // Version number of the folder structure, to help with future migrations
+  version Int @default(1)
+
+  @@unique([workbookId, parentId, name])
+  @@index([workbookId])
+  @@index([connectorAccountId])
+  @@index([parentId])
+  @@index([path])
 }
 
 ///
