@@ -12,6 +12,7 @@ import { Actor } from 'src/users/types';
 import { normalizeFileName } from 'src/workbook/util';
 import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
+import { JsonTableInfo, ListJsonTablesResponseDto } from './dtos/list-json-tables.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
@@ -205,6 +206,66 @@ export class CliService {
       WSLogger.error({
         source: 'CliService',
         message: 'Error listing tables',
+        error: errorMessage,
+      });
+      return {
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Gets a list of all available tables with their JSON Schema specs
+   */
+  async listJsonTables(credentials: CliConnectorCredentials, actor?: Actor): Promise<ListJsonTablesResponseDto> {
+    try {
+      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
+
+      // Check if the connector supports fetchJsonTableSpec
+      if (!connector.fetchJsonTableSpec) {
+        return {
+          error: `The ${credentials.service} connector does not support JSON Schema specs`,
+        };
+      }
+
+      const tablePreviews = await connector.listTables();
+
+      const tables: JsonTableInfo[] = await Promise.all(
+        tablePreviews.map(async (table: TablePreview) => {
+          const jsonTableInfo = new JsonTableInfo();
+
+          if (table.id.remoteId.length > 1) {
+            jsonTableInfo.siteId = table.id.remoteId[0];
+            jsonTableInfo.id = table.id.remoteId[1];
+          } else {
+            jsonTableInfo.id = table.id.remoteId[0];
+          }
+
+          jsonTableInfo.name = table.displayName;
+          jsonTableInfo.schema = await connector.fetchJsonTableSpec!(table.id);
+
+          return jsonTableInfo;
+        }),
+      );
+
+      const result = {
+        tables,
+      };
+
+      if (actor) {
+        this.posthogService.captureEvent(PostHogEventName.CLI_LIST_TABLES, actor.userId, {
+          service: credentials.service,
+          tableCount: result.tables?.length || 0,
+          jsonSchema: true,
+        });
+      }
+
+      return result;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error listing JSON tables',
         error: errorMessage,
       });
       return {

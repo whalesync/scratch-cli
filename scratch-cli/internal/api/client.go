@@ -60,6 +60,20 @@ type ListTablesResponse struct {
 	Tables []providers.TableInfo `json:"tables,omitempty"`
 }
 
+// JsonTableInfo represents a table with its JSON Schema.
+type JsonTableInfo struct {
+	ID     string                 `json:"id,omitempty"`
+	SiteID string                 `json:"siteId,omitempty"`
+	Name   string                 `json:"name,omitempty"`
+	Schema map[string]interface{} `json:"schema,omitempty"`
+}
+
+// ListJsonTablesResponse represents the response from the list-json-tables endpoint.
+type ListJsonTablesResponse struct {
+	Error  string          `json:"error,omitempty"`
+	Tables []JsonTableInfo `json:"tables,omitempty"`
+}
+
 // DownloadRequest represents the request body for the download endpoint.
 type DownloadRequest struct {
 	TableID         []string `json:"tableId"`
@@ -300,6 +314,15 @@ func (c *Client) TestConnection(creds *ConnectorCredentials) (*TestConnectionRes
 func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
 	var result ListTablesResponse
 	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ListJsonTables retrieves the list of available tables with their JSON Schema specs.
+func (c *Client) ListJsonTables(creds *ConnectorCredentials) (*ListJsonTablesResponse, error) {
+	var result ListJsonTablesResponse
+	if err := c.doRequest(http.MethodGet, "list-json-tables", creds, nil, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

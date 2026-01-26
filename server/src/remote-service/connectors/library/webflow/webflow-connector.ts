@@ -1,3 +1,4 @@
+import { TSchema, Type } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
@@ -96,6 +97,131 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
    */
   validateFiles(tableSpec: WebflowTableSpec, files: FileValidationInput[]): Promise<FileValidationResult[]> {
     return Promise.resolve(validate(tableSpec, files));
+  }
+
+  /**
+   * Fetch JSON Schema directly from the Webflow API for a collection.
+   * Converts Webflow field types to JSON Schema types for AI consumption.
+   * Uses field slugs as property keys.
+   */
+  async fetchJsonTableSpec(id: EntityId): Promise<TSchema> {
+    const [siteId, collectionId] = id.remoteId;
+
+    // Fetch site and collection directly from Webflow API
+    const [site, collection] = await Promise.all([
+      this.client.sites.get(siteId),
+      this.client.collections.get(collectionId),
+    ]);
+
+    const properties: Record<string, TSchema> = {};
+    const requiredFields: string[] = [];
+
+    for (const field of collection.fields) {
+      // Skip fields without a slug
+      if (!field.slug) {
+        continue;
+      }
+
+      const fieldSchema = this.webflowFieldToJsonSchema(field);
+
+      // Check if field is required using Webflow's isRequired property
+      // slug and name fields are always required for Webflow
+      const isRequired = field.isRequired || field.slug === 'slug' || field.slug === 'name';
+
+      if (isRequired) {
+        properties[field.slug] = fieldSchema;
+        requiredFields.push(field.slug);
+      } else {
+        // Wrap optional fields in Type.Optional to exclude from required array
+        properties[field.slug] = Type.Optional(fieldSchema);
+      }
+    }
+
+    return Type.Object(properties, {
+      $id: collectionId,
+      title: `${site.displayName} - ${collection.displayName}`,
+    });
+  }
+
+  /**
+   * Convert a Webflow field directly to a TypeBox JSON Schema.
+   */
+  private webflowFieldToJsonSchema(field: Webflow.Field): TSchema {
+    const description = field.displayName;
+
+    switch (field.type) {
+      case Webflow.FieldType.PlainText:
+      case Webflow.FieldType.Reference:
+        return Type.String({ description });
+
+      case Webflow.FieldType.RichText:
+        return Type.String({ description, contentMediaType: 'text/html' });
+
+      case Webflow.FieldType.Number: {
+        const validations = field.validations as { format?: 'decimal' | 'integer' } | undefined;
+        if (validations?.format === 'integer') {
+          return Type.Integer({ description });
+        }
+        return Type.Number({ description });
+      }
+
+      case Webflow.FieldType.Switch:
+        return Type.Boolean({ description });
+
+      case Webflow.FieldType.DateTime:
+        return Type.String({ description, format: 'date-time' });
+
+      case Webflow.FieldType.Email:
+        return Type.String({ description, format: 'email' });
+
+      case Webflow.FieldType.Phone:
+        return Type.String({ description });
+
+      case Webflow.FieldType.Link:
+      case Webflow.FieldType.VideoLink:
+        return Type.String({ description, format: 'uri' });
+
+      case Webflow.FieldType.Color:
+        return Type.String({ description });
+
+      case Webflow.FieldType.Option: {
+        // Webflow options are in validations.options as array of { id, name }
+        const options = _.get(field.validations, 'options', []) as { id: string; name: string }[];
+        if (options.length > 0) {
+          return Type.Union(
+            options.map((opt) => Type.Literal(opt.id, { title: opt.name })),
+            { description },
+          );
+        }
+        return Type.String({ description });
+      }
+
+      case Webflow.FieldType.Image:
+      case Webflow.FieldType.File:
+        return Type.Object(
+          {
+            url: Type.String({ format: 'uri' }),
+            alt: Type.Optional(Type.String()),
+          },
+          { description },
+        );
+
+      case Webflow.FieldType.MultiImage:
+        return Type.Array(
+          Type.Object({
+            url: Type.String({ format: 'uri' }),
+            alt: Type.Optional(Type.String()),
+          }),
+          { description },
+        );
+
+      case Webflow.FieldType.MultiReference:
+        return Type.Array(Type.String(), { description });
+
+      default:
+        // Default to unknown for unrecognized types
+        return Type.Unknown({ description });
+    }
   }
 
   async downloadTableRecords(

@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -132,6 +133,26 @@ Examples:
 	RunE: runAccountTest,
 }
 
+// accountFetchJsonSchemasCmd represents the account fetch-json-schemas command
+var accountFetchJsonSchemasCmd = &cobra.Command{
+	Use:   "fetch-json-schemas [account-name]",
+	Short: "[NON-INTERACTIVE] List available tables with their JSON Schema specs",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+List available tables/collections from the CMS with their JSON Schema specs.
+This is useful for AI/LLM consumption to understand the structure of each table.
+
+Arguments:
+  account-name: Optional if configured via 'config set account.name'
+
+Examples:
+  scratchmd account fetch-json-schemas
+  scratchmd account fetch-json-schemas webflow`,
+	Aliases: []string{"list-json-tables"},
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    runAccountFetchJsonSchemas,
+}
+
 func init() {
 	rootCmd.AddCommand(accountCmd)
 	accountCmd.AddCommand(accountSetupCmd)
@@ -143,6 +164,7 @@ func init() {
 	accountCmd.AddCommand(accountAddCmd)
 	accountCmd.AddCommand(accountFetchSourcesCmd)
 	accountCmd.AddCommand(accountTestCmd)
+	accountCmd.AddCommand(accountFetchJsonSchemasCmd)
 
 	// Flags for account add
 	accountAddCmd.Flags().String("account.provider", "", "CMS provider (webflow, wordpress)")
@@ -620,6 +642,86 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 			linkStr = fmt.Sprintf(" [linked to: %s]", strings.Join(links, ", "))
 		}
 		fmt.Printf("- %s (ID: %s)%s\n", table.Name, table.ID, linkStr)
+	}
+
+	return nil
+}
+
+func runAccountFetchJsonSchemas(cmd *cobra.Command, args []string) error {
+	// Load config and secrets first
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	var accountName string
+	if len(args) > 0 {
+		accountName = args[0]
+	} else if config.Overrides.Account.Name != "" {
+		accountName = config.Overrides.Account.Name
+	} else {
+		return fmt.Errorf("account name required (either as argument or --account.name flag)")
+	}
+
+	secrets, err := config.LoadSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to load secrets: %w", err)
+	}
+
+	// Find account
+	account := cfg.GetAccount(accountName)
+	if account == nil {
+		return fmt.Errorf("account '%s' not found. Run 'scratchmd account list' to see available accounts", accountName)
+	}
+
+	// Get auth props
+	authProps := secrets.GetSecretProperties(account.ID)
+	if len(authProps) == 0 {
+		return fmt.Errorf("no credentials found for account '%s'", accountName)
+	}
+
+	// Fetch JSON schemas from server
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Fetching JSON schemas from server..."
+	s.Start()
+
+	client := newAPIClient(cfg.Settings.ScratchServerURL)
+	creds := &api.ConnectorCredentials{
+		Service: account.Provider,
+		Params:  authProps,
+	}
+
+	resp, err := client.ListJsonTables(creds)
+	s.Stop()
+	if err != nil {
+		return fmt.Errorf("failed to list JSON tables: %w", err)
+	}
+	if resp.Error != "" {
+		return fmt.Errorf("failed to list JSON tables: %s", resp.Error)
+	}
+
+	if len(resp.Tables) == 0 {
+		fmt.Println("No tables found.")
+		return nil
+	}
+
+	// Output JSON schemas
+	fmt.Printf("JSON Schemas for account '%s':\n\n", accountName)
+	for _, table := range resp.Tables {
+		fmt.Printf("Table: %s (ID: %s)\n", table.Name, table.ID)
+		if table.SiteID != "" {
+			fmt.Printf("  Site ID: %s\n", table.SiteID)
+		}
+		if table.Schema != nil {
+			// Pretty print the schema as JSON
+			schemaJSON, err := json.MarshalIndent(table.Schema, "  ", "  ")
+			if err != nil {
+				fmt.Printf("  Schema: (error marshaling: %v)\n", err)
+			} else {
+				fmt.Printf("  Schema:\n  %s\n", string(schemaJSON))
+			}
+		}
+		fmt.Println()
 	}
 
 	return nil
