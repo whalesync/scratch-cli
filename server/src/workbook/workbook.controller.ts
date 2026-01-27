@@ -710,6 +710,6 @@ export class WorkbookController {
   /* Start new Data Folder functions */
   @Get(':id/data-folders/list')
   async listDataFolders(@Param('id') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<DataFolderGroup[]> {
-    return await this.dataFolderService.listGroupedByConnectorAccount(workbookId, userToActor(req.user));
+    return await this.dataFolderService.listGroupedByConnectorBases(workbookId, userToActor(req.user));
   }
 }

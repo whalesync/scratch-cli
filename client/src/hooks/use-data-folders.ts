@@ -1,8 +1,9 @@
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { DataFolderGroup } from '@spinner/shared-types';
+import { DataFolderGroup, DataFolderId } from '@spinner/shared-types';
 import { useCallback } from 'react';
 import useSWR from 'swr';
+import { dataFolderApi } from '../lib/api/data-folder';
 import { useActiveWorkbook } from './use-active-workbook';
 
 export interface UseDataFoldersReturn {
@@ -10,6 +11,7 @@ export interface UseDataFoldersReturn {
   isLoading: boolean;
   error: Error | undefined;
   refresh: () => Promise<void>;
+  deleteFolder: (dataFolderId: DataFolderId) => Promise<void>;
 }
 
 /**
@@ -32,10 +34,20 @@ export const useDataFolders = (): UseDataFoldersReturn => {
     await mutate();
   }, [mutate]);
 
+  const deleteFolder = useCallback(
+    async (dataFolderId: DataFolderId) => {
+      if (!workbookId) return;
+      await dataFolderApi.delete(dataFolderId);
+      await mutate();
+    },
+    [workbookId, mutate],
+  );
+
   return {
     dataFolders: data ?? [],
     isLoading,
     error,
     refresh,
+    deleteFolder,
   };
 };

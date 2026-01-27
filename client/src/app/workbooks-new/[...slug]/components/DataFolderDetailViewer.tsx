@@ -6,7 +6,7 @@ import { ErrorInfo } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useDataFolderFiles } from '@/hooks/use-data-folder-files';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { Box, Center, Group, Text, useMantineColorScheme } from '@mantine/core';
+import { Box, Center, Group, LoadingOverlay, useMantineColorScheme } from '@mantine/core';
 import { DataFolderId, FileId } from '@spinner/shared-types';
 import {
   AllCommunityModule,
@@ -20,8 +20,11 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AgGridReact } from 'ag-grid-react';
 import { FileIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDataFolder } from '../../../../hooks/use-data-folder';
 import styles from './DataFolderDetailViewer.module.css';
+
+const LOCK_POLL_INTERVAL_MS = 1000;
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -176,7 +179,8 @@ const CustomHeaderComponent = (props: IHeaderParams) => {
 };
 
 export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerProps) => {
-  const { files, isLoading, error } = useDataFolderFiles(dataFolderId);
+  const { dataFolder, isLoading: folderLoading, refresh: refreshFolder } = useDataFolder(dataFolderId);
+  const { files, isLoading: filesLoading, error, refresh: refreshFiles } = useDataFolderFiles(dataFolderId);
   const { colorScheme } = useMantineColorScheme();
   const isDarkTheme = colorScheme === 'dark';
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
@@ -187,6 +191,30 @@ export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerP
     },
     [openFileTab],
   );
+
+  // Track previous lock state to detect transitions
+  const prevLockRef = useRef(dataFolder?.lock);
+
+  // Poll for folder updates while download is in progress
+  useEffect(() => {
+    // Check if lock transitioned from 'download' to null
+    if (prevLockRef.current === 'download' && dataFolder?.lock === null) {
+      refreshFiles();
+    }
+    prevLockRef.current = dataFolder?.lock;
+  }, [dataFolder?.lock, refreshFiles]);
+
+  useEffect(() => {
+    if (dataFolder?.lock !== 'download') {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      refreshFolder();
+    }, LOCK_POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [dataFolder?.lock, refreshFolder]);
 
   // Create column definitions for AGGrid
   const columnDefs = useMemo<ColDef[]>(() => {
@@ -205,14 +233,6 @@ export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerP
       {
         field: 'filename',
         headerName: 'Name',
-        minWidth: AG.grid.defaultMinWidth,
-        flex: AG.grid.defaultFlex,
-        cellRenderer: cellRenderer,
-        headerComponent: CustomHeaderComponent,
-      },
-      {
-        field: 'path',
-        headerName: 'Path',
         minWidth: AG.grid.defaultMinWidth,
         flex: AG.grid.defaultFlex,
         cellRenderer: cellRenderer,
@@ -237,12 +257,12 @@ export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerP
   if (error) {
     return (
       <Center h="100%">
-        <ErrorInfo title="Error loading folder details" description={error.message} />
+        <ErrorInfo title="Error loading folder contents" description={error.message} />
       </Center>
     );
   }
 
-  if (isLoading) {
+  if (folderLoading || filesLoading) {
     return (
       <Center h="100%">
         <LoaderWithMessage message="Loading folder details..." centered />
@@ -250,16 +270,14 @@ export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerP
     );
   }
 
-  if (files.length === 0) {
-    return (
-      <Center h="100%">
-        <Text>No files found</Text>
-      </Center>
-    );
-  }
-
   return (
     <Box h="100%" w="100%" style={{ position: 'relative' }}>
+      <LoadingOverlay
+        visible={dataFolder?.lock === 'download'}
+        zIndex={1000}
+        overlayProps={{ radius: 'sm', blur: 2 }}
+        loaderProps={{ children: 'Download in progress...' }}
+      />
       <div
         className={`${isDarkTheme ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'} my-grid ${styles['ag-grid-container']}`}
         style={{

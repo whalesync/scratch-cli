@@ -49,10 +49,7 @@ function createGroupKey(group: TableGroup) {
 export const AddLinkedFolderTab = () => {
   const { workbook, addLinkedDataFolder } = useActiveWorkbook();
   const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
-  const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
-  const closeNewTabs = useWorkbookEditorUIStore((state) => state.closeNewTabs);
   const modalStack = useModalsStack(['create']);
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
 
@@ -103,18 +100,13 @@ export const AddLinkedFolderTab = () => {
       setIsCreatingTable(true);
       const dataFolder = await addLinkedDataFolder(table.id.remoteId, table.displayName, group.connectorAccountId);
 
-      if (workbookMode === 'files') {
-        openFileTab({
-          id: dataFolder.id,
-          type: 'folder',
-          title: table.displayName,
-          path: dataFolder.path ?? `/${table.displayName}`,
-        });
-        closeFileTab('add-table');
-      } else {
-        setActiveTab(dataFolder.id);
-        closeNewTabs();
-      }
+      openFileTab({
+        id: dataFolder.id,
+        type: 'folder',
+        title: dataFolder.name,
+        path: dataFolder.path ?? `/${table.displayName}`,
+      });
+      closeFileTab('add-table');
     } catch (error) {
       console.error('Failed to add table:', error);
       ScratchpadNotifications.error({

@@ -82,6 +82,7 @@ export const SWR_KEYS = {
   },
   dataFolders: {
     list: (workbookId: WorkbookId) => ['data-folders', 'list', workbookId] as const,
+    detail: (dataFolderId: DataFolderId) => ['data-folders', 'detail', dataFolderId] as const,
     files: (dataFolderId: DataFolderId, limit?: number, offset?: number) =>
       ['data-folders', 'files', dataFolderId, limit, offset] as const,
   },

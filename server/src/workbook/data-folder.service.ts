@@ -39,7 +39,7 @@ export class DataFolderService {
     private readonly workbookDbService: WorkbookDbService,
   ) {}
 
-  async listGroupedByConnectorAccount(workbookId: WorkbookId, actor: Actor): Promise<DataFolderGroup[]> {
+  async listGroupedByConnectorBases(workbookId: WorkbookId, actor: Actor): Promise<DataFolderGroup[]> {
     // Verify user has access to the workbook
     const workbook = await this.workbookService.findOne(workbookId, actor);
     if (!workbook) {

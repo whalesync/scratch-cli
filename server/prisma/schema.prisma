@@ -473,7 +473,7 @@ model DataFolder {
   parentId String?
   children DataFolder[] @relation("DataFolderHierarchy")
 
-  // Cached full path for efficient queries, e.g. "/parent/child"
+  // Path of this folder in the File Store that contains the actual files
   path String?
 
   // Lock indicating an operation in progress: "download", "publish", or null

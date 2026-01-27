@@ -8,9 +8,12 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   ActionIcon,
   Box,
+  Button,
   Collapse,
   Group,
   Loader,
+  Menu,
+  Modal,
   ScrollArea,
   Stack,
   Text,
@@ -23,13 +26,15 @@ import {
   ChevronRightIcon,
   CopyMinusIcon,
   CopyPlusIcon,
+  DownloadIcon,
   FilePlusIcon,
   FolderIcon,
   FolderPlusIcon,
   FolderSyncIcon,
   StickyNoteIcon,
+  Trash2Icon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import styles from './DataFolderBrowser.module.css';
 
 interface DataFolderBrowserProps {
@@ -39,11 +44,17 @@ interface DataFolderBrowserProps {
 const SCRATCH_GROUP_NAME = 'Scratch';
 
 export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
-  const { dataFolders, isLoading } = useDataFolders();
+  const { dataFolders, isLoading, deleteFolder } = useDataFolders();
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
+  const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedFolderId, setSelectedFolderId] = useState<DataFolderId | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    folder: DataFolder;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
 
   const expandAllGroups = useCallback(() => {
     setExpandedGroups(new Set(dataFolders.map((g) => g.name)));
@@ -87,6 +98,34 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
     [openFileTab, onFolderSelect],
   );
 
+  const handleFolderDelete = useCallback(
+    (folder: DataFolder) => {
+      setConfirmModal({
+        folder,
+        onConfirm: async () => {
+          const folderPath = folder.path ?? '';
+
+          // Find tabs to close: the folder itself and any files within it
+          const tabsToClose = openFileTabs.filter((tab) => {
+            // Close the folder tab itself
+            if (tab.id === folder.id) return true;
+            // Close any tabs whose path starts with the folder's path
+            if (folderPath && tab.path.startsWith(folderPath + '/')) return true;
+            return false;
+          });
+
+          if (tabsToClose.length > 0) {
+            closeFileTabs(tabsToClose.map((t) => t.id));
+          }
+
+          await deleteFolder(folder.id);
+          setConfirmModal(null);
+        },
+      });
+    },
+    [deleteFolder, openFileTabs, closeFileTabs],
+  );
+
   // Sort groups: Scratch first, then alphabetically by name
   const sortedGroups = useMemo(
     () =>
@@ -121,8 +160,16 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               <FilePlusIcon size={14} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label="New Folder" openDelay={500}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => {}} disabled>
+          <Tooltip label="New Scratch Folder" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={() => {
+                console.log('TODO - implement scratch folders');
+              }}
+              disabled
+            >
               <FolderPlusIcon size={14} />
             </ActionIcon>
           </Tooltip>
@@ -161,11 +208,96 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               onToggle={() => toggleGroup(group.name)}
               selectedFolderId={selectedFolderId}
               onFolderClick={handleFolderClick}
+              onFolderDelete={handleFolderDelete}
             />
           ))}
         </Stack>
       </ScrollArea>
+
+      <Modal opened={!!confirmModal} onClose={() => setConfirmModal(null)} title="Delete Folder" size="sm" centered>
+        <Stack gap="md">
+          <Text size="sm">
+            Are you sure you want to delete &quot;{confirmModal?.folder.name}&quot;? This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={confirmModal?.onConfirm}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
+  );
+}
+
+interface DataFolderItemProps {
+  folder: DataFolder;
+  isSelected: boolean;
+  onClick: () => void;
+  onDelete: () => void;
+}
+
+function DataFolderItem({ folder, isSelected, onClick, onDelete }: DataFolderItemProps) {
+  const [menuOpened, setMenuOpened] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+
+  const handleContextMenu = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPosition({ x: e.clientX, y: e.clientY });
+    setMenuOpened(true);
+  };
+
+  const handleNewFile = () => {
+    console.log('New File clicked for folder:', folder.id);
+    setMenuOpened(false);
+  };
+
+  const handleDownload = () => {
+    console.log('Download clicked for folder:', folder.id);
+    setMenuOpened(false);
+  };
+
+  const handleDelete = async () => {
+    await onDelete();
+    setMenuOpened(false);
+  };
+
+  return (
+    <>
+      <UnstyledButton
+        className={`${styles.folderItem} ${isSelected ? styles.folderItemSelected : ''}`}
+        onClick={onClick}
+        onContextMenu={handleContextMenu}
+      >
+        <Group gap="xs" wrap="nowrap">
+          <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
+          <Text13Regular className={styles.folderName} truncate>
+            {folder.name}
+          </Text13Regular>
+        </Group>
+      </UnstyledButton>
+
+      <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
+        <Menu.Target>
+          <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item leftSection={<FilePlusIcon size={16} />} onClick={handleNewFile} disabled>
+            New File
+          </Menu.Item>
+          <Menu.Item leftSection={<DownloadIcon size={16} />} onClick={handleDownload} disabled>
+            Download
+          </Menu.Item>
+          <Menu.Item leftSection={<Trash2Icon size={16} />} color="red" onClick={handleDelete}>
+            Delete
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    </>
   );
 }
 
@@ -175,6 +307,7 @@ interface DataFolderGroupItemProps {
   onToggle: () => void;
   selectedFolderId: DataFolderId | null;
   onFolderClick: (folder: DataFolder) => void;
+  onFolderDelete: (folder: DataFolder) => void;
 }
 
 function DataFolderGroupItem({
@@ -183,6 +316,7 @@ function DataFolderGroupItem({
   onToggle,
   selectedFolderId,
   onFolderClick,
+  onFolderDelete,
 }: DataFolderGroupItemProps) {
   const isScratch = group.name === SCRATCH_GROUP_NAME;
 
@@ -205,18 +339,13 @@ function DataFolderGroupItem({
       <Collapse in={isExpanded}>
         <Stack gap={0} className={styles.folderList}>
           {group.dataFolders.map((folder) => (
-            <UnstyledButton
+            <DataFolderItem
               key={folder.id}
-              className={`${styles.folderItem} ${selectedFolderId === folder.id ? styles.folderItemSelected : ''}`}
+              folder={folder}
+              isSelected={selectedFolderId === folder.id}
               onClick={() => onFolderClick(folder)}
-            >
-              <Group gap="xs" wrap="nowrap">
-                <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
-                <Text13Regular className={styles.folderName} truncate>
-                  {folder.name}
-                </Text13Regular>
-              </Group>
-            </UnstyledButton>
+              onDelete={() => onFolderDelete(folder)}
+            />
           ))}
           {group.dataFolders.length === 0 && (
             <Box className={styles.emptyFolder}>
