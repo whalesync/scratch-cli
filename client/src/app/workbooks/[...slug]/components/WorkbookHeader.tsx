@@ -12,6 +12,7 @@ import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { hasAllConnectionsDeleted } from '@/types/server-entities/workbook';
 import { Group } from '@mantine/core';
+import { SnapshotTableId } from '@spinner/shared-types';
 import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
@@ -27,7 +28,7 @@ export const WorkbookHeader = () => {
 
   const { columnChangeTypes } = useSnapshotTableRecords({
     workbookId: workbook?.id ?? null,
-    tableId: activeTable?.id ?? null,
+    tableId: (activeTable?.id as SnapshotTableId) ?? null,
   });
 
   // Check if there are any pending suggestions in any column

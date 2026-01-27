@@ -59,11 +59,7 @@ export const dataFolderApi = {
     }
   },
 
-  listFiles: async (
-    id: DataFolderId,
-    limit?: number,
-    offset?: number,
-  ): Promise<ListDataFolderFilesResponseDto> => {
+  listFiles: async (id: DataFolderId, limit?: number, offset?: number): Promise<ListDataFolderFilesResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.get<ListDataFolderFilesResponseDto>(`/data-folder/${id}/files`, {

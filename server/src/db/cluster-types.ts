@@ -12,9 +12,16 @@ export namespace UserCluster {
 export namespace WorkbookCluster {
   export type Workbook = Prisma.WorkbookGetPayload<typeof _validator>;
   export type SnapshotTable = Workbook['snapshotTables'][number];
+  export type DataFolder = Workbook['dataFolders'][number];
 
   export const _validator = Prisma.validator<Prisma.WorkbookDefaultArgs>()({
     include: {
+      dataFolders: {
+        include: { connectorAccount: true },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
       snapshotTables: {
         include: {
           connectorAccount: true,

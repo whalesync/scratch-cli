@@ -3,7 +3,7 @@ import { ProcessedSnapshotRecord, useSnapshotTableRecords } from '@/hooks/use-sn
 import { recordApi } from '@/lib/api/record';
 import { SnapshotRecord } from '@/types/server-entities/workbook';
 import { Menu } from '@mantine/core';
-import { SCRATCH_ID_COLUMN, Service, SnapshotTableId } from '@spinner/shared-types';
+import { SCRATCH_ID_COLUMN, Service, SnapshotTable, SnapshotTableId } from '@spinner/shared-types';
 import { GridApi } from 'ag-grid-community';
 import { CheckIcon, FileText, Filter, FilterX, TrashIcon, Undo2, XIcon } from 'lucide-react';
 import React, { useState } from 'react';
@@ -483,7 +483,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
           <Menu.Label>Webflow actions</Menu.Label>
           <WebflowPublishMenuItem
             selectedRows={selectedRows}
-            currentTable={currentTable}
+            currentTable={currentTable as SnapshotTable}
             isProcessing={isProcessing}
             onClose={onClose}
             setIsProcessing={setIsProcessing}
@@ -499,7 +499,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({
           <Menu.Label>Wix actions</Menu.Label>
           <WixPublishMenuItem
             selectedRows={selectedRows}
-            currentTable={currentTable}
+            currentTable={currentTable as SnapshotTable}
             isProcessing={isProcessing}
             onClose={onClose}
             setIsProcessing={setIsProcessing}

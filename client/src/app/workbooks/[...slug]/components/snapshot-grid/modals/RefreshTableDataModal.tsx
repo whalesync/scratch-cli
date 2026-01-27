@@ -52,7 +52,7 @@ export const RefreshTableDataModal = () => {
           onClose={() => dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE)}
           onConfirm={startRefresh}
           workbook={workbook}
-          activeTable={activeTable ?? null}
+          activeTable={(activeTable as SnapshotTable) ?? null}
           isFilesMode={isFilesMode}
         />
       )}

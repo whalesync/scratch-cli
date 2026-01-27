@@ -1,5 +1,5 @@
 import { RouteUrls } from '@/utils/route-urls';
-import { SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
 
 // Transient ID for a tab that doesn't have a table yet.
@@ -18,7 +18,7 @@ export type TableTabState = {
   // TODO Add all current state of the UI in the tab that's not stored in the workbook.
 };
 
-export type TabId = NewTabId | SnapshotTableId;
+export type TabId = NewTabId | SnapshotTableId | DataFolderId;
 export type TabState = NewTabState | TableTabState;
 
 export type RecordViewType = 'details' | 'md';

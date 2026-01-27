@@ -1,4 +1,4 @@
-import { SnapshotTableId, StyleGuideId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, SnapshotTableId, StyleGuideId, WorkbookId } from '@spinner/shared-types';
 import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
@@ -79,5 +79,10 @@ export const SWR_KEYS = {
     // Matches all file keys for a workbook
     allKeyMatcher: (workbookId: WorkbookId) => (key: Arguments) =>
       Array.isArray(key) && key[0] === 'files' && key[2] === workbookId,
+  },
+  dataFolders: {
+    list: (workbookId: WorkbookId) => ['data-folders', 'list', workbookId] as const,
+    files: (dataFolderId: DataFolderId, limit?: number, offset?: number) =>
+      ['data-folders', 'files', dataFolderId, limit, offset] as const,
   },
 };

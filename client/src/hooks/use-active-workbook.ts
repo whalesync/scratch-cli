@@ -1,9 +1,9 @@
-import { isSnapshotTableId, SnapshotTable } from '@spinner/shared-types';
+import { DataFolder, isDataFolderId, isSnapshotTableId, SnapshotTable } from '@spinner/shared-types';
 import { useWorkbookEditorUIStore } from '../stores/workbook-editor-store';
 import { useWorkbook, UseWorkbookReturn } from './use-workbook';
 
 interface UseActiveWorkbookReturn extends UseWorkbookReturn {
-  activeTable: SnapshotTable | undefined;
+  activeTable: SnapshotTable | DataFolder | undefined;
 }
 
 /**
@@ -20,7 +20,9 @@ export const useActiveWorkbook = (): UseActiveWorkbookReturn => {
 
   const activeTable = isSnapshotTableId(activeTab)
     ? hookResult?.workbook?.snapshotTables?.find((table) => table.id === activeTab)
-    : undefined;
+    : isDataFolderId(activeTab)
+      ? hookResult?.workbook?.dataFolders?.find((folder) => folder.id === activeTab)
+      : undefined;
 
   return {
     ...hookResult,

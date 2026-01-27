@@ -39,6 +39,7 @@ import {
   DATA_AGENT_CAPABILITIES,
   FILE_AGENT_CAPABILITIES,
   SendMessageRequestDTO,
+  SnapshotTable,
   SnapshotTableId,
 } from '@spinner/shared-types';
 import {
@@ -724,7 +725,7 @@ export default function AIChatPanel() {
           />
 
           {/* Token usage */}
-          {activeTable && <TokenUseButton table={activeTable} />}
+          {activeTable && <TokenUseButton table={activeTable as SnapshotTable} />}
 
           {/* Extra space */}
           <div style={{ flex: 1 }} />

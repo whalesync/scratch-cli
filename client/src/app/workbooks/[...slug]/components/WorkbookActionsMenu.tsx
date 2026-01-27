@@ -2,7 +2,7 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Loader, Menu } from '@mantine/core';
-import { Service } from '@spinner/shared-types';
+import { Service, SnapshotTable } from '@spinner/shared-types';
 import { Edit3Icon, Trash2Icon } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -37,7 +37,7 @@ export const WorkbookActionsMenu = () => {
           <Menu.Divider />
           <Menu.Label>Webflow</Menu.Label>
           <WebflowPublishSiteMenuItem
-            currentTable={activeTable}
+            currentTable={activeTable as SnapshotTable}
             disabled={menuItemsDisabled}
             onPublishStart={() => setSaving(true)}
             onPublishEnd={() => setSaving(false)}

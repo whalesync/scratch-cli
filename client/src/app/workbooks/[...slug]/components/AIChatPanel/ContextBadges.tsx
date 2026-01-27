@@ -5,11 +5,14 @@ import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
+import { SnapshotTable } from '@spinner/shared-types';
 import { useMemo } from 'react';
 import { FileContextBadges } from './FileContextBadges';
 
 const DataContextBadges = () => {
-  const { activeTable } = useActiveWorkbook();
+  const { activeTable: activeSnapshotTable } = useActiveWorkbook();
+
+  const activeTable = activeSnapshotTable as SnapshotTable;
 
   const { dataScope, activeRecordId, activeColumnId } = useAgentChatContext();
   const { records } = useSnapshotTableRecords({

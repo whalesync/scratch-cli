@@ -4,6 +4,7 @@ import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contex
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSnapshotTableRecords } from '@/hooks/use-snapshot-table-records';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { SnapshotTableId } from '@spinner/shared-types';
 import pluralize from 'pluralize';
 import { useMemo } from 'react';
 
@@ -19,7 +20,7 @@ export function useDataAgentCommands({ setShowToolsModal }: UseDataAgentCommands
   const { records, acceptAllSuggestions, rejectAllSuggestions, acceptCellValues, rejectCellValues, refreshRecords } =
     useSnapshotTableRecords({
       workbookId: workbook?.id ?? null,
-      tableId: activeTable?.id ?? null,
+      tableId: (activeTable?.id as SnapshotTableId) ?? null,
     });
 
   const handlePublish = () => {

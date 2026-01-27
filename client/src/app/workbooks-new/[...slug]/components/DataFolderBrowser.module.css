@@ -1,0 +1,66 @@
+.container {
+  height: 100%;
+  background-color: var(--bg-base);
+}
+
+.groupContainer {
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+
+.groupContainer:last-child {
+  border-bottom: none;
+}
+
+.groupHeader {
+  width: 100%;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+
+.groupHeader:hover {
+  background-color: var(--bg-panel);
+}
+
+.groupName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folderList {
+  padding-left: 12px;
+}
+
+.folderItem {
+  width: 100%;
+  padding: 6px 12px 6px 20px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+
+.folderItem:hover {
+  background-color: var(--bg-panel);
+}
+
+.folderItemSelected {
+  background-color: var(--bg-selected);
+}
+
+.folderItemSelected:hover {
+  background-color: var(--bg-selected);
+}
+
+.folderName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyFolder {
+  padding: 6px 12px 6px 20px;
+}

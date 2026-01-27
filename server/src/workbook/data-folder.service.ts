@@ -245,7 +245,7 @@ export class DataFolderService {
       // Trigger download job
       if (this.configService.getUseJobs()) {
         try {
-          await this.bullEnqueuerService.enqueueDownloadRecordFilesJob(workbookId, actor, dataFolderId);
+          await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(workbookId, actor, dataFolderId);
           WSLogger.info({
             source: 'DataFolderService.createFolder',
             message: 'Started downloading files for newly created data folder',

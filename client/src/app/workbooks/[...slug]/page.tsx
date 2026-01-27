@@ -17,6 +17,7 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Stack } from '@mantine/core';
+import { SnapshotTable } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../hooks/use-active-workbook';
@@ -56,12 +57,14 @@ function WorkbookPageContent() {
     if (!activeTable) {
       return;
     }
+    const currentTable = activeTable as SnapshotTable;
+
     // check to see if the content of the active table has changed and reset the object if it has, to trigger re-render of the grid
     const updatedTable = getSnapshotTables(workbook).find((t) => t.id === activeTable.id);
     if (
       updatedTable &&
-      (!isEqual(activeTable.tableSpec, updatedTable.tableSpec) ||
-        !isEqual(activeTable.columnSettings, updatedTable.columnSettings))
+      (!isEqual(currentTable.tableSpec, updatedTable.tableSpec) ||
+        !isEqual(currentTable.columnSettings, updatedTable.columnSettings))
     ) {
       // update the active table and table context with the newer version
       setActiveTab(updatedTable.id);
@@ -120,8 +123,8 @@ function WorkbookPageContent() {
   let contentFooter = null;
   if (workbook) {
     if (activeTable) {
-      content = <SnapshotGrid workbook={workbook} table={activeTable} />;
-      contentFooter = <GridFooterBar table={activeTable} />;
+      content = <SnapshotGrid workbook={workbook} table={activeTable as SnapshotTable} />;
+      contentFooter = <GridFooterBar table={activeTable as SnapshotTable} />;
     } else if (activeTab?.startsWith('new-tab')) {
       content = <AddTableTab />;
     }

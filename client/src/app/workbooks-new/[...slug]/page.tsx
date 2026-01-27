@@ -8,17 +8,12 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import { AddTableTab } from '@/app/workbooks/[...slug]/components/AddTableTab';
-import AIChatPanel from '@/app/workbooks/[...slug]/components/AIChatPanel/AIChatPanel';
-import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
 import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
-import { ManageTablesModal } from '@/app/workbooks/[...slug]/components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
 import { WorkbookEditorModals } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/WorkbookEditorModals';
 import { WorkbookHeader } from '@/app/workbooks/[...slug]/components/WorkbookHeader';
 import { useWorkbookParams } from '@/app/workbooks/[...slug]/hooks/use-workbook-params';
-import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbook } from '@/hooks/use-workbook';
@@ -26,24 +21,21 @@ import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
 import { RouteUrls } from '@/utils/route-urls';
-import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Stack } from '@mantine/core';
-import { isSnapshotTableId, type FileId, type SnapshotTable } from '@spinner/shared-types';
+import type { DataFolder, DataFolderId, FileId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Text12Book } from '../../components/base/text';
+import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
+import { DataFolderBrowser } from './components/DataFolderBrowser';
+import { DataFolderDetailViewer } from './components/DataFolderDetailViewer';
 import { FileEditor } from './components/FileEditor';
 import { FileTabBar } from './components/FileTabBar';
-import { FolderDetailViewer } from './components/FolderDetailViewer';
-import { WorkbookFileBrowser } from './components/WorkbookFileBrowser';
 
 const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 600;
-
-const DEFAULT_CHAT_WIDTH = '360px';
-const MIN_CHAT_WIDTH = 300;
-const MAX_CHAT_WIDTH = 800;
 
 function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
@@ -52,29 +44,21 @@ function WorkbookFilesPageContent() {
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
-  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   // File tab state is now managed in the store
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
 
   const router = useRouter();
-  const { workbook, activeTable, isLoading, refreshWorkbook } = useActiveWorkbook();
-
-  const [showManageTablesModal, setShowManageTablesModal] = useState(false);
+  const { workbook, activeTable, isLoading } = useActiveWorkbook();
 
   useEffect(() => {
-    if (!activeTable || !isSnapshotTableId(activeTable.id)) {
+    if (!activeTable) {
       return;
     }
-    // activeTable is a SnapshotTable when its ID passes isSnapshotTableId
-    const currentTable = activeTable as SnapshotTable;
-    const updatedTable = getSnapshotTables(workbook).find((t) => t.id === currentTable.id);
-    if (
-      updatedTable &&
-      (!isEqual(currentTable.tableSpec, updatedTable.tableSpec) ||
-        !isEqual(currentTable.columnSettings, updatedTable.columnSettings))
-    ) {
-      setActiveTab(updatedTable.id);
+    const updatedFolder = workbook?.dataFolders?.find((df) => df.id === activeTable.id);
+
+    if (updatedFolder && !isEqual((activeTable as DataFolder).schema, updatedFolder.schema)) {
+      setActiveTab(updatedFolder.id);
     }
   }, [workbook, activeTable, pathTableId, setActiveTab]);
 
@@ -105,8 +89,6 @@ function WorkbookFilesPageContent() {
     );
   }
 
-  const allTables = getSnapshotTables(workbook, true);
-
   return (
     <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer">
       <MainContent bg="var(--bg-panel)">
@@ -117,7 +99,7 @@ function WorkbookFilesPageContent() {
             <Split h="100%">
               {/* Left Pane: Tree View */}
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
-                <WorkbookFileBrowser refreshWorkbook={refreshWorkbook} />
+                <DataFolderBrowser />
               </Split.Pane>
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />
@@ -141,25 +123,27 @@ function WorkbookFilesPageContent() {
                       const activeTab = (openFileTabs as any[]).find((t) => t.id === activeFileTabId);
 
                       if (activeTab?.type === 'folder') {
-                        return <FolderDetailViewer workbookId={workbook.id} folderId={activeTab.id} />;
+                        return <DataFolderDetailViewer dataFolderId={activeTab.id as DataFolderId} />;
                       }
                       if (activeTab?.type === 'add-table') {
-                        return <AddTableTab />;
+                        return <AddLinkedFolderTab />;
                       }
-                      // Default to file editor
-                      return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;
+                      if (activeTab?.type === 'file') {
+                        return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;
+                      }
+                      // Default to an empty state
+                      return (
+                        <Box
+                          p="xl"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
+                        >
+                          <Text12Book c="dimmed">Select a folder to view content</Text12Book>
+                        </Box>
+                      );
                     })()}
                   </Box>
                 </Stack>
               </Split.Pane>
-
-              {/* Optional Right Pane: Agent Chat*/}
-              {chatOpen && <Split.Resizer w="6px" m={0} hoverColor="transparent" />}
-              {chatOpen && (
-                <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
-                  <AIChatPanel />
-                </Split.Pane>
-              )}
             </Split>
           </Box>
 
@@ -174,17 +158,6 @@ function WorkbookFilesPageContent() {
       </MainContent>
 
       {/* Modals */}
-      <ManageTablesModal
-        isOpen={showManageTablesModal}
-        onClose={() => setShowManageTablesModal(false)}
-        onSave={async () => {
-          if (refreshWorkbook) {
-            await refreshWorkbook();
-          }
-        }}
-        workbookId={workbook.id}
-        tables={allTables}
-      />
       {isDevToolsEnabled && <WorkbookInspector opened={devToolsOpen} onClose={closeDevTools} />}
     </PageLayout>
   );
@@ -229,14 +202,10 @@ export default function WorkbookNewPage() {
   }, [workbook, reconcileWithWorkbook]);
 
   return (
-    <AgentChatContextProvider workbookId={params.workbookId} agentType="file">
-      <AIAgentSessionManagerProvider workbookId={params.workbookId}>
-        <UpdateRecordsProvider>
-          <WorkbookFilesPageContent />
-          <PublishWorkbookWorkflow />
-          <WorkbookEditorModals />
-        </UpdateRecordsProvider>
-      </AIAgentSessionManagerProvider>
-    </AgentChatContextProvider>
+    <UpdateRecordsProvider>
+      <WorkbookFilesPageContent />
+      <PublishWorkbookWorkflow />
+      <WorkbookEditorModals />
+    </UpdateRecordsProvider>
   );
 }

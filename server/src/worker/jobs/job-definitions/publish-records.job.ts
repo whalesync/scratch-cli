@@ -80,6 +80,11 @@ export class PublishRecordsJobHandler implements JobHandlerBuilder<PublishRecord
             connectorAccount: true,
           },
         },
+        dataFolders: {
+          include: {
+            connectorAccount: true,
+          },
+        },
       },
     });
 
