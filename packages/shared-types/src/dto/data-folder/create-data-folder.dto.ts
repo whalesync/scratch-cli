@@ -17,7 +17,7 @@ export class CreateDataFolderDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  tableIds?: string[];
+  tableId?: string[];
 
   @IsOptional()
   @IsString()
@@ -25,4 +25,4 @@ export class CreateDataFolderDto {
 }
 
 export type ValidatedCreateDataFolderDto = Required<Pick<CreateDataFolderDto, 'name' | 'workbookId'>> &
-  Pick<CreateDataFolderDto, 'connectorAccountId' | 'tableIds' | 'parentFolderId'>;
+  Pick<CreateDataFolderDto, 'connectorAccountId' | 'tableId' | 'parentFolderId'>;

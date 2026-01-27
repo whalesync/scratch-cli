@@ -4,6 +4,8 @@ import { recordApi } from '@/lib/api/record';
 import { workbookApi } from '@/lib/api/workbook';
 import { AddTableToWorkbookDto, UpdateWorkbookDto } from '@/types/server-entities/workbook';
 import {
+  CreateDataFolderDto,
+  DataFolder,
   EntityId,
   Service,
   SnapshotColumnSettingsMap,
@@ -15,6 +17,7 @@ import {
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
+import { dataFolderApi } from '../lib/api/data-folder';
 
 export interface UseWorkbookReturn {
   workbook: Workbook | undefined;
@@ -32,6 +35,7 @@ export interface UseWorkbookReturn {
   unhideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
   showAllColumns: (tableId: SnapshotTableId) => Promise<void>;
   addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTable>;
+  addLinkedDataFolder: (tableId: string[], folderName: string, connectorAccountId: string) => Promise<DataFolder>;
 }
 
 export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
@@ -209,6 +213,20 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     [id, mutate],
   );
 
+  const addLinkedDataFolder = useCallback(
+    async (tableId: string[], folderName: string, connectorAccountId: string): Promise<DataFolder> => {
+      if (!id) {
+        throw new Error('Workbook not found');
+      }
+
+      const dto: CreateDataFolderDto = { tableId, workbookId: id, name: folderName, connectorAccountId };
+      const dataFolder = await dataFolderApi.create(dto);
+      await mutate();
+      return dataFolder;
+    },
+    [id, mutate],
+  );
+
   return {
     workbook: data,
     isLoading,
@@ -225,5 +243,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     unhideColumn,
     showAllColumns,
     addTable,
+    addLinkedDataFolder,
   };
 };

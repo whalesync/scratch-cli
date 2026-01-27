@@ -170,7 +170,6 @@ export class DataFolderService {
 
   async createFolder(dto: ValidatedCreateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {
     const { name, workbookId, connectorAccountId } = dto;
-    const tableIds = (dto as { tableIds?: string[] }).tableIds;
     const parentFolderId = (dto as { parentFolderId?: string }).parentFolderId;
 
     // Get the workbook (already verified in controller, but need the data)
@@ -200,7 +199,7 @@ export class DataFolderService {
 
     const dataFolderId = createDataFolderId();
 
-    if (connectorAccountId && tableIds && tableIds.length > 0) {
+    if (connectorAccountId && dto.tableId && dto.tableId.length > 0) {
       // Case 1: Connected folder with connector account and table IDs
       const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
       if (!connectorAccount) {
@@ -219,7 +218,7 @@ export class DataFolderService {
       // Fetch table spec for the first tableId
       let tableSpec;
       try {
-        tableSpec = await connector.fetchTableSpec({ wsId: tableIds[0], remoteId: [tableIds[0]] });
+        tableSpec = await connector.fetchTableSpec({ wsId: dto.tableId[0], remoteId: dto.tableId });
       } catch (error) {
         throw exceptionForConnectorError(error, connector);
       }
@@ -235,6 +234,7 @@ export class DataFolderService {
           parentId: parentFolderId ?? null,
           path: folderPath,
           lock: 'download',
+          schema: tableSpec,
           lastSchemaRefreshAt: new Date(),
           version: 1,
         },
