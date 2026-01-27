@@ -1,3 +1,4 @@
+import { TSchema } from '@sinclair/typebox';
 import type { EntityId } from '@spinner/shared-types';
 import { PostgresColumnType, SnapshotRecordId } from '@spinner/shared-types';
 import { EditedFieldsMetadata } from 'src/workbook/snapshot-db';
@@ -31,6 +32,22 @@ export type BaseTableSpec<ColumnType extends BaseColumnSpec> = {
   // The remoteId of the column that should be used as the title/header column for visualizing records
   titleColumnRemoteId?: EntityId['remoteId'];
   // The remoteId of the column that should be used as the main content/body in MD view
+  mainContentColumnRemoteId?: EntityId['remoteId'];
+};
+
+export type BaseJsonTableSpec = {
+  id: EntityId;
+  slug: string;
+  name: string;
+  schema: TSchema;
+  // The remoteId of the column that should be used as the id column for visualizing records
+  // This is used to identify the record in the connector.
+  // This is usually the id column, but it can be different for some connectors id vs Id, etc.
+  idColumnRemoteId?: string;
+  // The remoteId of the column that should be used as the title/header column for visualizing records
+  titleColumnRemoteId?: EntityId['remoteId'];
+  // The remoteId of the column that should be used as the main content/body in MD view
+  // This is used to display the main content of the record in the MD view.
   mainContentColumnRemoteId?: EntityId['remoteId'];
 };
 

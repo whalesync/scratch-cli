@@ -242,7 +242,8 @@ export class CliService {
           }
 
           jsonTableInfo.name = table.displayName;
-          jsonTableInfo.schema = await connector.fetchJsonTableSpec!(table.id);
+          const jsonSpec = await connector.fetchJsonTableSpec!(table.id);
+          jsonTableInfo.schema = jsonSpec.schema;
 
           return jsonTableInfo;
         }),

@@ -1,10 +1,10 @@
 import { ConnectorAccount } from '@prisma/client';
-import { TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from '../../workbook/types';
 import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
 import {
+  BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
   ConnectorRecord,
@@ -66,14 +66,14 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   abstract fetchTableSpec(id: EntityId): Promise<TableSpecs[T]>;
 
   /**
-   * Fetch the JSON Schema for a table's field values directly from the remote API.
-   * Returns a schema that describes what valid field values look like for AI consumption.
-   * Uses field slugs/names as property keys in the returned schema.
+   * Fetch the JSON Table Spec for a table directly from the remote API.
+   * Returns a spec that includes metadata and a TSchema describing valid field values.
+   * Uses field slugs/names as property keys in the schema.
    *
-   * @param id The id of the table to fetch the JSON Schema for.
-   * @returns A TypeBox TSchema representing the JSON Schema for valid field values.
+   * @param id The id of the table to fetch the JSON Table Spec for.
+   * @returns A BaseJsonTableSpec containing table metadata and JSON Schema.
    */
-  fetchJsonTableSpec?(id: EntityId): Promise<TSchema>;
+  fetchJsonTableSpec?(id: EntityId): Promise<BaseJsonTableSpec>;
 
   /**
    * Download all available records for a given table.

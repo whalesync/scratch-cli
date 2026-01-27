@@ -9,6 +9,7 @@ import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
 import { validate } from '../../file-validator';
 import {
+  BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
   ConnectorRecord,
@@ -100,11 +101,11 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   /**
-   * Fetch JSON Schema directly from the Webflow API for a collection.
+   * Fetch JSON Table Spec directly from the Webflow API for a collection.
    * Converts Webflow field types to JSON Schema types for AI consumption.
    * Uses field slugs as property keys.
    */
-  async fetchJsonTableSpec(id: EntityId): Promise<TSchema> {
+  async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
     const [siteId, collectionId] = id.remoteId;
 
     // Fetch site and collection directly from Webflow API
@@ -114,7 +115,8 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     ]);
 
     const properties: Record<string, TSchema> = {};
-    const requiredFields: string[] = [];
+    let titleColumnRemoteId: EntityId['remoteId'] | undefined;
+    let mainContentColumnRemoteId: EntityId['remoteId'] | undefined;
 
     for (const field of collection.fields) {
       // Skip fields without a slug
@@ -130,17 +132,36 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
       if (isRequired) {
         properties[field.slug] = fieldSchema;
-        requiredFields.push(field.slug);
       } else {
         // Wrap optional fields in Type.Optional to exclude from required array
         properties[field.slug] = Type.Optional(fieldSchema);
       }
+
+      // Track title column (name field)
+      if (field.slug === 'name') {
+        titleColumnRemoteId = [field.slug, field.id];
+      }
+
+      // Track main content column (first RichText field)
+      if (!mainContentColumnRemoteId && field.type === Webflow.FieldType.RichText) {
+        mainContentColumnRemoteId = [field.slug, field.id];
+      }
     }
 
-    return Type.Object(properties, {
+    const schema = Type.Object(properties, {
       $id: collectionId,
       title: `${site.displayName} - ${collection.displayName}`,
     });
+
+    return {
+      id,
+      slug: collection.slug ?? id.wsId,
+      name: `${site.displayName} - ${collection.displayName}`,
+      schema,
+      titleColumnRemoteId,
+      mainContentColumnRemoteId,
+      idColumnRemoteId: 'id',
+    };
   }
 
   /**
