@@ -52,9 +52,15 @@ import { PublishFilesPublicProgress } from 'src/worker/jobs/job-definitions/publ
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
-import { AnyTableSpec, TableSpecs } from '../remote-service/connectors/library/custom-spec-registry';
+import {
+  AnySpec,
+  AnyTableSpec,
+  isColumnTableSpec,
+  TableSpecs,
+} from '../remote-service/connectors/library/custom-spec-registry';
 import {
   BaseColumnSpec,
+  BaseJsonTableSpec,
   ExistingSnapshotRecord,
   PostgresColumnType,
   SnapshotRecord,
@@ -93,9 +99,9 @@ export class WorkbookService {
     const { name, tables } = createWorkbookDto;
 
     const workbookId = createWorkbookId();
-    const tableSpecs: AnyTableSpec[] = [];
+    const tableSpecs: AnySpec[] = [];
     const tableCreateInput: Prisma.SnapshotTableUncheckedCreateWithoutWorkbookInput[] = [];
-    const tableSpecToIdMap = new Map<AnyTableSpec, SnapshotTableId>();
+    const tableSpecToIdMap = new Map<AnySpec, SnapshotTableId>();
 
     if (tables) {
       for (const { connectorAccountId, tableId } of tables) {
@@ -111,10 +117,9 @@ export class WorkbookService {
             decryptedCredentials: connectorAccount,
           });
 
-          // Poll the connector for the set of columns.
-          // This probably could be something the user selects, which would mean we poll for it earlier and just take the
-          // results back here.
-          const tableSpec = await connector.fetchTableSpec(tableId);
+          // Poll the connector for the table spec.
+          // Use JSON table spec if connector supports it (new method), otherwise use column-based spec (old method)
+          const tableSpec: BaseJsonTableSpec = await connector.fetchJsonTableSpec(tableId);
           tableSpecs.push(tableSpec);
 
           const newTableId = createSnapshotTableId();
@@ -182,11 +187,19 @@ export class WorkbookService {
       snapshotTablesCount: tableCreateInput.length,
     });
 
-    // Make a new schema and create tables to store its data.
+    // Make a new schema and create tables to store its data (only for column-based specs).
+    // JSON schema specs store data as files, not as database records.
+    const columnBasedSpecs = tableSpecs.filter(isColumnTableSpec);
+    const columnBasedSpecToIdMap = new Map<AnyTableSpec, SnapshotTableId>();
+    for (const [spec, id] of tableSpecToIdMap) {
+      if (isColumnTableSpec(spec)) {
+        columnBasedSpecToIdMap.set(spec, id);
+      }
+    }
     await this.snapshotDbService.snapshotDb.createForWorkbook(
       newWorkbook.id as WorkbookId,
-      tableSpecs,
-      tableSpecToIdMap,
+      columnBasedSpecs,
+      columnBasedSpecToIdMap,
     );
 
     // New version that creates the single files table for the workbook.
@@ -262,9 +275,9 @@ export class WorkbookService {
       decryptedCredentials: (connectorAccount as unknown as DecryptedCredentials) ?? null,
     });
 
-    let tableSpec: AnyTableSpec;
+    let tableSpec: BaseJsonTableSpec;
     try {
-      tableSpec = await connector.fetchTableSpec(tableId);
+      tableSpec = await connector.fetchJsonTableSpec(tableId);
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
     }
@@ -306,17 +319,20 @@ export class WorkbookService {
       },
     });
 
-    // 6. Create database table in snapshot's schema
-    await this.snapshotDbService.snapshotDb.addTableToWorkbook(workbookId, {
-      spec: tableSpec,
-      tableName: snapshotDataTableName,
-    });
+    // 6. Create database table in snapshot's schema (only for column-based specs)
+    // JSON schema specs store data as files, not as database records
+    if (isColumnTableSpec(tableSpec)) {
+      await this.snapshotDbService.snapshotDb.addTableToWorkbook(workbookId, {
+        spec: tableSpec,
+        tableName: snapshotDataTableName,
+      });
+    }
 
     // 7. Start downloading records in background for this specific table only (unless skipDownload is true)
     if (!options?.skipDownload) {
       try {
         if (this.configService.getUseJobs()) {
-          await this.bullEnqueuerService.enqueueDownloadRecordsJob(workbookId, actor, [snapshotTableId]);
+          await this.bullEnqueuerService.enqueueDownloadRecordFilesJob(workbookId, actor, snapshotTableId);
         }
         WSLogger.info({
           source: 'WorkbookService.addTableToWorkbook',

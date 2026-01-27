@@ -43,7 +43,7 @@ export type BaseJsonTableSpec = {
   // The remoteId of the column that should be used as the id column for visualizing records
   // This is used to identify the record in the connector.
   // This is usually the id column, but it can be different for some connectors id vs Id, etc.
-  idColumnRemoteId?: string;
+  idColumnRemoteId: string;
   // The remoteId of the column that should be used as the title/header column for visualizing records
   titleColumnRemoteId?: EntityId['remoteId'];
   // The remoteId of the column that should be used as the main content/body in MD view
@@ -119,13 +119,7 @@ export type BaseColumnSpec = {
 /**
  * This is a placeholder type for the new ScratchSync JSON file format
  */
-export type ConnectorFile = {
-  // Remote ID from the connector.
-  id: string;
-
-  // Nested object of data in the native connector format
-  data: Record<string, unknown>;
-};
+export type ConnectorFile = Record<string, unknown>;
 
 /**
  * A record from the connector.

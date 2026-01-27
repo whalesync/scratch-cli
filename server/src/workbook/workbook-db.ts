@@ -3,7 +3,13 @@ import matter from 'gray-matter';
 import { Knex } from 'knex';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { BaseColumnSpec, BaseTableSpec, ConnectorFile, ConnectorRecord } from '../remote-service/connectors/types';
+import {
+  BaseColumnSpec,
+  BaseJsonTableSpec,
+  BaseTableSpec,
+  ConnectorFile,
+  ConnectorRecord,
+} from '../remote-service/connectors/types';
 import { assertFolderPathIsValid, normalizeFileName } from './util';
 
 // Table name constant
@@ -980,17 +986,18 @@ export class WorkbookDb {
     return result;
   }
 
-  async upsertFilesFromConnectorFiles<T extends BaseColumnSpec>(
+  async upsertFilesFromConnectorFiles(
     workbookId: WorkbookId,
     folderId: string,
     parentPath: string,
     records: ConnectorFile[],
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    tableSpec: BaseTableSpec<T>,
+
+    tableSpec: BaseJsonTableSpec,
   ): Promise<void> {
     const trx = await this.getKnex().transaction();
     // Get prefix
     const prefix = parentPath === '/' ? '' : parentPath;
+    const idColumnRemoteId = tableSpec.idColumnRemoteId;
 
     try {
       for (const record of records) {
@@ -1003,10 +1010,11 @@ export class WorkbookDb {
         const fileId = createFileId();
 
         // Determine the file name - use title column if available, otherwise use the record ID
-        let fileName = record.id;
+        let fileName = String(record[idColumnRemoteId]);
+        const recordId = String(record[idColumnRemoteId]);
 
-        if (!fileName.endsWith('.md')) {
-          fileName += '.md';
+        if (!fileName.endsWith('.json')) {
+          fileName += '.json';
         }
 
         const fullPath = `${prefix}/${fileName}`;
@@ -1014,7 +1022,7 @@ export class WorkbookDb {
         // Check if file with this remote_id already exists
         const existingFile = await trx<FileDbRecord>(FILES_TABLE)
           .withSchema(workbookId)
-          .where(REMOTE_ID_COLUMN, record.id)
+          .where(REMOTE_ID_COLUMN, recordId)
           .where(FOLDER_ID_COLUMN, folderId)
           .first();
 
@@ -1039,7 +1047,7 @@ export class WorkbookDb {
             .withSchema(workbookId)
             .insert({
               [FILE_ID_COLUMN]: fileId,
-              [REMOTE_ID_COLUMN]: record.id,
+              [REMOTE_ID_COLUMN]: recordId,
               [FOLDER_ID_COLUMN]: folderId,
               [PATH_COLUMN]: fullPath,
               [FILE_NAME_COLUMN]: fileName,

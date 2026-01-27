@@ -73,7 +73,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @param id The id of the table to fetch the JSON Table Spec for.
    * @returns A BaseJsonTableSpec containing table metadata and JSON Schema.
    */
-  fetchJsonTableSpec?(id: EntityId): Promise<BaseJsonTableSpec>;
+  abstract fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec>;
 
   /**
    * Download all available records for a given table.
@@ -90,13 +90,14 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<void>;
 
   /**
-   * Does a full poll of target remote table and downloads all of the available records.
-   * @param tableSpec The table spec to download records for.
-   * @param callback The callback that will process batches of records as they are downloaded.
+   * Does a full poll of target remote table and downloads all of the available records as JSON files.
+   * This is the new method that uses JSON schema instead of column-based specs.
+   * @param tableSpec The JSON table spec to download records for.
+   * @param callback The callback that will process batches of files as they are downloaded.
    * @param progress The progress object to update with the download progress.
    */
   abstract downloadRecordFiles(
-    tableSpec: TableSpecs[T],
+    tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
   ): Promise<void>;

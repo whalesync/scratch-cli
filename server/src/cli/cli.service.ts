@@ -242,7 +242,7 @@ export class CliService {
           }
 
           jsonTableInfo.name = table.displayName;
-          const jsonSpec = await connector.fetchJsonTableSpec!(table.id);
+          const jsonSpec = await connector.fetchJsonTableSpec(table.id);
           jsonTableInfo.schema = jsonSpec.schema;
 
           return jsonTableInfo;

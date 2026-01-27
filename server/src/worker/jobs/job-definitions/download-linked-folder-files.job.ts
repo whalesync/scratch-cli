@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { DataFolderId, FolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
-import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
+import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorFile } from '../../../remote-service/connectors/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
@@ -85,7 +85,7 @@ export class DownloadLinkedFolderFilesJobHandler implements JobHandlerBuilder<Do
       throw new Error(`DataFolder ${data.dataFolderId} does not have a connector service`);
     }
 
-    const tableSpec = dataFolder.schema as AnyTableSpec;
+    const tableSpec = dataFolder.schema as AnyJsonTableSpec;
 
     const publicProgress: DownloadLinkedFolderFilesPublicProgress = {
       totalFiles: 0,

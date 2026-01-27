@@ -1,7 +1,7 @@
+import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import MarkdownIt from 'markdown-it';
-import { WSLogger } from 'src/logger';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
@@ -9,6 +9,7 @@ import { extractErrorMessageFromAxiosError } from '../../error';
 import { validate } from '../../file-validator';
 import { sanitizeForTableWsId } from '../../ids';
 import {
+  BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
   ConnectorRecord,
@@ -30,7 +31,7 @@ import {
   parseTableInfoFromTypes,
   WORDPRESS_RICH_TEXT_TARGET,
 } from './wordpress-schema-parser';
-import { WordPressDataType, WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
+import { WordPressArgument, WordPressDataType, WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
   readonly service = Service.WORDPRESS;
@@ -80,6 +81,140 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     };
   }
 
+  /**
+   * Fetch JSON Table Spec directly from the WordPress API for a post type/endpoint.
+   * Returns a schema that describes the raw WordPress record format with rendered objects.
+   */
+  async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
+    const [tableId] = id.remoteId;
+    const optionsResponse = await this.client.getEndpointOptions(tableId);
+
+    const properties: Record<string, TSchema> = {};
+    let titleColumnRemoteId: EntityId['remoteId'] | undefined;
+    let mainContentColumnRemoteId: EntityId['remoteId'] | undefined;
+
+    // Get schema properties from the endpoint OPTIONS response
+    const schemaProps = optionsResponse.schema?.properties || {};
+
+    for (const [fieldId, fieldDef] of Object.entries(schemaProps)) {
+      if (!fieldDef || !('type' in fieldDef)) continue;
+
+      const fieldSchema = this.wordpressFieldToJsonSchema(fieldId, fieldDef);
+
+      // Check if field is required
+      if (fieldDef.required) {
+        properties[fieldId] = fieldSchema;
+      } else {
+        properties[fieldId] = Type.Optional(fieldSchema);
+      }
+
+      // Track title column
+      if (fieldId === 'title') {
+        titleColumnRemoteId = [tableId, fieldId];
+      }
+
+      // Track main content column
+      if (fieldId === 'content' && !mainContentColumnRemoteId) {
+        mainContentColumnRemoteId = [tableId, fieldId];
+      }
+    }
+
+    // Handle ACF (Advanced Custom Fields) if present
+    const acfProps = schemaProps.acf?.properties;
+    if (acfProps) {
+      const acfFieldProperties: Record<string, TSchema> = {};
+      for (const [acfFieldId, acfFieldDef] of Object.entries(acfProps)) {
+        if (!acfFieldDef) continue;
+        acfFieldProperties[acfFieldId] = Type.Optional(this.wordpressFieldToJsonSchema(acfFieldId, acfFieldDef));
+      }
+      properties['acf'] = Type.Optional(Type.Object(acfFieldProperties, { description: 'Advanced Custom Fields' }));
+    }
+
+    const schema = Type.Object(properties, {
+      $id: tableId,
+      title: formatTableName(tableId),
+    });
+
+    return {
+      id,
+      slug: id.wsId,
+      name: formatTableName(tableId),
+      schema,
+      idColumnRemoteId: 'id',
+      titleColumnRemoteId,
+      mainContentColumnRemoteId,
+    };
+  }
+
+  /**
+   * Convert a WordPress field argument to a TypeBox JSON Schema.
+   */
+  private wordpressFieldToJsonSchema(fieldId: string, field: WordPressArgument): TSchema {
+    const description = fieldId;
+    const fieldType = Array.isArray(field.type) ? field.type[0] : field.type;
+
+    // Handle rendered objects (title, content, excerpt, etc.)
+    if (field.properties?.rendered) {
+      return Type.Object(
+        {
+          rendered: Type.String({ description: 'HTML rendered content' }),
+          raw: Type.Optional(Type.String({ description: 'Raw content' })),
+          protected: Type.Optional(Type.Boolean()),
+        },
+        { description },
+      );
+    }
+
+    // Handle enums
+    if (field.enum && field.enum.length > 0) {
+      return Type.Union(
+        field.enum.map((val) => Type.Literal(val)),
+        { description },
+      );
+    }
+
+    switch (fieldType) {
+      case 'integer':
+        return Type.Integer({ description });
+
+      case 'number':
+        return Type.Number({ description });
+
+      case 'boolean':
+        return Type.Boolean({ description });
+
+      case 'string':
+        if (field.format === 'date-time') {
+          return Type.String({ description, format: 'date-time' });
+        }
+        if (field.format === 'uri') {
+          return Type.String({ description, format: 'uri' });
+        }
+        if (field.format === 'email') {
+          return Type.String({ description, format: 'email' });
+        }
+        return Type.String({ description });
+
+      case 'array':
+        return Type.Array(Type.Unknown(), { description });
+
+      case 'object':
+        if (field.properties) {
+          const objProps: Record<string, TSchema> = {};
+          for (const [propId, propDef] of Object.entries(field.properties)) {
+            if (propDef) {
+              objProps[propId] = this.wordpressFieldToJsonSchema(propId, propDef);
+            }
+          }
+          return Type.Object(objProps, { description });
+        }
+        return Type.Record(Type.String(), Type.Unknown(), { description });
+
+      default:
+        return Type.Unknown({ description });
+    }
+  }
+
   async downloadTableRecords(
     tableSpec: WordPressTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
@@ -115,12 +250,44 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   public downloadRecordDeep = undefined;
 
   async downloadRecordFiles(
-    tableSpec: WordPressTableSpec,
+    tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
-    progress: WordPressDownloadProgress,
+    progress?: WordPressDownloadProgress,
   ): Promise<void> {
-    WSLogger.info({ source: 'WordPressConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
-    await callback({ files: [], connectorProgress: progress });
+    const [tableId] = tableSpec.id.remoteId;
+    let offset = progress?.nextOffset ?? 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await this.client.pollRecords(tableId, offset, WORDPRESS_POLLING_PAGE_SIZE);
+
+      if (!Array.isArray(response)) {
+        throw new Error(`Unexpected response format from WordPress: expected array, got ${typeof response}`);
+      }
+
+      const returnedCount = response.length;
+      if (returnedCount < WORDPRESS_POLLING_PAGE_SIZE) {
+        hasMore = false;
+        await callback({ files: response as unknown as ConnectorFile[], connectorProgress: { nextOffset: undefined } });
+      } else {
+        offset += returnedCount;
+        await callback({ files: response as unknown as ConnectorFile[], connectorProgress: { nextOffset: offset } });
+      }
+    }
+  }
+
+  /**
+   * Convert raw WordPress records to ConnectorFiles with minimal transformation.
+   * Preserves native API structure: rendered objects, ACF fields nested under 'acf', etc.
+   */
+  private wireToConnectorFiles(wpRecords: WordPressRecord[]): ConnectorFile[] {
+    return wpRecords.map((wpRecord) => {
+      const { id, ...data } = wpRecord;
+      return {
+        id: String(id ?? ''),
+        data: data as Record<string, unknown>,
+      };
+    });
   }
 
   /**

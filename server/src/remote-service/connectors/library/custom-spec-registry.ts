@@ -1,4 +1,4 @@
-import { BaseColumnSpec, BaseTableSpec } from '../types';
+import { BaseColumnSpec, BaseJsonTableSpec, BaseTableSpec } from '../types';
 import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/airtable-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
 import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
@@ -50,4 +50,19 @@ export interface ColumnSpecs {
   WEBFLOW: WebflowColumnSpec;
   WIX_BLOG: WixBlogColumnSpec;
   POSTGRES: BaseColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
+}
+
+// JSON Table Spec types for the new JSON schema method
+export type AnyJsonTableSpec = BaseJsonTableSpec;
+
+// Union type for code that handles both old (columns) and new (JSON schema) methods
+export type AnySpec = AnyTableSpec | AnyJsonTableSpec;
+
+// Type guards to distinguish between spec types
+export function isJsonTableSpec(spec: AnySpec): spec is AnyJsonTableSpec {
+  return 'schema' in spec && !('columns' in spec);
+}
+
+export function isColumnTableSpec(spec: AnySpec): spec is AnyTableSpec {
+  return 'columns' in spec;
 }

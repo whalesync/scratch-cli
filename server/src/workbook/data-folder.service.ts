@@ -21,6 +21,7 @@ import { exceptionForConnectorError } from 'src/remote-service/connectors/error'
 import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
+import { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { WorkbookDbService } from './workbook-db.service';
 import { WorkbookService } from './workbook.service';
@@ -216,9 +217,9 @@ export class DataFolderService {
       });
 
       // Fetch table spec for the first tableId
-      let tableSpec;
+      let tableSpec: BaseJsonTableSpec;
       try {
-        tableSpec = await connector.fetchTableSpec({ wsId: dto.tableId[0], remoteId: dto.tableId });
+        tableSpec = await connector.fetchJsonTableSpec({ wsId: dto.tableId[0], remoteId: dto.tableId });
       } catch (error) {
         throw exceptionForConnectorError(error, connector);
       }

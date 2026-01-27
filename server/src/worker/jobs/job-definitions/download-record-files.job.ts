@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { FolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
-import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
+import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorFile } from '../../../remote-service/connectors/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
@@ -83,7 +83,7 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
       throw new Error(`SnapshotTable ${data.snapshotTableId} does not have an associated folder`);
     }
 
-    const tableSpec = snapshotTable.tableSpec as AnyTableSpec;
+    const tableSpec = snapshotTable.tableSpec as AnyJsonTableSpec;
 
     const publicProgress: DownloadRecordFilesPublicProgress = {
       totalFiles: 0,

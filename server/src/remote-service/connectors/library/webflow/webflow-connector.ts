@@ -84,12 +84,45 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   public downloadRecordDeep = undefined;
 
   async downloadRecordFiles(
-    tableSpec: WebflowTableSpec,
+    tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _progress: JsonSafeObject,
   ): Promise<void> {
     WSLogger.info({ source: 'WebflowConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
-    await callback({ files: [], connectorProgress: progress });
+    const [, collectionId] = tableSpec.id.remoteId;
+
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      // List items with pagination
+      const response = await this.client.collections.items.listItems(collectionId, {
+        offset,
+        limit: WEBFLOW_DEFAULT_BATCH_SIZE,
+      });
+
+      const items = response.items || [];
+
+      if (items.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      await callback({ files: items as unknown as ConnectorFile[] });
+
+      // Check if there are more items
+      const pagination = response.pagination;
+      if (pagination) {
+        const total = pagination.total || 0;
+        offset += items.length;
+        hasMore = offset < total;
+      } else {
+        // If no pagination info, assume we're done if we got less than limit
+        hasMore = items.length === WEBFLOW_DEFAULT_BATCH_SIZE;
+        offset += items.length;
+      }
+    }
   }
 
   /**

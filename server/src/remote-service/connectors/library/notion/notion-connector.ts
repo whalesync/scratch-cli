@@ -8,6 +8,7 @@ import {
   RequestTimeoutError,
 } from '@notionhq/client';
 import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
+import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
@@ -17,6 +18,7 @@ import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
 import { MarkdownErrors } from '../../markdown-errors';
 import {
+  BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
   ConnectorRecord,
@@ -154,6 +156,297 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     };
   }
 
+  /**
+   * Fetch JSON Table Spec for Notion database pages.
+   * Returns a schema describing the raw Notion page API response format.
+   */
+  async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
+    const [databaseId] = id.remoteId;
+    const database = (await this.client.databases.retrieve({ database_id: databaseId })) as DatabaseObjectResponse;
+
+    // Build schema for properties based on the database schema
+    const propertySchemas: Record<string, TSchema> = {};
+    let titleColumnRemoteId: EntityId['remoteId'] | undefined;
+
+    for (const [name, property] of Object.entries(database.properties)) {
+      const propSchema = this.notionPropertyToJsonSchema(property);
+      propertySchemas[name] = Type.Optional(propSchema);
+
+      // Track title property
+      if (property.type === 'title') {
+        titleColumnRemoteId = [databaseId, property.id];
+      }
+    }
+
+    const tableTitle = database.title.map((t) => t.plain_text).join('');
+
+    // Build schema for Notion page response
+    const schema = Type.Object(
+      {
+        object: Type.Literal('page', { description: 'Object type' }),
+        id: Type.String({ description: 'Unique page identifier' }),
+        created_time: Type.String({ description: 'Page creation time', format: 'date-time' }),
+        last_edited_time: Type.String({ description: 'Last edit time', format: 'date-time' }),
+        created_by: Type.Object(
+          {
+            object: Type.Literal('user'),
+            id: Type.String(),
+          },
+          { description: 'User who created the page' },
+        ),
+        last_edited_by: Type.Object(
+          {
+            object: Type.Literal('user'),
+            id: Type.String(),
+          },
+          { description: 'User who last edited the page' },
+        ),
+        cover: Type.Optional(
+          Type.Union([
+            Type.Object({
+              type: Type.Literal('external'),
+              external: Type.Object({ url: Type.String({ format: 'uri' }) }),
+            }),
+            Type.Object({
+              type: Type.Literal('file'),
+              file: Type.Object({ url: Type.String({ format: 'uri' }), expiry_time: Type.String() }),
+            }),
+            Type.Null(),
+          ]),
+        ),
+        icon: Type.Optional(
+          Type.Union([
+            Type.Object({
+              type: Type.Literal('emoji'),
+              emoji: Type.String(),
+            }),
+            Type.Object({
+              type: Type.Literal('external'),
+              external: Type.Object({ url: Type.String({ format: 'uri' }) }),
+            }),
+            Type.Object({
+              type: Type.Literal('file'),
+              file: Type.Object({ url: Type.String({ format: 'uri' }), expiry_time: Type.String() }),
+            }),
+            Type.Null(),
+          ]),
+        ),
+        parent: Type.Object(
+          {
+            type: Type.Literal('database_id'),
+            database_id: Type.String(),
+          },
+          { description: 'Parent database reference' },
+        ),
+        archived: Type.Boolean({ description: 'Is page archived' }),
+        in_trash: Type.Optional(Type.Boolean({ description: 'Is page in trash' })),
+        properties: Type.Object(propertySchemas, { description: 'Page properties' }),
+        url: Type.String({ description: 'Page URL', format: 'uri' }),
+        public_url: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Null()])),
+      },
+      {
+        $id: `notion/${databaseId}`,
+        title: tableTitle,
+      },
+    );
+
+    return {
+      id,
+      slug: id.wsId,
+      name: sanitizeForTableWsId(tableTitle),
+      schema,
+      idColumnRemoteId: 'id',
+      titleColumnRemoteId,
+      // Note: Page content (blocks) is not included in the raw page response
+      // It would require separate block API calls
+    };
+  }
+
+  /**
+   * Convert a Notion database property to a TypeBox JSON Schema.
+   */
+  private notionPropertyToJsonSchema(property: DatabaseObjectResponse['properties'][string]): TSchema {
+    const description = property.name;
+
+    switch (property.type) {
+      case 'title':
+        return Type.Array(
+          Type.Object({
+            type: Type.String(),
+            text: Type.Optional(Type.Object({ content: Type.String(), link: Type.Optional(Type.Unknown()) })),
+            plain_text: Type.String(),
+            href: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+          }),
+          { description },
+        );
+
+      case 'rich_text':
+        return Type.Array(
+          Type.Object({
+            type: Type.String(),
+            text: Type.Optional(Type.Object({ content: Type.String(), link: Type.Optional(Type.Unknown()) })),
+            plain_text: Type.String(),
+            href: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+          }),
+          { description },
+        );
+
+      case 'number':
+        return Type.Union([Type.Number(), Type.Null()], { description });
+
+      case 'select':
+        return Type.Union(
+          [
+            Type.Object({
+              id: Type.String(),
+              name: Type.String(),
+              color: Type.String(),
+            }),
+            Type.Null(),
+          ],
+          { description },
+        );
+
+      case 'multi_select':
+        return Type.Array(
+          Type.Object({
+            id: Type.String(),
+            name: Type.String(),
+            color: Type.String(),
+          }),
+          { description },
+        );
+
+      case 'status':
+        return Type.Union(
+          [
+            Type.Object({
+              id: Type.String(),
+              name: Type.String(),
+              color: Type.String(),
+            }),
+            Type.Null(),
+          ],
+          { description },
+        );
+
+      case 'date':
+        return Type.Union(
+          [
+            Type.Object({
+              start: Type.String({ format: 'date-time' }),
+              end: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+              time_zone: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+            }),
+            Type.Null(),
+          ],
+          { description },
+        );
+
+      case 'people':
+        return Type.Array(
+          Type.Object({
+            object: Type.Literal('user'),
+            id: Type.String(),
+            name: Type.Optional(Type.String()),
+            avatar_url: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+            type: Type.Optional(Type.String()),
+            person: Type.Optional(Type.Object({ email: Type.Optional(Type.String()) })),
+          }),
+          { description },
+        );
+
+      case 'files':
+        return Type.Array(
+          Type.Union([
+            Type.Object({
+              name: Type.String(),
+              type: Type.Literal('external'),
+              external: Type.Object({ url: Type.String({ format: 'uri' }) }),
+            }),
+            Type.Object({
+              name: Type.String(),
+              type: Type.Literal('file'),
+              file: Type.Object({ url: Type.String({ format: 'uri' }), expiry_time: Type.String() }),
+            }),
+          ]),
+          { description },
+        );
+
+      case 'checkbox':
+        return Type.Boolean({ description });
+
+      case 'url':
+        return Type.Union([Type.String({ format: 'uri' }), Type.Null()], { description });
+
+      case 'email':
+        return Type.Union([Type.String({ format: 'email' }), Type.Null()], { description });
+
+      case 'phone_number':
+        return Type.Union([Type.String(), Type.Null()], { description });
+
+      case 'formula':
+        return Type.Union(
+          [
+            Type.Object({ type: Type.Literal('string'), string: Type.Union([Type.String(), Type.Null()]) }),
+            Type.Object({ type: Type.Literal('number'), number: Type.Union([Type.Number(), Type.Null()]) }),
+            Type.Object({ type: Type.Literal('boolean'), boolean: Type.Boolean() }),
+            Type.Object({
+              type: Type.Literal('date'),
+              date: Type.Union([Type.Object({ start: Type.String(), end: Type.Optional(Type.String()) }), Type.Null()]),
+            }),
+          ],
+          { description },
+        );
+
+      case 'relation':
+        return Type.Array(Type.Object({ id: Type.String() }), { description });
+
+      case 'rollup':
+        return Type.Object(
+          {
+            type: Type.String(),
+            function: Type.String(),
+            number: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+            date: Type.Optional(Type.Unknown()),
+            array: Type.Optional(Type.Array(Type.Unknown())),
+          },
+          { description },
+        );
+
+      case 'created_time':
+        return Type.String({ description, format: 'date-time' });
+
+      case 'created_by':
+        return Type.Object(
+          {
+            object: Type.Literal('user'),
+            id: Type.String(),
+            name: Type.Optional(Type.String()),
+            avatar_url: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+          },
+          { description },
+        );
+
+      case 'last_edited_time':
+        return Type.String({ description, format: 'date-time' });
+
+      case 'last_edited_by':
+        return Type.Object(
+          {
+            object: Type.Literal('user'),
+            id: Type.String(),
+            name: Type.Optional(Type.String()),
+            avatar_url: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+          },
+          { description },
+        );
+
+      default:
+        return Type.Unknown({ description });
+    }
+  }
+
   async downloadTableRecords(
     tableSpec: NotionTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
@@ -240,12 +533,36 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   public downloadRecordDeep = undefined;
 
   async downloadRecordFiles(
-    tableSpec: NotionTableSpec,
+    tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
   ): Promise<void> {
     WSLogger.info({ source: 'NotionConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
-    await callback({ files: [], connectorProgress: progress });
+
+    const [databaseId] = tableSpec.id.remoteId;
+    let hasMore = true;
+    let nextCursor = progress?.nextCursor;
+
+    while (hasMore) {
+      const response = await this.client.databases.query({
+        database_id: databaseId,
+        start_cursor: nextCursor,
+        page_size,
+      });
+
+      // Return raw page objects as ConnectorFiles
+      const files = response.results
+        .filter((r): r is PageObjectResponse => r.object === 'page')
+        .map((page) => page as unknown as ConnectorFile);
+
+      hasMore = response.has_more;
+      nextCursor = response.next_cursor ?? undefined;
+
+      await callback({
+        files,
+        connectorProgress: { nextCursor },
+      });
+    }
   }
 
   private extractPropertyValue(
