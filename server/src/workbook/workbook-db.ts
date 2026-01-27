@@ -1,4 +1,4 @@
-import { createFileId, FileId, FolderId, UNPUBLISHED_PREFIX, WorkbookId } from '@spinner/shared-types';
+import { createFileId, DataFolderId, FileId, FolderId, UNPUBLISHED_PREFIX, WorkbookId } from '@spinner/shared-types';
 import matter from 'gray-matter';
 import { Knex } from 'knex';
 import _ from 'lodash';
@@ -664,7 +664,7 @@ export class WorkbookDb {
    * Deletes all of the files related to a specific folder
    * This only removes the files directly related to the folder, it does not remove the folder itself or files in child folders
    */
-  async deleteFilesInFolder(workbookId: WorkbookId, folderId: FolderId): Promise<void> {
+  async deleteFilesInFolder(workbookId: WorkbookId, folderId: FolderId | DataFolderId): Promise<void> {
     // NOTE: this should probably be done in batches with a progress callback
     await this.getKnex()<FileDbRecord>(FILES_TABLE).withSchema(workbookId).where(FOLDER_ID_COLUMN, folderId).delete();
   }

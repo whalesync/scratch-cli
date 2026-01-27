@@ -1,13 +1,14 @@
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { DataFolderGroup, DataFolderId } from '@spinner/shared-types';
-import { useCallback } from 'react';
+import { DataFolder, DataFolderGroup, DataFolderId } from '@spinner/shared-types';
+import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { dataFolderApi } from '../lib/api/data-folder';
 import { useActiveWorkbook } from './use-active-workbook';
 
 export interface UseDataFoldersReturn {
-  dataFolders: DataFolderGroup[];
+  dataFolderGroups: DataFolderGroup[];
+  folders: DataFolder[];
   isLoading: boolean;
   error: Error | undefined;
   refresh: () => Promise<void>;
@@ -43,8 +44,21 @@ export const useDataFolders = (): UseDataFoldersReturn => {
     [workbookId, mutate],
   );
 
+  // Generate a flat list of folders from the group
+  const folders = useMemo(() => {
+    const temp: DataFolder[] = [];
+
+    if (data) {
+      data?.forEach((grp) => {
+        temp.push(...grp.dataFolders);
+      });
+    }
+    return temp;
+  }, [data]);
+
   return {
-    dataFolders: data ?? [],
+    dataFolderGroups: data ?? [],
+    folders,
     isLoading,
     error,
     refresh,

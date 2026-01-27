@@ -329,6 +329,12 @@ export class DataFolderService {
       throw new NotFoundException('Data folder not found');
     }
 
+    // delete the files related to this folder
+    await this.workbookDbService.workbookDb.deleteFilesInFolder(
+      dataFolder.workbookId as WorkbookId,
+      dataFolder.id as DataFolderId,
+    );
+
     // Delete the data folder (cascades to children due to schema relation)
     await this.db.client.dataFolder.delete({
       where: { id },

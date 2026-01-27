@@ -1,22 +1,18 @@
 'use client';
 
 import { IconButtonOutline } from '@/app/components/base/buttons';
-import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { useFile } from '@/hooks/use-file';
-import { useFileList } from '@/hooks/use-file-list';
-import { customWebflowActionsApi } from '@/lib/api/custom-actions/webflow';
 import { foldersApi } from '@/lib/api/files';
 import { markdown } from '@codemirror/lang-markdown';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
 import { Box, Button, Group, Modal, Select, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { FileId, FolderRefEntity, WorkbookId } from '@spinner/shared-types';
-import { Service } from '@spinner/shared-types';
+import type { FileId, WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
 import DOMPurify from 'dompurify';
 import matter from 'gray-matter';
-import { CheckCircleIcon, DownloadIcon, EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
 import htmlParser from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,24 +26,10 @@ interface FileEditorProps {
 
 export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   const { file: fileResponse, isLoading, updateFile } = useFile(workbookId, fileId);
-  const { files: allItems } = useFileList(workbookId);
   const [content, setContent] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('current');
-
-  // Find the parent folder and check if it's a Webflow connector
-  const parentFolder = useMemo(() => {
-    if (!fileResponse?.file?.ref?.parentFolderId || !allItems?.items) return null;
-    return (
-      allItems.items.find(
-        (item): item is FolderRefEntity => item.type === 'folder' && item.id === fileResponse.file.ref.parentFolderId,
-      ) ?? null
-    );
-  }, [fileResponse, allItems]);
-
-  const isWebflowFile = parentFolder?.connectorService === Service.WEBFLOW && !!parentFolder?.snapshotTableId;
 
   const originalContent = fileResponse?.file?.originalContent ?? '';
   const suggestedContent = fileResponse?.file?.suggestedContent ?? '';
@@ -108,52 +90,6 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     if (!fileId) return;
     foldersApi.downloadFile(workbookId, fileId);
   }, [workbookId, fileId]);
-
-  const handleValidate = useCallback(async () => {
-    if (!fileId || !parentFolder?.snapshotTableId || !content) return;
-
-    setIsValidating(true);
-    try {
-      // Send the current content directly for validation - no database lookup needed
-      const result = await customWebflowActionsApi.validateFiles({
-        snapshotTableId: parentFolder.snapshotTableId,
-        files: [
-          {
-            filename: fileResponse?.file?.ref?.name || fileId,
-            id: fileId,
-            rawContent: content,
-          },
-        ],
-      });
-
-      const fileResult = result.results[0];
-      if (fileResult?.publishable) {
-        ScratchpadNotifications.success({
-          title: 'Validation Passed',
-          message: 'This file is valid and ready to publish.',
-        });
-      } else if (fileResult?.errors && fileResult.errors.length > 0) {
-        ScratchpadNotifications.error({
-          title: 'Validation Failed',
-          message: fileResult.errors.join('\n'),
-          autoClose: false,
-        });
-      } else {
-        ScratchpadNotifications.warning({
-          title: 'Validation Result',
-          message: 'No validation results returned.',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to validate file:', error);
-      ScratchpadNotifications.error({
-        title: 'Validation Error',
-        message: error instanceof Error ? error.message : 'Failed to validate file',
-      });
-    } finally {
-      setIsValidating(false);
-    }
-  }, [fileId, parentFolder?.snapshotTableId, content, fileResponse?.file?.ref?.name]);
 
   // Content formatting (Preview, Prettify, Minify) - same logic as HtmlActionButtons
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
@@ -348,17 +284,6 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
             </Group>
           </Group>
           <Group gap="xs">
-            {isWebflowFile && (
-              <Button
-                size="compact-xs"
-                variant="subtle"
-                leftSection={<CheckCircleIcon size={12} />}
-                onClick={handleValidate}
-                loading={isValidating}
-              >
-                Validate
-              </Button>
-            )}
             <Button
               size="compact-xs"
               variant="subtle"

@@ -44,7 +44,7 @@ interface DataFolderBrowserProps {
 const SCRATCH_GROUP_NAME = 'Scratch';
 
 export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
-  const { dataFolders, isLoading, deleteFolder } = useDataFolders();
+  const { dataFolderGroups, isLoading, deleteFolder } = useDataFolders();
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
@@ -57,8 +57,8 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   } | null>(null);
 
   const expandAllGroups = useCallback(() => {
-    setExpandedGroups(new Set(dataFolders.map((g) => g.name)));
-  }, [dataFolders]);
+    setExpandedGroups(new Set(dataFolderGroups.map((g) => g.name)));
+  }, [dataFolderGroups]);
 
   const collapseAllGroups = useCallback(() => {
     setExpandedGroups(new Set());
@@ -66,11 +66,11 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
 
   // Auto-expand all groups when data loads (only once)
   useEffect(() => {
-    if (dataFolders.length > 0 && !hasInitialized) {
-      setExpandedGroups(new Set(dataFolders.map((g) => g.name)));
+    if (dataFolderGroups.length > 0 && !hasInitialized) {
+      setExpandedGroups(new Set(dataFolderGroups.map((g) => g.name)));
       setHasInitialized(true);
     }
-  }, [dataFolders, hasInitialized]);
+  }, [dataFolderGroups, hasInitialized]);
 
   const toggleGroup = useCallback((groupName: string) => {
     setExpandedGroups((prev) => {
@@ -129,12 +129,12 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   // Sort groups: Scratch first, then alphabetically by name
   const sortedGroups = useMemo(
     () =>
-      [...dataFolders].sort((a, b) => {
+      [...dataFolderGroups].sort((a, b) => {
         if (a.name === SCRATCH_GROUP_NAME) return -1;
         if (b.name === SCRATCH_GROUP_NAME) return 1;
         return a.name.localeCompare(b.name);
       }),
-    [dataFolders],
+    [dataFolderGroups],
   );
 
   if (isLoading) {

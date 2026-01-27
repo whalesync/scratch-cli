@@ -3,9 +3,10 @@ import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Group, Menu, Text } from '@mantine/core';
-import { Service } from '@spinner/shared-types';
+import { DataFolder, Service } from '@spinner/shared-types';
 import { FileTextIcon, FolderIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useDataFolders } from '../../../../hooks/use-data-folders';
 import styles from './FileTabBar.module.css';
 
 interface FileTabBarProps {
@@ -22,6 +23,7 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const { files } = useFileList(workbook?.id ?? null);
+  const { folders } = useDataFolders();
 
   // Context menu state
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
@@ -122,11 +124,16 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
         const isFolder = tab.type === 'folder';
         const isActiveTab = activeFileTabId === tab.id;
 
-        // get the actual file or folder for the tab
-        const tabFile = files?.items.find((f) => f.id === tab.id);
+        // get the actual file or folder object represented by the tab
+        let tabObject;
+        if (isFolder) {
+          tabObject = folders?.find((df) => df.id === tab.id);
+        } else {
+          tabObject = files?.items.find((f) => f.id === tab.id);
+        }
 
         // We want to use the up to date file name when possible, but fallback to the tab title or id if not available
-        const tabLabel = tabFile?.name || tab.title || tab.id;
+        const tabLabel = tabObject?.name || tab.title || tab.id;
 
         const handleContextMenu = (e: React.MouseEvent) => {
           e.preventDefault();
@@ -155,14 +162,8 @@ export function FileTabBar({ onTabChange }: FileTabBarProps) {
               }}
             >
               {isFolder ? (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (tabFile as any)?.connectorService ? (
-                  <ConnectorIcon
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    connector={(tabFile as any).connectorService as Service}
-                    size={12}
-                    p={0}
-                  />
+                (tabObject as DataFolder)?.connectorService ? (
+                  <ConnectorIcon connector={(tabObject as DataFolder).connectorService as Service} size={12} p={0} />
                 ) : (
                   <FolderIcon size={12} color="var(--fg-secondary)" />
                 )

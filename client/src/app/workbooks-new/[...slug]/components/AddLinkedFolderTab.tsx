@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { ButtonSecondaryOutline, IconButtonInline } from '@/app/components/base/buttons';
@@ -25,7 +24,7 @@ import {
   useModalsStack,
   useTree,
 } from '@mantine/core';
-import { EntityId, SnapshotTable } from '@spinner/shared-types';
+import { DataFolder, EntityId } from '@spinner/shared-types';
 import cx from 'classnames';
 import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCwIcon, SearchIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -35,11 +34,9 @@ import { CreateConnectionModal } from '../../../data-sources/components/CreateCo
 import styles from './AddLinkedFolderTab.module.css';
 
 // Helper to find matching snapshot table by comparing EntityIds
-const findMatchingSnapshotTable = (
-  tableId: EntityId,
-  snapshotTables: SnapshotTable[] | undefined,
-): SnapshotTable | undefined => {
-  return undefined;
+const findMatchingDataFolder = (tableId: EntityId, dataFolders: DataFolder[] | undefined): DataFolder | undefined => {
+  if (!dataFolders) return undefined;
+  return dataFolders.find((df) => df.tableId.every((r) => tableId.remoteId.includes(r)));
 };
 
 function createGroupKey(group: TableGroup) {
@@ -153,11 +150,11 @@ export const AddLinkedFolderTab = () => {
       const children =
         group.tables.length > 0
           ? group.tables.map((table) => {
-              const matchingSnapshot = findMatchingSnapshotTable(table.id, workbook?.snapshotTables);
+              const matchingFolder = findMatchingDataFolder(table.id, workbook?.dataFolders);
               return {
                 value: table.id.wsId,
                 label: table.displayName,
-                nodeProps: { type: 'group-item', table, group, matchingSnapshot },
+                nodeProps: { type: 'group-item', table, group, matchingSnapshot: matchingFolder },
               };
             })
           : [
@@ -175,7 +172,7 @@ export const AddLinkedFolderTab = () => {
       });
     }
     return result;
-  }, [recentlyClosedTables, groupedTables, workbook?.snapshotTables]);
+  }, [recentlyClosedTables, groupedTables, workbook?.dataFolders]);
 
   const renderNode = ({
     node,
@@ -207,11 +204,17 @@ export const AddLinkedFolderTab = () => {
     }
 
     if (type === 'group-item' && table && group) {
+      const isAlreadyLinked = !!matchingSnapshot;
+      const { style: elementStyle, ...otherElementProps } = restElementProps;
       return (
         <Group
-          className={cx([styles.listSectionItem, treeClassName])}
-          onClick={() => handleTableSelect(table, group)}
-          {...restElementProps}
+          className={cx([styles.listSectionItem, treeClassName, isAlreadyLinked && styles.listSectionItemDisabled])}
+          onClick={isAlreadyLinked ? undefined : () => handleTableSelect(table, group)}
+          style={{
+            ...elementStyle,
+            ...(isAlreadyLinked ? { cursor: 'default', opacity: 0.6 } : {}),
+          }}
+          {...otherElementProps}
         >
           <ConnectorIcon connector={group.service} size={20} withBorder />
           <Text13Regular style={{ flex: 1 }}>{table.displayName}</Text13Regular>

@@ -249,14 +249,26 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
 }
 
 export function getConnectorsWithStatus(workbook: Workbook): { connectorService: Service; isBroken: boolean }[] {
+  // Collect connector info from both snapshotTables and dataFolders
+  const connectorSources = [
+    ...(workbook.snapshotTables ?? []).map((table) => ({
+      connectorService: table.connectorService,
+      connectorAccountId: table.connectorAccountId,
+    })),
+    ...(workbook.dataFolders ?? []).map((folder) => ({
+      connectorService: folder.connectorService,
+      connectorAccountId: folder.connectorAccountId,
+    })),
+  ];
+
   const [working, broken] = partition(
-    workbook.snapshotTables,
-    (table) => table.connectorService === Service.CSV || table.connectorAccountId !== null,
+    connectorSources,
+    (source) => source.connectorService === Service.CSV || source.connectorAccountId !== null,
   );
 
   // Get rid of nulls
-  let workingServices = working.map((table) => table.connectorService).filter(isNotEmpty);
-  let brokenServices = broken.map((table) => table.connectorService).filter(isNotEmpty);
+  let workingServices = working.map((source) => source.connectorService).filter(isNotEmpty);
+  let brokenServices = broken.map((source) => source.connectorService).filter(isNotEmpty);
   // Make each unique.
   workingServices = uniq(workingServices);
   brokenServices = uniq(brokenServices);

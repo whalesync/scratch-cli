@@ -15,7 +15,7 @@ export class RouteUrls {
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
   static workbookPageUrl = (id: string) => `/workbooks/${id}`;
-  static workbookFilePageUrl = (id: string) => `/workbooks-md/${id}`;
+  static workbookFilePageUrl = (id: string) => `/workbooks-new/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
   static workbookRecordView = (id: string, tableId: string, recordId: string) =>
