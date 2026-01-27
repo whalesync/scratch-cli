@@ -22,6 +22,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
+import { notifications } from '@mantine/notifications';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
 import type {
   FileId,
@@ -45,6 +46,7 @@ import {
   FolderInputIcon,
   FolderPlusIcon,
   FolderSyncIcon,
+  GitBranchIcon,
   InfoIcon,
   PencilIcon,
   RefreshCwIcon,
@@ -53,8 +55,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NativeTypes } from 'react-dnd-html5-backend';
-import { countSupportedFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
 import { CsvToMdModal } from './CsvToMdModal';
+import { countSupportedFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
 import { FolderPickerModal } from './FolderPickerModal';
 import styles from './WorkbookFileBrowser.module.css';
 
@@ -133,6 +135,10 @@ interface TreeNodeRendererProps {
   onBulkMove: () => void;
   treeData: NodeModel<TreeNodeData>[];
   onCsvConvert: (fileId: FileId, fileName: string, parentFolderId: FolderId | null) => void;
+  onRenameWorkbook: () => void;
+  onDeleteWorkbook: () => void;
+  onBackupWorkbook: () => void;
+  isBackingUp: boolean;
 }
 
 function TreeNodeRenderer({
@@ -166,6 +172,10 @@ function TreeNodeRenderer({
   onBulkMove,
   treeData,
   onCsvConvert,
+  onRenameWorkbook,
+  onDeleteWorkbook,
+  onBackupWorkbook,
+  isBackingUp,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -212,7 +222,7 @@ function TreeNodeRenderer({
     e.stopPropagation();
 
     // If not selected, select it first (without opening)
-    if (!isSelected) {
+    if (!isSelected && !nodeData.isWorkbookRoot) {
       onNodeSelect(nodeData.id, { shift: false, ctrl: false, meta: false }, false);
     }
 
@@ -261,31 +271,75 @@ function TreeNodeRenderer({
   // Workbook root node - special rendering
   if (nodeData.isWorkbookRoot) {
     return (
-      <Group
-        gap="xs"
-        h={24}
-        style={{
-          borderRadius: '4px',
-          border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
-          backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
-        }}
-      >
-        <Box
-          data-chevron
-          onClick={handleChevronClick}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+      <>
+        <Group
+          gap="xs"
+          h={24}
+          onContextMenu={handleContextMenu}
+          style={{
+            borderRadius: '4px',
+            border: showDropHighlight ? '1px dashed var(--mantine-color-blue-5)' : '1px solid transparent',
+            backgroundColor: showDropHighlight ? 'var(--mantine-color-blue-0)' : 'transparent',
+            cursor: 'context-menu',
+          }}
         >
-          {isOpen ? (
-            <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          ) : (
-            <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
-          )}
-        </Box>
-        <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
-        <Text size="sm" fw={500} c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'} truncate>
-          {nodeData.name}
-        </Text>
-      </Group>
+          <Box
+            data-chevron
+            onClick={handleChevronClick}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            {isOpen ? (
+              <ChevronDownIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+            ) : (
+              <ChevronRightIcon size={14} color="var(--fg-secondary)" style={{ flexShrink: 0 }} />
+            )}
+          </Box>
+          <BookOpenIcon size={14} color={showDropHighlight ? 'var(--mantine-color-blue-5)' : 'var(--fg-secondary)'} />
+          <Text size="sm" fw={500} c={showDropHighlight ? 'var(--mantine-color-blue-7)' : 'var(--fg-primary)'} truncate>
+            {nodeData.name}
+          </Text>
+        </Group>
+        <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-start" withinPortal>
+          <Menu.Target>
+            <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={<PencilIcon size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRenameWorkbook();
+                setMenuOpened(false);
+              }}
+            >
+              Rename workbook
+            </Menu.Item>
+            <Menu.Item
+              leftSection={isBackingUp ? <Loader size={12} /> : <GitBranchIcon size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBackupWorkbook();
+                setMenuOpened(false);
+              }}
+              disabled={isBackingUp}
+            >
+              Back up to repo
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              leftSection={<Trash2Icon size={16} />}
+              color="red"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteWorkbook();
+                setMenuOpened(false);
+              }}
+            >
+              Delete workbook
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </>
     );
   }
 
@@ -1397,6 +1451,30 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     }
   };
 
+  // State for backup
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
+  const handleBackupWorkbook = useCallback(async () => {
+    if (!workbook) return;
+    setIsBackingUp(true);
+    try {
+      const data = await workbookApi.backupWorkbookToRepo(workbook.id);
+      notifications.show({
+        title: 'Backup Successful',
+        message: data.message || 'Workbook backed up to repo',
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Backup Failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        color: 'red',
+      });
+    } finally {
+      setIsBackingUp(false);
+    }
+  }, [workbook]);
+
   // Debug: log tree data
   console.log('treeData:', treeData);
 
@@ -1673,6 +1751,10 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onCsvConvert={(fileId, fileName, parentFolderId) =>
                       setCsvConvertFile({ fileId, fileName, parentFolderId })
                     }
+                    onRenameWorkbook={() => showModal({ type: WorkbookModals.RENAME_WORKBOOK })}
+                    onDeleteWorkbook={() => showModal({ type: WorkbookModals.CONFIRM_DELETE, workbookId: workbook.id })}
+                    onBackupWorkbook={handleBackupWorkbook}
+                    isBackingUp={isBackingUp}
                   />
                 )}
               />
@@ -1818,7 +1900,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
           }}
         />
       )}
-
     </DndProvider>
   );
 }

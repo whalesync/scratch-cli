@@ -317,4 +317,14 @@ export const workbookApi = {
       handleAxiosError(error, 'Failed to list data folders');
     }
   },
+
+  backupWorkbookToRepo: async (workbookId: WorkbookId): Promise<{ success: boolean; message: string }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ success: boolean; message: string }>(`/scratch-git/${workbookId}/backup`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to backup workbook');
+    }
+  },
 };

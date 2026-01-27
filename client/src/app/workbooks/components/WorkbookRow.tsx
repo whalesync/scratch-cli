@@ -9,9 +9,10 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { getConnectorsWithStatus } from '@/types/server-entities/workbook';
-import { Group, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Group, Loader, Menu, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { Workbook } from '@spinner/shared-types';
-import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
+import { Edit3Icon, GitBranchIcon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -22,6 +23,9 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
   const [workbookName, setWorkbookName] = useState(workbook.name ?? undefined);
   const modalStack = useModalsStack(['confirm-delete', 'rename']);
   const connectorList = getConnectorsWithStatus(workbook);
+
+  const [contextMenuOpened, setContextMenuOpened] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
 
   const handleDelete = async () => {
     if (!workbook) return;
@@ -64,6 +68,37 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
     }
   };
 
+  const handleBackup = async () => {
+    if (!workbook) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/workbook/${workbook.id}/backup`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      notifications.show({
+        title: 'Backup Successful',
+        message: data.message || 'Workbook backed up to repo',
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Backup Failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setContextMenuOpened(true);
+  };
+
   return (
     <>
       <ModalWrapper
@@ -100,9 +135,47 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
       >
         <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
       </ModalWrapper>
+
+      <Menu opened={contextMenuOpened} onChange={setContextMenuOpened} withinPortal shadow="md">
+        <Menu.Target>
+          <div
+            style={{
+              position: 'fixed',
+              top: contextMenuPosition.y,
+              left: contextMenuPosition.x,
+              width: 0,
+              height: 0,
+              visibility: 'hidden',
+            }}
+          />
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item leftSection={<Edit3Icon size={16} />} onClick={() => modalStack.open('rename')}>
+            Rename workbook
+          </Menu.Item>
+          <Menu.Item
+            leftSection={saving ? <Loader size={12} /> : <GitBranchIcon size={16} />}
+            onClick={handleBackup}
+            disabled={saving}
+          >
+            Back up to repo
+          </Menu.Item>
+          <Menu.Divider />
+          <Menu.Item
+            color="red"
+            leftSection={<Trash2 size={16} />}
+            onClick={() => modalStack.open('confirm-delete')}
+            disabled={saving}
+          >
+            Delete workbook
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+
       <Table.Tr
         key={workbook.id}
         onClick={() => router.push(getWorkbookPageUrl(workbook.id))}
+        onContextMenu={onContextMenu}
         style={{ cursor: 'pointer' }}
       >
         <Table.Td>

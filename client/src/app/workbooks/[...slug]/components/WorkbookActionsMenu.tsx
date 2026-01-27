@@ -2,8 +2,9 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Loader, Menu } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { Service, SnapshotTable } from '@spinner/shared-types';
-import { Edit3Icon, Trash2Icon } from 'lucide-react';
+import { Edit3Icon, GitBranchIcon, Trash2Icon } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
@@ -23,6 +24,31 @@ export const WorkbookActionsMenu = () => {
   const handleOpenAdvancedInput = () => {
     if (!workbook) return;
     router.push(`/agent-input/${workbook.id}`);
+  };
+
+  const handleBackup = async () => {
+    if (!workbook) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/workbook/${workbook.id}/backup`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      notifications.show({
+        title: 'Backup Successful',
+        message: data.message || 'Workbook backed up to repo',
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Backup Failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        color: 'red',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const menuItemsDisabled = isLoading || saving;
@@ -61,6 +87,14 @@ export const WorkbookActionsMenu = () => {
           leftSection={<Edit3Icon size={16} />}
         >
           Rename workbook
+        </Menu.Item>
+
+        <Menu.Item
+          disabled={menuItemsDisabled}
+          onClick={handleBackup}
+          leftSection={saving ? <Loader size={12} /> : <GitBranchIcon size={16} />}
+        >
+          Back up to repo
         </Menu.Item>
 
         {/* Connector-custom actions */}
