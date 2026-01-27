@@ -116,6 +116,18 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
+  [Service.AUDIENCEFUL]: {
+    service: 'Audienceful',
+    table: 'list',
+    record: 'person',
+    base: null,
+    tables: 'lists',
+    records: 'people',
+    bases: null,
+    logo: 'audienceful.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
 };
 
 export const serviceName = (serviceCode: Service): string => {

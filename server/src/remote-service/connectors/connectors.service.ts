@@ -6,6 +6,7 @@ import { DecryptedCredentials } from '../connector-account/types/encrypted-crede
 import { AuthParser, Connector } from './connector';
 import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
+import { AudiencefulConnector } from './library/audienceful/audienceful-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -117,6 +118,14 @@ export class ConnectorsService {
         } else {
           throw new Error('Wix requires either OAuth or API key authentication');
         }
+      case Service.AUDIENCEFUL:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Audienceful', service);
+        }
+        if (!decryptedCredentials?.apiKey) {
+          throw new ConnectorInstantiationError('API key is required for Audienceful', service);
+        }
+        return new AudiencefulConnector(decryptedCredentials.apiKey);
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }

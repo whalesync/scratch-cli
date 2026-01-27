@@ -44,6 +44,7 @@ enum Service {
   WORDPRESS
   WEBFLOW
   WIX_BLOG
+  AUDIENCEFUL
 }
 
 enum AuthType {

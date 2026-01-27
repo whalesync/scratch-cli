@@ -11,4 +11,5 @@ export const INTERNAL_SERVICES = [
   Service.NOTION,
   Service.YOUTUBE,
   Service.POSTGRES,
+  Service.AUDIENCEFUL,
 ];

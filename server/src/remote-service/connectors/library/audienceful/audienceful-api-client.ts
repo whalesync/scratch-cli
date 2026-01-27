@@ -1,0 +1,142 @@
+import axios, { AxiosInstance, RawAxiosRequestHeaders } from 'axios';
+import {
+  AudiencefulCreatePersonRequest,
+  AudiencefulDeletePersonRequest,
+  AudiencefulField,
+  AudiencefulFieldsResponse,
+  AudiencefulPaginatedResponse,
+  AudiencefulPerson,
+  AudiencefulUpdatePersonRequest,
+} from './audienceful-types';
+
+const AUDIENCEFUL_API_BASE_URL = 'https://app.audienceful.com/api';
+
+/**
+ * Custom error class for Audienceful API errors.
+ */
+export class AudiencefulError extends Error {
+  public readonly statusCode?: number;
+  public readonly responseData?: unknown;
+
+  constructor(message: string, statusCode?: number, responseData?: unknown) {
+    super(message);
+    this.name = 'AudiencefulError';
+    this.statusCode = statusCode;
+    this.responseData = responseData;
+  }
+}
+
+/**
+ * Low-level API client for the Audienceful API.
+ *
+ * Uses axios for HTTP requests with X-Api-Key header authentication.
+ */
+export class AudiencefulApiClient {
+  private readonly client: AxiosInstance;
+
+  constructor(apiKey: string) {
+    const headers: RawAxiosRequestHeaders = {
+      'X-Api-Key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+
+    this.client = axios.create({
+      baseURL: AUDIENCEFUL_API_BASE_URL,
+      headers,
+    });
+  }
+
+  /**
+   * Validate the API key by making a request to the people endpoint.
+   * @throws AudiencefulError if the API key is invalid.
+   */
+  async validateCredentials(): Promise<void> {
+    try {
+      // The API uses /people/ with trailing slash
+      await this.client.get<AudiencefulPaginatedResponse<AudiencefulPerson>>('/people/');
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        throw new AudiencefulError('Invalid API key', 401, error.response?.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * List people (subscribers) with pagination.
+   * Returns an async generator that yields pages of people.
+   * Uses cursor-based pagination following the 'next' URL.
+   */
+  async *listPeople(): AsyncGenerator<AudiencefulPerson[], void> {
+    // Start with the base endpoint
+    let nextUrl: string | null = '/people/';
+
+    while (nextUrl) {
+      // If it's a full URL, extract just the path
+      let url: string;
+      if (nextUrl.startsWith('http')) {
+        const parsedUrl = new URL(nextUrl);
+        url = parsedUrl.pathname + parsedUrl.search;
+      } else {
+        url = nextUrl;
+      }
+
+      const response = await this.client.get<AudiencefulPaginatedResponse<AudiencefulPerson>>(url);
+
+      if (response.data.results && response.data.results.length > 0) {
+        yield response.data.results;
+      }
+
+      // Follow the next URL for pagination
+      nextUrl = response.data.next;
+    }
+  }
+
+  /**
+   * Create a new person (subscriber).
+   * @param data - The person data to create.
+   * @returns The created person.
+   */
+  async createPerson(data: AudiencefulCreatePersonRequest): Promise<AudiencefulPerson> {
+    const response = await this.client.post<{ data: AudiencefulPerson }>('/people', data);
+    return response.data.data;
+  }
+
+  /**
+   * Update an existing person (subscriber) by email.
+   * @param data - The person data to update, must include email.
+   * @returns The updated person.
+   */
+  async updatePerson(data: AudiencefulUpdatePersonRequest): Promise<AudiencefulPerson> {
+    const response = await this.client.put<{ data: AudiencefulPerson }>('/people', data);
+    return response.data.data;
+  }
+
+  /**
+   * Delete a person (subscriber) by email.
+   * @param data - The delete request with email.
+   * @throws Does not throw on 404 (idempotent delete).
+   */
+  async deletePerson(data: AudiencefulDeletePersonRequest): Promise<void> {
+    try {
+      await this.client.delete('/people', { data });
+    } catch (error) {
+      // Ignore 404 errors - the person may already be deleted
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * List custom fields defined in the Audienceful account.
+   * @returns Array of field definitions.
+   */
+  async listFields(): Promise<AudiencefulField[]> {
+    // The fields endpoint is under /people/fields/
+    const response = await this.client.get<AudiencefulFieldsResponse>('/people/fields/');
+    return response.data;
+  }
+}

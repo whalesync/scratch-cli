@@ -68,6 +68,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.WORDPRESS,
         Service.CSV,
         Service.WEBFLOW,
+        Service.AUDIENCEFUL,
       ];
       if (oauthSupportedServices.includes(service)) {
         return 'oauth';
@@ -93,6 +94,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.AIRTABLE,
         Service.WORDPRESS,
         Service.WEBFLOW,
+        Service.AUDIENCEFUL,
       ];
       const methods: AuthMethod[] = [];
       if (oauthSupportedServices.includes(service)) {

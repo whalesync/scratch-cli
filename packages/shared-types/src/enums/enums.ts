@@ -14,6 +14,7 @@ export enum Service {
   WORDPRESS = 'WORDPRESS',
   WEBFLOW = 'WEBFLOW',
   WIX_BLOG = 'WIX_BLOG',
+  AUDIENCEFUL = 'AUDIENCEFUL',
 }
 
 export enum AuthType {
