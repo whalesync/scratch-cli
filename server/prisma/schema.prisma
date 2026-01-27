@@ -485,6 +485,10 @@ model DataFolder {
   // Version number of the folder structure, to help with future migrations
   version Int @default(1)
 
+  // Table ID path for connectors that represent tables as a path (e.g., ["database", "schema", "table"])
+  // Empty array for scratch folders, populated for linked folders
+  tableId String[] @default([])
+
   @@unique([workbookId, parentId, name])
   @@index([workbookId])
   @@index([connectorAccountId])

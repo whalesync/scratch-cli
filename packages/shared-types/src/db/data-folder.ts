@@ -22,6 +22,7 @@ export interface DataFolder {
   lock: string | null;
   lastSyncTime: string | null;
   version: number;
+  tableId: string[];
 }
 
 ///

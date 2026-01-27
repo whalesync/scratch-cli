@@ -238,6 +238,7 @@ export class DataFolderService {
           schema: tableSpec,
           lastSchemaRefreshAt: new Date(),
           version: 1,
+          tableId: dto.tableId,
         },
         include: DataFolderCluster._validator.include,
       });
