@@ -169,6 +169,10 @@ export class WorkbookDb {
     return result;
   }
 
+  async cleanupSchema(workbookId: WorkbookId) {
+    await this.getKnex().raw(`DROP SCHEMA IF EXISTS "${workbookId}" CASCADE`);
+  }
+
   /**
    * Lists all files in a workbook (not filtered by path)
    */

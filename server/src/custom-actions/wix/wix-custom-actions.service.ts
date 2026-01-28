@@ -5,6 +5,7 @@ import { OAuthService } from 'src/oauth/oauth.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { WixBlogTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { WixCustomActions } from 'src/remote-service/connectors/library/wix/custom-actions';
+import { SnapshotRecord } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 
@@ -39,12 +40,15 @@ export class WixCustomActionsService {
     const tableSpec = snapshotTable.tableSpec as unknown as WixBlogTableSpec;
 
     // Query the actual records from the snapshot database
-    const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
-      snapshotTable.workbookId as WorkbookId,
-      tableSpec.id.wsId,
-      dto.recordIds,
-      actor,
-    );
+    // const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
+    //   snapshotTable.workbookId as WorkbookId,
+    //   tableSpec.id.wsId,
+    //   dto.recordIds,
+    //   actor,
+    // );
+
+    // WARNING: The SnapshotService is no longer available and this is just a hack to let the code compile, This custom action will need to be redesigned
+    const snapshotRecords: SnapshotRecord[] = [];
 
     // Transform snapshot records to the format expected by Wix custom actions
     // Filter out records without remoteIds (newly created records that haven't been synced yet)

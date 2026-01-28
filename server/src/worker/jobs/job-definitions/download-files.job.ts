@@ -4,7 +4,6 @@ import type { ConnectorsService } from '../../../remote-service/connectors/conne
 import type { AnyTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorRecord } from '../../../remote-service/connectors/types';
 import type { JsonSafeObject } from '../../../utils/objects';
-import type { SnapshotDb } from '../../../workbook/snapshot-db';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
@@ -45,7 +44,6 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
   constructor(
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
-    private readonly snapshotDb: SnapshotDb,
     private readonly workbookDb: WorkbookDb,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
@@ -55,15 +53,7 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
    * Resets the 'seen' flag to false for all records in a table and files in folder before starting a download
    * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
-  private async resetSeenFlags(
-    workbookId: WorkbookId,
-    { tableName, folderId }: { tableName: string; folderId: FolderId },
-  ) {
-    // Reset seen flags for snapshot table records
-    await this.snapshotDb.getKnex().withSchema(workbookId).table(tableName).whereNull('__old_remote_id').update({
-      __seen: false,
-    });
-
+  private async resetSeenFlags(workbookId: WorkbookId, { folderId }: { tableName: string; folderId: FolderId }) {
     // Reset seen flags for files in the folder
     await this.workbookDb.resetSeenFlagForFolder(workbookId, folderId);
   }
@@ -202,13 +192,6 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
           folderPath: snapshotTable.folder?.path,
         });
 
-        // Upsert records to snapshot table (maintains data consistency with download-records)
-        await this.snapshotDb.upsertRecords(
-          workbook.id as WorkbookId,
-          { spec: tableSpec, tableName: snapshotTable.tableName },
-          records,
-        );
-
         // Upsert files from connector records
         await this.workbookDb.upsertFilesFromConnectorRecords(
           workbook.id as WorkbookId,
@@ -273,26 +256,26 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
         });
 
         // Delete records that weren't seen in this sync (__seen=false or undefined)
-        const { hadDirtyRecords } = await this.snapshotDb.handleUnseenRecords(
-          workbook.id as WorkbookId,
-          snapshotTable.tableName,
-        );
+        // const { hadDirtyRecords } = await this.snapshotDb.handleUnseenRecords(
+        //   workbook.id as WorkbookId,
+        //   snapshotTable.tableName,
+        // );
 
-        // Track folders that had dirty discovered deletes
-        if (hadDirtyRecords) {
-          currentFolder.hasDirtyDiscoveredDeletes = true;
-          // Checkpoint to update the UI with the dirty discovered deletes warning
-          await checkpoint({
-            publicProgress: {
-              totalFiles,
-              folders: foldersToProcess,
-            },
-            jobProgress: {
-              index: i + 1,
-            },
-            connectorProgress: {},
-          });
-        }
+        // // Track folders that had dirty discovered deletes
+        // if (hadDirtyRecords) {
+        //   currentFolder.hasDirtyDiscoveredDeletes = true;
+        //   // Checkpoint to update the UI with the dirty discovered deletes warning
+        //   await checkpoint({
+        //     publicProgress: {
+        //       totalFiles,
+        //       folders: foldersToProcess,
+        //     },
+        //     jobProgress: {
+        //       index: i + 1,
+        //     },
+        //     connectorProgress: {},
+        //   });
+        // }
 
         // Set lock=null and update lastSyncTime for this table on success
         await this.prisma.snapshotTable.update({

@@ -5,18 +5,14 @@ import { AddTwoNumbersJobDefinition } from './job-definitions/add-two-numbers.jo
 import { DownloadFilesJobDefinition } from './job-definitions/download-files.job';
 import { DownloadLinkedFolderFilesJobDefinition } from './job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from './job-definitions/download-record-files.job';
-import { DownloadRecordsJobDefinition } from './job-definitions/download-records.job';
 import { PublishFilesJobDefinition } from './job-definitions/publish-files.job';
-import { PublishRecordsJobDefinition } from './job-definitions/publish-records.job';
 
 export type JobDefinition =
   | AddTwoNumbersJobDefinition
   | AddThreeNumbersJobDefinition
-  | DownloadRecordsJobDefinition
   | DownloadFilesJobDefinition
   | DownloadRecordFilesJobDefinition
   | DownloadLinkedFolderFilesJobDefinition
-  | PublishRecordsJobDefinition
   | PublishFilesJobDefinition;
 export type JobData = JobDefinition['data'];
 export type JobTypes = JobDefinition['type'];

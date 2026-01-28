@@ -5,9 +5,7 @@ import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
 import { DownloadFilesJobDefinition } from 'src/worker/jobs/job-definitions/download-files.job';
-import { DownloadRecordsJobDefinition } from 'src/worker/jobs/job-definitions/download-records.job';
 import { PublishFilesJobDefinition } from 'src/worker/jobs/job-definitions/publish-files.job';
-import { PublishRecordsJobDefinition } from 'src/worker/jobs/job-definitions/publish-records.job';
 import { JobData } from 'src/worker/jobs/union-types';
 import { DownloadLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from '../worker/jobs/job-definitions/download-record-files.job';
@@ -48,25 +46,6 @@ export class BullEnqueuerService implements OnModuleDestroy {
 
   async enqueueJob(data: JobData): Promise<Job> {
     return await this.getQueue().add(data.type, data);
-  }
-
-  async enqueueDownloadRecordsJob(
-    workbookId: WorkbookId,
-    actor: Actor,
-    snapshotTableIds?: string[],
-    initialPublicProgress?: DownloadRecordsJobDefinition['publicProgress'],
-  ): Promise<Job> {
-    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `download-records-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: DownloadRecordsJobDefinition['data'] = {
-      workbookId,
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-      snapshotTableIds,
-      type: 'download-records',
-      initialPublicProgress,
-    };
-    return await this.enqueueJobWithId(data, id);
   }
 
   async enqueueDownloadFilesJob(
@@ -120,25 +99,6 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       dataFolderId,
       type: 'download-linked-folder-files',
-      initialPublicProgress,
-    };
-    return await this.enqueueJobWithId(data, id);
-  }
-
-  async enqueuePublishRecordsJob(
-    workbookId: WorkbookId,
-    actor: Actor,
-    snapshotTableIds?: string[],
-    initialPublicProgress?: PublishRecordsJobDefinition['publicProgress'],
-  ): Promise<Job> {
-    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `publish-records-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: PublishRecordsJobDefinition['data'] = {
-      workbookId,
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-      snapshotTableIds,
-      type: 'publish-records',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

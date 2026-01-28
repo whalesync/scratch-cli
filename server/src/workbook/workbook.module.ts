@@ -12,16 +12,13 @@ import { ConnectorsModule } from '../remote-service/connectors/connectors.module
 import { ScratchGitClient } from '../scratch-git/scratch-git.client';
 import { ScratchGitController } from '../scratch-git/scratch-git.controller';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
-import { AiSnapshotController } from './ai-snapshot.controller';
 import { FilePublishingService } from './file-publishing.service';
 import { FilesPublicController } from './files-public.controller';
 import { FilesController, FoldersController } from './files.controller';
 import { FilesService } from './files.service';
-import { SnapshotDbModule } from './snapshot-db.module';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotDataGateway } from './snapshot.gateway';
 import { WorkbookDbModule } from './workbook-db.module';
-import { WorkbookPublicController } from './workbook-public.controller';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
 
@@ -40,14 +37,11 @@ import { FolderService } from './folder.service';
     ConnectorAccountModule,
     RedisModule,
     WorkerEnqueuerModule,
-    SnapshotDbModule,
     WorkbookDbModule,
     AuditLogModule,
   ],
   controllers: [
     WorkbookController,
-    AiSnapshotController,
-    WorkbookPublicController,
     FilesController,
     FoldersController,
     FilesPublicController,

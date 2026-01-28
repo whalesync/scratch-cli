@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuthType } from '@prisma/client';
 import {
   FileId,
-  isFileId,
   Service,
   ValidatedWebflowPublishItemsDto,
   ValidatedWebflowPublishSiteDto,
@@ -17,6 +16,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { WebflowTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 import { WebflowCustomActions } from 'src/remote-service/connectors/library/webflow/custom-actions';
 import { WebflowConnector } from 'src/remote-service/connectors/library/webflow/webflow-connector';
+import { SnapshotRecord } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
 import { convertFileToConnectorRecord } from 'src/workbook/workbook-db';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
@@ -54,12 +54,15 @@ export class WebflowCustomActionsService {
     const tableSpec = snapshotTable.tableSpec as unknown as WebflowTableSpec;
 
     // Query the actual records from the snapshot database
-    const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
-      snapshotTable.workbookId as WorkbookId,
-      snapshotTable.id,
-      dto.recordIds,
-      actor,
-    );
+    // const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
+    //   snapshotTable.workbookId as WorkbookId,
+    //   snapshotTable.id,
+    //   dto.recordIds,
+    //   actor,
+    // );
+
+    // WARNING: The SnapshotService is no longer available and this is just a hack to let the code compile, This custom action will need to be redesigned
+    const snapshotRecords: SnapshotRecord[] = [];
 
     // Transform snapshot records to the format expected by Webflow custom actions
     // Filter out records without remoteIds (newly created records that haven't been synced yet)
@@ -214,63 +217,30 @@ export class WebflowCustomActionsService {
     else if (dto.recordIds && dto.recordIds.length > 0) {
       const workbookId = snapshotTable.workbookId as WorkbookId;
 
-      // Check if we're dealing with file IDs (from workbooks-md) or snapshot record IDs
-      const isFileBasedValidation = isFileId(dto.recordIds[0]);
+      // Fetch files from the files table
+      const files = await this.workbookDbService.workbookDb.getFilesByIds(workbookId, dto.recordIds as FileId[]);
 
-      if (isFileBasedValidation) {
-        // Fetch files from the files table
-        const files = await this.workbookDbService.workbookDb.getFilesByIds(workbookId, dto.recordIds as FileId[]);
-
-        if (files.length === 0) {
-          return {
-            results: [],
-            summary: { total: 0, publishable: 0, invalid: 0 },
-          };
-        }
-
-        // Convert files to validation format using the existing helper
-        filesToValidate = files.map((file) => {
-          const connectorRecord = convertFileToConnectorRecord(workbookId, file, tableSpec);
-          const filename =
-            (connectorRecord.fields['name'] as string) || (connectorRecord.fields['slug'] as string) || file.name;
-
-          return {
-            filename,
-            id: file.remote_id || undefined,
-            data: connectorRecord.fields,
-          };
-        });
-
-        recordIdMapping = files.map((f) => f.id);
-      } else {
-        // Fetch records from the snapshot database
-        const { records: snapshotRecords } = await this.snapshotService.getRecordsByIdsForAi(
-          workbookId,
-          snapshotTable.id,
-          dto.recordIds,
-          actor,
-        );
-
-        if (snapshotRecords.length === 0) {
-          return {
-            results: [],
-            summary: { total: 0, publishable: 0, invalid: 0 },
-          };
-        }
-
-        filesToValidate = snapshotRecords.map((record) => {
-          const filename =
-            (record.fields['name'] as string) || (record.fields['slug'] as string) || record.id.wsId.toString();
-
-          return {
-            filename,
-            id: record.id.remoteId || undefined,
-            data: record.fields,
-          };
-        });
-
-        recordIdMapping = snapshotRecords.map((r) => r.id.wsId);
+      if (files.length === 0) {
+        return {
+          results: [],
+          summary: { total: 0, publishable: 0, invalid: 0 },
+        };
       }
+
+      // Convert files to validation format using the existing helper
+      filesToValidate = files.map((file) => {
+        const connectorRecord = convertFileToConnectorRecord(workbookId, file, tableSpec);
+        const filename =
+          (connectorRecord.fields['name'] as string) || (connectorRecord.fields['slug'] as string) || file.name;
+
+        return {
+          filename,
+          id: file.remote_id || undefined,
+          data: connectorRecord.fields,
+        };
+      });
+
+      recordIdMapping = files.map((f) => f.id);
     } else {
       throw new Error('Either files or recordIds must be provided for validation');
     }

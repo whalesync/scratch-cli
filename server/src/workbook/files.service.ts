@@ -24,10 +24,8 @@ import {
 import * as archiver from 'archiver';
 import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
-import { WSLogger } from '../logger';
 import { Actor } from '../users/types';
 import { FolderService } from './folder.service';
-import { SnapshotDbService } from './snapshot-db.service';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -36,7 +34,6 @@ export class FilesService {
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly folderService: FolderService,
-    private readonly snapshotDbService: SnapshotDbService,
   ) {}
 
   /**
@@ -806,20 +803,6 @@ export class FilesService {
     });
 
     for (const snapshotTable of snapshotTables) {
-      // Drop the database table
-      try {
-        await this.snapshotDbService.snapshotDb.dropTableIfExists(workbookId, snapshotTable.tableName);
-      } catch (error) {
-        WSLogger.error({
-          source: 'FilesService.deleteFolder',
-          message: 'Failed to drop snapshot table',
-          error,
-          workbookId,
-          tableName: snapshotTable.tableName,
-        });
-        // Continue - table might not exist
-      }
-
       // Delete the SnapshotTable record
       await this.db.client.snapshotTable.delete({
         where: { id: snapshotTable.id },

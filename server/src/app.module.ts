@@ -20,7 +20,6 @@ import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { ExperimentsModule } from './experiments/experiments.module';
 import { HealthModule } from './health/health.module';
 import { JobModule } from './job/job.module';
-import { MentionsModule } from './mentions/mentions.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { OpenRouterModule } from './openrouter/openrouter.module';
@@ -62,7 +61,6 @@ import { WorkerModule } from './worker/workers.module';
     PaymentModule,
     OpenRouterModule,
     SlackNotificationModule,
-    MentionsModule,
     WorkerEnqueuerModule,
     CodeMigrationsModule,
     ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
