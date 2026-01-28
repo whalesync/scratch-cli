@@ -35,6 +35,7 @@ export enum IdPrefixes {
   FOLDER = 'fld_', // Folder
   DATA_FOLDER = 'dfd_', // Data folder
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
+  SYNC = 'syn_', // Sync
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -318,4 +319,15 @@ export function isAuthorizationCodeId(id: unknown): id is AuthorizationCodeId {
 
 export function createAuthorizationCodeId(): AuthorizationCodeId {
   return createId(IdPrefixes.AUTHORIZATION_CODE) as AuthorizationCodeId;
+}
+
+// ------- Sync -------
+export type SyncId = PrefixedId<IdPrefixes.SYNC>;
+
+export function isSyncId(id: unknown): id is SyncId {
+  return isId(id, IdPrefixes.SYNC);
+}
+
+export function createSyncId(): SyncId {
+  return createId(IdPrefixes.SYNC) as SyncId;
 }

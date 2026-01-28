@@ -20,6 +20,7 @@ export * from './meta-columns';
 export * from './onboarding';
 export * from './openrouter';
 export * from './subscription';
+export * from './sync';
 export * from './upload-types';
 export * from './workbook-types';
 

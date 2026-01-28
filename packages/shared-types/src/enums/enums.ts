@@ -48,3 +48,8 @@ export enum ConnectorHealthStatus {
 export enum ActionType {
   PUBLISH = 'PUBLISH',
 }
+
+export enum SyncState {
+  OFF = 'OFF',
+  ON = 'ON',
+}

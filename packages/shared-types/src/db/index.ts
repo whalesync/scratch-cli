@@ -5,4 +5,5 @@ export * from './folder';
 export * from './organization';
 export * from './snapshot-table';
 export * from './style-guide';
+export * from './sync';
 export * from './workbook';
