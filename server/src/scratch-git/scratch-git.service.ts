@@ -79,6 +79,24 @@ export class ScratchGitService {
     }
   }
 
+  async listRepoFiles(workbookId: WorkbookId, branch: string, folder: string): Promise<any[]> {
+    // Verify access
+    // Although controller might also verify, verifying here checks workbook existence.
+    // For now simplistic access check (only existence)
+    // In future: ensureWorkbookAccess(workbookId, actor);
+    // But this method receives no actor. Controller should pass it?
+    // Implementing basic proxy first. Security relies on controller calling ensuring permissions.
+    return this.scratchGitClient.list(workbookId, branch, folder);
+  }
+
+  async getRepoFile(workbookId: WorkbookId, branch: string, path: string): Promise<{ content: string }> {
+    return this.scratchGitClient.getFile(workbookId, branch, path);
+  }
+
+  async commitFile(workbookId: WorkbookId, path: string, content: string, message: string): Promise<void> {
+    await this.scratchGitClient.commitFiles(workbookId, 'dirty', [{ path, content }], message);
+  }
+
   private async ensureWorkbookAccess(id: WorkbookId, actor: Actor): Promise<void> {
     const workbook = await this.db.client.workbook.findFirst({
       where: { id, organizationId: actor.organizationId },

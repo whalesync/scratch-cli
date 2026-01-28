@@ -88,7 +88,10 @@ app.post("/api/repo/:id/files", async (req, res) => {
     await gitService.commitFiles(
       req.params.id,
       branch,
-      files,
+      files.map((f: { path: string; content: string }) => ({
+        ...f,
+        path: f.path.startsWith("/") ? f.path.slice(1) : f.path,
+      })),
       message || "Update files",
     );
     res.json({ success: true });

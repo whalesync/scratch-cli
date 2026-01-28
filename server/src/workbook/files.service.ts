@@ -546,7 +546,7 @@ export class FilesService {
     fileId: FileId,
     updateFileDto: ValidatedUpdateFileDto,
     actor: Actor,
-  ): Promise<void> {
+  ): Promise<{ path: string; content: string | null | undefined }> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
     let newPath: string | undefined;
@@ -581,12 +581,20 @@ export class FilesService {
       newPath = (parentPath === '/' ? '' : parentPath) + '/' + effectiveName;
     }
 
+    const updatedPath = newPath ?? (await this.workbookDbService.workbookDb.getFileById(workbookId, fileId))?.path;
+
+    if (!updatedPath) {
+      throw new NotFoundException('File found during update but path missing');
+    }
+
     await this.workbookDbService.workbookDb.updateFileById(workbookId, fileId, {
       name: updateFileDto.name,
       folderId: updateFileDto.parentFolderId,
       content: updateFileDto.content,
       path: newPath,
     });
+
+    return { path: updatedPath, content: updateFileDto.content };
   }
 
   /**

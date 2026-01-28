@@ -16,6 +16,12 @@ import { handleAxiosError } from './error';
 export type WorkbookSortBy = 'name' | 'createdAt' | 'updatedAt';
 export type WorkbookSortOrder = 'asc' | 'desc';
 
+export interface GitFile {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+}
+
 export const workbookApi = {
   list: async (
     connectorAccountId?: string,
@@ -325,6 +331,31 @@ export const workbookApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to backup workbook');
+      throw error;
+    }
+  },
+  listRepoFiles: async (workbookId: WorkbookId, branch = 'main', folder = ''): Promise<GitFile[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<GitFile[]>(`/scratch-git/${workbookId}/list`, {
+        params: { branch, folder },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list repository files');
+      throw error;
+    }
+  },
+  getRepoFile: async (workbookId: WorkbookId, path: string, branch = 'main'): Promise<{ content: string }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<{ content: string }>(`/scratch-git/${workbookId}/file`, {
+        params: { branch, path },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get file content');
+      throw error;
     }
   },
 };

@@ -30,6 +30,8 @@ import {
 } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
+import { WSLogger } from '../logger';
+import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { userToActor } from '../users/types';
 import { FilesService } from './files.service';
 
@@ -37,7 +39,10 @@ import { FilesService } from './files.service';
 @UseGuards(ScratchpadAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly scratchGitService: ScratchGitService,
+  ) {}
 
   /**
    * List all files and folders in a workbook
@@ -141,7 +146,20 @@ export class FilesController {
     @Body() body: { path: string; content: string },
     @Req() req: RequestWithUser,
   ): Promise<FileRefEntity> {
-    return await this.filesService.writeFileByPath(workbookId, body.path, body.content, userToActor(req.user));
+    const file = await this.filesService.writeFileByPath(workbookId, body.path, body.content, userToActor(req.user));
+
+    try {
+      await this.scratchGitService.commitFile(workbookId, body.path, body.content, `Update ${body.path}`);
+    } catch (e) {
+      WSLogger.error({
+        source: 'FilesController.writeFileByPath',
+        message: 'Failed to auto-commit file',
+        error: e,
+        workbookId,
+      });
+    }
+
+    return file;
   }
 
   /**
@@ -197,7 +215,25 @@ export class FilesController {
     @Body() updateFileDto: UpdateFileDto,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.filesService.updateFile(workbookId, fileId, updateFileDto, userToActor(req.user));
+    const result = await this.filesService.updateFile(workbookId, fileId, updateFileDto, userToActor(req.user));
+
+    if (updateFileDto.content !== undefined && updateFileDto.content !== null) {
+      try {
+        await this.scratchGitService.commitFile(
+          workbookId,
+          result.path,
+          updateFileDto.content,
+          `Update ${result.path}`,
+        );
+      } catch (e) {
+        WSLogger.error({
+          source: 'FilesController.updateFile',
+          message: 'Failed to auto-commit file',
+          error: e,
+          workbookId,
+        });
+      }
+    }
   }
 
   /**

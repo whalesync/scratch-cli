@@ -9,10 +9,9 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { getConnectorsWithStatus } from '@/types/server-entities/workbook';
-import { Group, Loader, Menu, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
+import { Group, Menu, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Workbook } from '@spinner/shared-types';
-import { Edit3Icon, GitBranchIcon, Table2, Trash2 } from 'lucide-react';
+import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -62,31 +61,6 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
       ScratchpadNotifications.error({
         title: 'Renaming failed',
         message: 'There was an error renaming the workbook.',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleBackup = async () => {
-    if (!workbook) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/scratch-git/${workbook.id}/backup`, {
-        method: 'POST',
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      notifications.show({
-        title: 'Backup Successful',
-        message: data.message || 'Workbook backed up to repo',
-        color: 'green',
-      });
-    } catch (error) {
-      notifications.show({
-        title: 'Backup Failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        color: 'red',
       });
     } finally {
       setSaving(false);
@@ -152,13 +126,6 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <Menu.Dropdown>
           <Menu.Item leftSection={<Edit3Icon size={16} />} onClick={() => modalStack.open('rename')}>
             Rename workbook
-          </Menu.Item>
-          <Menu.Item
-            leftSection={saving ? <Loader size={12} /> : <GitBranchIcon size={16} />}
-            onClick={handleBackup}
-            disabled={saving}
-          >
-            Back up to repo
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item

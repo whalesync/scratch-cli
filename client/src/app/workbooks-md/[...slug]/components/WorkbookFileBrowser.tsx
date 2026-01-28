@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { NativeTypes } from 'react-dnd-html5-backend';
+import { GitBrowserModal } from '../../../workbooks/components/GitBrowserModal';
 import { CsvToMdModal } from './CsvToMdModal';
 import { countSupportedFiles, scanDataTransferItems, uploadStructure } from './folder-upload-utils';
 import { FolderPickerModal } from './FolderPickerModal';
@@ -139,6 +140,7 @@ interface TreeNodeRendererProps {
   onDeleteWorkbook: () => void;
   onBackupWorkbook: () => void;
   isBackingUp: boolean;
+  onBrowseGit: () => void;
 }
 
 function TreeNodeRenderer({
@@ -176,6 +178,7 @@ function TreeNodeRenderer({
   onDeleteWorkbook,
   onBackupWorkbook,
   isBackingUp,
+  onBrowseGit,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -324,6 +327,16 @@ function TreeNodeRenderer({
               disabled={isBackingUp}
             >
               Back up to repo
+            </Menu.Item>
+            <Menu.Item
+              leftSection={<FolderIcon size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBrowseGit();
+                setMenuOpened(false);
+              }}
+            >
+              Browse Files
             </Menu.Item>
             <Menu.Divider />
             <Menu.Item
@@ -786,6 +799,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     fileName: string;
     parentFolderId: FolderId | null;
   } | null>(null);
+
+  const [gitBrowserOpen, setGitBrowserOpen] = useState(false);
 
   // Sync server data to local state
   useEffect(() => {
@@ -1755,6 +1770,7 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onDeleteWorkbook={() => showModal({ type: WorkbookModals.CONFIRM_DELETE, workbookId: workbook.id })}
                     onBackupWorkbook={handleBackupWorkbook}
                     isBackingUp={isBackingUp}
+                    onBrowseGit={() => setGitBrowserOpen(true)}
                   />
                 )}
               />
@@ -1899,6 +1915,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
             setCsvConvertFile(null);
           }}
         />
+      )}
+      {workbook && (
+        <GitBrowserModal workbookId={workbook.id} isOpen={gitBrowserOpen} onClose={() => setGitBrowserOpen(false)} />
       )}
     </DndProvider>
   );

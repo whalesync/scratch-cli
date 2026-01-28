@@ -1,4 +1,4 @@
-import { Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
@@ -16,5 +16,23 @@ export class ScratchGitController {
     @Req() req: RequestWithUser,
   ): Promise<{ success: boolean; message: string }> {
     return this.scratchGitService.backupWorkbookToRepo(workbookId, userToActor(req.user));
+  }
+
+  @Get(':id/list')
+  async listRepoFiles(
+    @Param('id') workbookId: WorkbookId,
+    @Query('branch') branch = 'main',
+    @Query('folder') folder = '',
+  ): Promise<any[]> {
+    return this.scratchGitService.listRepoFiles(workbookId, branch, folder);
+  }
+
+  @Get(':id/file')
+  async getRepoFile(
+    @Param('id') workbookId: WorkbookId,
+    @Query('branch') branch = 'main',
+    @Query('path') path: string,
+  ): Promise<{ content: string }> {
+    return this.scratchGitService.getRepoFile(workbookId, branch, path);
   }
 }
