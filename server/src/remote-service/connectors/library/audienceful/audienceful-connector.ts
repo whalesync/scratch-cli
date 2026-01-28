@@ -92,6 +92,13 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
   private buildPeopleColumns(customFields: AudiencefulField[]): BaseColumnSpec[] {
     const columns: BaseColumnSpec[] = [
       {
+        id: { wsId: 'id', remoteId: ['people', 'id'] },
+        name: 'ID',
+        slug: 'id',
+        pgType: PostgresColumnType.NUMERIC,
+        readonly: true,
+      },
+      {
         id: { wsId: 'uid', remoteId: ['people', 'uid'] },
         name: 'UID',
         slug: 'uid',
@@ -124,18 +131,35 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
         name: 'Extra Data',
         slug: 'extra_data',
         pgType: PostgresColumnType.JSONB,
+        metadata: {},
       },
       {
         id: { wsId: 'status', remoteId: ['people', 'status'] },
         name: 'Status',
         slug: 'status',
         pgType: PostgresColumnType.TEXT,
+        readonly: true,
         metadata: {
           options: [
             { value: 'active', label: 'Active' },
             { value: 'unconfirmed', label: 'Unconfirmed' },
             { value: 'bounced', label: 'Bounced' },
             { value: 'unsubscribed', label: 'Unsubscribed' },
+          ],
+        },
+      },
+      {
+        id: { wsId: 'source', remoteId: ['people', 'source'] },
+        name: 'Source',
+        slug: 'source',
+        pgType: PostgresColumnType.TEXT,
+        readonly: true,
+        metadata: {
+          options: [
+            { value: 'import', label: 'Import' },
+            { value: 'manual', label: 'Manual' },
+            { value: 'api', label: 'API' },
+            { value: 'form', label: 'Form' },
           ],
         },
       },
@@ -148,6 +172,14 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
         metadata: { dateFormat: 'datetime' },
       },
       {
+        id: { wsId: 'updated_at', remoteId: ['people', 'updated_at'] },
+        name: 'Updated At',
+        slug: 'updated_at',
+        pgType: PostgresColumnType.TIMESTAMP,
+        readonly: true,
+        metadata: { dateFormat: 'datetime' },
+      },
+      {
         id: { wsId: 'last_activity', remoteId: ['people', 'last_activity'] },
         name: 'Last Activity',
         slug: 'last_activity',
@@ -155,10 +187,78 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
         readonly: true,
         metadata: { dateFormat: 'datetime' },
       },
+      {
+        id: { wsId: 'unsubscribed', remoteId: ['people', 'unsubscribed'] },
+        name: 'Unsubscribed',
+        slug: 'unsubscribed',
+        pgType: PostgresColumnType.TIMESTAMP,
+        readonly: true,
+        metadata: { dateFormat: 'datetime' },
+      },
+      {
+        id: { wsId: 'country', remoteId: ['people', 'country'] },
+        name: 'Country',
+        slug: 'country',
+        pgType: PostgresColumnType.TEXT,
+        readonly: true,
+      },
+      {
+        id: { wsId: 'double_opt_in', remoteId: ['people', 'double_opt_in'] },
+        name: 'Double Opt-In',
+        slug: 'double_opt_in',
+        pgType: PostgresColumnType.TEXT,
+        metadata: {
+          options: [
+            { value: 'not_required', label: 'Not Required' },
+            { value: 'required', label: 'Required' },
+            { value: 'complete', label: 'Complete' },
+          ],
+        },
+      },
+      {
+        id: { wsId: 'bounced', remoteId: ['people', 'bounced'] },
+        name: 'Bounced',
+        slug: 'bounced',
+        pgType: PostgresColumnType.BOOLEAN,
+        readonly: true,
+        metadata: {},
+      },
+      {
+        id: { wsId: 'open_rate', remoteId: ['people', 'open_rate'] },
+        name: 'Open Rate',
+        slug: 'open_rate',
+        pgType: PostgresColumnType.NUMERIC,
+        readonly: true,
+      },
+      {
+        id: { wsId: 'click_rate', remoteId: ['people', 'click_rate'] },
+        name: 'Click Rate',
+        slug: 'click_rate',
+        pgType: PostgresColumnType.NUMERIC,
+        readonly: true,
+      },
     ];
 
     // Add custom fields (skip built-in fields like email, tags which are already defined)
-    const builtInFields = ['uid', 'email', 'tags', 'notes', 'extra_data', 'status', 'created_at', 'last_activity'];
+    const builtInFields = [
+      'id',
+      'uid',
+      'email',
+      'tags',
+      'notes',
+      'extra_data',
+      'status',
+      'source',
+      'created_at',
+      'updated_at',
+      'last_activity',
+      'unsubscribed',
+      'country',
+      'double_opt_in',
+      'bounced',
+      'open_rate',
+      'click_rate',
+    ];
     for (const field of customFields) {
       if (builtInFields.includes(field.data_name)) continue;
 
@@ -233,35 +333,87 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
   private buildPeopleSchema(customFields: AudiencefulField[]): TSchema {
     // Standard fields
     const properties: Record<string, TSchema> = {
+      id: Type.Integer({ description: 'Numeric database ID for the person' }),
       uid: Type.String({ description: 'Unique identifier for the person' }),
       email: Type.String({ description: 'Email address', format: 'email' }),
       tags: Type.Array(
-        Type.Object({
-          name: Type.String({ description: 'Tag name' }),
-          color: Type.String({ description: 'Tag color' }),
-        }),
-        { description: 'Tags applied to this person' },
+        Type.Object(
+          {
+            id: Type.Optional(Type.Integer({ description: 'Tag ID (auto-generated, not required for create/update)' })),
+            name: Type.String({ description: 'Tag name (required)' }),
+            color: Type.Optional(Type.String({ description: 'Tag color (defaults to pink if not specified)' })),
+          },
+          { additionalProperties: false },
+        ),
+        { description: 'Tags applied to this person. Only name is required when adding new tags.' },
       ),
-      notes: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Notes about this person' })),
+      notes: Type.Optional(
+        Type.Union([Type.String(), Type.Null()], {
+          description: 'Notes about this person. Accepts HTML or plain text.',
+        }),
+      ),
       extra_data: Type.Record(Type.String(), Type.Unknown(), {
-        description: 'Additional data stored for this person',
+        description: 'Additional custom field data stored for this person (e.g., first_name, last_name)',
       }),
       status: Type.Union(
         [Type.Literal('active'), Type.Literal('unconfirmed'), Type.Literal('bounced'), Type.Literal('unsubscribed')],
         { description: 'Subscription status' },
       ),
+      source: Type.Optional(
+        Type.Union([Type.String(), Type.Null()], {
+          description: 'How the person was added (import, manual, api, form, etc.)',
+        }),
+      ),
       created_at: Type.String({
         description: 'When the person was created',
+        format: 'date-time',
+      }),
+      updated_at: Type.String({
+        description: 'When the person was last updated',
         format: 'date-time',
       }),
       last_activity: Type.String({
         description: 'When the person was last active',
         format: 'date-time',
       }),
+      unsubscribed: Type.Optional(
+        Type.Union([Type.String({ format: 'date-time' }), Type.Null()], {
+          description: 'When the person unsubscribed, or null if still subscribed',
+        }),
+      ),
+      country: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Country of the person' })),
+      double_opt_in: Type.Union([Type.Literal('not_required'), Type.Literal('required'), Type.Literal('complete')], {
+        description: 'Email confirmation status',
+      }),
+      bounced: Type.Boolean({ description: 'Whether the email address has bounced' }),
+      open_rate: Type.Optional(
+        Type.Union([Type.Number(), Type.Null()], { description: 'Email open rate for this person' }),
+      ),
+      click_rate: Type.Optional(
+        Type.Union([Type.Number(), Type.Null()], { description: 'Email click rate for this person' }),
+      ),
     };
 
     // Add custom fields (skip built-in fields)
-    const builtInFields = ['uid', 'email', 'tags', 'notes', 'extra_data', 'status', 'created_at', 'last_activity'];
+    const builtInFields = [
+      'id',
+      'uid',
+      'email',
+      'tags',
+      'notes',
+      'extra_data',
+      'status',
+      'source',
+      'created_at',
+      'updated_at',
+      'last_activity',
+      'unsubscribed',
+      'country',
+      'double_opt_in',
+      'bounced',
+      'open_rate',
+      'click_rate',
+    ];
     for (const field of customFields) {
       if (builtInFields.includes(field.data_name)) continue;
       properties[field.data_name] = Type.Optional(this.fieldTypeToSchema(field));
@@ -289,11 +441,12 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
       case 'boolean':
         return Type.Union([Type.Boolean(), Type.Null()], { description });
       case 'tag':
-        // Tags are stored as an array of objects with name and color
+        // Tags are stored as an array of objects - only name is required for create/update
         return Type.Array(
           Type.Object({
+            id: Type.Optional(Type.Integer()),
             name: Type.String(),
-            color: Type.String(),
+            color: Type.Optional(Type.String()),
           }),
           { description },
         );
