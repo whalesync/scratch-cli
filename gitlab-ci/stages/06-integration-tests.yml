@@ -52,31 +52,30 @@ integration tests for test env pre-deploy:
   rules:
     # - !reference [.rules, on_merge_to_prod]
     - when: never
+# notify slack on integration test failure test env post-deploy:
+#   stage: post-deploy integration tests
+#   needs:
+#     - integration tests for test env post-deploy
+#   dependencies: []
+#   script:
+#     - |
+#       curl -X POST -H 'Content-type: application/json' \
+#       --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+#       ${SLACK_SCRATCH_TEST_FEED_WEBHOOK_URL}
+#   rules:
+#     - !reference [.rules, on_merge_to_master]
+#   when: on_failure
 
-notify slack on integration test failure test env post-deploy:
-  stage: post-deploy integration tests
-  needs:
-    - integration tests for test env post-deploy
-  dependencies: []
-  script:
-    - |
-      curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
-      ${SLACK_SCRATCH_TEST_FEED_WEBHOOK_URL}
-  rules:
-    - !reference [.rules, on_merge_to_master]
-  when: on_failure
-
-notify slack on integration test failure test env pre-deploy:
-  stage: pre-deploy integration tests
-  needs:
-    - integration tests for test env pre-deploy
-  dependencies: []
-  script:
-    - |
-      curl -X POST -H 'Content-type: application/json' \
-      --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
-      ${SLACK_SCRATCH_PROD_FEED_WEBHOOK_URL}
-  rules:
-    - !reference [.rules, on_merge_to_prod]
-  when: on_failure
+# notify slack on integration test failure test env pre-deploy:
+#   stage: pre-deploy integration tests
+#   needs:
+#     - integration tests for test env pre-deploy
+#   dependencies: []
+#   script:
+#     - |
+#       curl -X POST -H 'Content-type: application/json' \
+#       --data "{\"text\":\"❌ Integration tests for Scratch failed - Test\n<${CI_PIPELINE_URL}|View Pipeline>\"}" \
+#       ${SLACK_SCRATCH_PROD_FEED_WEBHOOK_URL}
+#   rules:
+#     - !reference [.rules, on_merge_to_prod]
+#   when: on_failure
