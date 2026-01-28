@@ -22,7 +22,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { FileIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDataFolder } from '../../../../hooks/use-data-folder';
-import styles from './DataFolderDetailViewer.module.css';
+import styles from './DataFolderFileList.module.css';
 
 const LOCK_POLL_INTERVAL_MS = 1000;
 
@@ -37,7 +37,7 @@ const AG = {
   },
 } as const;
 
-interface DataFolderDetailViewerProps {
+interface DataFolderFileListProps {
   dataFolderId: DataFolderId | null;
 }
 
@@ -178,7 +178,7 @@ const CustomHeaderComponent = (props: IHeaderParams) => {
   );
 };
 
-export const DataFolderDetailViewer = ({ dataFolderId }: DataFolderDetailViewerProps) => {
+export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) => {
   const { dataFolder, isLoading: folderLoading, refresh: refreshFolder } = useDataFolder(dataFolderId);
   const { files, isLoading: filesLoading, error, refresh: refreshFiles } = useDataFolderFiles(dataFolderId);
   const { colorScheme } = useMantineColorScheme();

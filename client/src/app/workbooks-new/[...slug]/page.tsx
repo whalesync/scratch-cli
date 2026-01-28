@@ -29,9 +29,9 @@ import { useEffect } from 'react';
 import { Text12Book } from '../../components/base/text';
 import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
-import { DataFolderDetailViewer } from './components/DataFolderDetailViewer';
+import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditor } from './components/FileEditor';
-import { FileTabBar } from './components/FileTabBar';
+import { TabBar } from './components/TabBar';
 
 const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
@@ -108,7 +108,7 @@ function WorkbookFilesPageContent() {
               <Split.Pane grow>
                 <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
                   {/* Tab Bar */}
-                  <FileTabBar />
+                  <TabBar />
 
                   {/* Editor Content */}
                   <Box flex={1} style={{ overflow: 'hidden' }}>
@@ -123,7 +123,7 @@ function WorkbookFilesPageContent() {
                       const activeTab = (openFileTabs as any[]).find((t) => t.id === activeFileTabId);
 
                       if (activeTab?.type === 'folder') {
-                        return <DataFolderDetailViewer dataFolderId={activeTab.id as DataFolderId} />;
+                        return <DataFolderFileList dataFolderId={activeTab.id as DataFolderId} />;
                       }
                       if (activeTab?.type === 'add-table') {
                         return <AddLinkedFolderTab />;

@@ -11,12 +11,13 @@ import { formatDate } from '@/utils/helpers';
 import { Center, Code, Divider, Group, Modal, ModalProps, Stack, Table, Tabs, Text } from '@mantine/core';
 import {
   ColumnSpec,
+  DataFolder,
   SnapshotColumnSettings,
   SnapshotColumnSettingsMap,
   SnapshotTable,
   TableSpec,
 } from '@spinner/shared-types';
-import { FileTextIcon } from 'lucide-react';
+import { FileTextIcon, FolderIcon } from 'lucide-react';
 
 export const WorkbookInspector = (props: ModalProps) => {
   const { isDevToolsEnabled } = useDevTools();
@@ -44,7 +45,9 @@ export const WorkbookInspector = (props: ModalProps) => {
   }
 
   const snapshotTables = workbook.snapshotTables || [];
+  const dataFolders = workbook.dataFolders || [];
   const defaultTab = snapshotTables.length > 0 ? snapshotTables[0].id : null;
+  const defaultFolderTab = dataFolders.length > 0 ? dataFolders[0].id : null;
 
   return (
     <Modal {...props} centered fullScreen title="Workbook Inspector">
@@ -62,10 +65,10 @@ export const WorkbookInspector = (props: ModalProps) => {
         <TextTitle3>Tables</TextTitle3>
         {/* Tables Section */}
         {snapshotTables.length > 0 ? (
-          <Tabs defaultValue={defaultTab || undefined}>
+          <Tabs defaultValue={defaultTab || undefined} orientation="vertical">
             <Tabs.List>
               {snapshotTables.map((table) => (
-                <Tabs.Tab key={table.id} value={table.id}>
+                <Tabs.Tab key={table.id} value={table.id} style={{ justifyContent: 'flex-start' }}>
                   {table.tableSpec.name}
                 </Tabs.Tab>
               ))}
@@ -80,6 +83,34 @@ export const WorkbookInspector = (props: ModalProps) => {
         ) : (
           <Center>
             <Text c="dimmed">No tables in this snapshot</Text>
+          </Center>
+        )}
+        <Divider />
+        <TextTitle3>Data Folders</TextTitle3>
+        {dataFolders.length > 0 ? (
+          <Tabs defaultValue={defaultFolderTab || undefined} orientation="vertical">
+            <Tabs.List>
+              {dataFolders.map((folder) => (
+                <Tabs.Tab
+                  key={folder.id}
+                  value={folder.id}
+                  leftSection={<FolderIcon size={14} />}
+                  styles={{ tabLabel: { textAlign: 'left' } }}
+                >
+                  {folder.name}
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+
+            {dataFolders.map((folder) => (
+              <Tabs.Panel key={folder.id} value={folder.id} p="md">
+                <DataFolderDetails folder={folder} />
+              </Tabs.Panel>
+            ))}
+          </Tabs>
+        ) : (
+          <Center>
+            <Text c="dimmed">No data folders in this workbook</Text>
           </Center>
         )}
       </Stack>
@@ -242,5 +273,55 @@ const ColumnSpecDetails = ({
         </Stack>
       </Table.Td>
     </Table.Tr>
+  );
+};
+
+const DataFolderDetails = ({ folder }: { folder: DataFolder }) => {
+  return (
+    <Stack gap="md">
+      <Group gap="lg" align="flex-start">
+        <Stack gap="xs">
+          <LabelValuePair label="Data Folder ID" value={folder.id} canCopy />
+          <LabelValuePair label="Name" value={folder.name} />
+          <LabelValuePair label="Path" value={folder.path || 'N/A'} />
+          <LabelValuePair label="Table ID" value={<Code>{folder.tableId?.join(', ') || 'N/A'}</Code>} />
+          <LabelValuePair label="Parent ID" value={folder.parentId || 'N/A'} canCopy={!!folder.parentId} />
+          <LabelValuePair
+            label="Connector"
+            value={
+              <Text13Regular>
+                {folder.connectorService || 'N/A'}
+                {folder.connectorDisplayName && ` - ${folder.connectorDisplayName}`}
+              </Text13Regular>
+            }
+          />
+          <LabelValuePair
+            label="Connector Account ID"
+            value={folder.connectorAccountId || 'N/A'}
+            canCopy={!!folder.connectorAccountId}
+          />
+        </Stack>
+        <Stack gap="xs">
+          <LabelValuePair label="Version" value={String(folder.version)} />
+          <LabelValuePair label="Lock" value={folder.lock || 'None'} />
+          <LabelValuePair
+            label="Last Sync Time"
+            value={folder.lastSyncTime ? formatDate(folder.lastSyncTime) : 'Never'}
+          />
+          <LabelValuePair
+            label="Last Schema Refresh"
+            value={folder.lastSchemaRefreshAt ? formatDate(folder.lastSchemaRefreshAt) : 'Never'}
+          />
+          <LabelValuePair label="Created At" value={formatDate(folder.createdAt)} />
+          <LabelValuePair label="Updated At" value={formatDate(folder.updatedAt)} />
+        </Stack>
+      </Group>
+      {folder.schema && (
+        <Stack gap="xs">
+          <TextTitle3>Schema</TextTitle3>
+          <Code block>{JSON.stringify(folder.schema, null, 2)}</Code>
+        </Stack>
+      )}
+    </Stack>
   );
 };

@@ -7,13 +7,13 @@ import { DataFolder, Service } from '@spinner/shared-types';
 import { FileTextIcon, FolderIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useDataFolders } from '../../../../hooks/use-data-folders';
-import styles from './FileTabBar.module.css';
+import styles from './TabBar.module.css';
 
-interface FileTabBarProps {
+interface TabBarProps {
   onTabChange?: (tabId: string) => void;
 }
 
-export function FileTabBar({ onTabChange }: FileTabBarProps) {
+export function TabBar({ onTabChange }: TabBarProps) {
   const { workbook } = useActiveWorkbook();
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
