@@ -32,12 +32,40 @@ export class ScratchGitService {
     }
 
     try {
-      await this.scratchGitClient.createRepo(workbookId);
-      await this.scratchGitClient.commit(workbookId, gitFiles, `Backup via Spinner UI at ${new Date().toISOString()}`, {
-        name: 'Spinner User',
-        email: 'user@spinner.app',
-      });
-      await this.scratchGitClient.branchDirty(workbookId, actor.userId);
+      // 4. Delete existing repo
+      await this.scratchGitClient.deleteRepo(workbookId);
+
+      // 5. Init new repo
+      await this.scratchGitClient.initRepo(workbookId);
+
+      // 6. Commit files directory by directory
+      const filesByDir = new Map<string, typeof gitFiles>();
+
+      for (const file of gitFiles) {
+        const dir = file.path.includes('/') ? file.path.substring(0, file.path.lastIndexOf('/')) : '.';
+        if (!filesByDir.has(dir)) {
+          filesByDir.set(dir, []);
+        }
+        filesByDir.get(dir)!.push(file);
+      }
+
+      // Sort directories to ensure consistent order (e.g., shortest first or alphabetical)
+      const sortedDirs = Array.from(filesByDir.keys()).sort();
+
+      for (const dir of sortedDirs) {
+        const dirFiles = filesByDir.get(dir);
+        if (dirFiles) {
+          await this.scratchGitClient.commitFiles(
+            workbookId,
+            'main',
+            dirFiles,
+            `Backup directory ${dir} via Spinner UI at ${new Date().toISOString()}`,
+          );
+        }
+      }
+
+      // 7. Rebase dirty branch on top (user edits win)
+      await this.scratchGitClient.rebaseDirty(workbookId);
 
       return { success: true, message: 'Backup successful' };
     } catch (error) {

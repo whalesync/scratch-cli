@@ -30,7 +30,7 @@ export const WorkbookActionsMenu = () => {
     if (!workbook) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/workbook/${workbook.id}/backup`, {
+      const res = await fetch(`/api/scratch-git/${workbook.id}/backup`, {
         method: 'POST',
       });
       if (!res.ok) throw new Error(await res.text());

@@ -4,12 +4,16 @@ import { Injectable } from '@nestjs/common';
 export class ScratchGitClient {
   private readonly gitApiUrl = process.env.SCRATCH_GIT_URL || 'http://localhost:3100';
 
-  private async callGitApi(endpoint: string, method: string, body: any): Promise<any> {
-    const response = await fetch(`${this.gitApiUrl}${endpoint}`, {
+  private async callGitApi(endpoint: string, method: string, body?: any): Promise<any> {
+    const options: RequestInit = {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    };
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${this.gitApiUrl}${endpoint}`, options);
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`Git API Error ${endpoint}: ${response.status} ${text}`);
@@ -17,28 +21,41 @@ export class ScratchGitClient {
     return response.json();
   }
 
-  async createRepo(repoId: string): Promise<void> {
-    await this.callGitApi('/api/repo/create', 'POST', { repoId });
+  async initRepo(repoId: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/init`, 'POST');
   }
 
-  async commit(
+  async deleteRepo(repoId: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}`, 'DELETE');
+  }
+
+  async commitFiles(
     repoId: string,
-    files: { path: string; content: string }[],
+    branch: 'main' | 'dirty',
+    files: Array<{ path: string; content: string }>,
     message: string,
-    author: { name: string; email: string },
   ): Promise<void> {
-    await this.callGitApi('/api/exec/commit', 'POST', {
-      repoId,
+    await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'POST', {
       files,
       message,
-      author,
     });
   }
 
-  async branchDirty(repoId: string, userId: string): Promise<void> {
-    await this.callGitApi('/api/branch/dirty', 'POST', {
-      repoId,
-      userId,
-    });
+  async rebaseDirty(repoId: string): Promise<{ rebased: boolean; conflicts: string[] }> {
+    return this.callGitApi(`/api/repo/${repoId}/rebase`, 'POST') as Promise<{ rebased: boolean; conflicts: string[] }>;
+  }
+
+  async list(repoId: string, branch: string, folder: string): Promise<any[]> {
+    return this.callGitApi(
+      `/api/repo/${repoId}/list?branch=${branch}&folder=${encodeURIComponent(folder)}`,
+      'GET',
+    ) as Promise<any[]>;
+  }
+
+  async getFile(repoId: string, branch: string, path: string): Promise<{ content: string }> {
+    return this.callGitApi(
+      `/api/repo/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
+      'GET',
+    ) as Promise<{ content: string }>;
   }
 }

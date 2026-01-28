@@ -1,106 +1,120 @@
-import "dotenv/config";
-import express from "express";
 import cors from "cors";
+import express from "express";
 import { GitService } from "./lib/GitService";
 
 const app = express();
+app.use(express.json({ limit: "50mb" }));
+app.use(cors());
+
 const port = process.env.PORT || 3100;
 const gitService = new GitService();
 
-app.use(cors());
-app.use(express.json());
-
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.path}`);
-  next();
-});
-
-// ==========================================
-// RPC API (Stateless Operations)
-// ==========================================
-
-// Create Repo
-app.post("/api/repo/create", async (req, res) => {
+app.post("/api/repo/:id/init", async (req, res) => {
   try {
-    const { repoId } = req.body;
-    if (!repoId) {
-      return res.status(400).json({ error: "repoId is required" });
-    }
-
-    await gitService.initRepo(repoId);
-    res.json({ success: true, message: `Repository ${repoId} initialized.` });
-  } catch (err: any) {
-    console.error("Create Repo Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Read content
-app.get("/api/exec/read", async (req, res) => {
-  try {
-    const { repoId, path: filePath, ref } = req.query;
-    if (!repoId || !filePath) {
-      return res.status(400).json({ error: "repoId and path are required" });
-    }
-
-    const content = await gitService.readFile(
-      String(repoId),
-      String(filePath),
-      ref ? String(ref) : undefined,
-    );
-
-    if (content === null) {
-      return res.status(404).json({ error: "File not found" });
-    }
-
-    res.send(content);
-  } catch (err: any) {
-    console.error("Read Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Stateless commit
-app.post("/api/exec/commit", async (req, res) => {
-  try {
-    const { repoId, files, message, author } = req.body;
-    // files: [{ path, content }]
-
-    if (!repoId || !files || !Array.isArray(files)) {
-      return res
-        .status(400)
-        .json({ error: "repoId and files array are required" });
-    }
-
-    await gitService.statelessCommit(repoId, files, {
-      message: message || "Update from API",
-      author,
-    });
-
+    await gitService.initRepo(req.params.id);
     res.json({ success: true });
-  } catch (err: any) {
-    console.error("Commit Error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
-// Create Dirty Branch (Bookmark)
-app.post("/api/branch/dirty", async (req, res) => {
+app.delete("/api/repo/:id", async (req, res) => {
   try {
-    const { repoId, userId } = req.body;
-    if (!repoId || !userId) {
-      return res.status(400).json({ error: "repoId and userId are required" });
-    }
-
-    await gitService.createDirtyBranch(repoId, userId);
-    res.json({ success: true, message: `Dirty branch created for ${userId}` });
-  } catch (err: any) {
-    console.error("Create Branch Error:", err);
-    res.status(500).json({ error: err.message });
+    await gitService.deleteRepo(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
   }
 });
+
+app.post("/api/repo/:id/rebase", async (req, res) => {
+  try {
+    const result = await gitService.rebaseDirty(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/repo/:id/status", async (req, res) => {
+  try {
+    const status = await gitService.getDirtyStatus(req.params.id);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/repo/:id/diff", async (req, res) => {
+  try {
+    const filePath = req.query.path as string;
+    if (!filePath) throw new Error("Query param path is required");
+    const diff = await gitService.getFileDiff(req.params.id, filePath);
+    res.json(diff);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/repo/:id/list", async (req, res) => {
+  try {
+    const branch = (req.query.branch as string) || "main"; // default to main
+    const folder = (req.query.folder as string) || "";
+    const files = await gitService.list(req.params.id, branch, folder);
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/repo/:id/file", async (req, res) => {
+  try {
+    const branch = (req.query.branch as string) || "main";
+    const path = req.query.path as string;
+    if (!path) throw new Error("Query param path is required");
+    const content = await gitService.getFile(req.params.id, branch, path);
+    if (content === null)
+      return res.status(404).json({ error: "File not found" });
+    res.json({ content });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post("/api/repo/:id/files", async (req, res) => {
+  try {
+    const branch = (req.query.branch as string) || "main";
+    const { files, message } = req.body;
+    await gitService.commitFiles(
+      req.params.id,
+      branch,
+      files,
+      message || "Update files",
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.delete("/api/repo/:id/files", async (req, res) => {
+  try {
+    const branch = (req.query.branch as string) || "main";
+    const { files, message } = req.body; // files is array of paths
+    await gitService.deleteFiles(
+      req.params.id,
+      branch,
+      files,
+      message || "Delete files",
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/health", (_, res) => res.json({ status: "ok" }));
 
 app.listen(port, () => {
-  console.log(`Scratch API Server listening on port ${port}`);
+  console.log(`ScratchGit API listening at http://localhost:${port}`);
 });

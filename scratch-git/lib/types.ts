@@ -6,37 +6,60 @@ export interface CommitOptions {
   };
 }
 
+export interface FileChange {
+  path: string;
+  content?: string;
+  type: "add" | "modify" | "delete";
+}
+
+export interface GitFile {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+}
+
+export interface DirtyFile {
+  path: string;
+  status: "added" | "modified" | "deleted";
+}
+
 export interface IGitService {
-  /**
-   * Get the filesystem path for a workspace's git repo
-   */
   getRepoPath(repoId: string): string;
-
-  /**
-   * Initialize a bare git repository
-   */
   initRepo(repoId: string): Promise<void>;
+  deleteRepo(repoId: string): Promise<void>;
 
-  /**
-   * Read a file's content directly from the bare repo
-   */
-  readFile(
+  list(repoId: string, branch: string, folderPath: string): Promise<GitFile[]>;
+
+  getFile(
     repoId: string,
+    branch: string,
     filePath: string,
-    ref?: string,
   ): Promise<string | null>;
-
-  /**
-   * Stateless commit: Clone (partial) -> Edit -> Commit -> Push
-   */
-  statelessCommit(
+  fileExists(
     repoId: string,
-    files: { path: string; content: string | null }[],
-    options: CommitOptions,
+    branch: string,
+    filePath: string,
+  ): Promise<boolean>;
+
+  commitFiles(
+    repoId: string,
+    branch: string,
+    files: Array<{ path: string; content: string }>,
+    message: string,
+  ): Promise<void>;
+  deleteFiles(
+    repoId: string,
+    branch: string,
+    filePaths: string[],
+    message: string,
   ): Promise<void>;
 
-  /**
-   * Create a dirty branch for a user effectively creating a bookmark/backup point
-   */
-  createDirtyBranch(repoId: string, userId: string): Promise<void>;
+  rebaseDirty(
+    repoId: string,
+  ): Promise<{ rebased: boolean; conflicts: string[] }>;
+  getDirtyStatus(repoId: string): Promise<DirtyFile[]>;
+  getFileDiff(
+    repoId: string,
+    filePath: string,
+  ): Promise<{ main: string | null; dirty: string | null } | null>;
 }

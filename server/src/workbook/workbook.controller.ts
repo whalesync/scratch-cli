@@ -78,6 +78,7 @@ import { DataFolderService } from './data-folder.service';
 import { Workbook } from './entities';
 import { DownloadWorkbookResult, DownloadWorkbookWithoutJobResult } from './entities/download-results.entity';
 import { SnapshotTable } from './entities/snapshot-table.entity';
+
 import { SnapshotDbService } from './snapshot-db.service';
 import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
 import { getSnapshotTableById } from './util';
@@ -708,7 +709,6 @@ export class WorkbookController {
   }
 
   /* Start new Data Folder functions */
-  @Get(':id/data-folders/list')
   async listDataFolders(@Param('id') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<DataFolderGroup[]> {
     return await this.dataFolderService.listGroupedByConnectorBases(workbookId, userToActor(req.user));
   }
