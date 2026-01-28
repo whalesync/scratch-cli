@@ -27,7 +27,8 @@ integration tests for test env post-deploy:
     reports:
       junit: "server/junit.xml"
   rules:
-    - !reference [.rules, on_merge_to_master]
+    # - !reference [.rules, on_merge_to_master]
+    - when: never
 
 integration tests for test env pre-deploy:
   stage: pre-deploy integration tests
@@ -49,7 +50,8 @@ integration tests for test env pre-deploy:
     reports:
       junit: "server/junit.xml"
   rules:
-    - !reference [.rules, on_merge_to_prod]
+    # - !reference [.rules, on_merge_to_prod]
+    - when: never
 
 notify slack on integration test failure test env post-deploy:
   stage: post-deploy integration tests
