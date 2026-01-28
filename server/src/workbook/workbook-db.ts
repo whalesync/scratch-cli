@@ -251,6 +251,16 @@ export class WorkbookDb {
     return results;
   }
 
+  async countFilesByFolderId(workbookId: WorkbookId, folderId: string): Promise<number> {
+    const result = await this.getKnex()(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FOLDER_ID_COLUMN, folderId)
+      .count('* as count')
+      .first<{ count: string }>();
+
+    return parseInt(result?.count ?? '0', 10);
+  }
+
   /**
    * Returns FileDbRecords for a list of file IDs
    */

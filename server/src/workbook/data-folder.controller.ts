@@ -16,6 +16,7 @@ import {
 import type {
   DataFolder,
   DataFolderId,
+  FileId,
   ListDataFolderFilesResponseDto,
   ValidatedCreateDataFolderDto,
   ValidatedMoveDataFolderDto,
@@ -52,51 +53,56 @@ export class DataFolderController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<DataFolder> {
-    return await this.dataFolderService.findOne(id as DataFolderId, userToActor(req.user));
+  async findOne(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<DataFolder> {
+    return await this.dataFolderService.findOne(id, userToActor(req.user));
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
-    await this.dataFolderService.deleteFolder(id as DataFolderId, userToActor(req.user));
+  async delete(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<void> {
+    await this.dataFolderService.deleteFolder(id, userToActor(req.user));
   }
 
   @Patch(':id/rename')
   async rename(
-    @Param('id') id: string,
+    @Param('id') id: DataFolderId,
     @Body() renameDto: RenameDataFolderDto,
     @Req() req: RequestWithUser,
   ): Promise<DataFolder> {
     const dto = renameDto as ValidatedRenameDataFolderDto;
-    return await this.dataFolderService.renameFolder(id as DataFolderId, dto.name, userToActor(req.user));
+    return await this.dataFolderService.renameFolder(id, dto.name, userToActor(req.user));
   }
 
   @Patch(':id/move')
   async move(
-    @Param('id') id: string,
+    @Param('id') id: DataFolderId,
     @Body() moveDto: MoveDataFolderDto,
     @Req() req: RequestWithUser,
   ): Promise<DataFolder> {
     const dto = moveDto as ValidatedMoveDataFolderDto;
-    return await this.dataFolderService.moveFolder(
-      id as DataFolderId,
-      dto.parentFolderId ?? null,
-      userToActor(req.user),
-    );
+    return await this.dataFolderService.moveFolder(id, dto.parentFolderId ?? null, userToActor(req.user));
   }
 
   @Get(':id/files')
   async listFiles(
-    @Param('id') id: string,
+    @Param('id') id: DataFolderId,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Req() req?: RequestWithUser,
   ): Promise<ListDataFolderFilesResponseDto> {
     return await this.dataFolderService.listFiles(
-      id as DataFolderId,
+      id,
       userToActor(req!.user),
       limit ? parseInt(limit, 10) : undefined,
       offset ? parseInt(offset, 10) : undefined,
     );
+  }
+
+  @Delete(':id/files/:fileId')
+  async deleteFile(
+    @Param('id') id: DataFolderId,
+    @Param('fileId') fileId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.dataFolderService.deleteFile(id, fileId as FileId, userToActor(req.user));
   }
 }

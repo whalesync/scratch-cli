@@ -153,20 +153,52 @@ export class DataFolderService {
     }
 
     // Get files from the workbook database using the data folder's path
-
-    const allFiles = await this.workbookDbService.workbookDb.getFilesByFolderId(
-      dataFolder.workbookId as WorkbookId,
-      id,
-      { offset, limit },
-    );
+    const [allFiles, totalCount] = await Promise.all([
+      this.workbookDbService.workbookDb.getFilesByFolderId(dataFolder.workbookId as WorkbookId, id, { offset, limit }),
+      this.workbookDbService.workbookDb.countFilesByFolderId(dataFolder.workbookId as WorkbookId, id),
+    ]);
 
     return {
       files: allFiles.map((f) => ({
         fileId: f.id as FileId,
         filename: f.name,
         path: f.path,
+        deleted: f.deleted,
       })),
+      totalCount,
     };
+  }
+
+  async deleteFile(dataFolderId: DataFolderId, fileId: FileId, actor: Actor): Promise<void> {
+    const dataFolder = await this.db.client.dataFolder.findUnique({
+      where: { id: dataFolderId },
+      include: DataFolderCluster._validator.include,
+    });
+
+    if (!dataFolder) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Delete the file
+    await this.workbookDbService.workbookDb.deleteFileById(dataFolder.workbookId as WorkbookId, fileId, false);
+
+    // Log audit event
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'delete',
+      message: `Deleted file ${fileId} from data folder ${dataFolder.name}`,
+      entityId: fileId,
+      context: {
+        workbookId: dataFolder.workbookId,
+        dataFolderId,
+      },
+    });
   }
 
   async createFolder(dto: ValidatedCreateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {

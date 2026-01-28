@@ -2,6 +2,7 @@ import {
   CreateDataFolderDto,
   DataFolder,
   DataFolderId,
+  FileId,
   ListDataFolderFilesResponseDto,
   MoveDataFolderDto,
   RenameDataFolderDto,
@@ -68,6 +69,15 @@ export const dataFolderApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list data folder files');
+    }
+  },
+
+  deleteFile: async (dataFolderId: DataFolderId, fileId: FileId): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/data-folder/${dataFolderId}/files/${fileId}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete file');
     }
   },
 };

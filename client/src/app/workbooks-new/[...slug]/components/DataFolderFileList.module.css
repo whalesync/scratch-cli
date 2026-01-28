@@ -1,24 +1,45 @@
-/* Always visible scrollbars for AG Grid */
-.ag-grid-container {
-  /* Force scrollbars to always be visible */
+.fileListContainer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #666 #333;
 }
 
-.ag-grid-container .ag-body-viewport::-webkit-scrollbar {
+.fileListContainer::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
-.ag-grid-container .ag-body-viewport::-webkit-scrollbar-track {
+.fileListContainer::-webkit-scrollbar-track {
   background: #333;
 }
 
-.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb {
+.fileListContainer::-webkit-scrollbar-thumb {
   background: #666;
   border-radius: 4px;
 }
 
-.ag-grid-container .ag-body-viewport::-webkit-scrollbar-thumb:hover {
+.fileListContainer::-webkit-scrollbar-thumb:hover {
   background: #888;
+}
+
+.fileItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 4px;
+}
+
+.fileItem:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.footer {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 var(--mantine-spacing-xs);
+  border-top: 0.5px solid var(--fg-divider);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
