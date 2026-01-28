@@ -151,6 +151,36 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     let titleColumnRemoteId: EntityId['remoteId'] | undefined;
     let mainContentColumnRemoteId: EntityId['remoteId'] | undefined;
 
+    // Add item-level metadata fields (these are present in all Webflow items)
+    properties['id'] = Type.String({ description: 'Unique item identifier (read-only)' });
+    properties['cmsLocaleId'] = Type.Optional(Type.String({ description: 'CMS locale identifier (read-only)' }));
+    properties['lastPublished'] = Type.Optional(
+      Type.Union([Type.String({ format: 'date-time' }), Type.Null()], {
+        description: 'When the item was last published (read-only)',
+      }),
+    );
+    properties['lastUpdated'] = Type.Optional(
+      Type.String({
+        format: 'date-time',
+        description: 'When the item was last updated (read-only)',
+      }),
+    );
+    properties['createdOn'] = Type.Optional(
+      Type.String({
+        format: 'date-time',
+        description: 'When the item was created (read-only)',
+      }),
+    );
+    properties['isArchived'] = Type.Optional(
+      Type.Boolean({ description: 'Whether the item is archived (default: false)' }),
+    );
+    properties['isDraft'] = Type.Optional(
+      Type.Boolean({ description: 'Whether the item is a draft (default: false)' }),
+    );
+
+    // Add fieldData wrapper to indicate where custom fields are stored
+    const fieldDataProperties: Record<string, TSchema> = {};
+
     for (const field of collection.fields) {
       // Skip fields without a slug
       if (!field.slug) {
@@ -164,10 +194,10 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       const isRequired = field.isRequired || field.slug === 'slug' || field.slug === 'name';
 
       if (isRequired) {
-        properties[field.slug] = fieldSchema;
+        fieldDataProperties[field.slug] = fieldSchema;
       } else {
         // Wrap optional fields in Type.Optional to exclude from required array
-        properties[field.slug] = Type.Optional(fieldSchema);
+        fieldDataProperties[field.slug] = Type.Optional(fieldSchema);
       }
 
       // Track title column (name field)
@@ -180,6 +210,11 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         mainContentColumnRemoteId = [field.slug, field.id];
       }
     }
+
+    // Add fieldData as an object containing all collection-specific fields
+    properties['fieldData'] = Type.Object(fieldDataProperties, {
+      description: 'Collection-specific field values',
+    });
 
     const schema = Type.Object(properties, {
       $id: collectionId,
