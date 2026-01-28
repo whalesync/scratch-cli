@@ -7,18 +7,14 @@ import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { BaseColumnSpec, ConnectorRecord, TablePreview } from 'src/remote-service/connectors/types';
+import { BaseColumnSpec, ConnectorFile, TablePreview } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
 import { normalizeFileName } from 'src/workbook/util';
-import { convertConnectorRecordToFrontMatter } from 'src/workbook/workbook-db';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
-import { JsonTableInfo, ListJsonTablesResponseDto } from './dtos/list-json-tables.dto';
-import { ListTablesResponseDto } from './dtos/list-tables.dto';
+import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
 import { ValidatedFileResult, ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
-import { FieldInfo } from './entities/field-info.entity';
-import { TableInfo } from './entities/table-info.entity';
 
 @Injectable()
 export class CliService {
@@ -116,78 +112,47 @@ export class CliService {
   }
 
   /**
-   * Gets a list of all available tables formatted as TableInfo objects
+   * Gets a list of all available tables with their JSON Schema specs
    */
   async listTables(credentials: CliConnectorCredentials, actor?: Actor): Promise<ListTablesResponseDto> {
     try {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
+
+      // Check if the connector supports fetchJsonTableSpec
+      if (!connector.fetchJsonTableSpec) {
+        return {
+          error: `The ${credentials.service} connector does not support JSON Schema specs`,
+        };
+      }
+
       const tablePreviews = await connector.listTables();
 
-      const tableSpecs = await Promise.all(
-        tablePreviews.map((table: TablePreview) => connector.fetchTableSpec(table.id)),
-      );
+      const tables: TableInfo[] = await Promise.all(
+        tablePreviews.map(async (table: TablePreview) => {
+          const tableInfo = new TableInfo();
 
-      // Convert table specs to TableInfo objects
-      const tables: TableInfo[] = tableSpecs.map((spec) => {
-        const tableInfo = new TableInfo();
-        const tablePreview = tablePreviews.find((p) => spec.id.wsId === p.id.wsId);
-        if (spec.id.remoteId.length > 1) {
-          // Table IDs are an array that represent a path to an object.
-          // If there are multiple elements, the first element is a base or site ID, the second element is the table ID
-          tableInfo.siteId = spec.id.remoteId[0];
-          tableInfo.id = spec.id.remoteId[1];
-
-          // The site name, might be stored in the TablePreview metadata
-          if (tablePreview && tablePreview.metadata) {
-            if ('siteName' in tablePreview.metadata) {
-              tableInfo.siteName = tablePreview.metadata.siteName as string;
-            } else if ('baseName' in tablePreview.metadata) {
-              tableInfo.siteName = tablePreview.metadata.baseName as string;
+          if (table.id.remoteId.length > 1) {
+            tableInfo.siteId = table.id.remoteId[0];
+            tableInfo.id = table.id.remoteId[1];
+            // Site name might be in metadata
+            if (table.metadata && 'siteName' in table.metadata) {
+              tableInfo.siteName = table.metadata.siteName as string;
+            } else if (table.metadata && 'baseName' in table.metadata) {
+              tableInfo.siteName = table.metadata.baseName as string;
             }
+          } else {
+            tableInfo.id = table.id.remoteId[0];
           }
-        } else {
-          tableInfo.id = spec.id.remoteId[0];
-        }
-        tableInfo.name = spec.name;
-        tableInfo.slug = spec.slug;
 
-        // Convert columns to FieldInfo objects
-        tableInfo.fields = spec.columns
-          .filter((col) => !col.readonly)
-          .map((col) => {
-            const fieldInfo = new FieldInfo();
-            fieldInfo.id = col.id.remoteId.join('/');
-            fieldInfo.name = col.name;
-            fieldInfo.slug = col.slug ?? col.id.remoteId[0];
-            fieldInfo.type = col.pgType;
-            fieldInfo.required = col.required;
-            fieldInfo.extraInfo = this.extractExtraInfo(col);
-            return fieldInfo;
-          });
+          tableInfo.name = table.displayName;
+          const jsonSpec = await connector.fetchJsonTableSpec(table.id);
+          tableInfo.slug = jsonSpec.slug;
+          tableInfo.schema = jsonSpec.schema;
+          tableInfo.idField = jsonSpec.idColumnRemoteId || 'id';
 
-        tableInfo.systemFields = spec.columns
-          .filter((col) => col.readonly)
-          .map((col) => {
-            const fieldInfo = new FieldInfo();
-            fieldInfo.id = Array.isArray(col.id.remoteId) ? col.id.remoteId.join('/') : col.id.remoteId;
-            fieldInfo.name = col.name;
-            fieldInfo.slug = col.slug ?? col.id.remoteId[0];
-            fieldInfo.type = col.pgType;
-            fieldInfo.required = col.required;
-            fieldInfo.extraInfo = this.extractExtraInfo(col);
-            return fieldInfo;
-          });
-
-        tableInfo.extraInfo = {};
-        if (spec.mainContentColumnRemoteId) {
-          tableInfo.extraInfo.contentFieldId = spec.mainContentColumnRemoteId[0];
-        }
-        if (spec.titleColumnRemoteId && spec.titleColumnRemoteId.length > 0) {
-          tableInfo.extraInfo.filenameFieldId = spec.titleColumnRemoteId[0];
-        }
-
-        return tableInfo;
-      });
+          return tableInfo;
+        }),
+      );
 
       const result = {
         tables,
@@ -214,67 +179,6 @@ export class CliService {
     }
   }
 
-  /**
-   * Gets a list of all available tables with their JSON Schema specs
-   */
-  async listJsonTables(credentials: CliConnectorCredentials, actor?: Actor): Promise<ListJsonTablesResponseDto> {
-    try {
-      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
-
-      // Check if the connector supports fetchJsonTableSpec
-      if (!connector.fetchJsonTableSpec) {
-        return {
-          error: `The ${credentials.service} connector does not support JSON Schema specs`,
-        };
-      }
-
-      const tablePreviews = await connector.listTables();
-
-      const tables: JsonTableInfo[] = await Promise.all(
-        tablePreviews.map(async (table: TablePreview) => {
-          const jsonTableInfo = new JsonTableInfo();
-
-          if (table.id.remoteId.length > 1) {
-            jsonTableInfo.siteId = table.id.remoteId[0];
-            jsonTableInfo.id = table.id.remoteId[1];
-          } else {
-            jsonTableInfo.id = table.id.remoteId[0];
-          }
-
-          jsonTableInfo.name = table.displayName;
-          const jsonSpec = await connector.fetchJsonTableSpec(table.id);
-          jsonTableInfo.schema = jsonSpec.schema;
-
-          return jsonTableInfo;
-        }),
-      );
-
-      const result = {
-        tables,
-      };
-
-      if (actor) {
-        this.posthogService.captureEvent(PostHogEventName.CLI_LIST_TABLES, actor.userId, {
-          service: credentials.service,
-          tableCount: result.tables?.length || 0,
-          jsonSchema: true,
-        });
-      }
-
-      return result;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      WSLogger.error({
-        source: 'CliService',
-        message: 'Error listing JSON tables',
-        error: errorMessage,
-      });
-      return {
-        error: errorMessage,
-      };
-    }
-  }
-
   async download(
     credentials: CliConnectorCredentials,
     downloadRequest: DownloadRequestDto,
@@ -287,57 +191,57 @@ export class CliService {
     try {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
 
-      // Fetch the table spec using the tableId array as the remoteId
-      // TODO: the client should probably just provide the spec directly
-      const tableSpec = await connector.fetchTableSpec({
+      // Check if the connector supports JSON-based download
+      if (!connector.downloadRecordFiles) {
+        return {
+          error: `The ${credentials.service} connector does not support JSON file downloads`,
+        };
+      }
+
+      // Fetch the JSON table spec
+      const tableSpec = await connector.fetchJsonTableSpec({
         wsId: downloadRequest.tableId.join('-'),
         remoteId: downloadRequest.tableId,
       });
 
-      // Collect all records
-      const allRecords: ConnectorRecord[] = [];
+      // Collect all files using the JSON-based method
+      const allFiles: ConnectorFile[] = [];
 
-      // download all the tables in one go
-      // TODO: add pagination support to the connectors
-      await connector.downloadTableRecords(
+      await connector.downloadRecordFiles(
         tableSpec,
-        {}, // Empty column settings map for CLI usage
-        ({ records }) => {
-          allRecords.push(...records);
+        ({ files }) => {
+          allFiles.push(...files);
           return Promise.resolve();
         },
         {}, // Empty progress object for CLI usage
       );
 
-      const fileNameColumnId = downloadRequest.filenameFieldId
-        ? [downloadRequest.filenameFieldId]
-        : tableSpec.titleColumnRemoteId;
-      const contentColumnId = downloadRequest.contentFieldId
-        ? [downloadRequest.contentFieldId]
-        : tableSpec.mainContentColumnRemoteId;
+      // Determine the ID field from the table spec (e.g., 'uid' for Audienceful, 'id' for others)
+      const idField = tableSpec.idColumnRemoteId || 'id';
+      // Determine the filename field from request or use the ID field
+      const filenameField = downloadRequest.filenameFieldId || idField;
 
-      // Convert records to frontmatter files
-      const files: FileContent[] = allRecords.map((record) => {
-        const { content } = convertConnectorRecordToFrontMatter(record, { contentColumnId, embedRemoteId: true });
+      // Convert to response format
+      const files: FileContent[] = allFiles.map((file) => {
+        // Get the ID from the file using the schema-defined ID field
+        const rawId = file[idField];
+        const id = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : '';
 
-        // Determine filename from title column or record ID
-        let fileName = record.id;
-        if (fileNameColumnId) {
-          const column = tableSpec.columns.find((c) =>
-            Array.isArray(c.id.remoteId)
-              ? c.id.remoteId[0] === fileNameColumnId?.[0]
-              : c.id.remoteId === fileNameColumnId?.[0],
-          );
-          const titleValue = record.fields[column?.id.wsId ?? ''];
-          if (titleValue && typeof titleValue === 'string') {
-            fileName = titleValue;
+        // Get filename from the specified field or fall back to ID
+        let fileName = id;
+        if (filenameField && file[filenameField]) {
+          const fieldValue = file[filenameField];
+          if (typeof fieldValue === 'string') {
+            fileName = fieldValue;
+          } else if (typeof fieldValue === 'number') {
+            fileName = String(fieldValue);
           }
         }
 
         return {
           slug: normalizeFileName(fileName),
-          id: record.id,
-          content,
+          id,
+          content: JSON.stringify(file, null, 2),
         };
       });
 

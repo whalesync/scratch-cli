@@ -25,6 +25,7 @@ type TableConfig struct {
 	SiteName      string `yaml:"siteName,omitempty"`     // Site display name
 	FilenameField string `yaml:"filenameField"`          // Field to use for filenames (default: slug)
 	ContentField  string `yaml:"contentField,omitempty"` // Field to use as main content body
+	IdField       string `yaml:"idField,omitempty"`      // Field to use as unique identifier (default: id)
 	LastDownload  string `yaml:"lastDownload,omitempty"` // Timestamp of last download (RFC3339)
 }
 

@@ -35,7 +35,7 @@ export type FileContent = {
   // The remote ID of remote record that this file was generated from
   id: string;
 
-  // the content of the file in Frontmatter YAML format
+  // The content of the file as JSON string
   content: string;
 };
 

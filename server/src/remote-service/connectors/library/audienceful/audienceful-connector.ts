@@ -379,18 +379,20 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
 
   /**
    * Delete people records.
+   * Audienceful requires email to delete a person, so we fetch the person first to get the email.
    */
   async deleteRecords(
     _tableSpec: AudiencefulTableSpec,
     recordIds: { wsId: string; remoteId: string }[],
   ): Promise<void> {
     for (const record of recordIds) {
-      // We need to get the email from the record to delete it
-      // The remoteId is the uid, but we need to find the email
-      // For now, we'll skip deletion if we don't have the email
-      // This is a limitation of the current design
-      // In practice, the email should be available in the record fields during publish
-      await this.client.deletePerson({ email: record.remoteId });
+      // Audienceful requires email to delete - fetch the person first to get the email
+      const person = await this.client.getPerson(record.remoteId);
+      if (!person) {
+        // Person already deleted, skip
+        continue;
+      }
+      await this.client.deletePerson({ email: person.email });
     }
   }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
-	"github.com/whalesync/scratch-cli/internal/providers"
 )
 
 // folderCmd represents the folder command
@@ -124,7 +123,7 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 	}
 
 	// Find the table by ID
-	var targetTable *providers.TableInfo
+	var targetTable *api.TableInfo
 	for i := range resp.Tables {
 		if resp.Tables[i].ID == tableID {
 			targetTable = &resp.Tables[i]
@@ -153,6 +152,10 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create table config
+	idField := targetTable.IdField
+	if idField == "" {
+		idField = "id" // default
+	}
 	tableConfig := &config.TableConfig{
 		AccountID:     account.ID,
 		Provider:      account.Provider,
@@ -162,6 +165,7 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 		SiteName:      targetTable.SiteName,
 		FilenameField: "slug", // default
 		ContentField:  "",     // user can set later if needed
+		IdField:       idField,
 	}
 
 	// Create the .scratchmd directory structure
@@ -176,14 +180,8 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save table config: %w", err)
 	}
 
-	// Create schema from table fields with metadata
-	schema := make(config.TableSchema)
-	for _, field := range targetTable.Fields {
-		schema[field.Slug] = fieldInfoToSchema(field)
-	}
-	for _, field := range targetTable.SystemFields {
-		schema[field.Slug] = fieldInfoToSchema(field)
-	}
+	// Create schema from JSON schema properties
+	schema := jsonSchemaToTableSchema(targetTable.Schema)
 
 	if err := config.SaveTableSchema(folderName, schema); err != nil {
 		return fmt.Errorf("failed to save table schema: %w", err)

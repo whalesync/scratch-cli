@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"mime"
 	"os"
@@ -122,7 +123,7 @@ Examples:
 
 // contentUploadCmd represents the content upload command
 var contentUploadCmd = &cobra.Command{
-	Use:   "upload [folder[/file.md]]",
+	Use:   "upload [folder[/file.json]]",
 	Short: "[NON-INTERACTIVE] Upload local changes to CMS",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
@@ -130,18 +131,18 @@ Upload local content changes to the configured CMS.
 
 Without arguments, uploads all changes across all linked tables.
 With folder argument, uploads changes for that collection only.
-With folder/file.md argument, uploads a single record.
+With folder/file.json argument, uploads a single record.
 
 By default, shows a preview of changes and asks for confirmation.
 Use --no-review to skip the confirmation prompt.
 Use --sync-deletes to delete remote records that are missing locally.
 
 Examples:
-  scratchmd content upload                      # upload all changes (with review)
-  scratchmd content upload blog-posts           # upload one collection
-  scratchmd content upload blog-posts/post.md   # upload one record
-  scratchmd content upload --no-review          # skip confirmation
-  scratchmd content upload --sync-deletes       # delete remote records missing locally`,
+  scratchmd content upload                       # upload all changes (with review)
+  scratchmd content upload blog-posts            # upload one collection
+  scratchmd content upload blog-posts/post.json  # upload one record
+  scratchmd content upload --no-review           # skip confirmation
+  scratchmd content upload --sync-deletes        # delete remote records missing locally`,
 	RunE: runContentUpload,
 }
 
@@ -987,8 +988,8 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	var tableName, fileName string
 	if len(args) > 0 {
 		arg := args[0]
-		// Check if it's a folder/file.md pattern
-		if strings.Contains(arg, "/") && strings.HasSuffix(arg, ".md") {
+		// Check if it's a folder/file.json pattern
+		if strings.Contains(arg, "/") && strings.HasSuffix(arg, ".json") {
 			parts := strings.SplitN(arg, "/", 2)
 			tableName = parts[0]
 			fileName = parts[1]
@@ -1045,21 +1046,25 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("original folder '%s' does not exist. Run 'content download %s' first", originalDir, table)
 		}
 
-		// Load table config to get content field name
+		// Load table config to get content field name and id field
 		tableConfig, err := config.LoadTableConfig(table)
 		if err != nil {
 			return fmt.Errorf("failed to load table config for '%s': %w", table, err)
 		}
 		contentFieldName := ""
+		idField := "id" // default
 		if tableConfig != nil {
 			contentFieldName = tableConfig.ContentField
+			if tableConfig.IdField != "" {
+				idField = tableConfig.IdField
+			}
 		}
 
 		// Get changes for this table
 		var changes []UploadChange
 		if fileName != "" {
 			// Single file mode
-			change, err := getSingleFileChange(table, originalDir, fileName, contentFieldName)
+			change, err := getSingleFileChange(table, originalDir, fileName, contentFieldName, idField)
 			if err != nil {
 				return err
 			}
@@ -1068,7 +1073,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			}
 		} else {
 			// Folder mode
-			changes, err = getFolderChanges(table, originalDir, contentFieldName, syncDeletes)
+			changes, err = getFolderChanges(table, originalDir, contentFieldName, idField, syncDeletes)
 			if err != nil {
 				return err
 			}
@@ -1241,7 +1246,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 					if change.Operation == "create" {
 						// Check if there are any attachment changes for this new file
 						_, baseFilename := filepath.Split(change.Filename)
-						fileSlug := strings.TrimSuffix(baseFilename, ".md")
+						fileSlug := getFileSlug(baseFilename)
 
 						for _, fieldName := range attachmentFields {
 							changes, _ := getAttachmentFieldChanges(tc.tableName, originalDir, fileSlug, fieldName)
@@ -1261,7 +1266,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 					}
 
 					_, baseFilename := filepath.Split(change.Filename)
-					fileSlug := strings.TrimSuffix(baseFilename, ".md")
+					fileSlug := getFileSlug(baseFilename)
 
 					for _, fieldName := range attachmentFields {
 						uploaded, err := uploadNewAndModifiedAttachments(
@@ -1300,25 +1305,15 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				op = api.OpDelete
 			}
 
-			// Build data map, excluding remoteId
-			// For updates, only include changed fields
+			// Build data map, excluding remoteId and id
+			// Send all fields for both create and update operations
+			// (Some APIs like Audienceful need identifier fields like email for updates)
 			var data map[string]interface{}
-			switch change.Operation {
-			case "update":
-				data = make(map[string]interface{})
-				for _, field := range change.ChangedFields {
-					// Strip suffix like " (added)" or " (removed)" from field names
-					cleanField := strings.TrimSuffix(strings.TrimSuffix(field, " (added)"), " (removed)")
-					if cleanField != "remoteId" {
-						if val, ok := change.FieldValues[cleanField]; ok {
-							data[cleanField] = val
-						}
-					}
-				}
-			case "create":
+			if change.Operation == "create" || change.Operation == "update" {
 				data = make(map[string]interface{})
 				for k, v := range change.FieldValues {
-					if k != "remoteId" {
+					// Exclude internal tracking fields
+					if k != "remoteId" && k != "id" {
 						data[k] = v
 					}
 				}
@@ -1327,9 +1322,9 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			// Convert attachment field values from folder paths to attachment IDs
 			// Only do this if the provider supports attachments and we have attachment fields
 			if supportsAttachments && len(attachmentFields) > 0 && data != nil {
-				// Get the file slug from the filename (e.g., "blog-posts/my-post.md" -> "my-post")
+				// Get the file slug from the filename (e.g., "blog-posts/my-post.json" -> "my-post")
 				_, baseFilename := filepath.Split(change.Filename)
-				fileSlug := strings.TrimSuffix(baseFilename, ".md")
+				fileSlug := getFileSlug(baseFilename)
 
 				for _, fieldName := range attachmentFields {
 					if _, hasField := data[fieldName]; hasField {
@@ -1425,7 +1420,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 					}
 
 					_, baseFilename := filepath.Split(result.Filename)
-					fileSlug := strings.TrimSuffix(baseFilename, ".md")
+					fileSlug := getFileSlug(baseFilename)
 
 					// Check each attachment field for removed files
 					for _, fieldName := range attachmentFields {
@@ -1863,12 +1858,12 @@ func getAllFilesFromTables(tables []string) ([]string, error) {
 	return allFiles, nil
 }
 
-// getSingleFileChange detects what changed for a single file by comparing against its original.
+// getSingleFileChange detects what changed for a single JSON file by comparing against its original.
 //
 // Returns nil if no changes detected. Determines operation type (create/update/delete) by
 // checking file existence in current vs original directories. For updates, only changed
-// fields are included in the result.
-func getSingleFileChange(tableName, originalDir, fileName, contentFieldName string) (*UploadChange, error) {
+// fields are included in the result. idField specifies which JSON field to use as the record ID.
+func getSingleFileChange(tableName, originalDir, fileName, contentFieldName, idField string) (*UploadChange, error) {
 	currentPath := filepath.Join(tableName, fileName)
 	originalPath := filepath.Join(originalDir, fileName)
 
@@ -1882,21 +1877,20 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 
 	// Deleted file
 	if !currentExists && originalExists {
-		// Get remoteId from the original file for delete operations
-		originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+		originalFields, err := parseJsonFile(originalPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse original file: %w", err)
 		}
 		return &UploadChange{
 			Operation: "delete",
 			Filename:  fullFileName,
-			RemoteID:  originalFields["remoteId"],
+			RemoteID:  getRemoteIDFromInterface(originalFields, idField),
 		}, nil
 	}
 
 	// Created file
 	if currentExists && !originalExists {
-		currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+		currentFields, err := parseJsonFile(currentPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse file: %w", err)
 		}
@@ -1908,9 +1902,9 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 		return &UploadChange{
 			Operation:     "create",
 			Filename:      fullFileName,
-			RemoteID:      currentFields["remoteId"],
+			RemoteID:      getRemoteIDFromInterface(currentFields, idField),
 			ChangedFields: fields,
-			FieldValues:   stringMapToInterface(currentFields),
+			FieldValues:   currentFields,
 		}, nil
 	}
 
@@ -1920,24 +1914,24 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 	}
 
 	// Both exist - check for changes
-	currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+	currentFields, err := parseJsonFile(currentPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse current file: %w", err)
 	}
 
-	originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+	originalFields, err := parseJsonFile(originalPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse original file: %w", err)
 	}
 
-	changedFields := getChangedFields(currentFields, originalFields)
+	changedFields := getChangedFieldsInterface(currentFields, originalFields)
+	fileSlug := getFileSlug(fileName)
 
 	// Check for attachment field changes if provider supports attachments
 	if providerSupportsAttachments(tableName) {
 		schema, _ := config.LoadTableSchema(tableName)
 		if schema != nil {
 			attachmentFields := getAttachmentFieldsFromSchema(schema)
-			fileSlug := strings.TrimSuffix(fileName, ".md")
 			for _, fieldName := range attachmentFields {
 				changes, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
 				if err == nil && len(changes) > 0 {
@@ -1964,24 +1958,25 @@ func getSingleFileChange(tableName, originalDir, fileName, contentFieldName stri
 	return &UploadChange{
 		Operation:     "update",
 		Filename:      fullFileName,
-		RemoteID:      currentFields["remoteId"],
+		RemoteID:      getRemoteIDFromInterface(currentFields, idField),
 		ChangedFields: changedFields,
-		FieldValues:   stringMapToInterface(currentFields),
+		FieldValues:   currentFields,
 	}, nil
 }
 
 // getFolderChanges scans a folder and detects all changes compared to original copies.
 //
-// Compares .md files in tableName/ against .scratchmd/<tableName>/original/ to find:
+// Compares .json files in tableName/ against .scratchmd/<tableName>/original/ to find:
 // - Deleted: files in original but not in current (only if includeDeletes=true)
 // - Created: files in current but not in original
 // - Updated: files in both with different content
 //
 // Results are sorted by operation (delete, create, update) then filename.
-func getFolderChanges(tableName, originalDir, contentFieldName string, includeDeletes bool) ([]UploadChange, error) {
+// idField specifies which JSON field to use as the record ID.
+func getFolderChanges(tableName, originalDir, contentFieldName, idField string, includeDeletes bool) ([]UploadChange, error) {
 	var changes []UploadChange
 
-	// Get list of .md files in both directories
+	// Get list of .json files in both directories
 	currentFiles := make(map[string]bool)
 	originalFiles := make(map[string]bool)
 
@@ -1991,7 +1986,7 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 		return nil, fmt.Errorf("failed to read folder: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
 			currentFiles[entry.Name()] = true
 		}
 	}
@@ -2002,7 +1997,7 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 		return nil, fmt.Errorf("failed to read original folder: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
 			originalFiles[entry.Name()] = true
 		}
 	}
@@ -2012,14 +2007,14 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 		for filename := range originalFiles {
 			if !currentFiles[filename] {
 				originalPath := filepath.Join(originalDir, filename)
-				originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+				fields, err := parseJsonFile(originalPath)
 				if err != nil {
 					continue
 				}
 				changes = append(changes, UploadChange{
 					Operation: "delete",
 					Filename:  filepath.Join(tableName, filename),
-					RemoteID:  originalFields["remoteId"],
+					RemoteID:  getRemoteIDFromInterface(fields, idField),
 				})
 			}
 		}
@@ -2029,21 +2024,21 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 	for filename := range currentFiles {
 		if !originalFiles[filename] {
 			currentPath := filepath.Join(tableName, filename)
-			currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+			jsonFields, err := parseJsonFile(currentPath)
 			if err != nil {
 				continue
 			}
 			var fields []string
-			for field := range currentFields {
+			for field := range jsonFields {
 				fields = append(fields, field)
 			}
 			sort.Strings(fields)
 			changes = append(changes, UploadChange{
 				Operation:     "create",
 				Filename:      filepath.Join(tableName, filename),
-				RemoteID:      currentFields["remoteId"],
+				RemoteID:      getRemoteIDFromInterface(jsonFields, idField),
 				ChangedFields: fields,
-				FieldValues:   stringMapToInterface(currentFields),
+				FieldValues:   jsonFields,
 			})
 		}
 	}
@@ -2064,20 +2059,20 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 			currentPath := filepath.Join(tableName, filename)
 			originalPath := filepath.Join(originalDir, filename)
 
-			currentFields, err := parseMarkdownFile(currentPath, contentFieldName)
+			currentFields, err := parseJsonFile(currentPath)
 			if err != nil {
 				continue
 			}
-			originalFields, err := parseMarkdownFile(originalPath, contentFieldName)
+			originalFields, err := parseJsonFile(originalPath)
 			if err != nil {
 				continue
 			}
 
-			changedFields := getChangedFields(currentFields, originalFields)
+			changedFields := getChangedFieldsInterface(currentFields, originalFields)
+			fileSlug := getFileSlug(filename)
 
 			// Check for attachment field changes if provider supports attachments
 			if supportsAttachments && len(attachmentFields) > 0 {
-				fileSlug := strings.TrimSuffix(filename, ".md")
 				for _, fieldName := range attachmentFields {
 					attChanges, err := getAttachmentFieldChanges(tableName, originalDir, fileSlug, fieldName)
 					if err == nil && len(attChanges) > 0 {
@@ -2100,9 +2095,9 @@ func getFolderChanges(tableName, originalDir, contentFieldName string, includeDe
 				changes = append(changes, UploadChange{
 					Operation:     "update",
 					Filename:      filepath.Join(tableName, filename),
-					RemoteID:      currentFields["remoteId"],
+					RemoteID:      getRemoteIDFromInterface(currentFields, idField),
 					ChangedFields: changedFields,
-					FieldValues:   stringMapToInterface(currentFields),
+					FieldValues:   currentFields,
 				})
 			}
 		}
@@ -2189,6 +2184,92 @@ func stringMapToInterface(m map[string]string) map[string]interface{} {
 	return result
 }
 
+// getChangedFieldsInterface compares two interface maps and returns the list of changed fields.
+// Values are compared by JSON serialization for complex types.
+func getChangedFieldsInterface(current, original map[string]interface{}) []string {
+	var changed []string
+
+	// Check for modified and removed fields
+	for field, originalValue := range original {
+		if currentValue, exists := current[field]; exists {
+			if !valuesEqual(currentValue, originalValue) {
+				changed = append(changed, field)
+			}
+		} else {
+			changed = append(changed, field+" (removed)")
+		}
+	}
+
+	// Check for added fields
+	for field := range current {
+		if _, exists := original[field]; !exists {
+			changed = append(changed, field+" (added)")
+		}
+	}
+
+	sort.Strings(changed)
+	return changed
+}
+
+// valuesEqual compares two interface values for equality.
+// For complex types (maps, slices), it compares JSON representations.
+func valuesEqual(a, b interface{}) bool {
+	// Handle nil cases
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	// Try direct comparison for simple types
+	if fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b) {
+		return true
+	}
+
+	// For complex types, compare JSON representations
+	aJSON, aErr := json.Marshal(a)
+	bJSON, bErr := json.Marshal(b)
+	if aErr != nil || bErr != nil {
+		return false
+	}
+	return string(aJSON) == string(bJSON)
+}
+
+// getRemoteIDFromInterface extracts the remoteId from a map[string]interface{}.
+// It checks "remoteId" first, then falls back to the specified idField (default "id").
+func getRemoteIDFromInterface(m map[string]interface{}, idField string) string {
+	if idField == "" {
+		idField = "id"
+	}
+	var id interface{}
+	var ok bool
+	if id, ok = m["remoteId"]; !ok {
+		if id, ok = m[idField]; !ok {
+			return ""
+		}
+	}
+	// Handle different types to avoid scientific notation for large numbers
+	switch v := id.(type) {
+	case string:
+		return v
+	case float64:
+		// Use %.0f to avoid scientific notation for large numbers
+		return fmt.Sprintf("%.0f", v)
+	case int:
+		return fmt.Sprintf("%d", v)
+	case int64:
+		return fmt.Sprintf("%d", v)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// getFileSlug extracts the slug from a filename, removing the .json extension.
+func getFileSlug(filename string) string {
+	return strings.TrimSuffix(filename, ".json")
+}
+
 // parseMarkdownFile extracts field values from a markdown file with YAML frontmatter.
 //
 // File format expected:
@@ -2250,6 +2331,23 @@ func parseMarkdownFile(filePath string, contentFieldName string) (map[string]str
 	fields[contentKey] = strings.TrimSpace(markdownContent)
 
 	return fields, nil
+}
+
+// parseJsonFile reads a JSON file and returns its fields as a map.
+// Note: The remoteId is determined by the idField setting (e.g., 'id' or 'uid'),
+// which is handled by getRemoteIDFromInterface.
+func parseJsonFile(filePath string) (map[string]interface{}, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(content, &data); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON file: %w", err)
+	}
+
+	return data, nil
 }
 
 // copyFile copies a file from src to dst

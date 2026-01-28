@@ -260,7 +260,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		return fmt.Errorf("no credentials found for account '%s'", selectedAccount.Name)
 	}
 
-	// List available tables via API
+	// List available tables via API (using JSON schema endpoint)
 	fmt.Println()
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Suffix = " Fetching tables from server..."
@@ -341,7 +341,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 	// Create folders and configs for selected tables
 	for _, selectedOption := range selectedTables {
 		// Find the matching table
-		var table *providers.TableInfo
+		var table *api.TableInfo
 		for i, opt := range tableOptions {
 			if opt == selectedOption {
 				table = &tables[i]
@@ -355,18 +355,8 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		folderName := table.Slug
 		fmt.Printf("\n📁 Setting up '%s' in folder '%s/'...\n", table.Name, folderName)
 
-		// Build list of all field slugs for prompts
-		allFieldSlugs := []string{}
-		for _, f := range table.SystemFields {
-			if f.Slug != "" {
-				allFieldSlugs = append(allFieldSlugs, f.Slug)
-			}
-		}
-		for _, f := range table.Fields {
-			if f.Slug != "" {
-				allFieldSlugs = append(allFieldSlugs, f.Slug)
-			}
-		}
+		// Build list of all field slugs from JSON schema properties
+		allFieldSlugs := extractFieldSlugsFromSchema(table.Schema)
 
 		// Default filename field
 		filenameField := ""
@@ -408,6 +398,10 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		}
 
 		// Create table config
+		idField := table.IdField
+		if idField == "" {
+			idField = "id" // default
+		}
 		tableConfig := &config.TableConfig{
 			AccountID:     selectedAccount.ID,
 			Provider:      selectedAccount.Provider,
@@ -417,6 +411,7 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 			SiteName:      table.SiteName,
 			FilenameField: filenameField,
 			ContentField:  contentField,
+			IdField:       idField,
 		}
 
 		// Create the .scratchmd directory structure for change tracking
@@ -433,22 +428,8 @@ func setupTablesInteractive(cfg *config.Config, secrets *config.SecretsConfig) e
 		fmt.Printf("   ✅ Created %s/%s\n", folderName, config.TableConfigFileName)
 		fmt.Printf("   ✅ Created .scratchmd/%s/ for tracking changes\n", folderName)
 
-		// Create schema with field metadata
-		schema := make(config.TableSchema)
-
-		// Add system fields first
-		for _, f := range table.SystemFields {
-			if f.Slug != "" {
-				schema[f.Slug] = fieldInfoToSchema(f)
-			}
-		}
-
-		// Add user-defined fields (from fieldData)
-		for _, f := range table.Fields {
-			if f.Slug != "" {
-				schema[f.Slug] = fieldInfoToSchema(f)
-			}
-		}
+		// Create schema from JSON schema properties
+		schema := jsonSchemaToTableSchema(table.Schema)
 
 		if err := config.SaveTableSchema(folderName, schema); err != nil {
 			fmt.Printf("   ❌ Failed to save schema: %s\n", err)

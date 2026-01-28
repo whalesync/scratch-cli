@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
-	"github.com/whalesync/scratch-cli/internal/providers"
 )
 
 // DefaultScratchURL is the default base URL for the scratch API
@@ -54,24 +52,21 @@ type TestConnectionResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
+// TableInfo represents a table with its JSON Schema.
+type TableInfo struct {
+	ID       string                 `json:"id,omitempty"`
+	SiteID   string                 `json:"siteId,omitempty"`
+	SiteName string                 `json:"siteName,omitempty"`
+	Name     string                 `json:"name,omitempty"`
+	Slug     string                 `json:"slug,omitempty"`
+	Schema   map[string]interface{} `json:"schema,omitempty"`
+	IdField  string                 `json:"idField,omitempty"` // The field name to use as the unique identifier (e.g., 'id', 'uid')
+}
+
 // ListTablesResponse represents the response from the list-tables endpoint.
 type ListTablesResponse struct {
-	Error  string                `json:"error,omitempty"`
-	Tables []providers.TableInfo `json:"tables,omitempty"`
-}
-
-// JsonTableInfo represents a table with its JSON Schema.
-type JsonTableInfo struct {
-	ID     string                 `json:"id,omitempty"`
-	SiteID string                 `json:"siteId,omitempty"`
-	Name   string                 `json:"name,omitempty"`
-	Schema map[string]interface{} `json:"schema,omitempty"`
-}
-
-// ListJsonTablesResponse represents the response from the list-json-tables endpoint.
-type ListJsonTablesResponse struct {
-	Error  string          `json:"error,omitempty"`
-	Tables []JsonTableInfo `json:"tables,omitempty"`
+	Error  string      `json:"error,omitempty"`
+	Tables []TableInfo `json:"tables,omitempty"`
 }
 
 // DownloadRequest represents the request body for the download endpoint.
@@ -310,19 +305,10 @@ func (c *Client) TestConnection(creds *ConnectorCredentials) (*TestConnectionRes
 	return &result, nil
 }
 
-// ListTables retrieves the list of available tables/collections from the server.
+// ListTables retrieves the list of available tables with their JSON Schema specs.
 func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
 	var result ListTablesResponse
 	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ListJsonTables retrieves the list of available tables with their JSON Schema specs.
-func (c *Client) ListJsonTables(creds *ConnectorCredentials) (*ListJsonTablesResponse, error) {
-	var result ListJsonTablesResponse
-	if err := c.doRequest(http.MethodGet, "list-json-tables", creds, nil, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

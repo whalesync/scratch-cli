@@ -16,7 +16,6 @@ import { Actor, userToActor } from 'src/users/types';
 import { BUILD_VERSION } from 'src/version';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
-import { ListJsonTablesResponseDto } from './dtos/list-json-tables.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
@@ -53,14 +52,6 @@ export class CliController {
     const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
     return this.cliService.listTables(req.connectorCredentials as CliConnectorCredentials, actor);
-  }
-
-  @Get('list-json-tables')
-  async listJsonTables(@Req() req: CliRequestWithUser): Promise<ListJsonTablesResponseDto> {
-    this.validateCredentials(req.connectorCredentials);
-    const actor = this.getActorFromRequest(req);
-    // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.listJsonTables(req.connectorCredentials as CliConnectorCredentials, actor);
   }
 
   @Post('download')

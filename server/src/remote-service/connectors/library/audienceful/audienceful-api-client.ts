@@ -94,13 +94,30 @@ export class AudiencefulApiClient {
   }
 
   /**
+   * Get a person by their UID.
+   * @param uid - The unique identifier of the person.
+   * @returns The person, or null if not found.
+   */
+  async getPerson(uid: string): Promise<AudiencefulPerson | null> {
+    try {
+      const response = await this.client.get<AudiencefulPerson>(`/people/${uid}/`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Create a new person (subscriber).
    * @param data - The person data to create.
    * @returns The created person.
    */
   async createPerson(data: AudiencefulCreatePersonRequest): Promise<AudiencefulPerson> {
-    const response = await this.client.post<{ data: AudiencefulPerson }>('/people', data);
-    return response.data.data;
+    const response = await this.client.post<AudiencefulPerson>('/people/', data);
+    return response.data;
   }
 
   /**
@@ -109,8 +126,8 @@ export class AudiencefulApiClient {
    * @returns The updated person.
    */
   async updatePerson(data: AudiencefulUpdatePersonRequest): Promise<AudiencefulPerson> {
-    const response = await this.client.put<{ data: AudiencefulPerson }>('/people', data);
-    return response.data.data;
+    const response = await this.client.put<AudiencefulPerson>('/people/', data);
+    return response.data;
   }
 
   /**
@@ -120,7 +137,7 @@ export class AudiencefulApiClient {
    */
   async deletePerson(data: AudiencefulDeletePersonRequest): Promise<void> {
     try {
-      await this.client.delete('/people', { data });
+      await this.client.delete('/people/', { data });
     } catch (error) {
       // Ignore 404 errors - the person may already be deleted
       if (axios.isAxiosError(error) && error.response?.status === 404) {

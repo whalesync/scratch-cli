@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -59,6 +60,88 @@ func fieldInfoToSchema(f providers.FieldInfo) config.FieldSchema {
 	}
 }
 
+// extractFieldSlugsFromSchema extracts field names/slugs from a JSON Schema's properties.
+// Returns a sorted list of property names.
+func extractFieldSlugsFromSchema(schema map[string]interface{}) []string {
+	var slugs []string
+
+	if schema == nil {
+		return slugs
+	}
+
+	// Get properties from the schema
+	props, ok := schema["properties"].(map[string]interface{})
+	if !ok {
+		return slugs
+	}
+
+	for key := range props {
+		slugs = append(slugs, key)
+	}
+
+	// Sort alphabetically for consistent ordering
+	sort.Strings(slugs)
+
+	return slugs
+}
+
+// jsonSchemaToTableSchema converts a JSON Schema to the local TableSchema format.
+// Extracts property names, types, and metadata like required fields and descriptions.
+func jsonSchemaToTableSchema(schema map[string]interface{}) config.TableSchema {
+	tableSchema := make(config.TableSchema)
+
+	if schema == nil {
+		return tableSchema
+	}
+
+	// Get properties from the schema
+	props, ok := schema["properties"].(map[string]interface{})
+	if !ok {
+		return tableSchema
+	}
+
+	// Get required fields list
+	requiredFields := make(map[string]bool)
+	if required, ok := schema["required"].([]interface{}); ok {
+		for _, r := range required {
+			if fieldName, ok := r.(string); ok {
+				requiredFields[fieldName] = true
+			}
+		}
+	}
+
+	// Convert each property to a FieldSchema
+	for key, value := range props {
+		propMap, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		fieldSchema := config.FieldSchema{
+			Metadata: make(map[string]string),
+		}
+
+		// Extract type
+		if t, ok := propMap["type"].(string); ok {
+			fieldSchema.Type = t
+		}
+
+		// Check if required
+		if requiredFields[key] {
+			fieldSchema.Metadata["required"] = "true"
+		}
+
+		// Extract description as helpText
+		if desc, ok := propMap["description"].(string); ok {
+			fieldSchema.Metadata["helpText"] = desc
+		}
+
+		tableSchema[key] = fieldSchema
+	}
+
+	return tableSchema
+}
+
 // setupTablesForAccountInteractive is a version of setupTablesInteractive that works on a pre-selected account
 func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.SecretsConfig, account *config.Account) error {
 	// Get the authentication properties for this account
@@ -67,7 +150,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		return fmt.Errorf("no credentials found for account '%s'", account.Name)
 	}
 
-	// List available tables via API
+	// List available tables via API (using JSON schema endpoint)
 	fmt.Println()
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Suffix = " Fetching tables from server..."
@@ -135,7 +218,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 	// Create folders and configs for selected tables
 	for _, selectedOption := range selectedTables {
 		// Find the matching table
-		var table *providers.TableInfo
+		var table *api.TableInfo
 		for i, opt := range tableOptions {
 			if opt == selectedOption {
 				table = &tables[i]
@@ -149,18 +232,8 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		folderName := table.Slug
 		fmt.Printf("\n📁 Setting up '%s' in folder '%s/'...\n", table.Name, folderName)
 
-		// Build list of all field slugs for prompts
-		allFieldSlugs := []string{}
-		for _, f := range table.SystemFields {
-			if f.Slug != "" {
-				allFieldSlugs = append(allFieldSlugs, f.Slug)
-			}
-		}
-		for _, f := range table.Fields {
-			if f.Slug != "" {
-				allFieldSlugs = append(allFieldSlugs, f.Slug)
-			}
-		}
+		// Build list of all field slugs from JSON schema properties
+		allFieldSlugs := extractFieldSlugsFromSchema(table.Schema)
 
 		// Default filename field
 		filenameField := ""
@@ -202,6 +275,10 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		}
 
 		// Create table config
+		idField := table.IdField
+		if idField == "" {
+			idField = "id" // default
+		}
 		tableConfig := &config.TableConfig{
 			AccountID:     account.ID,
 			Provider:      account.Provider,
@@ -211,6 +288,7 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 			SiteName:      table.SiteName,
 			FilenameField: filenameField,
 			ContentField:  contentField,
+			IdField:       idField,
 		}
 
 		// Create the .scratchmd directory structure for change tracking
@@ -227,22 +305,8 @@ func setupTablesForAccountInteractive(cfg *config.Config, secrets *config.Secret
 		fmt.Printf("   ✅ Created %s/%s\n", folderName, config.TableConfigFileName)
 		fmt.Printf("   ✅ Created .scratchmd/%s/ for tracking changes\n", folderName)
 
-		// Create schema with field metadata
-		schema := make(config.TableSchema)
-
-		// Add system fields first
-		for _, f := range table.SystemFields {
-			if f.Slug != "" {
-				schema[f.Slug] = fieldInfoToSchema(f)
-			}
-		}
-
-		// Add user-defined fields (from fieldData)
-		for _, f := range table.Fields {
-			if f.Slug != "" {
-				schema[f.Slug] = fieldInfoToSchema(f)
-			}
-		}
+		// Create schema from JSON schema properties
+		schema := jsonSchemaToTableSchema(table.Schema)
 
 		if err := config.SaveTableSchema(folderName, schema); err != nil {
 			fmt.Printf("   ❌ Failed to save schema: %s\n", err)

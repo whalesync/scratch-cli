@@ -49,15 +49,15 @@ func NewTableDownloader(cfg *config.Config, secrets *config.SecretsConfig, serve
 	}
 }
 
-// Download fetches records from the CMS and writes them as markdown files.
+// Download fetches records from the CMS and writes them as JSON files.
 //
 // Change detection: Compares the current file against the stored "original" copy.
 // If the user has edited a file locally (current != original), that file is skipped
 // to preserve local changes. The original copy is always updated for future comparisons.
 //
 // File structure created:
-//   - <tableName>/*.md - User-editable markdown files
-//   - .scratchmd/<tableName>/original/*.md - Pristine copies for change detection
+//   - <tableName>/*.json - User-editable JSON files
+//   - .scratchmd/<tableName>/original/*.json - Pristine copies for change detection
 func (d *TableDownloader) Download(tableName string, opts Options) (*Result, error) {
 	progress := opts.OnProgress
 	if progress == nil {
@@ -106,7 +106,7 @@ func (d *TableDownloader) Download(tableName string, opts Options) (*Result, err
 		// Remove main folder contents (but not the folder itself, as it may have config)
 		if entries, err := os.ReadDir(tableName); err == nil {
 			for _, entry := range entries {
-				if strings.HasSuffix(entry.Name(), ".md") {
+				if strings.HasSuffix(entry.Name(), ".json") {
 					os.Remove(filepath.Join(tableName, entry.Name()))
 				}
 			}
@@ -171,10 +171,10 @@ func (d *TableDownloader) Download(tableName string, opts Options) (*Result, err
 		}
 
 		fileContent := []byte(file.Content)
-		mdFilename := filename + ".md"
+		jsonFilename := filename + ".json"
 
-		mainPath := filepath.Join(tableName, mdFilename)
-		originalPath := filepath.Join(originalDir, mdFilename)
+		mainPath := filepath.Join(tableName, jsonFilename)
+		originalPath := filepath.Join(originalDir, jsonFilename)
 
 		// Check if main file should be updated
 		// Only update main file if it matches the current original (unedited) or doesn't exist
@@ -191,7 +191,7 @@ func (d *TableDownloader) Download(tableName string, opts Options) (*Result, err
 					// Main file has been edited, don't overwrite it
 					shouldUpdateMain = false
 					result.TotalSkipped++
-					progress(fmt.Sprintf("   ⏭️  Skipping '%s' (locally modified)", mdFilename))
+					progress(fmt.Sprintf("   ⏭️  Skipping '%s' (locally modified)", jsonFilename))
 				}
 			}
 			// If original doesn't exist or main doesn't exist, we'll write both
@@ -367,9 +367,9 @@ func (d *TableDownloader) downloadAttachments(
 
 		// Update frontmatter in main files with folder paths (only for fields that have attachments)
 		if len(fieldAttachments) > 0 {
-			mdFilename := fileSlug + ".md"
-			mainPath := filepath.Join(tableName, mdFilename)
-			originalPath := filepath.Join(originalDir, mdFilename)
+			jsonFilename := fileSlug + ".json"
+			mainPath := filepath.Join(tableName, jsonFilename)
+			originalPath := filepath.Join(originalDir, jsonFilename)
 
 			if err := updateFrontmatterAttachments(mainPath, fileSlug, fieldAttachments); err != nil {
 				progress(fmt.Sprintf("   ⚠️  Failed to update frontmatter in '%s': %v", mainPath, err))

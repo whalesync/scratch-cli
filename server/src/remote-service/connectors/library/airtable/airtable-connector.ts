@@ -347,16 +347,27 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
 
   // Record fields need to be keyed by field name (slug), not the wsId.
   // Airtable accepts field names as keys when writing.
+  // Handles both flat fields and Airtable's native `fields` wrapper format.
   private wsFieldsToAirtableFields(
     wsFields: Record<string, unknown>,
     tableSpec: AirtableTableSpec,
   ): Record<string, unknown> {
     const airtableFields: Record<string, unknown> = {};
+
+    // Extract fields from `fields` wrapper if present (Airtable native JSON format)
+    const fieldsData = (wsFields.fields as Record<string, unknown>) || {};
+
     for (const column of tableSpec.columns) {
       if (column.id.wsId === 'id' || !column.slug) {
         continue;
       }
-      const val = wsFields[column.id.wsId];
+
+      // Look for the field value in fieldsData first (by slug), then at the top level (by wsId)
+      let val = column.slug ? fieldsData[column.slug] : undefined;
+      if (val === undefined) {
+        val = wsFields[column.id.wsId];
+      }
+
       if (val !== undefined) {
         if (column.pgType === PostgresColumnType.NUMERIC) {
           airtableFields[column.slug] = parseFloat(val as string);

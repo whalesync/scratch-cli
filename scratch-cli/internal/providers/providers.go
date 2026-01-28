@@ -69,7 +69,7 @@ type Provider interface {
 
 // SupportedProviders returns the list of supported provider names
 func SupportedProviders() []string {
-	return []string{"webflow", "wordpress", "airtable", "notion"}
+	return []string{"airtable", "audienceful", "moco", "notion", "webflow", "wordpress"}
 }
 
 // GetProvider returns a provider by name
@@ -77,6 +77,10 @@ func GetProvider(name string) (Provider, error) {
 	switch name {
 	case "airtable":
 		return &AirtableProvider{}, nil
+	case "audienceful":
+		return &AudiencefulProvider{}, nil
+	case "moco":
+		return &MocoProvider{}, nil
 	case "notion":
 		return &NotionProvider{}, nil
 	case "webflow":

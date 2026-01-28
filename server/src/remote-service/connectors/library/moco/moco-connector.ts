@@ -762,7 +762,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     const results: { wsId: string; remoteId: string }[] = [];
 
     for (const record of records) {
-      const createData = this.transformToCreateRequest(record.fields);
+      const createData = this.transformToCreateRequest(entityType, record.fields);
       const created = await this.client.createEntity(entityType, createData);
       results.push({ wsId: record.wsId, remoteId: String(created.id) });
     }
@@ -781,7 +781,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 
     for (const record of records) {
-      const updateData = this.transformToUpdateRequest(record.partialFields);
+      const updateData = this.transformToUpdateRequest(entityType, record.partialFields);
       await this.client.updateEntity(entityType, parseInt(record.id.remoteId, 10), updateData);
     }
   }
@@ -806,22 +806,121 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
   }
 
   /**
-   * Transform fields to Moco create request format.
+   * Allowed fields for each entity type.
+   * These are the fields Moco API accepts for create/update operations.
    */
-  private transformToCreateRequest(fields: Record<string, unknown>): Record<string, unknown> {
-    // Remove read-only fields that shouldn't be sent to the API
-    const result = { ...fields };
-    delete result.id;
-    delete result.created_at;
-    delete result.updated_at;
+  private static readonly ALLOWED_FIELDS: Record<MocoEntityType, string[]> = {
+    companies: [
+      'type',
+      'name',
+      'website',
+      'email',
+      'phone',
+      'fax',
+      'address',
+      'info',
+      'custom_properties',
+      'labels',
+      'identifier',
+      'intern',
+      'billing_tax',
+      'currency',
+      'country_code',
+      'vat_identifier',
+      'default_invoice_due_days',
+      'debit_number',
+      'credit_number',
+      'iban',
+      'footer',
+      'tags',
+    ],
+    contacts: [
+      'firstname',
+      'lastname',
+      'title',
+      'gender',
+      'job_position',
+      'mobile_phone',
+      'work_phone',
+      'work_email',
+      'work_fax',
+      'work_address',
+      'home_email',
+      'home_address',
+      'home_phone',
+      'birthday',
+      'info',
+      'tags',
+      'company_id',
+      'custom_properties',
+    ],
+    projects: [
+      'name',
+      'identifier',
+      'active',
+      'billable',
+      'fixed_price',
+      'retainer',
+      'start_date',
+      'finish_date',
+      'color',
+      'currency',
+      'budget',
+      'budget_monthly',
+      'hourly_rate',
+      'info',
+      'labels',
+      'tags',
+      'leader_id',
+      'co_leader_id',
+      'customer_id',
+      'deal_id',
+      'billing_address',
+      'billing_email_to',
+      'billing_email_cc',
+      'billing_notes',
+      'billing_variant',
+      'budget_expenses',
+      'custom_properties',
+    ],
+  };
+
+  /**
+   * Transform fields to Moco create request format.
+   * Filters out read-only and relation fields that Moco doesn't accept.
+   */
+  private transformToCreateRequest(
+    entityType: MocoEntityType,
+    fields: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const allowedFields = MocoConnector.ALLOWED_FIELDS[entityType];
+
+    const result: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (field in fields && fields[field] !== undefined) {
+        result[field] = fields[field];
+      }
+    }
+
+    // Handle company relation - convert company object to company_id
+    if (entityType === 'contacts' && 'company' in fields && fields.company && typeof fields.company === 'object') {
+      const company = fields.company as { id?: number };
+      if (company.id) {
+        result['company_id'] = company.id;
+      }
+    }
+
     return result;
   }
 
   /**
    * Transform fields to Moco update request format.
    */
-  private transformToUpdateRequest(fields: Record<string, unknown>): Record<string, unknown> {
-    return this.transformToCreateRequest(fields);
+  private transformToUpdateRequest(
+    entityType: MocoEntityType,
+    fields: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return this.transformToCreateRequest(entityType, fields);
   }
 
   /**

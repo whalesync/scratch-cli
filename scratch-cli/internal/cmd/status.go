@@ -17,7 +17,7 @@ import (
 
 // statusCmd shows which files have changed across all linked tables
 var statusCmd = &cobra.Command{
-	Use:   "status [folder[/file.md]]",
+	Use:   "status [folder[/file.json]]",
 	Short: "[NON-INTERACTIVE] Show which files have changed",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
@@ -25,7 +25,7 @@ Show which files differ from the original downloaded versions.
 
 Without arguments, shows status for all linked tables.
 With a folder argument, shows status for that specific table only.
-With a folder/file.md argument, shows status for that specific file only.
+With a folder/file.json argument, shows status for that specific file only.
 
 Reports:
   - Deleted files (exist in original but not in folder) in red
@@ -38,10 +38,10 @@ Flags:
   --no-file-status      Don't list individual files, only summaries (error if file mode)
 
 Examples:
-  scratchmd status                        # check all linked tables
-  scratchmd status blog-posts             # check one table
-  scratchmd status blog-posts/post-1.md   # check one file
-  scratchmd status --no-file-status       # only show summaries`,
+  scratchmd status                          # check all linked tables
+  scratchmd status blog-posts               # check one table
+  scratchmd status blog-posts/post-1.json   # check one file
+  scratchmd status --no-file-status         # only show summaries`,
 	RunE: runStatus,
 }
 
@@ -73,8 +73,8 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	var tableName, fileName string
 	if len(args) > 0 {
 		arg := args[0]
-		// Check if it's a folder/file.md pattern
-		if strings.Contains(arg, "/") && strings.HasSuffix(arg, ".md") {
+		// Check if it's a folder/file.json pattern
+		if strings.Contains(arg, "/") && strings.HasSuffix(arg, ".json") {
 			parts := strings.SplitN(arg, "/", 2)
 			tableName = parts[0]
 			fileName = parts[1]
@@ -259,7 +259,7 @@ func getTableStatus(tableName string) tableStatus {
 		}
 	}
 
-	// Get list of .md files in both directories
+	// Get list of .json files in both directories
 	currentFiles := make(map[string]bool)
 	originalFiles := make(map[string]bool)
 
@@ -270,7 +270,7 @@ func getTableStatus(tableName string) tableStatus {
 		return status
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
 			currentFiles[entry.Name()] = true
 		}
 	}
@@ -282,7 +282,7 @@ func getTableStatus(tableName string) tableStatus {
 		return status
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
 			originalFiles[entry.Name()] = true
 		}
 	}
@@ -307,7 +307,7 @@ func getTableStatus(tableName string) tableStatus {
 
 			// Also check for attachment changes if provider supports them
 			if !isModified && len(attachmentFields) > 0 {
-				fileSlug := strings.TrimSuffix(filename, ".md")
+				fileSlug := strings.TrimSuffix(filename, ".json")
 				if hasAttachmentChanges(tableName, originalDir, fileSlug, attachmentFields) {
 					isModified = true
 				}
@@ -400,7 +400,7 @@ func runSingleFileStatus(tableName, fileName string) error {
 				if err == nil && schema != nil {
 					attachmentFields := getAttachmentFieldsFromSchema(schema)
 					if len(attachmentFields) > 0 {
-						fileSlug := strings.TrimSuffix(fileName, ".md")
+						fileSlug := strings.TrimSuffix(fileName, ".json")
 						if hasAttachmentChanges(tableName, originalDir, fileSlug, attachmentFields) {
 							isModified = true
 						}

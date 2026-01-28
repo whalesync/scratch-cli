@@ -419,11 +419,15 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   // Record fields need to be keyed by the remoteId, not the wsId.
+  // Handles both flat fields and Webflow's native fieldData wrapper format.
   private async wsFieldsToWebflowFields(
     wsFields: Record<string, unknown>,
     tableSpec: WebflowTableSpec,
   ): Promise<Record<string, unknown>> {
     const webflowFields: Record<string, unknown> = {};
+
+    // Extract fieldData if present (Webflow native JSON format)
+    const fieldData = (wsFields.fieldData as Record<string, unknown>) || {};
 
     for (const column of tableSpec.columns) {
       // We don't need to set the metadata columns as they are read only.
@@ -433,7 +437,12 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
         continue;
       }
 
-      const wsValue = wsFields[column.id.wsId];
+      // Look for the field value in fieldData first (by slug), then at the top level (by wsId)
+      let wsValue = column.slug ? fieldData[column.slug] : undefined;
+      if (wsValue === undefined) {
+        wsValue = wsFields[column.id.wsId];
+      }
+
       if (wsValue !== undefined && column.slug) {
         if (column.webflowFieldType === Webflow.FieldType.RichText) {
           const html: string = wsValue as string;

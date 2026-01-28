@@ -84,14 +84,24 @@ var accountAddCmd = &cobra.Command{
 Add a new account configuration.
 
 Required flags:
-  --account.provider string   CMS provider (webflow, wordpress)
-  --account.api-key string    API key for the provider
+  --account.provider string   CMS provider (webflow, wordpress, moco, etc.)
+  --account.api-key string    API key (for providers that use apiKey)
 
-(Or set defaults via 'config set')
+Provider-specific flags:
+  --account.domain string        Domain/subdomain (for Moco: e.g., 'yourcompany')
+  --account.wordpress-url string WordPress site URL (for WordPress)
+  --account.email string         Email address (for WordPress)
+  --account.password string      Password (for WordPress application password)
 
-Example:
+Examples:
+  # Webflow (uses api-key)
   scratchmd account add --account.provider=webflow --account.api-key=<key>
-  scratchmd account add my-site --account.provider=webflow --account.api-key=<key>`,
+
+  # Moco (uses domain + api-key)
+  scratchmd account add --account.provider=moco --account.domain=yourcompany --account.api-key=<key>
+
+  # WordPress (uses wordpress-url + email + password)
+  scratchmd account add --account.provider=wordpress --account.wordpress-url=https://example.com --account.email=user@example.com --account.password=<app-password>`,
 	// Args is optional (name)
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAccountAdd,
@@ -167,8 +177,12 @@ func init() {
 	accountCmd.AddCommand(accountFetchJsonSchemasCmd)
 
 	// Flags for account add
-	accountAddCmd.Flags().String("account.provider", "", "CMS provider (webflow, wordpress)")
+	accountAddCmd.Flags().String("account.provider", "", "CMS provider (webflow, wordpress, moco, etc.)")
 	accountAddCmd.Flags().String("account.api-key", "", "API key for the provider")
+	accountAddCmd.Flags().String("account.domain", "", "Domain/subdomain (for Moco)")
+	accountAddCmd.Flags().String("account.wordpress-url", "", "WordPress site URL")
+	accountAddCmd.Flags().String("account.email", "", "Email address (for WordPress)")
+	accountAddCmd.Flags().String("account.password", "", "Password (for WordPress)")
 	// Not required anymore, can come from defaults
 	// accountAddCmd.MarkFlagRequired("account.provider")
 	// accountAddCmd.MarkFlagRequired("account.api-key")
@@ -445,8 +459,7 @@ func runAccountRemove(cmd *cobra.Command, args []string) error {
 }
 
 func runAccountAdd(cmd *cobra.Command, args []string) error {
-	provider, _ := cmd.Flags().GetString("account.provider")
-	apiKey, _ := cmd.Flags().GetString("account.api-key")
+	providerName, _ := cmd.Flags().GetString("account.provider")
 
 	// Load existing config and secrets early to check defaults
 	cfg, err := config.LoadConfig()
@@ -455,42 +468,82 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Apply defaults if missing
-	if provider == "" && cfg.Defaults != nil {
-		provider = cfg.Defaults.AccountProvider
-	}
-	if apiKey == "" && cfg.Defaults != nil {
-		apiKey = cfg.Defaults.AccountAPIKey
+	if providerName == "" && cfg.Defaults != nil {
+		providerName = cfg.Defaults.AccountProvider
 	}
 
 	// Validation
-	if provider == "" {
+	if providerName == "" {
 		return fmt.Errorf("provider required (via --account.provider or default)")
-	}
-	if apiKey == "" {
-		return fmt.Errorf("API key required (via --account.api-key or default)")
 	}
 
 	// Validate provider
 	supportedProviders := providers.SupportedProviders()
 	validProvider := false
 	for _, p := range supportedProviders {
-		if p == provider {
+		if p == providerName {
 			validProvider = true
 			break
 		}
 	}
 	if !validProvider {
-		return fmt.Errorf("invalid provider '%s'. Supported: %v", provider, supportedProviders)
+		return fmt.Errorf("invalid provider '%s'. Supported: %v", providerName, supportedProviders)
+	}
+
+	// Get the provider to access its auth properties
+	provider, err := providers.GetProvider(providerName)
+	if err != nil {
+		return fmt.Errorf("failed to get provider: %w", err)
+	}
+
+	// Build credentials from provider's auth properties
+	// Map provider auth property keys to CLI flags
+	flagMapping := map[string]string{
+		"apiKey":       "account.api-key",
+		"domain":       "account.domain",
+		"wordpressUrl": "account.wordpress-url",
+		"email":        "account.email",
+		"password":     "account.password",
+	}
+
+	authProps := provider.AuthProperties()
+	authValues := make(map[string]string)
+	var missingRequired []string
+
+	for _, prop := range authProps {
+		flagName, ok := flagMapping[prop.Key]
+		if !ok {
+			// No flag mapping for this property - skip for now
+			continue
+		}
+
+		value, _ := cmd.Flags().GetString(flagName)
+
+		// Apply default for apiKey if available
+		if prop.Key == "apiKey" && value == "" && cfg.Defaults != nil {
+			value = cfg.Defaults.AccountAPIKey
+		}
+
+		value = strings.TrimSpace(value)
+
+		if prop.Required && value == "" {
+			missingRequired = append(missingRequired, fmt.Sprintf("--%s (%s)", flagName, prop.DisplayName))
+		}
+
+		if value != "" {
+			authValues[prop.Key] = value
+		}
+	}
+
+	if len(missingRequired) > 0 {
+		return fmt.Errorf("missing required flags for %s: %s", providerName, strings.Join(missingRequired, ", "))
 	}
 
 	// Determine account name
-	name := provider // default to provider name
+	name := providerName // default to provider name
 	if len(args) > 0 && args[0] != "" {
 		name = args[0]
 	}
-
-	// Config already loaded above
-	// cfg, err := config.LoadConfig() ...
 
 	secrets, err := config.LoadSecrets()
 	if err != nil {
@@ -505,8 +558,8 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	// Test connection via API
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
-		Service: provider,
-		Params:  map[string]string{"apiKey": apiKey},
+		Service: providerName,
+		Params:  authValues,
 	}
 
 	result, err := client.TestConnection(creds)
@@ -522,13 +575,13 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	account := config.Account{
 		ID:       accountID,
 		Name:     name,
-		Provider: provider,
+		Provider: providerName,
 		Tested:   true,
 	}
 
 	// Save
 	cfg.AddAccount(account)
-	secrets.SetSecret(accountID, apiKey)
+	secrets.SetSecretProperties(accountID, authValues)
 
 	if err := config.SaveConfig(cfg); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
@@ -682,7 +735,7 @@ func runAccountFetchJsonSchemas(cmd *cobra.Command, args []string) error {
 
 	// Fetch JSON schemas from server
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Suffix = " Fetching JSON schemas from server..."
+	s.Suffix = " Fetching tables from server..."
 	s.Start()
 
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
@@ -691,13 +744,13 @@ func runAccountFetchJsonSchemas(cmd *cobra.Command, args []string) error {
 		Params:  authProps,
 	}
 
-	resp, err := client.ListJsonTables(creds)
+	resp, err := client.ListTables(creds)
 	s.Stop()
 	if err != nil {
-		return fmt.Errorf("failed to list JSON tables: %w", err)
+		return fmt.Errorf("failed to list tables: %w", err)
 	}
 	if resp.Error != "" {
-		return fmt.Errorf("failed to list JSON tables: %s", resp.Error)
+		return fmt.Errorf("failed to list tables: %s", resp.Error)
 	}
 
 	if len(resp.Tables) == 0 {
