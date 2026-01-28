@@ -1,6 +1,7 @@
 import { Service } from '@spinner/shared-types';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { AudiencefulConnector } from './library/audienceful/audienceful-connector';
+import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -32,6 +33,8 @@ export function getServiceDisplayName(service: Service): string {
       return WixBlogConnector.displayName;
     case Service.AUDIENCEFUL:
       return AudiencefulConnector.displayName;
+    case Service.MOCO:
+      return MocoConnector.displayName;
     default: {
       // Exhaustive check - TypeScript will error if a Service case is missing
       const _exhaustiveCheck: never = service;

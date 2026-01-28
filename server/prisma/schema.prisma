@@ -45,6 +45,7 @@ enum Service {
   WEBFLOW
   WIX_BLOG
   AUDIENCEFUL
+  MOCO
 }
 
 enum AuthType {

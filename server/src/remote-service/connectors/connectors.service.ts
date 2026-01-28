@@ -7,6 +7,7 @@ import { AuthParser, Connector } from './connector';
 import { ConnectorInstantiationError } from './error';
 import { AirtableConnector } from './library/airtable/airtable-connector';
 import { AudiencefulConnector } from './library/audienceful/audienceful-connector';
+import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -126,6 +127,17 @@ export class ConnectorsService {
           throw new ConnectorInstantiationError('API key is required for Audienceful', service);
         }
         return new AudiencefulConnector(decryptedCredentials.apiKey);
+      case Service.MOCO:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Moco', service);
+        }
+        if (!decryptedCredentials?.domain) {
+          throw new ConnectorInstantiationError('Domain is required for Moco', service);
+        }
+        if (!decryptedCredentials?.apiKey) {
+          throw new ConnectorInstantiationError('API key is required for Moco', service);
+        }
+        return new MocoConnector({ domain: decryptedCredentials.domain, apiKey: decryptedCredentials.apiKey });
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }

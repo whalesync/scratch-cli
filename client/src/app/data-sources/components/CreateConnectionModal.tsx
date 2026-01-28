@@ -38,6 +38,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [endpoint, setEndpoint] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [domain, setDomain] = useState('');
   const [newService, setNewService] = useState<Service | null>(null);
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
@@ -69,6 +70,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.CSV,
         Service.WEBFLOW,
         Service.AUDIENCEFUL,
+        Service.MOCO,
       ];
       if (oauthSupportedServices.includes(service)) {
         return 'oauth';
@@ -95,6 +97,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.WORDPRESS,
         Service.WEBFLOW,
         Service.AUDIENCEFUL,
+        Service.MOCO,
       ];
       const methods: AuthMethod[] = [];
       if (oauthSupportedServices.includes(service)) {
@@ -125,6 +128,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     setUsername('');
     setPassword('');
     setEndpoint('');
+    setDomain('');
     setNewService(null);
     setNewModifier(null);
     setNewDisplayName(null);
@@ -176,6 +180,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       authMethod === 'user_provided_params' &&
       newService !== Service.CSV &&
       newService !== Service.WORDPRESS &&
+      newService !== Service.MOCO &&
       !newApiKey
     ) {
       setError('API key is required for this service.');
@@ -189,6 +194,14 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       !endpoint
     ) {
       setError('Username, password, and endpoint are required for this service.');
+      return;
+    }
+    if (
+      authMethod === 'user_provided_params' &&
+      newService === Service.MOCO &&
+      (!domain || !newApiKey)
+    ) {
+      setError('Domain and API key are required for Moco.');
       return;
     }
     try {
@@ -206,7 +219,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
             ? { apiKey: newApiKey }
             : newService === Service.WORDPRESS
               ? { username, password, endpoint }
-              : { apiKey: newApiKey },
+              : newService === Service.MOCO
+                ? { domain, apiKey: newApiKey }
+                : { apiKey: newApiKey },
         modifier: newModifier || undefined,
         displayName: newDisplayName || undefined,
       });
@@ -375,6 +390,25 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               />
             </Stack>
           )}
+          {authMethod === 'user_provided_params' && newService === Service.MOCO && (
+            <Stack>
+              <TextInput
+                label="Moco Domain"
+                placeholder="yourcompany"
+                description="Your Moco subdomain (e.g., 'yourcompany' from yourcompany.mocoapp.com)"
+                value={domain}
+                onChange={(e) => setDomain(e.currentTarget.value)}
+              />
+              <TextInput
+                label="API Key"
+                placeholder="Enter your Moco API key"
+                description="Generate an API key in your Moco account under Integrations"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.currentTarget.value)}
+                type="password"
+              />
+            </Stack>
+          )}
           {newService === Service.CSV && (
             <Alert color="blue" title="CSV Connection">
               CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
@@ -383,6 +417,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
           {newService &&
             newService !== Service.CSV &&
             newService !== Service.WORDPRESS &&
+            newService !== Service.MOCO &&
             getSupportedAuthMethods(newService).includes('user_provided_params') &&
             authMethod === 'user_provided_params' && (
               <TextInput

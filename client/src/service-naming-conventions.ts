@@ -128,6 +128,18 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
+  [Service.MOCO]: {
+    service: 'Moco',
+    table: 'entity',
+    record: 'record',
+    base: 'account',
+    tables: 'entities',
+    records: 'records',
+    bases: 'accounts',
+    logo: 'moco.svg',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
 };
 
 export const serviceName = (serviceCode: Service): string => {

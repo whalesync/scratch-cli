@@ -6,6 +6,8 @@ export interface DecryptedCredentials {
   username?: string;
   password?: string;
   endpoint?: string;
+  // Moco specific
+  domain?: string;
 
   oauthAccessToken?: string;
   oauthRefreshToken?: string;

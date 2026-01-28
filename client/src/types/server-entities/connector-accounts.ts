@@ -12,4 +12,5 @@ export const INTERNAL_SERVICES = [
   Service.YOUTUBE,
   Service.POSTGRES,
   Service.AUDIENCEFUL,
+  Service.MOCO,
 ];

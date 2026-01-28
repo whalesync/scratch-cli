@@ -1,6 +1,7 @@
 import { BaseColumnSpec, BaseJsonTableSpec, BaseTableSpec } from '../types';
 import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/airtable-spec-types';
 import { AudiencefulColumnSpecExtras, AudiencefulTableSpecExtras } from './audienceful/audienceful-spec-types';
+import { MocoColumnSpecExtras, MocoTableSpecExtras } from './moco/moco-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
 import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
 import { WixBlogColumnSpecExtras, WixBlogTableSpecExtras } from './wix/wix-blog/wix-blog-spec-types';
@@ -30,6 +31,9 @@ export type WixBlogTableSpec = BaseTableSpec<WixBlogColumnSpec> & WixBlogTableSp
 export type AudiencefulColumnSpec = BaseColumnSpec & AudiencefulColumnSpecExtras;
 export type AudiencefulTableSpec = BaseTableSpec<AudiencefulColumnSpec> & AudiencefulTableSpecExtras;
 
+export type MocoColumnSpec = BaseColumnSpec & MocoColumnSpecExtras;
+export type MocoTableSpec = BaseTableSpec<MocoColumnSpec> & MocoTableSpecExtras;
+
 export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSpec[] };
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
@@ -42,6 +46,7 @@ export interface TableSpecs {
   WIX_BLOG: WixBlogTableSpec;
   POSTGRES: BaseTableSpec<BaseColumnSpec>; // TODO - change to PostgresTableSpec once we implement the connector
   AUDIENCEFUL: AudiencefulTableSpec;
+  MOCO: MocoTableSpec;
 }
 
 export type AnyColumnSpec = ColumnSpecs[keyof ColumnSpecs];
@@ -56,6 +61,7 @@ export interface ColumnSpecs {
   WIX_BLOG: WixBlogColumnSpec;
   POSTGRES: BaseColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
   AUDIENCEFUL: AudiencefulColumnSpec;
+  MOCO: MocoColumnSpec;
 }
 
 // JSON Table Spec types for the new JSON schema method
