@@ -6,17 +6,26 @@ import { useFile } from '@/hooks/use-file';
 import { useFileList } from '@/hooks/use-file-list';
 import { customWebflowActionsApi } from '@/lib/api/custom-actions/webflow';
 import { foldersApi } from '@/lib/api/files';
+import { workbookApi } from '@/lib/api/workbook';
 import { markdown } from '@codemirror/lang-markdown';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
-import { Box, Button, Group, Modal, Select, Text, Tooltip } from '@mantine/core';
+import { Box, Button, Code, Group, Loader, Modal, ScrollArea, Select, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { FileId, FolderRefEntity, WorkbookId } from '@spinner/shared-types';
 import { Service } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
 import DOMPurify from 'dompurify';
 import matter from 'gray-matter';
-import { CheckCircleIcon, DownloadIcon, EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  DownloadIcon,
+  EyeIcon,
+  GitCommitHorizontalIcon,
+  SaveIcon,
+  TextAlignEndIcon,
+  TextAlignJustifyIcon,
+} from 'lucide-react';
 import htmlParser from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -36,14 +45,18 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('current');
+  const [diffContent, setDiffContent] = useState<string | null>(null);
+  const [loadingDiff, setLoadingDiff] = useState(false);
+  const [diffModalOpened, { open: openDiffModal, close: closeDiffModal }] = useDisclosure(false);
 
   // Find the parent folder and check if it's a Webflow connector
   const parentFolder = useMemo(() => {
     if (!fileResponse?.file?.ref?.parentFolderId || !allItems?.items) return null;
-    return allItems.items.find(
-      (item): item is FolderRefEntity =>
-        item.type === 'folder' && item.id === fileResponse.file.ref.parentFolderId
-    ) ?? null;
+    return (
+      allItems.items.find(
+        (item): item is FolderRefEntity => item.type === 'folder' && item.id === fileResponse.file.ref.parentFolderId,
+      ) ?? null
+    );
   }, [fileResponse, allItems]);
 
   const isWebflowFile = parentFolder?.connectorService === Service.WEBFLOW && !!parentFolder?.snapshotTableId;
@@ -156,6 +169,26 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
 
   // Content formatting (Preview, Prettify, Minify) - same logic as HtmlActionButtons
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
+
+  const handleGitDiff = useCallback(async () => {
+    if (!fileResponse?.file?.ref?.path) return;
+    setLoadingDiff(true);
+    setDiffContent(null);
+    openDiffModal();
+    try {
+      // Use the path from the file response
+      const data = await workbookApi.getRepoDiff(workbookId, fileResponse.file.ref.path);
+      setDiffContent(data);
+    } catch (e) {
+      console.error(e);
+      ScratchpadNotifications.error({
+        title: 'Git Diff Failed',
+        message: 'Could not fetch git diff.',
+      });
+    } finally {
+      setLoadingDiff(false);
+    }
+  }, [workbookId, fileResponse, openDiffModal]);
 
   // Check if content editing is allowed in current view mode
   const isEditable = viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested';
@@ -308,6 +341,25 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
         />
       </Modal>
 
+      <Modal opened={diffModalOpened} onClose={closeDiffModal} title="Git Diff (Main vs Dirty)" size="xl" centered>
+        {loadingDiff ? (
+          <Group justify="center" p="xl">
+            <Loader size="sm" />
+          </Group>
+        ) : (
+          <ScrollArea.Autosize style={{ maxHeight: 600 }}>
+            {/* If result is object, stringify. If string, just show. The API returns whatever gitService returns.
+                 git-scratch-api returns output of git diff. Usually text.
+                 But if it returns json object from simple-git, we JSON.stringify.
+                 Let's assume text first, but handle object.
+             */}
+            <Code block style={{ whiteSpace: 'pre-wrap' }}>
+              {typeof diffContent === 'string' ? diffContent : JSON.stringify(diffContent, null, 2)}
+            </Code>
+          </ScrollArea.Autosize>
+        )}
+      </Modal>
+
       <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Toolbar */}
         <Group
@@ -358,7 +410,20 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
                 Validate
               </Button>
             )}
-            <Button size="compact-xs" variant="subtle" leftSection={<DownloadIcon size={12} />} onClick={handleDownload}>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              leftSection={<GitCommitHorizontalIcon size={12} />}
+              onClick={handleGitDiff}
+            >
+              Diff
+            </Button>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              leftSection={<DownloadIcon size={12} />}
+              onClick={handleDownload}
+            >
               Download
             </Button>
             {hasChanges && (

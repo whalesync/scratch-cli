@@ -604,6 +604,14 @@ export class FilesService {
   }
 
   /**
+   * Sets the dirty state of a file
+   */
+  async setFileDirtyState(workbookId: WorkbookId, fileId: FileId, dirty: boolean, actor: Actor): Promise<void> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+    await this.workbookDbService.workbookDb.setFileDirtyState(workbookId, fileId, dirty);
+  }
+
+  /**
    * Check if a folder is linked to a snapshot table
    */
   private async isFolderLinked(folderId: FolderId): Promise<boolean> {

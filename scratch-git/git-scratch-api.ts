@@ -6,6 +6,11 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(cors());
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 const port = process.env.PORT || 3100;
 const gitService = new GitService();
 
@@ -109,6 +114,20 @@ app.delete("/api/repo/:id/files", async (req, res) => {
       branch,
       files,
       message || "Delete files",
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post("/api/repo/:id/publish", async (req, res) => {
+  try {
+    const { file, message } = req.body;
+    await gitService.publishFile(
+      req.params.id,
+      file,
+      message || "Publish file",
     );
     res.json({ success: true });
   } catch (err) {

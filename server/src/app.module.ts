@@ -27,6 +27,7 @@ import { PaymentModule } from './payment/payment.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
+import { ScratchGitModule } from './scratch-git/scratch-git.module';
 import { SlackNotificationModule } from './slack/slack-notification.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
 import { UserModule } from './users/users.module';
@@ -56,6 +57,7 @@ import { WorkerModule } from './worker/workers.module';
     WebflowCustomActionsModule,
     WixCustomActionsModule,
     WorkbookModule,
+    ScratchGitModule,
     StyleGuideModule,
     AgentTokenUsageModule,
     PaymentModule,

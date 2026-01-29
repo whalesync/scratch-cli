@@ -303,6 +303,9 @@ export class GitService implements IGitService {
     filePath: string,
   ): Promise<string | null> {
     const dir = this.getRepoPath(repoId);
+    if (filePath.startsWith("/")) {
+      filePath = filePath.slice(1);
+    }
     try {
       const commitOid = await git.resolveRef({
         fs,
@@ -339,7 +342,7 @@ export class GitService implements IGitService {
   ): Promise<void> {
     return withWriteLock(repoId, branch, async () => {
       const changes: FileChange[] = files.map((f) => ({
-        path: f.path,
+        path: f.path.startsWith("/") ? f.path.slice(1) : f.path,
         content: f.content,
         type: "modify",
       }));
@@ -355,11 +358,22 @@ export class GitService implements IGitService {
   ): Promise<void> {
     return withWriteLock(repoId, branch, async () => {
       const changes: FileChange[] = filePaths.map((p) => ({
-        path: p,
+        path: p.startsWith("/") ? p.slice(1) : p,
         type: "delete",
       }));
       await this.commitChangesToRef(repoId, branch, changes, message);
     });
+  }
+
+  async publishFile(
+    repoId: string,
+    file: { path: string; content: string },
+    message: string,
+  ): Promise<void> {
+    // 1. Commit to main
+    await this.commitFiles(repoId, "main", [file], message);
+    // 2. Rebase dirty (this will sync the repo state)
+    await this.rebaseDirty(repoId);
   }
 
   // --- Helpers ---

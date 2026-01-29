@@ -31,12 +31,26 @@ export class ScratchGitClient {
 
   async commitFiles(
     repoId: string,
-    branch: 'main' | 'dirty',
+    branch: string,
     files: Array<{ path: string; content: string }>,
     message: string,
   ): Promise<void> {
     await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'POST', {
       files,
+      message,
+    });
+  }
+
+  async deleteFiles(repoId: string, branch: string, files: string[], message: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'DELETE', {
+      files,
+      message,
+    });
+  }
+
+  async publishFile(repoId: string, file: { path: string; content: string }, message: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/publish`, 'POST', {
+      file,
       message,
     });
   }
@@ -57,5 +71,13 @@ export class ScratchGitClient {
       `/api/repo/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
       'GET',
     ) as Promise<{ content: string }>;
+  }
+
+  async getStatus(repoId: string): Promise<any> {
+    return this.callGitApi(`/api/repo/${repoId}/status`, 'GET');
+  }
+
+  async getDiff(repoId: string, path: string): Promise<string> {
+    return this.callGitApi(`/api/repo/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
   }
 }

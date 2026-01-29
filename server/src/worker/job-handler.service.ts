@@ -8,6 +8,7 @@ import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
+import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { DownloadFilesJobHandler } from './jobs/job-definitions/download-files.job';
@@ -27,6 +28,7 @@ export class JobHandlerService {
     private readonly workbookService: WorkbookService,
     private readonly onboardingService: OnboardingService,
     private readonly filePublishingService: FilePublishingService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -46,6 +48,7 @@ export class JobHandlerService {
           this.workbookDbService.workbookDb,
           this.connectorAccountService,
           this.snapshotEventService,
+          this.scratchGitService,
         ) as JobHandler<JobDefinition>;
       case 'download-record-files':
         return new DownloadRecordFilesJobHandler(
@@ -54,6 +57,7 @@ export class JobHandlerService {
           this.workbookDbService.workbookDb,
           this.connectorAccountService,
           this.snapshotEventService,
+          this.scratchGitService,
         ) as JobHandler<JobDefinition>;
       case 'download-linked-folder-files':
         return new DownloadLinkedFolderFilesJobHandler(
@@ -62,6 +66,7 @@ export class JobHandlerService {
           this.workbookDbService.workbookDb,
           this.connectorAccountService,
           this.snapshotEventService,
+          this.scratchGitService,
         ) as JobHandler<JobDefinition>;
 
       case 'publish-files':

@@ -8,6 +8,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { WorkbookDb } from 'src/workbook/workbook-db';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
@@ -45,6 +46,7 @@ export class DownloadLinkedFolderFilesJobHandler implements JobHandlerBuilder<Do
     private readonly workbookDb: WorkbookDb,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
 
   async run(params: {
@@ -149,13 +151,39 @@ export class DownloadLinkedFolderFilesJobHandler implements JobHandlerBuilder<Do
       });
 
       // Upsert files from connector files
-      await this.workbookDb.upsertFilesFromConnectorFiles(
+      const upsertedFiles = await this.workbookDb.upsertFilesFromConnectorFiles(
         dataFolder.workbookId as WorkbookId,
         dataFolder.id,
         dataFolder.path ?? '',
         files,
         tableSpec,
       );
+
+      // Sync to Git (Commit to main + Rebase dirty)
+      if (upsertedFiles.length > 0) {
+        const gitFiles = upsertedFiles.map((f) => ({
+          path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
+          content: f.content,
+        }));
+
+        try {
+          await this.scratchGitService.commitFilesToBranch(
+            dataFolder.workbookId as WorkbookId,
+            'main',
+            gitFiles,
+            `Sync batch of ${upsertedFiles.length} files`,
+          );
+
+          await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);
+        } catch (err) {
+          WSLogger.error({
+            source: 'DownloadLinkedFolderFilesJob',
+            message: 'Failed to sync batch to git',
+            workbookId: dataFolder.workbookId,
+            error: err,
+          });
+        }
+      }
 
       publicProgress.totalFiles += files.length;
 

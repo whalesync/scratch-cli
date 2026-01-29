@@ -11,6 +11,7 @@ import {
   ActionIcon,
   Box,
   Button,
+  Code,
   Group,
   Loader,
   Menu,
@@ -141,6 +142,8 @@ interface TreeNodeRendererProps {
   onBackupWorkbook: () => void;
   isBackingUp: boolean;
   onBrowseGit: () => void;
+  onGitStatus: () => void;
+  onFilePublish: (fileId: FileId) => void;
 }
 
 function TreeNodeRenderer({
@@ -179,6 +182,8 @@ function TreeNodeRenderer({
   onBackupWorkbook,
   isBackingUp,
   onBrowseGit,
+  onGitStatus,
+  onFilePublish,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -327,6 +332,16 @@ function TreeNodeRenderer({
               disabled={isBackingUp}
             >
               Back up to repo
+            </Menu.Item>
+            <Menu.Item
+              leftSection={<GitBranchIcon size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onGitStatus();
+                setMenuOpened(false);
+              }}
+            >
+              Git Status
             </Menu.Item>
             <Menu.Item
               leftSection={<FolderIcon size={16} />}
@@ -675,6 +690,16 @@ function TreeNodeRenderer({
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item
+                    leftSection={<CloudUploadIcon size={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onFilePublish(nodeData.id as FileId);
+                    }}
+                  >
+                    Mock Publish
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
                     leftSection={<Trash2Icon size={16} />}
                     color="red"
                     onClick={(e) => {
@@ -801,6 +826,9 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
   } | null>(null);
 
   const [gitBrowserOpen, setGitBrowserOpen] = useState(false);
+  const [gitStatusOpen, setGitStatusOpen] = useState(false);
+  const [gitStatus, setGitStatus] = useState<object | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
 
   // Sync server data to local state
   useEffect(() => {
@@ -1144,10 +1172,37 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
   const handleFileDownload = useCallback(
     (fileId: FileId) => {
-      if (!workbook) return;
+      // Find file name
+      const file = treeData.find((n) => n.id === fileId);
+      if (!file) return;
+
+      if (!workbook?.id) return;
+
       foldersApi.downloadFile(workbook.id, fileId);
     },
-    [workbook],
+    [treeData, workbook],
+  );
+
+  const handleFilePublish = useCallback(
+    async (fileId: FileId) => {
+      if (!workbook?.id) return;
+      try {
+        await filesApi.publishFile(workbook.id, fileId);
+        notifications.show({
+          title: 'Success',
+          message: 'File published',
+          color: 'green',
+        });
+        refreshFiles();
+      } catch {
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to publish file',
+          color: 'red',
+        });
+      }
+    },
+    [workbook, refreshFiles],
   );
 
   const handleFileCopy = useCallback((fileId: FileId) => {
@@ -1490,6 +1545,26 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     }
   }, [workbook]);
 
+  const handleGitStatus = useCallback(async () => {
+    if (!workbook) return;
+    setLoadingStatus(true);
+    setGitStatus(null);
+    setGitStatusOpen(true);
+    try {
+      const data = await workbookApi.getRepoStatus(workbook.id);
+      setGitStatus(data);
+    } catch (e) {
+      console.error(e);
+      notifications.show({
+        title: 'Git Status Failed',
+        message: 'Could not fetch git status.',
+        color: 'red',
+      });
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, [workbook]);
+
   // Debug: log tree data
   console.log('treeData:', treeData);
 
@@ -1771,6 +1846,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     onBackupWorkbook={handleBackupWorkbook}
                     isBackingUp={isBackingUp}
                     onBrowseGit={() => setGitBrowserOpen(true)}
+                    onGitStatus={handleGitStatus}
+                    onFilePublish={handleFilePublish}
                   />
                 )}
               />
@@ -1919,6 +1996,17 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
       {workbook && (
         <GitBrowserModal workbookId={workbook.id} isOpen={gitBrowserOpen} onClose={() => setGitBrowserOpen(false)} />
       )}
+      <Modal opened={gitStatusOpen} onClose={() => setGitStatusOpen(false)} title="Git Status" size="lg">
+        {loadingStatus ? (
+          <Group justify="center" p="xl">
+            <Loader size="sm" />
+          </Group>
+        ) : (
+          <ScrollArea.Autosize style={{ maxHeight: 500 }}>
+            <Code block>{gitStatus ? JSON.stringify(gitStatus, null, 2) : 'No status data'}</Code>
+          </ScrollArea.Autosize>
+        )}
+      </Modal>
     </DndProvider>
   );
 }

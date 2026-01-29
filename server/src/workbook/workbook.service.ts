@@ -36,6 +36,7 @@ import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { AnySpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { BaseJsonTableSpec, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
+import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DownloadFilesPublicProgress } from '../worker/jobs/job-definitions/download-files.job';
 import { FolderService } from './folder.service';
 import { SnapshotEventService } from './snapshot-event.service';
@@ -58,6 +59,7 @@ export class WorkbookService {
     private readonly subscriptionService: SubscriptionService,
     private readonly onboardingService: OnboardingService,
     private readonly folderService: FolderService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
 
   async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
@@ -168,6 +170,18 @@ export class WorkbookService {
         services: tableCreateInput.map((t) => t.connectorService),
       },
     });
+
+    // Initialize Git Repo
+    try {
+      await this.scratchGitService.initRepo(newWorkbook.id as WorkbookId);
+    } catch (err) {
+      WSLogger.error({
+        source: 'WorkbookService.create',
+        message: 'Failed to init git repo',
+        error: err,
+        workbookId: newWorkbook.id,
+      });
+    }
 
     return newWorkbook;
   }
@@ -428,6 +442,18 @@ export class WorkbookService {
       message: `Deleted workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
     });
+
+    // Delete Git Repo
+    try {
+      await this.scratchGitService.deleteRepo(id);
+    } catch (err) {
+      WSLogger.error({
+        source: 'WorkbookService.delete',
+        message: 'Failed to delete git repo',
+        error: err,
+        workbookId: id,
+      });
+    }
   }
 
   findAllForConnectorAccount(

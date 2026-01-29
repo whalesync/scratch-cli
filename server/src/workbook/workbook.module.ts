@@ -9,9 +9,7 @@ import { ConnectorAccountModule } from 'src/remote-service/connector-account/con
 import { UserModule } from 'src/users/users.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
-import { ScratchGitClient } from '../scratch-git/scratch-git.client';
-import { ScratchGitController } from '../scratch-git/scratch-git.controller';
-import { ScratchGitService } from '../scratch-git/scratch-git.service';
+import { ScratchGitModule } from '../scratch-git/scratch-git.module';
 import { FilePublishingService } from './file-publishing.service';
 import { FilesPublicController } from './files-public.controller';
 import { FilesController, FoldersController } from './files.controller';
@@ -39,15 +37,9 @@ import { FolderService } from './folder.service';
     WorkerEnqueuerModule,
     WorkbookDbModule,
     AuditLogModule,
+    ScratchGitModule,
   ],
-  controllers: [
-    WorkbookController,
-    FilesController,
-    FoldersController,
-    FilesPublicController,
-    DataFolderController,
-    ScratchGitController,
-  ],
+  controllers: [WorkbookController, FilesController, FoldersController, FilesPublicController, DataFolderController],
   providers: [
     WorkbookService,
     SnapshotEventService,
@@ -56,9 +48,7 @@ import { FolderService } from './folder.service';
     FolderService,
     FilePublishingService,
     DataFolderService,
-    ScratchGitService,
-    ScratchGitClient,
   ],
-  exports: [WorkbookService, SnapshotEventService, FolderService, FilePublishingService, ScratchGitService],
+  exports: [WorkbookService, SnapshotEventService, FolderService, FilePublishingService],
 })
 export class WorkbookModule {}

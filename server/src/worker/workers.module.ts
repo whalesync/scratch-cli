@@ -6,6 +6,7 @@ import { UserModule } from 'src/users/users.module';
 import { WorkbookDbModule } from 'src/workbook/workbook-db.module';
 import { WorkbookModule } from 'src/workbook/workbook.module';
 import { JobModule } from '../job/job.module';
+import { ScratchGitModule } from '../scratch-git/scratch-git.module';
 import { WorkerEnqueuerModule } from '../worker-enqueuer/worker-enqueuer.module';
 import { QueueService } from './bull-worker.service';
 import { JobHandlerService } from './job-handler.service';
@@ -23,6 +24,7 @@ import { WorkersController } from './test/workers.controller';
     JobModule,
     ConnectorAccountModule,
     UserModule,
+    ScratchGitModule,
   ],
   controllers: [WorkersController],
   providers: [WorkerPoolService, QueueService, QueueTestService, JobHandlerService],

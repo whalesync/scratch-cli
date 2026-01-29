@@ -256,4 +256,28 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  getRepoStatus: async (workbookId: WorkbookId): Promise<object> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<object>(`/scratch-git/${workbookId}/git-status`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get repo status');
+      throw error;
+    }
+  },
+
+  getRepoDiff: async (workbookId: WorkbookId, path: string): Promise<string> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<string>(`/scratch-git/${workbookId}/git-diff`, {
+        params: { path },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get file diff');
+      throw error;
+    }
+  },
 };

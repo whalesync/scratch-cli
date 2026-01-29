@@ -29,9 +29,8 @@ The service consists of two distinct HTTP servers running as separate processes:
 
 ### Prerequisites
 
-- Node.js (v18+)
+- Node.js
 - Git installed and in PATH
-- Persistent storage directory (e.g., standard SSD on a VM)
 
 ### Environment Variables
 
@@ -50,88 +49,19 @@ The services are designed to run independently.
 **Start the RPC API:**
 
 ```bash
-npx ts-node main.ts
+npx ts-node git-scratch-api.ts
 ```
 
 **Start the Git HTTP Backend:**
 
 ```bash
-npx ts-node http-backend.ts
+npx ts-node git-http-backend.ts
 ```
-
-## API Reference
-
-### Create Repository
-
-**POST** `/api/repo/create`
-
-```json
-{
-  "repoId": "my-project"
-}
-```
-
-### Stateless Commit
-
-**POST** `/api/exec/commit`
-
-```json
-{
-  "repoId": "my-project",
-  "message": "Initial commit",
-  "files": [
-    {
-      "path": "README.md",
-      "content": "# Hello World"
-    }
-  ]
-}
-```
-
-_Note: Pass `content: null` to delete a file._
-
-### Read File
-
-**GET** `/api/exec/read?repoId=my-project&path=README.md&ref=main`
 
 ## Git Client Usage
 
 To clone a repository hosted on this service:
 
 ```bash
-git clone http://<host>:3101/my-project.git
+git clone http://localhost:3101/my-project.git
 ```
-
-### Create Dirty Branch
-
-**POST** `/api/branch/dirty`
-
-Creates a user-specific branch (`dirty/<userId>`) from `main` to track draft changes.
-
-```json
-{
-  "repoId": "my-project",
-  "userId": "user-123"
-}
-```
-
-## Backup Feature (Temporary)
-
-As an experimental feature, the Spinner UI allows backing up a workbook directly to a git repository managed by this service.
-
-1.  **Initialization**: Repositories are auto-created as **bare** repositories upon the first backup request.
-    - _Note_: We strictly use `bare: true` with explicit `gitdir` to prevent nested `.git` directories and ensure compatibility with standard git clients.
-2.  **Commit**: The backup action triggers a stateless commit that writes all workbook files directly to the `main` branch.
-3.  **Cloning**: You can clone the backed-up repository using the HTTP backend:
-
-```bash
-git clone http://localhost:3101/<workbookId>.git
-```
-
-## Deployment Notes
-
-- **Google Cloud Compute Engine**: Recommended deployment target.
-  - **Machine**: e2-small (2 vCPU, 2GB RAM) is sufficient for start.
-  - **Storage**: Zonal Persistent Disk (Standard or Balanced).
-    - Can be resized online (increased size) without downtime.
-    - Mount the disk to the directory specified in `GIT_REPOS_DIR`.

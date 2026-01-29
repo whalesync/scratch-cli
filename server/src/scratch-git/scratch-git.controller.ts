@@ -1,22 +1,12 @@
-import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
-import type { RequestWithUser } from 'src/auth/types';
-import { userToActor } from 'src/users/types';
 import { ScratchGitService } from './scratch-git.service';
 
 @Controller('scratch-git')
 @UseGuards(ScratchpadAuthGuard)
 export class ScratchGitController {
   constructor(private readonly scratchGitService: ScratchGitService) {}
-
-  @Post(':id/backup')
-  async backupToRepo(
-    @Param('id') workbookId: WorkbookId,
-    @Req() req: RequestWithUser,
-  ): Promise<{ success: boolean; message: string }> {
-    return this.scratchGitService.backupWorkbookToRepo(workbookId, userToActor(req.user));
-  }
 
   @Get(':id/list')
   async listRepoFiles(
@@ -34,5 +24,16 @@ export class ScratchGitController {
     @Query('path') path: string,
   ): Promise<{ content: string }> {
     return this.scratchGitService.getRepoFile(workbookId, branch, path);
+  }
+  @Get(':id/git-status')
+  async getRepoStatus(@Param('id') workbookId: WorkbookId): Promise<unknown> {
+    console.log(`[ScratchGitController] getRepoStatus called for ${workbookId}`);
+    return this.scratchGitService.getRepoStatus(workbookId);
+  }
+
+  @Get(':id/git-diff')
+  async getFileDiff(@Param('id') workbookId: WorkbookId, @Query('path') path: string): Promise<unknown> {
+    console.log(`[ScratchGitController] getFileDiff called for ${workbookId} path=${path}`);
+    return this.scratchGitService.getFileDiff(workbookId, path);
   }
 }

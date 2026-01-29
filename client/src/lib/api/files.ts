@@ -121,6 +121,19 @@ export const filesApi = {
       handleAxiosError(error, 'Failed to copy file');
     }
   },
+
+  /**
+   * Publish a file
+   * POST /workbooks/:workbookId/files/:fileId/publish
+   */
+  publishFile: async (workbookId: WorkbookId, fileId: FileId): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/workbooks/${workbookId}/files/${fileId}/publish`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to publish file');
+    }
+  },
 };
 
 /**

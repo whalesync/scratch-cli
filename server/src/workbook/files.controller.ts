@@ -174,6 +174,17 @@ export class FilesController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.filesService.deleteFileByPath(workbookId, path, userToActor(req.user));
+
+    try {
+      await this.scratchGitService.deleteFile(workbookId, path, `Delete ${path}`);
+    } catch (e) {
+      WSLogger.error({
+        source: 'FilesController.deleteFileByPath',
+        message: 'Failed to auto-commit file deletion',
+        error: e,
+        workbookId,
+      });
+    }
   }
 
   /**
@@ -187,7 +198,22 @@ export class FilesController {
     @Req() req: RequestWithUser,
   ): Promise<FileRefEntity> {
     const dto = createFileDto as ValidatedCreateFileDto;
-    return await this.filesService.createFile(workbookId, dto, userToActor(req.user));
+    const file = await this.filesService.createFile(workbookId, dto, userToActor(req.user));
+
+    if (file.type === 'file') {
+      try {
+        await this.scratchGitService.commitFile(workbookId, file.path, dto.content || '', `Create ${file.path}`);
+      } catch (e) {
+        WSLogger.error({
+          source: 'FilesController.createFile',
+          message: 'Failed to auto-commit file creation',
+          error: e,
+          workbookId,
+        });
+      }
+    }
+
+    return file;
   }
 
   /**
@@ -247,7 +273,21 @@ export class FilesController {
     @Param('fileId') fileId: FileId,
     @Req() req: RequestWithUser,
   ): Promise<void> {
+    const file = await this.filesService.getFileById(workbookId, fileId, userToActor(req.user));
     await this.filesService.deleteFile(workbookId, fileId, userToActor(req.user));
+
+    if (file && file.file && file.file.ref && file.file.ref.path) {
+      try {
+        await this.scratchGitService.deleteFile(workbookId, file.file.ref.path, `Delete ${file.file.ref.path}`);
+      } catch (e) {
+        WSLogger.error({
+          source: 'FilesController.deleteFile',
+          message: 'Failed to auto-commit file deletion',
+          error: e,
+          workbookId,
+        });
+      }
+    }
   }
 
   /**
@@ -263,6 +303,44 @@ export class FilesController {
   ): Promise<FileRefEntity> {
     const dto = copyFileDto;
     return await this.filesService.copyFile(workbookId, fileId, dto.targetFolderId ?? null, userToActor(req.user));
+  }
+
+  /**
+   * Publish a file (commit to main and rebase dirty)
+   * POST /workbooks/:workbookId/files/:fileId/publish
+   */
+  @Post(':fileId/publish')
+  @HttpCode(204)
+  async publishFile(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('fileId') fileId: FileId,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    const file = await this.filesService.getFileById(workbookId, fileId, userToActor(req.user));
+
+    if (file && file.file && file.file.ref && file.file.ref.path && file.file.content !== undefined) {
+      try {
+        await this.scratchGitService.publishFile(
+          workbookId,
+          file.file.ref.path,
+          file.file.content || '',
+          `Publish ${file.file.ref.path}`,
+        );
+
+        // Clear the dirty flag in the database
+        await this.filesService.setFileDirtyState(workbookId, fileId, false, userToActor(req.user));
+      } catch (e) {
+        WSLogger.error({
+          source: 'FilesController.publishFile',
+          message: 'Failed to publish file',
+          error: e,
+          workbookId,
+        });
+        throw e;
+      }
+    } else {
+      throw new Error('File not found or content missing');
+    }
   }
 }
 

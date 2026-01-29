@@ -626,6 +626,19 @@ export class WorkbookDb {
   }
 
   /**
+   * Sets the dirty state of a file
+   */
+  async setFileDirtyState(workbookId: WorkbookId, fileId: FileId, dirty: boolean): Promise<void> {
+    await this.getKnex()<FileDbRecord>(FILES_TABLE)
+      .withSchema(workbookId)
+      .where(FILE_ID_COLUMN, fileId)
+      .update({
+        [DIRTY_COLUMN]: dirty,
+        [UPDATED_AT_COLUMN]: this.getKnex().fn.now(),
+      });
+  }
+
+  /**
    * Updates the content of a file
    */
   async updateFile(
@@ -701,8 +714,9 @@ export class WorkbookDb {
     parentPath: string,
     records: ConnectorRecord[],
     tableSpec: BaseTableSpec<T>,
-  ): Promise<void> {
+  ): Promise<{ path: string; content: string }[]> {
     const trx = await this.getKnex().transaction();
+    const processedFiles: { path: string; content: string }[] = [];
 
     try {
       // Get prefix
@@ -811,9 +825,11 @@ export class WorkbookDb {
               [ERRORS_COLUMN]: record.errors || {},
             });
         }
+        processedFiles.push({ path: fullPath, content: frontMatterContent });
       }
 
       await trx.commit();
+      return processedFiles;
     } catch (error) {
       await trx.rollback();
       throw error;
@@ -1007,11 +1023,12 @@ export class WorkbookDb {
     records: ConnectorFile[],
 
     tableSpec: BaseJsonTableSpec,
-  ): Promise<void> {
+  ): Promise<{ path: string; content: string }[]> {
     const trx = await this.getKnex().transaction();
     // Get prefix
     const prefix = parentPath === '/' ? '' : parentPath;
     const idColumnRemoteId = tableSpec.idColumnRemoteId;
+    const processedFiles: { path: string; content: string }[] = [];
 
     try {
       for (const record of records) {
@@ -1076,9 +1093,11 @@ export class WorkbookDb {
               [ERRORS_COLUMN]: {},
             });
         }
+        processedFiles.push({ path: fullPath, content });
       }
 
       await trx.commit();
+      return processedFiles;
     } catch (error) {
       await trx.rollback();
       throw error;
