@@ -9,6 +9,7 @@ export class ScratchGitClient {
       method,
       headers: { 'Content-Type': 'application/json' },
     };
+
     if (body) {
       options.body = JSON.stringify(body);
     }

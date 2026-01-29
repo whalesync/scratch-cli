@@ -199,11 +199,14 @@ export class GitService implements IGitService {
         if (mainContent !== null && mainContent !== edit.content) {
           conflicts.push(edit.path);
         }
-        changesToCommit.push({
-          path: edit.path,
-          content: edit.content,
-          type: "modify",
-        });
+        // Only modify if content is different
+        if (mainContent !== edit.content) {
+          changesToCommit.push({
+            path: edit.path,
+            content: edit.content,
+            type: "modify",
+          });
+        }
       }
     }
 
@@ -230,6 +233,35 @@ export class GitService implements IGitService {
       ]);
       if (mainCommit === dirtyCommit) return [];
       return this.compareCommits(repoId, mainCommit, dirtyCommit);
+    } catch {
+      return [];
+    }
+  }
+
+  async getRefOid(repoId: string, ref: string): Promise<string | null> {
+    const dir = this.getRepoPath(repoId);
+    try {
+      const oid = await git.resolveRef({
+        fs,
+        dir,
+        gitdir: dir,
+        ref,
+      });
+      return oid;
+    } catch {
+      return null;
+    }
+  }
+
+  async getLog(
+    repoId: string,
+    ref: string,
+    depth: number = 10,
+  ): Promise<Array<{ oid: string; parent: string[] }>> {
+    const dir = this.getRepoPath(repoId);
+    try {
+      const commits = await git.log({ fs, dir, gitdir: dir, ref, depth });
+      return commits.map((c) => ({ oid: c.oid, parent: c.commit.parent }));
     } catch {
       return [];
     }
@@ -469,9 +501,9 @@ export class GitService implements IGitService {
     });
     await this.forceRef(dir, ref, newCommit);
 
-    if (ref === "main") {
-      await this.syncIndexForChanges(dir, changes);
-    }
+    // if (ref === "main") {
+    //   await this.syncIndexForChanges(dir, changes);
+    // }
   }
 
   private async syncIndexForChanges(dir: string, changes: FileChange[]) {

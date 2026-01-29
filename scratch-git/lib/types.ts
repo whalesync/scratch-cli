@@ -58,6 +58,19 @@ export interface IGitService {
     repoId: string,
   ): Promise<{ rebased: boolean; conflicts: string[] }>;
   getDirtyStatus(repoId: string): Promise<DirtyFile[]>;
+
+  /**
+   * Gets the OID (hash) of a reference (branch/tag).
+   * Needed for verifying the exact state of the repo in tests, ensuring branches point to expected commits.
+   */
+  getRefOid(repoId: string, ref: string): Promise<string | null>;
+
+  getLog(
+    repoId: string,
+    ref: string,
+    depth?: number,
+  ): Promise<Array<{ oid: string; parent: string[] }>>;
+
   getFileDiff(
     repoId: string,
     filePath: string,
