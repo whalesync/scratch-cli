@@ -1,10 +1,15 @@
+import {} from '@/types/server-entities/workbook';
 import {
   AddTableToWorkbookDto,
   CreateWorkbookDto,
+  DataFolderGroup,
+  SnapshotTable,
+  SnapshotTableId,
   UpdateColumnSettingsDto,
   UpdateWorkbookDto,
-} from '@/types/server-entities/workbook';
-import { DataFolderGroup, SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
+  Workbook,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 

@@ -1,10 +1,10 @@
 import { IsArray, IsOptional, IsString } from 'class-validator';
 
-export class DownloadRecordsDto {
+export class PublishTablesDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   snapshotTableIds?: string[];
 }
 
-export type ValidatedDownloadRecordsDto = DownloadRecordsDto;
+export type ValidatedPublishTablesDto = PublishTablesDto;

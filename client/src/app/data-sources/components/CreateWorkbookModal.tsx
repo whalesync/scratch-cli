@@ -22,7 +22,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { ConnectorAccount } from '@spinner/shared-types';
+import { ConnectorAccount, ConnectorAccountId } from '@spinner/shared-types';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -102,7 +102,7 @@ export const CreateWorkbookModal = ({
         name: workbookName ?? `New ${connectorAccount.displayName} workbook`,
         tables: [
           {
-            connectorAccountId: connectorAccount.id,
+            connectorAccountId: connectorAccount.id as ConnectorAccountId,
             tableId: table.id,
           },
         ],

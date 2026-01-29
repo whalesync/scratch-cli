@@ -19,6 +19,7 @@ import {
 } from '@nestjs/common';
 import type {
   DataFolderGroup,
+  PublishTablesDto,
   ValidatedAddTableToWorkbookDto,
   ValidatedSetContentColumnDto,
   ValidatedSetTitleColumnDto,
@@ -27,8 +28,7 @@ import type {
 } from '@spinner/shared-types';
 import {
   CreateWorkbookDto,
-  DownloadRecordsDto,
-  PublishRecordsDto,
+  DownloadFilesDto,
   SetContentColumnDto,
   SetTitleColumnDto,
   UpdateColumnSettingsDto,
@@ -140,7 +140,7 @@ export class WorkbookController {
   @Post(':id/publish-files')
   async publishFiles(
     @Param('id') id: WorkbookId,
-    @Body() publishDto: PublishRecordsDto,
+    @Body() publishDto: PublishTablesDto,
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
     const dto = publishDto;
@@ -158,7 +158,7 @@ export class WorkbookController {
   @Post(':id/download-files')
   async downloadFiles(
     @Param('id') id: WorkbookId,
-    @Body() downloadDto: DownloadRecordsDto,
+    @Body() downloadDto: DownloadFilesDto,
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
     const dto = downloadDto;

@@ -1,7 +1,6 @@
 import { isNotEmpty } from '@/utils/helpers';
 import {
   ColumnSpec,
-  EntityId,
   PostgresColumnType,
   Service,
   SnapshotColumnSettingsMap,
@@ -16,45 +15,9 @@ import toNumber from 'lodash/toNumber';
 import truncate from 'lodash/truncate';
 import uniq from 'lodash/uniq';
 
-export interface CreateWorkbookDto {
-  name?: string;
-  tables?: {
-    connectorAccountId: string;
-    tableId: EntityId;
-  }[];
-}
-
-export interface AddTableToWorkbookDto {
-  service: Service;
-  connectorAccountId?: string;
-  tableId: EntityId;
-}
-
-export interface UpdateWorkbookDto {
-  name?: string;
-}
-
 export interface UpdateColumnSettingsDto {
   /** Only keys present in the map will be updated, other keys will be left unchanged. */
   columnSettings: SnapshotColumnSettingsMap;
-}
-
-export interface AddScratchColumnDto {
-  columnName: string;
-  dataType: PostgresColumnType;
-}
-
-export interface RemoveScratchColumnDto {
-  columnId: string;
-}
-
-export interface AcceptCellValueItem {
-  wsId: string;
-  columnId: string;
-}
-
-export interface AcceptCellValueDto {
-  items: AcceptCellValueItem[];
 }
 
 export type SnapshotRecord = {
@@ -88,27 +51,8 @@ export type RecordErrorsMetadata = {
   byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
 };
 
-export interface DownloadWorkbookWithoutJobResult {
-  totalRecords: number;
-  tables: {
-    id: string;
-    name: string;
-    records: number;
-  }[];
-}
-
 export interface DownloadWorkbookResult {
   jobId: string;
-}
-
-export interface AcceptAllSuggestionsResult {
-  recordsUpdated: number;
-  totalChangesAccepted: number;
-}
-
-export interface RejectAllSuggestionsResult {
-  recordsRejected: number;
-  totalChangesRejected: number;
 }
 
 export function isTextColumn(column: ColumnSpec) {

@@ -1,10 +1,8 @@
 'use client';
 
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { mentionsApi } from '@/lib/api/mentions';
-import { RecordMentionEntity, ResourceMentionEntity } from '@/types/server-entities/mentions';
 import { Loader } from '@mantine/core';
-import { SnapshotTableId, TableSpec, Workbook, WorkbookId } from '@spinner/shared-types';
+import { SnapshotTableId, TableSpec, Workbook } from '@spinner/shared-types';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { MentionsInput } from 'react-mentions';
 import classNames from './AdvancedAgentInput.module.css';
@@ -13,6 +11,18 @@ import { SuggestionItem } from './SuggestionItem';
 import { TypesafeMention } from './TypesafeMention';
 
 const MIN_QUERY_LENGTH = 2;
+
+export interface ResourceMentionEntity {
+  id: string;
+  title: string;
+  preview: string;
+}
+
+export interface RecordMentionEntity {
+  id: string;
+  title: string;
+  tableId: string;
+}
 
 export interface AdvancedAgentInputRef {
   setValue: (value: string) => void;
@@ -255,19 +265,8 @@ export const AdvancedAgentInput = forwardRef<AdvancedAgentInputRef, AdvancedAgen
                 callback([]);
                 return;
               }
-              try {
-                const resources = await mentionsApi.searchResources({ text: query });
-                const items = resources.map((r) => ({
-                  id: r.id,
-                  display: r.title,
-                  title: r.title,
-                  preview: r.preview,
-                }));
-                callback(items);
-              } catch (error) {
-                console.error('Error fetching resource mentions:', error);
-                callback([]);
-              }
+
+              callback([]);
             }}
             renderSuggestion={renderResourceSuggestion}
             appendSpaceOnAdd
@@ -296,23 +295,7 @@ export const AdvancedAgentInput = forwardRef<AdvancedAgentInputRef, AdvancedAgen
                 callback([]);
                 return;
               }
-
-              try {
-                const records = await mentionsApi.searchRecords({
-                  text: query,
-                  workbookId: workbook.id as WorkbookId,
-                  tableId: tableId,
-                });
-                const items = records.map((r) => ({
-                  id: r.id,
-                  display: r.title,
-                  title: r.title,
-                }));
-                callback(items);
-              } catch (error) {
-                console.error('Error fetching record mentions:', error);
-                callback([]);
-              }
+              callback([]);
             }}
             renderSuggestion={renderRecordSuggestion}
             appendSpaceOnAdd

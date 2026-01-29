@@ -1,9 +1,8 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
-import { recordApi } from '@/lib/api/record';
 import { workbookApi } from '@/lib/api/workbook';
-import { AddTableToWorkbookDto, UpdateWorkbookDto } from '@/types/server-entities/workbook';
 import {
+  AddTableToWorkbookDto,
   CreateDataFolderDto,
   DataFolder,
   EntityId,
@@ -11,23 +10,21 @@ import {
   SnapshotColumnSettingsMap,
   SnapshotTable,
   SnapshotTableId,
+  UpdateWorkbookDto,
   Workbook,
   WorkbookId,
 } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
 import { dataFolderApi } from '../lib/api/data-folder';
 
 export interface UseWorkbookReturn {
   workbook: Workbook | undefined;
   isLoading: boolean;
   error: Error | undefined;
-  // publish: () => Promise<void>;
   refreshWorkbook: () => Promise<void>;
   updateWorkbook: (updateDto: UpdateWorkbookDto) => Promise<void>;
   updateColumnSettings: (tableId: SnapshotTableId, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
-  clearActiveRecordFilter: (tableId: SnapshotTableId) => Promise<void>;
   hideTable: (tableId: SnapshotTableId) => Promise<void>;
   unhideTable: (tableId: SnapshotTableId) => Promise<void>;
   deleteTable: (tableId: SnapshotTableId) => Promise<void>;
@@ -100,37 +97,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       globalMutate(SWR_KEYS.workbook.detail(id));
     },
     [globalMutate, id],
-  );
-
-  const clearActiveRecordFilter = useCallback(
-    async (tableId: SnapshotTableId) => {
-      if (!id) {
-        return;
-      }
-
-      try {
-        await recordApi.clearActiveRecordFilter(id, tableId);
-        ScratchpadNotifications.success({
-          title: 'Filter Cleared',
-          message: 'All records are now visible',
-        });
-
-        // Invalidate records cache to refresh the data
-        globalMutate(
-          (key) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'records' && key[2] === id,
-          undefined,
-          { revalidate: true },
-        );
-      } catch (e) {
-        const error = e as Error;
-        ScratchpadNotifications.error({
-          title: 'Error clearing filter',
-          message: error.message,
-          autoClose: 5000,
-        });
-      }
-    },
-    [id, globalMutate],
   );
 
   const hideTable = useCallback(
@@ -235,7 +201,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     refreshWorkbook,
     updateWorkbook,
     updateColumnSettings,
-    clearActiveRecordFilter,
     hideTable,
     unhideTable,
     deleteTable,
