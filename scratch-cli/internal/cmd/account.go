@@ -89,8 +89,8 @@ Required flags:
 
 Provider-specific flags:
   --account.domain string        Domain/subdomain (for Moco: e.g., 'yourcompany')
-  --account.wordpress-url string WordPress site URL (for WordPress)
-  --account.email string         Email address (for WordPress)
+  --account.endpoint string      WordPress site URL (for WordPress)
+  --account.username string      Username/Email (for WordPress)
   --account.password string      Password (for WordPress application password)
 
 Examples:
@@ -100,8 +100,8 @@ Examples:
   # Moco (uses domain + api-key)
   scratchmd account add --account.provider=moco --account.domain=yourcompany --account.api-key=<key>
 
-  # WordPress (uses wordpress-url + email + password)
-  scratchmd account add --account.provider=wordpress --account.wordpress-url=https://example.com --account.email=user@example.com --account.password=<app-password>`,
+  # WordPress (uses endpoint + username + password)
+  scratchmd account add --account.provider=wordpress --account.endpoint=https://example.com --account.username=user@example.com --account.password=<app-password>`,
 	// Args is optional (name)
 	Args: cobra.MaximumNArgs(1),
 	RunE: runAccountAdd,
@@ -180,8 +180,8 @@ func init() {
 	accountAddCmd.Flags().String("account.provider", "", "CMS provider (webflow, wordpress, moco, etc.)")
 	accountAddCmd.Flags().String("account.api-key", "", "API key for the provider")
 	accountAddCmd.Flags().String("account.domain", "", "Domain/subdomain (for Moco)")
-	accountAddCmd.Flags().String("account.wordpress-url", "", "WordPress site URL")
-	accountAddCmd.Flags().String("account.email", "", "Email address (for WordPress)")
+	accountAddCmd.Flags().String("account.endpoint", "", "WordPress site URL")
+	accountAddCmd.Flags().String("account.username", "", "Username/Email (for WordPress)")
 	accountAddCmd.Flags().String("account.password", "", "Password (for WordPress)")
 	// Not required anymore, can come from defaults
 	// accountAddCmd.MarkFlagRequired("account.provider")
@@ -499,11 +499,11 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 	// Build credentials from provider's auth properties
 	// Map provider auth property keys to CLI flags
 	flagMapping := map[string]string{
-		"apiKey":       "account.api-key",
-		"domain":       "account.domain",
-		"wordpressUrl": "account.wordpress-url",
-		"email":        "account.email",
-		"password":     "account.password",
+		"apiKey":   "account.api-key",
+		"domain":   "account.domain",
+		"endpoint": "account.endpoint",
+		"username": "account.username",
+		"password": "account.password",
 	}
 
 	authProps := provider.AuthProperties()

@@ -15,16 +15,16 @@ func (w *WordPressProvider) DisplayName() string {
 func (w *WordPressProvider) AuthProperties() []AuthProperty {
 	return []AuthProperty{
 		{
-			Key:         "wordpressUrl",
+			Key:         "endpoint",
 			DisplayName: "WordPress URL",
 			Description: "The URL of your WordPress site (e.g., https://example.com)",
 			Required:    true,
 			Sensitive:   false,
 		},
 		{
-			Key:         "email",
-			DisplayName: "Email",
-			Description: "Your WordPress account email",
+			Key:         "username",
+			DisplayName: "Username/Email",
+			Description: "Your WordPress account username or email",
 			Required:    true,
 			Sensitive:   false,
 		},

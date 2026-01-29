@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -973,7 +974,7 @@ func runFolderDirtyFields(tableName, originalDir, contentFieldName string) error
 type UploadChange struct {
 	Operation     string                 // "delete", "create", "update"
 	Filename      string                 // The filename
-	RemoteID      string                 // The remote ID from frontmatter (for update/delete)
+	RemoteID      string                 // The remote ID from the id field (for update/delete)
 	ChangedFields []string               // List of changed fields (for create/update)
 	FieldValues   map[string]interface{} // Field name -> new value (for create/update)
 
@@ -1234,7 +1235,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 					s.Start()
 				}
 
-				// Process each change that has a remoteId (updates) or will get one (creates need special handling)
+				// Process each change that has an id (updates) or will get one (creates need special handling)
 				for _, change := range tc.changes {
 					// Skip deletes - no attachments to upload
 					if change.Operation == "delete" {
@@ -1260,7 +1261,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 						continue
 					}
 
-					// For updates, we have a remoteId to upload to
+					// For updates, we have an id to upload to
 					if change.RemoteID == "" {
 						continue
 					}
@@ -1292,6 +1293,12 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			}
 		}
 
+		// Get idField from table config (default to "id")
+		idField := "id"
+		if tc.tableConfig.IdField != "" {
+			idField = tc.tableConfig.IdField
+		}
+
 		// Convert UploadChange to api.UploadOperation
 		var operations []api.UploadOperation
 		for _, change := range tc.changes {
@@ -1305,15 +1312,15 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				op = api.OpDelete
 			}
 
-			// Build data map, excluding remoteId and id
+			// Build data map, excluding idField
 			// Send all fields for both create and update operations
 			// (Some APIs like Audienceful need identifier fields like email for updates)
 			var data map[string]interface{}
 			if change.Operation == "create" || change.Operation == "update" {
 				data = make(map[string]interface{})
 				for k, v := range change.FieldValues {
-					// Exclude internal tracking fields
-					if k != "remoteId" && k != "id" {
+					// Exclude the id field (used internally for tracking)
+					if k != idField {
 						data[k] = v
 					}
 				}
@@ -1375,12 +1382,18 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			currentPath := result.Filename
 			originalPath := filepath.Join(originalDir, fileName)
 
+			// Get idField from table config (default to "id")
+			idField := "id"
+			if tc.tableConfig.IdField != "" {
+				idField = tc.tableConfig.IdField
+			}
+
 			switch result.Op {
 			case "create":
 				fmt.Printf("  %s✓ %s (created, id: %s)%s\n", colorGreen, result.Filename, result.ID, colorReset)
-				// Update the current file to add the remoteId to frontmatter
-				if err := addRemoteIDToFile(currentPath, result.ID); err != nil {
-					fmt.Printf("    ⚠️  Failed to update remoteId: %v\n", err)
+				// Update the current file to add the id field to the JSON
+				if err := addIDToJsonFile(currentPath, idField, result.ID); err != nil {
+					fmt.Printf("    ⚠️  Failed to update id: %v\n", err)
 				}
 				// Copy the updated current file to the original folder
 				if err := copyFile(currentPath, originalPath); err != nil {
@@ -1617,7 +1630,7 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		if tableFilesMap != nil && len(tableFilesMap[tblName]) > 0 {
 			// Specific files selected (interactive or non-interactive with multiple args)
 			for _, fName := range tableFilesMap[tblName] {
-				file, err := loadFileForValidation(tblName, fName, tableConfig.ContentField)
+				file, err := loadFileForValidation(tblName, fName, tableConfig.ContentField, tableConfig.IdField)
 				if err != nil {
 					fmt.Printf("   ⚠️  Failed to load '%s': %v\n", fName, err)
 					continue
@@ -1637,7 +1650,7 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 					continue
 				}
 
-				file, err := loadFileForValidation(tblName, entry.Name(), tableConfig.ContentField)
+				file, err := loadFileForValidation(tblName, entry.Name(), tableConfig.ContentField, tableConfig.IdField)
 				if err != nil {
 					fmt.Printf("   ⚠️  Failed to load '%s': %v\n", entry.Name(), err)
 					continue
@@ -1691,7 +1704,7 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 }
 
 // loadFileForValidation reads a markdown file and returns it in the format needed for validation.
-func loadFileForValidation(tableName, fileName, contentFieldName string) (*api.FileToValidate, error) {
+func loadFileForValidation(tableName, fileName, contentFieldName, idField string) (*api.FileToValidate, error) {
 	// Convert from forward-slash internal format to OS-specific path
 	filePath := filepath.Join(filepath.FromSlash(tableName), fileName)
 
@@ -1743,9 +1756,13 @@ func loadFileForValidation(tableName, fileName, contentFieldName string) (*api.F
 	// Add markdown content under the appropriate key
 	data[contentKey] = strings.TrimSpace(markdownContent)
 
-	// Extract remoteId for the file
+	// Extract id for the file using the configured idField
 	var remoteID string
-	if id, ok := data["remoteId"]; ok {
+	idKey := idField
+	if idKey == "" {
+		idKey = "id"
+	}
+	if id, ok := data[idKey]; ok {
 		remoteID = fmt.Sprintf("%v", id)
 	}
 
@@ -2236,18 +2253,15 @@ func valuesEqual(a, b interface{}) bool {
 	return string(aJSON) == string(bJSON)
 }
 
-// getRemoteIDFromInterface extracts the remoteId from a map[string]interface{}.
-// It checks "remoteId" first, then falls back to the specified idField (default "id").
+// getRemoteIDFromInterface extracts the record ID from a map[string]interface{}.
+// It uses the specified idField (default "id") to find the record identifier.
 func getRemoteIDFromInterface(m map[string]interface{}, idField string) string {
 	if idField == "" {
 		idField = "id"
 	}
-	var id interface{}
-	var ok bool
-	if id, ok = m["remoteId"]; !ok {
-		if id, ok = m[idField]; !ok {
-			return ""
-		}
+	id, ok := m[idField]
+	if !ok {
+		return ""
 	}
 	// Handle different types to avoid scientific notation for large numbers
 	switch v := id.(type) {
@@ -2334,8 +2348,6 @@ func parseMarkdownFile(filePath string, contentFieldName string) (map[string]str
 }
 
 // parseJsonFile reads a JSON file and returns its fields as a map.
-// Note: The remoteId is determined by the idField setting (e.g., 'id' or 'uid'),
-// which is handled by getRemoteIDFromInterface.
 func parseJsonFile(filePath string) (map[string]interface{}, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -2359,56 +2371,35 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, content, 0644)
 }
 
-// addRemoteIDToFile injects or updates the remoteId field in YAML frontmatter.
+// addIDToJsonFile adds the id field directly to the JSON object.
 //
 // Called after a successful create operation to link the local file with its CMS record.
-// If the file has no frontmatter, creates one with just remoteId. If frontmatter exists,
-// parses and re-marshals it to add/update the remoteId field.
-func addRemoteIDToFile(filePath, remoteID string) error {
+func addIDToJsonFile(filePath, idField, idValue string) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	contentStr := string(content)
-
-	// Check for existing YAML frontmatter
-	if !strings.HasPrefix(contentStr, "---") {
-		// No frontmatter, add it with remoteId
-		newContent := fmt.Sprintf("---\nremoteId: %s\n---\n%s", remoteID, contentStr)
-		return os.WriteFile(filePath, []byte(newContent), 0644)
+	// Parse the JSON
+	var data map[string]interface{}
+	if err := json.Unmarshal(content, &data); err != nil {
+		return fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Find the end of frontmatter
-	rest := contentStr[3:] // Skip initial ---
-	endIndex := strings.Index(rest, "\n---")
-	if endIndex == -1 {
-		// Malformed frontmatter, add remoteId at the start
-		newContent := fmt.Sprintf("---\nremoteId: %s\n---\n%s", remoteID, contentStr)
-		return os.WriteFile(filePath, []byte(newContent), 0644)
+	// Add the id field - try to preserve type (int for numeric IDs)
+	if intVal, err := strconv.ParseInt(idValue, 10, 64); err == nil {
+		data[idField] = intVal
+	} else {
+		data[idField] = idValue
 	}
 
-	yamlContent := rest[:endIndex]
-	markdownContent := rest[endIndex+4:] // Skip \n---
-
-	// Parse existing YAML
-	var yamlData map[string]interface{}
-	if err := yaml.Unmarshal([]byte(yamlContent), &yamlData); err != nil {
-		return fmt.Errorf("failed to parse YAML frontmatter: %w", err)
-	}
-
-	// Add or update remoteId
-	yamlData["remoteId"] = remoteID
-
-	// Marshal back to YAML
-	newYAML, err := yaml.Marshal(yamlData)
+	// Marshal back to JSON with indentation
+	newContent, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal YAML: %w", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	// Reconstruct the file
-	newContent := fmt.Sprintf("---\n%s---\n%s", string(newYAML), strings.TrimPrefix(markdownContent, "\n"))
-	return os.WriteFile(filePath, []byte(newContent), 0644)
+	return os.WriteFile(filePath, append(newContent, '\n'), 0644)
 }
 
 // AttachmentChange represents a change to an attachment file
