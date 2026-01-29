@@ -143,8 +143,16 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       case AirtableDataType.SINGLE_LINE_TEXT:
       case AirtableDataType.MULTILINE_TEXT:
       case AirtableDataType.PHONE_NUMBER:
-      case AirtableDataType.BARCODE:
         return Type.String({ description });
+
+      case AirtableDataType.BARCODE:
+        return Type.Object(
+          {
+            text: Type.Optional(Type.String()),
+            type: Type.Optional(Type.String()),
+          },
+          { description },
+        );
 
       case AirtableDataType.EMAIL:
         return Type.String({ description, format: 'email' });
