@@ -171,8 +171,45 @@ Examples:
 	RunE: runContentValidate,
 }
 
+// pullCmd is an alias for 'content download'
+var pullCmd = &cobra.Command{
+	Use:   "pull [folder]",
+	Short: "[NON-INTERACTIVE] Alias for 'content download'",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Alias for 'scratchmd content download'.
+
+Downloads content from the CMS to local JSON files.
+
+Examples:
+  scratchmd pull                  # download all linked tables
+  scratchmd pull blog-posts       # download one table
+  scratchmd pull --clobber        # discard local changes and re-download`,
+	RunE: runContentDownload,
+}
+
+// pushCmd is an alias for 'content upload'
+var pushCmd = &cobra.Command{
+	Use:   "push [folder[/file.json]]",
+	Short: "[NON-INTERACTIVE] Alias for 'content upload'",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Alias for 'scratchmd content upload'.
+
+Uploads local changes to the CMS.
+
+Examples:
+  scratchmd push                       # upload all changes (with review)
+  scratchmd push blog-posts            # upload one collection
+  scratchmd push blog-posts/post.json  # upload one record
+  scratchmd push --no-review           # skip confirmation`,
+	RunE: runContentUpload,
+}
+
 func init() {
 	rootCmd.AddCommand(contentCmd)
+	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(pushCmd)
 	contentCmd.AddCommand(contentDownloadCmd)
 	contentCmd.AddCommand(contentDirtyFieldsCmd)
 	contentCmd.AddCommand(contentDiffCmd)
@@ -181,8 +218,12 @@ func init() {
 	contentCmd.AddCommand(contentValidateCmd)
 
 	// Flags for content download
-	contentDownloadCmd.Flags().Bool("clobber", false, "Delete existing files and re-download fresh")
+	contentDownloadCmd.Flags().Bool("clobber", false, "Delete ALL local files and re-download fresh (DESTRUCTIVE - discards local changes)")
 	contentDownloadCmd.Flags().Bool("no-attachments", false, "Skip downloading attachments")
+
+	// Flags for pull (alias for content download)
+	pullCmd.Flags().Bool("clobber", false, "Delete ALL local files and re-download fresh (DESTRUCTIVE - discards local changes)")
+	pullCmd.Flags().Bool("no-attachments", false, "Skip downloading attachments")
 
 	// Flags for content dirty-fields
 	contentDirtyFieldsCmd.Flags().String("file", "", "Check a specific file only")
@@ -194,9 +235,18 @@ func init() {
 	contentDiffFieldsCmd.Flags().String("file", "", "Show field diffs for a specific file only")
 
 	// Flags for content upload
-	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
-	contentUploadCmd.Flags().Bool("sync-deletes", false, "Delete remote records that are missing locally")
-	contentUploadCmd.Flags().Bool("simulate", false, "Output operations to a text file instead of uploading")
+	contentUploadCmd.Flags().Bool("no-review", false, "Skip confirmation prompt (for automation/LLM use)")
+	contentUploadCmd.Flags().Bool("sync-deletes", false, "Delete remote CMS records when local file is removed (DESTRUCTIVE)")
+	contentUploadCmd.Flags().Bool("simulate", false, "Show what would happen without making changes (writes to file)")
+	contentUploadCmd.Flags().Bool("dry-run", false, "Alias for --simulate")
+	contentUploadCmd.Flags().Bool("json", false, "Output results as JSON (for automation/LLM use)")
+
+	// Flags for push (alias for content upload)
+	pushCmd.Flags().Bool("no-review", false, "Skip confirmation prompt (for automation/LLM use)")
+	pushCmd.Flags().Bool("sync-deletes", false, "Delete remote CMS records when local file is removed (DESTRUCTIVE)")
+	pushCmd.Flags().Bool("simulate", false, "Show what would happen without making changes (writes to file)")
+	pushCmd.Flags().Bool("dry-run", false, "Alias for --simulate")
+	pushCmd.Flags().Bool("json", false, "Output results as JSON (for automation/LLM use)")
 
 	// Flags for content validate
 	contentValidateCmd.Flags().Bool("all", false, "Validate all files without prompting (non-interactive)")
@@ -254,6 +304,7 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 	downloader := download.NewTableDownloader(cfg, secrets, cfg.Settings.ScratchServerURL)
 
 	// Download each table
+	var hasErrors bool
 	for _, tableName := range tablesToDownload {
 		opts := download.Options{
 			Clobber:             clobber,
@@ -262,10 +313,14 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 		}
 		if _, err := downloader.Download(tableName, opts); err != nil {
 			fmt.Printf("❌ Error downloading '%s': %v\n", tableName, err)
+			hasErrors = true
 			continue
 		}
 	}
 
+	if hasErrors {
+		return fmt.Errorf("one or more downloads failed")
+	}
 	return nil
 }
 
@@ -984,6 +1039,24 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	noReview, _ := cmd.Flags().GetBool("no-review")
 	syncDeletes, _ := cmd.Flags().GetBool("sync-deletes")
 	simulate, _ := cmd.Flags().GetBool("simulate")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	simulate = simulate || dryRun // --dry-run is an alias for --simulate
+
+	// JSON output type definitions
+	type uploadResult struct {
+		File      string `json:"file"`
+		Operation string `json:"operation"`
+		ID        string `json:"id,omitempty"`
+		Success   bool   `json:"success"`
+		Error     string `json:"error,omitempty"`
+	}
+	type uploadOutput struct {
+		Success   bool           `json:"success"`
+		Simulated bool           `json:"simulated,omitempty"`
+		Results   []uploadResult `json:"results"`
+	}
+	var jsonResults []uploadResult
 
 	// Parse the argument to determine scope
 	var tableName, fileName string
@@ -1096,6 +1169,12 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(allChanges) == 0 {
+		if jsonOutput {
+			output := uploadOutput{Success: true, Results: []uploadResult{}}
+			jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+			fmt.Println(string(jsonBytes))
+			return nil
+		}
 		fmt.Println("No changes to upload.")
 		return nil
 	}
@@ -1134,6 +1213,22 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 
 	// If --simulate flag is set, write operations to a text file instead of uploading
 	if simulate {
+		// For JSON output, return simulated results
+		if jsonOutput {
+			for _, change := range allChanges {
+				jsonResults = append(jsonResults, uploadResult{
+					File:      change.Filename,
+					Operation: change.Operation,
+					ID:        change.RemoteID,
+					Success:   true,
+				})
+			}
+			output := uploadOutput{Success: true, Simulated: true, Results: jsonResults}
+			jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+			fmt.Println(string(jsonBytes))
+			return nil
+		}
+
 		outputFile := "upload_operations.txt"
 		var sb strings.Builder
 
@@ -1163,29 +1258,42 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	}
 
 	// Upload changes via API
+	var hasErrors bool
 	for _, tc := range allTableChanges {
 		if tc.tableConfig == nil {
-			fmt.Printf("❌ Skipping '%s': no table config found\n", tc.tableName)
+			if !jsonOutput {
+				fmt.Printf("❌ Skipping '%s': no table config found\n", tc.tableName)
+			}
+			hasErrors = true
 			continue
 		}
 
 		// Get the account for this table
 		account := cfg.GetAccountByID(tc.tableConfig.AccountID)
 		if account == nil {
-			fmt.Printf("❌ Skipping '%s': account not found\n", tc.tableName)
+			if !jsonOutput {
+				fmt.Printf("❌ Skipping '%s': account not found\n", tc.tableName)
+			}
+			hasErrors = true
 			continue
 		}
 
 		// Get the authentication properties
 		authProps := secrets.GetSecretProperties(account.ID)
 		if len(authProps) == 0 {
-			fmt.Printf("❌ Skipping '%s': no credentials found for account '%s'\n", tc.tableName, account.Name)
+			if !jsonOutput {
+				fmt.Printf("❌ Skipping '%s': no credentials found for account '%s'\n", tc.tableName, account.Name)
+			}
+			hasErrors = true
 			continue
 		}
 
-		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
-		s.Start()
+		var s *spinner.Spinner
+		if !jsonOutput {
+			s = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+			s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
+			s.Start()
+		}
 
 		// Create API client
 		client := newAPIClient(cfg.Settings.ScratchServerURL)
@@ -1226,13 +1334,21 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			uploader, isUploader := provider.(providers.AttachmentUploader)
 
 			if isUploader {
-				s.Suffix = fmt.Sprintf(" Uploading new attachments for '%s'...", tc.tableName)
+				if s != nil {
+					s.Suffix = fmt.Sprintf(" Uploading new attachments for '%s'...", tc.tableName)
+				}
 
 				// Progress callback that works with the spinner
 				uploadProgress := func(msg string) {
-					s.Stop()
-					fmt.Println(msg)
-					s.Start()
+					if s != nil {
+						s.Stop()
+					}
+					if !jsonOutput {
+						fmt.Println(msg)
+					}
+					if s != nil {
+						s.Start()
+					}
 				}
 
 				// Process each change that has an id (updates) or will get one (creates need special handling)
@@ -1289,7 +1405,9 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 					}
 				}
 
-				s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
+				if s != nil {
+					s.Suffix = fmt.Sprintf(" Uploading changes for '%s'...", tc.tableName)
+				}
 			}
 		}
 
@@ -1364,16 +1482,42 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 
 		// Call the upload endpoint
 		resp, err := client.Upload(creds, tableID, operations)
-		s.Stop()
+		if !jsonOutput {
+			s.Stop()
+		}
 		if err != nil {
-			fmt.Printf("❌ Error uploading to '%s': %v\n", tc.tableName, err)
+			if !jsonOutput {
+				fmt.Printf("❌ Error uploading to '%s': %v\n", tc.tableName, err)
+			}
+			// For JSON mode, add error results for all operations in this table
+			if jsonOutput {
+				for _, change := range tc.changes {
+					jsonResults = append(jsonResults, uploadResult{
+						File:      change.Filename,
+						Operation: change.Operation,
+						Success:   false,
+						Error:     err.Error(),
+					})
+				}
+			}
+			hasErrors = true
 			continue
 		}
 
 		// Report results and update local file system for each file
 		for _, result := range resp.Results {
 			if result.Error != "" {
-				fmt.Printf("  %s❌ %s: %s%s\n", colorRed, result.Filename, result.Error, colorReset)
+				if jsonOutput {
+					jsonResults = append(jsonResults, uploadResult{
+						File:      result.Filename,
+						Operation: result.Op,
+						Success:   false,
+						Error:     result.Error,
+					})
+				} else {
+					fmt.Printf("  %s❌ %s: %s%s\n", colorRed, result.Filename, result.Error, colorReset)
+				}
+				hasErrors = true
 				continue
 			}
 
@@ -1388,28 +1532,52 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				idField = tc.tableConfig.IdField
 			}
 
+			// Collect result for JSON output
+			if jsonOutput {
+				jsonResults = append(jsonResults, uploadResult{
+					File:      result.Filename,
+					Operation: result.Op,
+					ID:        result.ID,
+					Success:   true,
+				})
+			}
+
 			switch result.Op {
 			case "create":
-				fmt.Printf("  %s✓ %s (created, id: %s)%s\n", colorGreen, result.Filename, result.ID, colorReset)
+				if !jsonOutput {
+					fmt.Printf("  %s✓ %s (created, id: %s)%s\n", colorGreen, result.Filename, result.ID, colorReset)
+				}
 				// Update the current file to add the id field to the JSON
 				if err := addIDToJsonFile(currentPath, idField, result.ID); err != nil {
-					fmt.Printf("    ⚠️  Failed to update id: %v\n", err)
+					if !jsonOutput {
+						fmt.Printf("    ⚠️  Failed to update id: %v\n", err)
+					}
 				}
 				// Copy the updated current file to the original folder
 				if err := copyFile(currentPath, originalPath); err != nil {
-					fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+					if !jsonOutput {
+						fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+					}
 				}
 			case "update":
-				fmt.Printf("  %s✓ %s (updated)%s\n", colorGreen, result.Filename, colorReset)
+				if !jsonOutput {
+					fmt.Printf("  %s✓ %s (updated)%s\n", colorGreen, result.Filename, colorReset)
+				}
 				// Copy the current file to the original folder
 				if err := copyFile(currentPath, originalPath); err != nil {
-					fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+					if !jsonOutput {
+						fmt.Printf("    ⚠️  Failed to sync original: %v\n", err)
+					}
 				}
 			case "delete":
-				fmt.Printf("  %s✓ %s (deleted)%s\n", colorGreen, result.Filename, colorReset)
+				if !jsonOutput {
+					fmt.Printf("  %s✓ %s (deleted)%s\n", colorGreen, result.Filename, colorReset)
+				}
 				// Delete the original file (current file already doesn't exist for deletes)
 				if err := os.Remove(originalPath); err != nil && !os.IsNotExist(err) {
-					fmt.Printf("    ⚠️  Failed to remove original: %v\n", err)
+					if !jsonOutput {
+						fmt.Printf("    ⚠️  Failed to remove original: %v\n", err)
+					}
 				}
 			}
 		}
@@ -1464,15 +1632,31 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 				// Save the manifest if it was modified
 				if manifestModified {
 					if err := config.SaveAssetManifest(assetManifestPath, manifest); err != nil {
-						fmt.Printf("    ⚠️  Failed to update asset manifest: %v\n", err)
+						if !jsonOutput {
+							fmt.Printf("    ⚠️  Failed to update asset manifest: %v\n", err)
+						}
 					}
 				}
 			}
 		}
 	}
 
+	// Output JSON results if enabled
+	if jsonOutput {
+		output := uploadOutput{Success: !hasErrors, Results: jsonResults}
+		jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+		fmt.Println(string(jsonBytes))
+		if hasErrors {
+			return fmt.Errorf("one or more operations failed")
+		}
+		return nil
+	}
+
 	fmt.Println("Upload complete.")
 
+	if hasErrors {
+		return fmt.Errorf("one or more operations failed")
+	}
 	return nil
 }
 
@@ -1578,15 +1762,18 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Process each table
+	var hasErrors bool
 	for _, tblName := range tablesToValidate {
 		// Load table config
 		tableConfig, err := config.LoadTableConfig(tblName)
 		if err != nil {
 			fmt.Printf("❌ Failed to load config for '%s': %v\n", tblName, err)
+			hasErrors = true
 			continue
 		}
 		if tableConfig == nil {
 			fmt.Printf("❌ No config found for '%s'\n", tblName)
+			hasErrors = true
 			continue
 		}
 
@@ -1594,12 +1781,14 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		account := cfg.GetAccountByID(tableConfig.AccountID)
 		if account == nil {
 			fmt.Printf("❌ Account not found for table '%s'\n", tblName)
+			hasErrors = true
 			continue
 		}
 
 		authProps := secrets.GetSecretPropertiesWithOverrides(account.ID)
 		if len(authProps) == 0 {
 			fmt.Printf("❌ No credentials found for account '%s'\n", account.Name)
+			hasErrors = true
 			continue
 		}
 
@@ -1642,6 +1831,7 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 			entries, err := os.ReadDir(tblName)
 			if err != nil {
 				fmt.Printf("❌ Failed to read folder '%s': %v\n", tblName, err)
+				hasErrors = true
 				continue
 			}
 
@@ -1675,11 +1865,13 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		resp, err := client.ValidateFiles(creds, req)
 		if err != nil {
 			fmt.Printf("❌ Validation request failed: %v\n", err)
+			hasErrors = true
 			continue
 		}
 
 		if resp.Error != "" {
 			fmt.Printf("❌ Server error: %s\n", resp.Error)
+			hasErrors = true
 			continue
 		}
 
@@ -1691,6 +1883,7 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 				fmt.Printf("   ✅ %s - publishable\n", file.Filename)
 			} else {
 				fmt.Printf("   ❌ %s - not publishable\n", file.Filename)
+				hasErrors = true
 				for _, e := range file.Errors {
 					fmt.Printf("      - %s\n", e)
 				}
@@ -1700,6 +1893,9 @@ func runContentValidate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("   %d/%d file(s) are publishable\n", publishableCount, len(resp.Files))
 	}
 
+	if hasErrors {
+		return fmt.Errorf("validation failed for one or more files")
+	}
 	return nil
 }
 

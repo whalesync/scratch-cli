@@ -57,7 +57,9 @@ var accountListCmd = &cobra.Command{
 	Short: "[NON-INTERACTIVE] List configured accounts",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-Display all configured CMS accounts and their status.`,
+Display all configured CMS accounts and their status.
+
+Use --json for machine-readable output.`,
 	RunE: runAccountList,
 }
 
@@ -118,9 +120,12 @@ List available tables/collections from the CMS and show if they are linked to lo
 Arguments:
   account-name: Optional if configured via 'config set account.name'
 
+Use --json for machine-readable output.
+
 Examples:
   scratchmd account fetch-sources
-  scratchmd account fetch-sources webflow`,
+  scratchmd account fetch-sources webflow
+  scratchmd account fetch-sources webflow --json`,
 	Aliases: []string{"list-tables", "list-folders"},
 	Args:    cobra.MaximumNArgs(1),
 	RunE:    runAccountFetchSources,
@@ -169,10 +174,13 @@ func init() {
 	// removed extra interactive commands from root account cmd to avoid confusion
 	// or keep them as advanced aliases? Keeping them is fine.
 	accountCmd.AddCommand(accountListCmd)
+	accountListCmd.Flags().Bool("json", false, "Output as JSON (machine-readable)")
 
 	accountCmd.AddCommand(accountRemoveCmd)
 	accountCmd.AddCommand(accountAddCmd)
 	accountCmd.AddCommand(accountFetchSourcesCmd)
+	accountFetchSourcesCmd.Flags().Bool("json", false, "Output as JSON (machine-readable)")
+
 	accountCmd.AddCommand(accountTestCmd)
 	accountCmd.AddCommand(accountFetchJsonSchemasCmd)
 
@@ -369,17 +377,46 @@ func manageAccountFlow(cfg *config.Config, secrets *config.SecretsConfig, accoun
 }
 
 func runAccountList(cmd *cobra.Command, args []string) error {
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	if len(cfg.Accounts) == 0 {
+		if jsonOutput {
+			fmt.Println("[]")
+			return nil
+		}
 		fmt.Println("No accounts configured.")
 		fmt.Println("Run 'scratchmd account setup' to add one.")
 		return nil
 	}
 
+	// JSON output mode
+	if jsonOutput {
+		type accountJSON struct {
+			Name     string `json:"name"`
+			ID       string `json:"id"`
+			Provider string `json:"provider"`
+			Tested   bool   `json:"tested"`
+		}
+		var accounts []accountJSON
+		for _, acc := range cfg.Accounts {
+			accounts = append(accounts, accountJSON{
+				Name:     acc.Name,
+				ID:       acc.ID,
+				Provider: acc.Provider,
+				Tested:   acc.Tested,
+			})
+		}
+		output, _ := json.MarshalIndent(accounts, "", "  ")
+		fmt.Println(string(output))
+		return nil
+	}
+
+	// Human-readable output
 	fmt.Println()
 	fmt.Println("📋 Configured accounts:")
 	fmt.Println()
@@ -598,6 +635,8 @@ func runAccountAdd(cmd *cobra.Command, args []string) error {
 }
 
 func runAccountFetchSources(cmd *cobra.Command, args []string) error {
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+
 	// Load config and secrets first
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -633,7 +672,7 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	// 1. Scan local folders to find links
 	linkedFolders := make(map[string][]string) // TableID -> []FolderName
 	folders, err := config.ListConfiguredTables(".")
-	if err != nil {
+	if err != nil && !jsonOutput {
 		// Just warn, don't fail
 		fmt.Fprintf(os.Stderr, "Warning: failed to scan local folders: %v\n", err)
 	}
@@ -649,9 +688,12 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	// 2. Fetch remote tables
-	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	s.Suffix = " Fetching tables from server..."
-	s.Start()
+	var s *spinner.Spinner
+	if !jsonOutput {
+		s = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		s.Suffix = " Fetching tables from server..."
+		s.Start()
+	}
 
 	client := newAPIClient(cfg.Settings.ScratchServerURL)
 	creds := &api.ConnectorCredentials{
@@ -660,7 +702,9 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	resp, err := client.ListTables(creds)
-	s.Stop()
+	if s != nil {
+		s.Stop()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
 	}
@@ -669,6 +713,10 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(resp.Tables) == 0 {
+		if jsonOutput {
+			fmt.Println("[]")
+			return nil
+		}
 		fmt.Println("No tables found.")
 		return nil
 	}
@@ -687,6 +735,29 @@ func runAccountFetchSources(cmd *cobra.Command, args []string) error {
 	})
 
 	// 4. Output
+	if jsonOutput {
+		type tableJSON struct {
+			ID            string   `json:"id"`
+			Name          string   `json:"name"`
+			LinkedFolders []string `json:"linkedFolders,omitempty"`
+		}
+		var tables []tableJSON
+		for _, table := range resp.Tables {
+			t := tableJSON{
+				ID:   table.ID,
+				Name: table.Name,
+			}
+			if links := linkedFolders[table.ID]; len(links) > 0 {
+				t.LinkedFolders = links
+			}
+			tables = append(tables, t)
+		}
+		output, _ := json.MarshalIndent(tables, "", "  ")
+		fmt.Println(string(output))
+		return nil
+	}
+
+	// Human-readable output
 	fmt.Printf("Sources for account '%s':\n", accountName)
 	for _, table := range resp.Tables {
 		links := linkedFolders[table.ID]

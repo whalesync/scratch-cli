@@ -25,26 +25,34 @@ var rootCmd = &cobra.Command{
 CMS platforms like Webflow and WordPress.
 
 It enables local editing of CMS content using AI tools like Claude Code,
-Cursor, or other editors. Content is stored as Markdown files with YAML
-frontmatter for easy manipulation.
+Cursor, or other editors. Content is stored as JSON files with field data
+for easy manipulation.
 
 COMMANDS FOR LLM/AUTOMATION (non-interactive, no TTY required):
   scratchmd account add <name> --provider=webflow --api-key=KEY
-  scratchmd account list
-  scratchmd account list-tables <account>
-  scratchmd account link-table <account> <table-id> [folder]
+  scratchmd account list [--json]
+  scratchmd account fetch-sources <account> [--json]
   scratchmd account remove <name>
+  scratchmd folder link <folder> --account.name=<account> --table-id=<id>
   scratchmd content download [folder]
+  scratchmd content upload [folder] [--sync-deletes] [--no-review]
+  scratchmd status [--json]
 
 COMMANDS FOR HUMANS (interactive, requires TTY):
   scratchmd setup                  # Full interactive wizard
   scratchmd account setup          # Interactive account setup
 
 TYPICAL LLM WORKFLOW:
-  1. scratchmd account add --provider=webflow --api-key=<key>
-  2. scratchmd account list-tables webflow
-  3. scratchmd account link-table webflow <table-id> my-content
-  4. scratchmd content download my-content
+  1. scratchmd account add myaccount --provider=webflow --api-key=<key>
+  2. scratchmd account fetch-sources myaccount
+  3. scratchmd folder link blog-posts --account.name=myaccount --table-id=<id>
+  4. scratchmd content download blog-posts
+  5. # Edit JSON files in blog-posts/
+  6. scratchmd content upload blog-posts --no-review
+
+QUICK ALIASES:
+  scratchmd pull [folder]          # Alias for 'content download'
+  scratchmd push [folder]          # Alias for 'content upload'
 
 For more information, visit: https://github.com/whalesync/scratch-cli`,
 	Version: version,

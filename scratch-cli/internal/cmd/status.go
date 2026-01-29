@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -51,6 +52,7 @@ func init() {
 	statusCmd.Flags().Bool("no-global-summary", false, "Don't show the 'Linked folders: N' line (ignored for folder/file level)")
 	statusCmd.Flags().Bool("no-table-summary", false, "Don't show per-table summary counts (ignored for file level)")
 	statusCmd.Flags().Bool("no-file-status", false, "Don't list individual file statuses (error if used with file level)")
+	statusCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
 }
 
 // tableStatus holds the status results for a single table
@@ -68,6 +70,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	noGlobalSummary, _ := cmd.Flags().GetBool("no-global-summary")
 	noTableSummary, _ := cmd.Flags().GetBool("no-table-summary")
 	noFileStatus, _ := cmd.Flags().GetBool("no-file-status")
+	jsonOutput, _ := cmd.Flags().GetBool("json")
 
 	// Parse the argument to determine scope
 	var tableName, fileName string
@@ -88,7 +91,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		if noFileStatus {
 			return fmt.Errorf("--no-file-status cannot be used when checking a specific file")
 		}
-		return runSingleFileStatus(tableName, fileName)
+		return runSingleFileStatus(tableName, fileName, jsonOutput)
 	}
 
 	// Get list of tables to check
@@ -105,11 +108,81 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to list tables: %w", err)
 		}
 		if len(tables) == 0 {
+			if jsonOutput {
+				fmt.Println(`{"folders":[],"hasChanges":false}`)
+				return nil
+			}
 			fmt.Println("No tables configured.")
 			fmt.Println("Run 'scratchmd setup' and select 'Set up tables' first.")
 			return nil
 		}
 		tablesToCheck = tables
+	}
+
+	// JSON output mode - collect all results and output at once
+	if jsonOutput {
+		type fileChange struct {
+			File   string `json:"file"`
+			Status string `json:"status"`
+		}
+		type folderStatus struct {
+			Name         string       `json:"name"`
+			LastDownload string       `json:"lastDownload,omitempty"`
+			Created      int          `json:"created"`
+			Updated      int          `json:"updated"`
+			Deleted      int          `json:"deleted"`
+			Unchanged    int          `json:"unchanged"`
+			Changes      []fileChange `json:"changes,omitempty"`
+			Error        string       `json:"error,omitempty"`
+		}
+		type statusOutput struct {
+			Folders    []folderStatus `json:"folders"`
+			HasChanges bool           `json:"hasChanges"`
+		}
+
+		output := statusOutput{
+			Folders:    []folderStatus{},
+			HasChanges: false,
+		}
+
+		for _, table := range tablesToCheck {
+			status := getTableStatus(table)
+			fs := folderStatus{
+				Name:      table,
+				Created:   len(status.added),
+				Updated:   len(status.modified),
+				Deleted:   len(status.deleted),
+				Unchanged: status.unchanged,
+			}
+
+			if status.err != nil {
+				fs.Error = status.err.Error()
+			} else {
+				fs.LastDownload = status.lastDownload
+
+				// Collect changes
+				var changes []fileChange
+				for _, f := range status.deleted {
+					changes = append(changes, fileChange{File: f, Status: "deleted"})
+				}
+				for _, f := range status.added {
+					changes = append(changes, fileChange{File: f, Status: "created"})
+				}
+				for _, f := range status.modified {
+					changes = append(changes, fileChange{File: f, Status: "modified"})
+				}
+				if len(changes) > 0 {
+					fs.Changes = changes
+					output.HasChanges = true
+				}
+			}
+
+			output.Folders = append(output.Folders, fs)
+		}
+
+		jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+		fmt.Println(string(jsonBytes))
+		return nil
 	}
 
 	// Show global summary if in global mode
@@ -340,7 +413,7 @@ func getTableStatus(tableName string) tableStatus {
 }
 
 // runSingleFileStatus checks the status of a single file
-func runSingleFileStatus(tableName, fileName string) error {
+func runSingleFileStatus(tableName, fileName string, jsonOutput bool) error {
 	// Check that the table folder exists
 	if _, err := os.Stat(tableName); os.IsNotExist(err) {
 		return fmt.Errorf("folder '%s' does not exist", tableName)
@@ -368,13 +441,36 @@ func runSingleFileStatus(tableName, fileName string) error {
 		return fmt.Errorf("file '%s' not found in either location", fileName)
 	}
 
+	// Helper for JSON output
+	outputFileStatus := func(file, status string) {
+		if jsonOutput {
+			type fileStatus struct {
+				File   string `json:"file"`
+				Status string `json:"status"`
+			}
+			output, _ := json.MarshalIndent(fileStatus{File: file, Status: status}, "", "  ")
+			fmt.Println(string(output))
+		} else {
+			switch status {
+			case "created":
+				fmt.Printf("%s%s (created)%s\n", colorGreen, file, colorReset)
+			case "deleted":
+				fmt.Printf("%s%s (deleted)%s\n", colorRed, file, colorReset)
+			case "modified":
+				fmt.Printf("%s%s (modified)%s\n", colorOrange, file, colorReset)
+			default:
+				fmt.Printf("%s (clean)\n", file)
+			}
+		}
+	}
+
 	if !originalExists {
-		fmt.Printf("%s%s (created)%s\n", colorGreen, fileName, colorReset)
+		outputFileStatus(fileName, "created")
 		return nil
 	}
 
 	if !currentExists {
-		fmt.Printf("%s%s (deleted)%s\n", colorRed, fileName, colorReset)
+		outputFileStatus(fileName, "deleted")
 		return nil
 	}
 
@@ -411,9 +507,9 @@ func runSingleFileStatus(tableName, fileName string) error {
 	}
 
 	if isModified {
-		fmt.Printf("%s%s (modified)%s\n", colorOrange, fileName, colorReset)
+		outputFileStatus(fileName, "modified")
 	} else {
-		fmt.Printf("%s (clean)\n", fileName)
+		outputFileStatus(fileName, "clean")
 	}
 
 	return nil
