@@ -17,7 +17,6 @@ import { TableSelection } from '../../../../../components/TableSelectionComponen
 export const RefreshTableDataModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
   const dismissModal = useWorkbookEditorUIStore((state) => state.dismissModal);
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const isOpen = activeModal?.type === WorkbookModals.CONFIRM_REFRESH_SOURCE;
 
   const { workbook, activeTable } = useActiveWorkbook();
@@ -27,10 +26,8 @@ export const RefreshTableDataModal = () => {
     if (!workbook) return;
     try {
       // Use downloadFiles API when in files mode, download API otherwise
-      const result =
-        workbookMode === 'files'
-          ? await workbookApi.downloadFiles(workbook.id, tableSelection.tableIds)
-          : await workbookApi.download(workbook.id, tableSelection.tableIds);
+      const result = await workbookApi.downloadFiles(workbook.id, tableSelection.tableIds);
+
       setRefreshInProgress(result);
       dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE);
     } catch (e) {
@@ -42,8 +39,6 @@ export const RefreshTableDataModal = () => {
     }
   };
 
-  const isFilesMode = workbookMode === 'files';
-
   return (
     <>
       {workbook && (
@@ -53,7 +48,7 @@ export const RefreshTableDataModal = () => {
           onConfirm={startRefresh}
           workbook={workbook}
           activeTable={(activeTable as SnapshotTable) ?? null}
-          isFilesMode={isFilesMode}
+          isFilesMode={true}
         />
       )}
 
@@ -72,7 +67,7 @@ const ConfirmRefreshModal = ({
   onConfirm,
   workbook,
   activeTable,
-  isFilesMode,
+  isFilesMode = true,
 }: {
   isOpen: boolean;
   onClose: () => void;

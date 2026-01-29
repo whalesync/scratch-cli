@@ -8,7 +8,6 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
 import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
 import { WorkbookEditorModals } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/WorkbookEditorModals';
@@ -202,10 +201,10 @@ export default function WorkbookNewPage() {
   }, [workbook, reconcileWithWorkbook]);
 
   return (
-    <UpdateRecordsProvider>
+    <>
       <WorkbookFilesPageContent />
       <PublishWorkbookWorkflow />
       <WorkbookEditorModals />
-    </UpdateRecordsProvider>
+    </>
   );
 }

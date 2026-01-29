@@ -1,6 +1,4 @@
-import { CreateScratchColumnModal } from './CreateScratchColumnModal';
 import { DeleteWorkbookModal } from './DeleteWorkbookModal';
-import { KeyboardShortcutHelpModal } from './KeyboardShortcutHelpModal';
 import { RefreshTableDataModal } from './RefreshTableDataModal';
 import { RenameWorkbookModal } from './RenameWorkbookModal';
 
@@ -12,8 +10,6 @@ export const WorkbookEditorModals = () => {
   // TODO: Should we instantiate conditionally only if a modal is active?
   return (
     <>
-      <CreateScratchColumnModal />
-      <KeyboardShortcutHelpModal />
       <RenameWorkbookModal />
       <DeleteWorkbookModal />
       <RefreshTableDataModal />

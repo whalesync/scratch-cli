@@ -3,7 +3,6 @@ import { Group, Loader, Stack, Text } from '@mantine/core';
 import { SnapshotTable, WorkbookId } from '@spinner/shared-types';
 import pluralize from 'pluralize';
 import { FC, useEffect, useMemo, useState } from 'react';
-import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../base/buttons';
 import { ModalWrapper } from '../ModalWrapper';
 import { SelectTableRow } from '../SelectTableRow';
@@ -22,8 +21,7 @@ interface Props {
 export const TableSelectorModal: FC<Props> = (props) => {
   const { isOpen, onClose, onConfirm, tables, currentTableId, initialSelectedTableIds, title, workbookId } = props;
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
-  const { operationCounts, isLoading, error } = useOperationCounts(workbookId, workbookMode);
+  const { operationCounts, isLoading, error } = useOperationCounts(workbookId);
 
   const tablesWithChanges = useMemo(() => {
     const set = new Set<string>();

@@ -44,7 +44,7 @@ export enum WorkbookModals {
   CONFIRM_REFRESH_SOURCE = 'confirm-refresh-source',
 }
 
-export type WorkbookMode = 'tables' | 'files';
+export type WorkbookMode = 'tables' | 'files' | 'scratchsync';
 
 export type WorkbookModalParams =
   | { type: WorkbookModals.CREATE_SCRATCH_COLUMN; tableId: SnapshotTableId }

@@ -14,8 +14,8 @@ export class RouteUrls {
   static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
-  static workbookPageUrl = (id: string) => `/workbooks/${id}`;
-  static workbookFilePageUrl = (id: string) => `/workbooks-new/${id}`;
+  static workbookFilePageUrl = (id: string) => `/workbooks-md/${id}`;
+  static workbookScratchSyncPageUrl = (id: string) => `/workbooks-new/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
   static workbookRecordView = (id: string, tableId: string, recordId: string) =>
@@ -71,7 +71,7 @@ export class RouteUrls {
    */
   static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string, columnId?: string) => {
     const isNewView = typeof window !== 'undefined' && RouteUrls.isWorkbookFilePage(window.location.pathname);
-    const base = isNewView ? '/workbooks-md' : '/workbooks';
+    const base = isNewView ? '/workbooks-md' : '/workbooks-new';
 
     let url = `${base}/${workbookId}`;
 

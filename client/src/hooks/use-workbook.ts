@@ -23,7 +23,7 @@ export interface UseWorkbookReturn {
   workbook: Workbook | undefined;
   isLoading: boolean;
   error: Error | undefined;
-  publish: () => Promise<void>;
+  // publish: () => Promise<void>;
   refreshWorkbook: () => Promise<void>;
   updateWorkbook: (updateDto: UpdateWorkbookDto) => Promise<void>;
   updateColumnSettings: (tableId: SnapshotTableId, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
@@ -53,23 +53,23 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     await mutate();
   }, [mutate]);
 
-  const publish = useCallback(async () => {
-    if (!data || !id) {
-      return;
-    }
+  // const publish = useCallback(async () => {
+  //   if (!data || !id) {
+  //     return;
+  //   }
 
-    await workbookApi.publish(id);
-    // Revalidate the workbook itself
-    await mutate();
+  //   await workbookApi.publish(id);
+  //   // Revalidate the workbook itself
+  //   await mutate();
 
-    // Revalidate the records in all tables for this workbook.
-    globalMutate(
-      (key) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'records' && key[2] === id,
-      undefined,
-      { revalidate: true },
-    );
-    globalMutate(SWR_KEYS.operationCounts.get(id), undefined, { revalidate: true });
-  }, [id, data, mutate, globalMutate]);
+  //   // Revalidate the records in all tables for this workbook.
+  //   globalMutate(
+  //     (key) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'records' && key[2] === id,
+  //     undefined,
+  //     { revalidate: true },
+  //   );
+  //   globalMutate(SWR_KEYS.operationCounts.get(id), undefined, { revalidate: true });
+  // }, [id, data, mutate, globalMutate]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {
@@ -231,7 +231,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     workbook: data,
     isLoading,
     error: displayError,
-    publish,
+    // publish,
     refreshWorkbook,
     updateWorkbook,
     updateColumnSettings,

@@ -72,14 +72,14 @@ export const WorkbookActionsMenu = () => {
             <Menu.Label>Dev Tools</Menu.Label>
             <DevToolMenuItem onClick={openDevTools}> Workbook Inspector</DevToolMenuItem>
             <DevToolMenuItem onClick={handleOpenAdvancedInput}>Advanced Agent Input</DevToolMenuItem>
-            {RouteUrls.isWorkbookFilePage(pathname) && (
-              <DevToolMenuItem onClick={() => router.push(RouteUrls.workbookPageUrl(workbook?.id ?? ''))}>
-                Switch to Table View
-              </DevToolMenuItem>
-            )}
             {!RouteUrls.isWorkbookFilePage(pathname) && (
               <DevToolMenuItem onClick={() => router.push(RouteUrls.workbookFilePageUrl(workbook?.id ?? ''))}>
                 Switch to File View
+              </DevToolMenuItem>
+            )}
+            {RouteUrls.isWorkbookFilePage(pathname) && (
+              <DevToolMenuItem onClick={() => router.push(RouteUrls.workbookScratchSyncPageUrl(workbook?.id ?? ''))}>
+                Switch to ScratchSync View
               </DevToolMenuItem>
             )}
           </>

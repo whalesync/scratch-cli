@@ -39,7 +39,6 @@ import {
   DATA_AGENT_CAPABILITIES,
   FILE_AGENT_CAPABILITIES,
   SendMessageRequestDTO,
-  SnapshotTable,
   SnapshotTableId,
 } from '@spinner/shared-types';
 import {
@@ -57,7 +56,6 @@ import { useActiveWorkbook } from '../../../../../hooks/use-active-workbook';
 import { useAgentPricing } from '../../../../../hooks/use-agent-pricing';
 import { calculateMessageCost } from '../../../../../utils/agent-cost-calculator';
 import { Text12Regular, Text13Medium } from '../../../../components/base/text';
-import { WORKBOOK_TAB_BAR_HEIGHT } from '../WorkbookTabBar';
 import classes from './AIChatPanel.module.css';
 import CapabilitiesButton from './CapabilitiesButton';
 import ToolsModal from './CapabilitiesModal';
@@ -65,8 +63,6 @@ import { ChatMessageElement } from './ChatMessageElement';
 import { ProgressMessageGroup } from './ProgressMessageGroup';
 import { PromptAssetSelector } from './PromptAssetSelector';
 import { SessionHistorySelector } from './SessionHistorySelector';
-import { TokenUseButton } from './TokenUseButton';
-import { useDataAgentCommands } from './use-data-agent-commands';
 import { useFileAgentCommands } from './use-file-agent-commands';
 import { useFileAgentUpdates } from './use-file-agent-updates';
 
@@ -105,6 +101,8 @@ const groupConsecutiveProgressMessages = (messages: ChatMessage[]): (ChatMessage
 
   return grouped;
 };
+
+export const WORKBOOK_TAB_BAR_HEIGHT = 40;
 
 export default function AIChatPanel() {
   const { workbook, activeTable } = useActiveWorkbook();
@@ -158,9 +156,7 @@ export default function AIChatPanel() {
   const { promptAssets } = usePromptAssets();
 
   // Build commands based on agent type using hooks
-  const dataAgentCommands = useDataAgentCommands({ setShowToolsModal });
-  const fileAgentCommands = useFileAgentCommands({ setShowToolsModal });
-  const commands = agentType === 'data' ? dataAgentCommands : fileAgentCommands;
+  const commands = useFileAgentCommands({ setShowToolsModal });
 
   // Listen for file agent updates (refresh file list/content on response)
   useFileAgentUpdates();
@@ -723,9 +719,6 @@ export default function AIChatPanel() {
             availableCapabilitiesCount={availableCapabilities.length}
             onClick={() => setShowToolsModal(true)}
           />
-
-          {/* Token usage */}
-          {activeTable && <TokenUseButton table={activeTable as SnapshotTable} />}
 
           {/* Extra space */}
           <div style={{ flex: 1 }} />

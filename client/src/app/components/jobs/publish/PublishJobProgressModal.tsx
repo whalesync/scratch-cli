@@ -34,12 +34,18 @@ export const PublishJobProgressModal: FC<Props> = (props) => {
   const router = useRouter();
   const [debugModalOpen, setDebugModalOpen] = useState(false);
   const [isCreatingWorkbook, setIsCreatingWorkbook] = useState(false);
+  const user = useScratchPadUser();
+  const workbookModeActiveFlag = user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
 
   const handleCreateWorkbook = useCallback(async () => {
     setIsCreatingWorkbook(true);
     try {
       const newWorkbook = await createWorkbook({});
-      router.push(RouteUrls.workbookPageUrl(newWorkbook.id));
+      router.push(
+        workbookModeActiveFlag === 'files'
+          ? RouteUrls.workbookFilePageUrl(newWorkbook.id)
+          : RouteUrls.workbookScratchSyncPageUrl(newWorkbook.id),
+      );
     } catch (error) {
       ScratchpadNotifications.error({
         title: 'Error creating workbook',
@@ -48,7 +54,7 @@ export const PublishJobProgressModal: FC<Props> = (props) => {
     } finally {
       setIsCreatingWorkbook(false);
     }
-  }, [createWorkbook, router]);
+  }, [createWorkbook, router, workbookModeActiveFlag]);
 
   // Persist the initial onboarding state so it doesn't change during the modal lifecycle
   const wasPublishStepPendingRef = useRef<boolean | null>(null);

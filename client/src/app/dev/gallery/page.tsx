@@ -2,8 +2,6 @@
 
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
-import { DiffViewer } from '@/app/components/DiffViewer';
-import { DiffText } from '@/app/components/field-value-wrappers/DiffText';
 import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
@@ -11,7 +9,6 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
 import { OnboardingStepLayout } from '@/app/components/onboarding/OnboardingStepLayout';
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Box,
@@ -24,15 +21,12 @@ import {
   List,
   Loader,
   Menu,
-  Modal,
   Popover,
   Stack,
   Tooltip,
   useComputedColorScheme,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { Service } from '@spinner/shared-types';
-import { diffWordsWithSpace } from 'diff';
 import {
   AlertTriangle,
   AlignEndHorizontal,
@@ -40,7 +34,6 @@ import {
   Bird,
   BookMarked,
   BrainIcon,
-  BugIcon,
   CheckIcon,
   CircleCheckBigIcon,
   Home,
@@ -412,26 +405,6 @@ export default function DevComponentGalleryPage() {
               placeholder="Type something... (debounced)"
               minRows={3}
               onChange={(e) => console.debug('Debounced value:', e.target.value)}
-            />
-          </GalleryItem>
-          <GalleryItem label="DiffViewer">
-            <DiffViewer originalValue="Hello, world!" suggestedValue="Howdy, SCRATCH ROCKS, world! more text here!" />
-          </GalleryItem>
-          <GalleryItem label="DiffText" notes="regulat text  diff">
-            <DiffTextWithDebug
-              oldText="Hello, world!"
-              newText="Howdy, SCRATCH ROCKS, world! more text here!"
-            />
-          </GalleryItem>
-          <GalleryItem label="DiffText" notes="html diff">
-            <DiffText
-              changes={[
-                { value: '<h1>', removed: true, added: false, count: 1 },
-                { value: '<span>', added: true, removed: false, count: 1 },
-                { value: 'abc', added: false, removed: false, count: 1 },
-                { value: '<h1>', removed: true, added: false, count: 1 },
-                { value: '<span>', added: true, removed: false, count: 1 },
-              ]}
             />
           </GalleryItem>
           <GallerySection id="badges" title="Badges" />
@@ -1042,22 +1015,5 @@ function ColorChip({
 function Figma() {
   return (
     <Image src="/figma.svg" alt="Figma" width={10} height={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-  );
-}
-
-function DiffTextWithDebug({ oldText, newText }: { oldText: string; newText: string }) {
-  const [opened, { open, close }] = useDisclosure(false);
-  const changes = diffWordsWithSpace(oldText, newText);
-
-  return (
-    <Group gap="xs">
-      <DiffText changes={changes} />
-      <ActionIcon color="var(--mantine-color-devTool-6)" variant="subtle" size="xs" onClick={open}>
-        <BugIcon size={14} />
-      </ActionIcon>
-      <Modal opened={opened} onClose={close} title="DiffText Debug" size="lg">
-        <Code block>{JSON.stringify(changes, null, 2)}</Code>
-      </Modal>
-    </Group>
   );
 }

@@ -11,7 +11,6 @@ import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { AddTableTab } from '@/app/workbooks/[...slug]/components/AddTableTab';
 import AIChatPanel from '@/app/workbooks/[...slug]/components/AIChatPanel/AIChatPanel';
 import { AgentChatContextProvider } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
-import { UpdateRecordsProvider } from '@/app/workbooks/[...slug]/components/contexts/update-records-context';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
 import { ManageTablesModal } from '@/app/workbooks/[...slug]/components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
@@ -231,11 +230,9 @@ export default function WorkbookNewPage() {
   return (
     <AgentChatContextProvider workbookId={params.workbookId} agentType="file">
       <AIAgentSessionManagerProvider workbookId={params.workbookId}>
-        <UpdateRecordsProvider>
-          <WorkbookFilesPageContent />
-          <PublishWorkbookWorkflow />
-          <WorkbookEditorModals />
-        </UpdateRecordsProvider>
+        <WorkbookFilesPageContent />
+        <PublishWorkbookWorkflow />
+        <WorkbookEditorModals />
       </AIAgentSessionManagerProvider>
     </AgentChatContextProvider>
   );

@@ -1,8 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ProcessedSnapshotRecord } from '@/hooks/use-snapshot-table-records';
-import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
-import { PersistedModelOption } from '../types/common';
 import { SnapshotTable } from '@spinner/shared-types';
+import { encodingForModel, Tiktoken, TiktokenModel } from 'js-tiktoken';
+import { ProcessedFieldValue } from '../app/components/field-value-wrappers/ProcessedFieldValue';
+import { PersistedModelOption } from '../types/common';
+import { SnapshotRecord } from '../types/server-entities/workbook';
+
+export type ProcessedSnapshotRecord = SnapshotRecord & {
+  __processed_fields: Record<string, ProcessedFieldValue>;
+  isTableDirty: boolean;
+};
 
 // Stats about how many tokens a list of records takes.
 type TokenCountResult = {

@@ -18,6 +18,7 @@ export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): J
   const scratchPadUser = useScratchPadUser();
   const router = useRouter();
   const pathname = usePathname();
+  const workbookModeActiveFlag = scratchPadUser.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
 
   useEffect(() => {
     if (scratchPadUser) {
@@ -29,9 +30,13 @@ export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): J
   useEffect(() => {
     const onboardingWorkbookId = scratchPadUser.user?.onboardingWorkbookId;
     if (onboardingWorkbookId && !pathname.startsWith('/workbooks/')) {
-      router.replace(RouteUrls.workbookPageUrl(onboardingWorkbookId));
+      router.replace(
+        workbookModeActiveFlag === 'files'
+          ? RouteUrls.workbookFilePageUrl(onboardingWorkbookId)
+          : RouteUrls.workbookScratchSyncPageUrl(onboardingWorkbookId),
+      );
     }
-  }, [scratchPadUser.user?.onboardingWorkbookId, pathname, router]);
+  }, [scratchPadUser.user?.onboardingWorkbookId, pathname, router, workbookModeActiveFlag]);
 
   if (scratchPadUser.isLoading) {
     return <FullPageLoader message="Loading user data..." />;

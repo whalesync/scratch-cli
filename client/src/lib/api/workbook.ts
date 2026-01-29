@@ -1,11 +1,6 @@
-import { PublishSummary } from '@/types/server-entities/publish-summary';
 import {
-  AddScratchColumnDto,
   AddTableToWorkbookDto,
   CreateWorkbookDto,
-  DownloadWorkbookResult,
-  DownloadWorkbookWithoutJobResult,
-  RemoveScratchColumnDto,
   UpdateColumnSettingsDto,
   UpdateWorkbookDto,
 } from '@/types/server-entities/workbook';
@@ -134,26 +129,6 @@ export const workbookApi = {
     }
   },
 
-  async downloadWithoutJob(id: WorkbookId): Promise<DownloadWorkbookWithoutJobResult> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<DownloadWorkbookWithoutJobResult>(`/workbook/${id}/download-without-job`);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to start download');
-    }
-  },
-
-  async download(id: WorkbookId, snapshotTableIds?: string[]): Promise<DownloadWorkbookResult> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<DownloadWorkbookResult>(`/workbook/${id}/download`, { snapshotTableIds });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to start download');
-    }
-  },
-
   async downloadFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
@@ -161,20 +136,6 @@ export const workbookApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to start files download');
-    }
-  },
-
-  async publish(
-    id: WorkbookId,
-    snapshotTableIds?: string[],
-    mode: 'records' | 'files' = 'records',
-  ): Promise<{ jobId: string }> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/publish`, { snapshotTableIds, mode });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to start publish');
     }
   },
 
@@ -187,30 +148,6 @@ export const workbookApi = {
       handleAxiosError(error, 'Failed to start publish files');
     }
   },
-  async getPublishSummary(id: WorkbookId, snapshotTableIds?: string[]): Promise<PublishSummary> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<PublishSummary>(`/workbook/${id}/publish-summary`, { snapshotTableIds });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to get publish summary');
-    }
-  },
-
-  async getOperationCounts(
-    id: WorkbookId,
-  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<{ tableId: string; creates: number; updates: number; deletes: number }[]>(
-        `/workbook/${id}/operation-counts`,
-      );
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to get operation counts');
-    }
-  },
-
   async getOperationCountsFiles(
     id: WorkbookId,
   ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
@@ -231,28 +168,6 @@ export const workbookApi = {
       await axios.delete(`/workbook/${id}`);
     } catch (error) {
       handleAxiosError(error, 'Failed to delete workbook');
-    }
-  },
-
-  async addScratchColumn(workbookId: WorkbookId, tableId: SnapshotTableId, dto: AddScratchColumnDto): Promise<void> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/tables/${tableId}/add-scratch-column`, dto);
-    } catch (error) {
-      handleAxiosError(error, 'Failed to add scratch column');
-    }
-  },
-
-  async removeScratchColumn(
-    workbookId: WorkbookId,
-    tableId: SnapshotTableId,
-    dto: RemoveScratchColumnDto,
-  ): Promise<void> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/tables/${tableId}/remove-scratch-column`, dto);
-    } catch (error) {
-      handleAxiosError(error, 'Failed to remove scratch column');
     }
   },
 
@@ -281,28 +196,6 @@ export const workbookApi = {
     } catch (error) {
       handleAxiosError(error, 'Failed to clear hidden columns');
     }
-  },
-
-  exportAsCSV: async (
-    workbook: Workbook,
-    tableId: SnapshotTableId,
-    tableName: string,
-    filteredOnly: boolean,
-  ): Promise<void> => {
-    // Use public endpoint that doesn't require authentication
-    // Security relies on snapshot IDs being unguessable
-
-    const url = `${API_CONFIG.getApiUrl()}/workbook/public/${workbook.id}/export-as-csv?tableId=${tableId}&filteredOnly=${filteredOnly}`;
-    const filename = `${workbook.name || 'snapshot'}_${tableName}.csv`;
-
-    // Create a hidden anchor element and click it to trigger download
-    // Set the download attribute with the filename to avoid browser using page title
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
   },
 
   moveFolder: async (workbookId: WorkbookId, folderId: string, parentFolderId: string | null): Promise<void> => {

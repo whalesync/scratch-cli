@@ -32,7 +32,7 @@ export const CreateWorkbookButton = ({
       if (workbookModeActiveFlag === 'files' || workbookMode === 'files') {
         router.push(RouteUrls.workbookFilePageUrl(newWorkbook.id));
       } else {
-        router.push(RouteUrls.workbookPageUrl(newWorkbook.id));
+        router.push(RouteUrls.workbookScratchSyncPageUrl(newWorkbook.id));
       }
     } catch (error) {
       ScratchpadNotifications.error({

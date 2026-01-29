@@ -83,7 +83,7 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
       if (user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE === 'files' || workbookMode === 'files') {
         return RouteUrls.workbookFilePageUrl(id);
       }
-      return RouteUrls.workbookPageUrl(id);
+      return RouteUrls.workbookScratchSyncPageUrl(id);
     },
     [workbookMode, user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE],
   );

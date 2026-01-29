@@ -8,7 +8,7 @@ export function useWorkbookParams() {
   // the path could have 0, 1, or 2 parts
   // 3 parts: /workbooks/{workbookId}/{tableId}/{recordId}/{columnId}
 
-  const workbookMode = RouteUrls.isWorkbookFilePage(pathname) ? 'files' : 'tables';
+  const workbookMode = RouteUrls.isWorkbookFilePage(pathname) ? 'files' : 'scratchsync';
 
   const workbookId = params.slug?.[0] as WorkbookId;
   const tableId = params.slug?.[1] as SnapshotTableId | undefined;

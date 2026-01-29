@@ -1,6 +1,5 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { useOperationCounts } from '@/hooks/use-operation-counts';
-import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Group, Modal, Stack, Text } from '@mantine/core';
 import { Service, SnapshotTable, WorkbookId } from '@spinner/shared-types';
 import { CircleAlertIcon } from 'lucide-react';
@@ -29,8 +28,7 @@ export const PublishConfirmationModal = ({
   snapshotTableIds,
   snapshotTables,
 }: PublishConfirmationModalProps) => {
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
-  const { operationCounts, isLoading, error } = useOperationCounts(workbookId, workbookMode);
+  const { operationCounts, isLoading, error } = useOperationCounts(workbookId);
 
   const handleClose = () => {
     onClose();
