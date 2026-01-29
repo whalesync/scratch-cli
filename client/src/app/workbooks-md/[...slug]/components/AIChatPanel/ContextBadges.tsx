@@ -2,7 +2,7 @@
 
 import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks-md/[...slug]/components/contexts/agent-chat-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { SnapshotTable } from '@spinner/shared-types';
 import { useMemo } from 'react';

@@ -13,7 +13,7 @@ import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-starte
 import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
-import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks-md/[...slug]/components/contexts/agent-chat-context';
 import { useAIAgentSessionManagerContext } from '@/contexts/ai-agent-session-manager-context';
 import { isOverCreditLimit, useAgentCredentials } from '@/hooks/use-agent-credentials';
 import { useFileList } from '@/hooks/use-file-list';

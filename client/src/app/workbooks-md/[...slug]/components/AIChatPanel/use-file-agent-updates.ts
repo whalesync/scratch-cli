@@ -1,4 +1,4 @@
-import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks-md/[...slug]/components/contexts/agent-chat-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { useAgentChatWebSocketStore } from '@/stores/agent-chat-websocket-store';

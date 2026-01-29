@@ -1,13 +1,13 @@
 import { Group, Modal, Stack } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { useWorkbook } from '../../../../../../hooks/use-workbook';
-import { workbookApi } from '../../../../../../lib/api/workbook';
-import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
-import { RouteUrls } from '../../../../../../utils/route-urls';
-import { ButtonDangerLight, ButtonSecondaryOutline } from '../../../../../components/base/buttons';
-import { Text13Regular } from '../../../../../components/base/text';
-import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
+import { ButtonDangerLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { Text13Regular } from '@/app/components/base/text';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useWorkbook } from '@/hooks/use-workbook';
+import { workbookApi } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
+import { RouteUrls } from '@/utils/route-urls';
 
 export const DeleteWorkbookModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);

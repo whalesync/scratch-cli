@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { ActionIconThreeDots } from '../../../components/base/action-icons';
 import { DevToolMenuItem } from '../../../components/DevToolMenu';
-import { WebflowPublishSiteMenuItem } from './snapshot-grid/custom-actions/webflow/WebflowPublishSiteMenuItem';
+import { WebflowPublishSiteMenuItem } from './WebflowPublishSiteMenuItem';
 
 export const WorkbookActionsMenu = () => {
   const router = useRouter();

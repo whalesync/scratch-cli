@@ -1,9 +1,9 @@
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SnapshotTable } from '@spinner/shared-types';
 import { Loader, Menu } from '@mantine/core';
+import { SnapshotTable } from '@spinner/shared-types';
 import { Globe } from 'lucide-react';
 import React from 'react';
-import { customWebflowActionsApi } from '../../../../../../../lib/api/custom-actions/webflow';
+import { customWebflowActionsApi } from '../../../../lib/api/custom-actions/webflow';
 
 interface WebflowPublishSiteMenuItemProps {
   currentTable: SnapshotTable;

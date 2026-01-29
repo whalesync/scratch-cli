@@ -2,7 +2,7 @@ import { IconButtonOutline } from '@/app/components/base/buttons';
 import { Text12Regular } from '@/app/components/base/text';
 import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { useAgentChatContext } from '@/app/workbooks/[...slug]/components/contexts/agent-chat-context';
+import { useAgentChatContext } from '@/app/workbooks-md/[...slug]/components/contexts/agent-chat-context';
 import { usePromptAssets } from '@/hooks/use-prompt-assets';
 import {
   trackAddResourceToChat,
@@ -10,8 +10,8 @@ import {
   trackClickViewResourceFromChat,
   trackRemoveResourceFromChat,
 } from '@/lib/posthog';
-import { Workbook } from '@spinner/shared-types';
 import { Combobox, Divider, Group, useCombobox } from '@mantine/core';
+import { Workbook } from '@spinner/shared-types';
 import { AtSignIcon, FileIcon, FileTextIcon, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { PromptAssetDetailModal, useEditAssetModal } from '../../../../components/modals/PromptAssetDetailModal';

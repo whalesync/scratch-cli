@@ -1,9 +1,9 @@
 import { Group, Modal, Stack, TextInput } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
-import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
-import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
-import { ButtonPrimaryLight, ButtonSecondaryOutline } from '../../../../../components/base/buttons';
-import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
+import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
 
 export const RenameWorkbookModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);

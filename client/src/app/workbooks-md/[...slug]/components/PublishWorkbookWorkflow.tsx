@@ -1,7 +1,7 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { TableSelectorModal } from '@/app/components/modals/TableSelectorModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { PublishLimitExceededModal } from '@/app/workbooks/[...slug]/components/snapshot-grid/modals/PublishLimitExceededModal';
+import { PublishLimitExceededModal } from '@/app/workbooks-md/[...slug]/components/modals/PublishLimitExceededModal';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSubscription } from '@/hooks/use-subscription';
 import { workbookApi } from '@/lib/api/workbook';
@@ -9,7 +9,7 @@ import { serviceName } from '@/service-naming-conventions';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { hasDeletedConnection } from '@/types/server-entities/workbook';
 import { useCallback, useState } from 'react';
-import { PublishConfirmationModal } from './snapshot-grid/modals/PublishConfirmationModal';
+import { PublishConfirmationModal } from './modals/PublishConfirmationModal';
 
 /**
  * A container component that handles the publish workflow and the modals involved. Triggered through the WorkbookEditorUIStore

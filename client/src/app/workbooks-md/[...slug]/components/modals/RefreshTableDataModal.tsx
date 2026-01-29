@@ -6,13 +6,13 @@ import { Alert, Box, Text as MantineText, Stack } from '@mantine/core';
 import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useActiveWorkbook } from '../../../../../../hooks/use-active-workbook';
-import { workbookApi } from '../../../../../../lib/api/workbook';
-import { useWorkbookEditorUIStore, WorkbookModals } from '../../../../../../stores/workbook-editor-store';
-import { DownloadWorkbookResult, hasDeletedConnection } from '../../../../../../types/server-entities/workbook';
-import { DownloadProgressModal } from '../../../../../components/jobs/download/DownloadJobProgressModal';
-import { ScratchpadNotifications } from '../../../../../components/ScratchpadNotifications';
-import { TableSelection } from '../../../../../components/TableSelectionComponent';
+import { DownloadProgressModal } from '@/app/components/jobs/download/DownloadJobProgressModal';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { TableSelection } from '@/app/components/TableSelectionComponent';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { workbookApi } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
+import { DownloadWorkbookResult, hasDeletedConnection } from '@/types/server-entities/workbook';
 
 export const RefreshTableDataModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
