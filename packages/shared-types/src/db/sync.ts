@@ -1,5 +1,5 @@
 import { SyncState } from '../enums/enums';
-import { DataFolderId, SyncId } from '../ids';
+import { SyncId } from '../ids';
 import { SyncMapping } from '../sync';
 
 ///
@@ -13,8 +13,6 @@ export interface Sync {
   updatedAt: string;
   displayName: string;
   displayOrder: number;
-  sourceDataFolderId: DataFolderId;
-  destinationDataFolderId: DataFolderId;
   mappings: SyncMapping;
   syncState: SyncState;
   syncStateLastChanged: string | null;

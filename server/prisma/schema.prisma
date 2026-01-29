@@ -494,9 +494,10 @@ model DataFolder {
   lastSyncTime DateTime?
 
   // Version number of the folder structure, to help with future migrations
-  version            Int    @default(1)
-  syncsAsSource      Sync[] @relation("sourceDataFolder")
-  syncsAsDestination Sync[] @relation("destinationDataFolder")
+  version Int @default(1)
+
+  syncsPairsAsSource      SyncTablePair[] @relation("sourceDataFolder")
+  syncsPairsAsDestination SyncTablePair[] @relation("destinationDataFolder")
 
   // Table ID path for connectors that represent tables as a path (e.g., ["database", "schema", "table"])
   // Empty array for scratch folders, populated for linked folders
@@ -590,14 +591,8 @@ model Sync {
   displayName  String
   displayOrder Int      @default(0) @db.SmallInt
 
-  sourceDataFolder   DataFolder @relation("sourceDataFolder", fields: [sourceDataFolderId], references: [id], onDelete: Cascade)
-  sourceDataFolderId String
-
-  destinationDataFolder   DataFolder @relation("destinationDataFolder", fields: [destinationDataFolderId], references: [id], onDelete: Cascade)
-  destinationDataFolderId String
-
   // No default here, so the application should set a valid empty SyncMapping on creation
-  mappings Json // SyncMapping object
+  mappings Json // SyncMapping - @see packages/shared-types/src/sync.ts
 
   /// Whether the sync is enabled.
   syncState            SyncState @default(OFF)
@@ -605,6 +600,23 @@ model Sync {
   syncStateLastChanged DateTime?
   /// The time the most recent full sync was run.
   lastSyncTime         DateTime?
+
+  syncTablePairs SyncTablePair[]
+}
+
+model SyncTablePair {
+  id        String   @id // type: SyncId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sync   Sync   @relation(fields: [syncId], references: [id], onDelete: Cascade)
+  syncId String
+
+  sourceDataFolder   DataFolder @relation("sourceDataFolder", fields: [sourceDataFolderId], references: [id], onDelete: Cascade)
+  sourceDataFolderId String
+
+  destinationDataFolder   DataFolder @relation("destinationDataFolder", fields: [destinationDataFolderId], references: [id], onDelete: Cascade)
+  destinationDataFolderId String
 }
 
 //#endregion

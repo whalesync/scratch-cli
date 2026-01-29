@@ -36,6 +36,7 @@ export enum IdPrefixes {
   DATA_FOLDER = 'dfd_', // Data folder
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
   SYNC = 'syn_', // Sync
+  SYNC_TABLE_PAIR = 'stp_', // Pair of source=>destination tables in a Sync
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -330,4 +331,15 @@ export function isSyncId(id: unknown): id is SyncId {
 
 export function createSyncId(): SyncId {
   return createId(IdPrefixes.SYNC) as SyncId;
+}
+
+// ------- Sync Table Pairs -------
+export type SyncTablePairId = PrefixedId<IdPrefixes.SYNC_TABLE_PAIR>;
+
+export function isSyncTablePairId(id: unknown): id is SyncTablePairId {
+  return isId(id, IdPrefixes.SYNC_TABLE_PAIR);
+}
+
+export function createSyncTablePairId(): SyncTablePairId {
+  return createId(IdPrefixes.SYNC_TABLE_PAIR) as SyncTablePairId;
 }
