@@ -168,12 +168,7 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   setActiveCells: (activeCells: ActiveCells | null) => {
     const current = get();
     set({ activeCells, recordDetailsVisible: !!activeCells?.recordId });
-    RouteUrls.updateWorkbookPath(
-      current.workbookId ?? '',
-      current.activeTab || undefined,
-      activeCells?.recordId,
-      activeCells?.columnId,
-    );
+    RouteUrls.updateWorkbookPath(current.workbookId ?? '', current.activeTab || undefined, activeCells?.recordId);
   },
   openNewBlankTab: () => {
     const newTab = newBlankTab();

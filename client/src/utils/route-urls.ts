@@ -15,7 +15,7 @@ export class RouteUrls {
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
   static workbookFilePageUrl = (id: string) => `/workbooks-md/${id}`;
-  static workbookScratchSyncPageUrl = (id: string) => `/workbooks-new/${id}`;
+  static workbookScratchSyncPageUrl = (id: string) => `/workbooks/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
   static workbookRecordView = (id: string, tableId: string, recordId: string) =>
@@ -66,12 +66,11 @@ export class RouteUrls {
    * Updates the current path without triggering a rerender of the page
    * @param workbookId - The ID of the workbook
    * @param tableId - The ID of the table. If undefined, the table id will be removed from the path.
-   * @param recordId - The ID of the record. If undefined, the record id will be removed from the path.
-   * @param columnId - The ID of the column. If undefined, the column id will be removed from the path.
+   * @param recordId - The ID or name of the file. If undefined, the record id will be removed from the path.
    */
-  static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string, columnId?: string) => {
-    const isNewView = typeof window !== 'undefined' && RouteUrls.isWorkbookFilePage(window.location.pathname);
-    const base = isNewView ? '/workbooks-md' : '/workbooks-new';
+  static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string) => {
+    const isFileView = typeof window !== 'undefined' && RouteUrls.isWorkbookFilePage(window.location.pathname);
+    const base = isFileView ? '/workbooks-md' : '/workbooks';
 
     let url = `${base}/${workbookId}`;
 
@@ -79,9 +78,6 @@ export class RouteUrls {
       url += `/${tableId}`;
       if (recordId) {
         url += `/${recordId}`;
-        if (columnId) {
-          url += `/${columnId}`;
-        }
       }
     }
 
