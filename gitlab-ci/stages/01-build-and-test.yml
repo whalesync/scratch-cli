@@ -254,6 +254,60 @@ build and test scratch-cli:
     - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
+# SCRATCH-GIT SUBPROJECT
+# =============================================================================
+
+build and test scratch-git:
+  stage: build and test
+  interruptible: true
+  script:
+    - cd scratch-git
+    - . ~/.bashrc
+    - nvm use
+    - npm install
+    # enable this once we have fixed all the linting on the scratch-git project
+    # - npm run lint
+    - npm run build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - scratch-git/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+build scratch-git docker image:
+  stage: build and test
+  extends:
+    - .docker_builder_image
+  cache: []
+  services:
+    - docker:26-dind
+  artifacts:
+    paths:
+      - scratch-git/image.tar
+    expire_in: 1 hour
+  script:
+    - cd scratch-git
+    - BUILD_VERSION=`date +%y.%m.%d.%H.%M.$CI_COMMIT_SHORT_SHA`
+    - echo "Labelling this build as $BUILD_VERSION"
+    - >
+      docker build
+      --build-arg BUILD_VERSION="${BUILD_VERSION}"
+      -t spinner/spinner-scratch-git
+      -f Dockerfile .
+    - docker save spinner/spinner-scratch-git > image.tar
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - scratch-git/Dockerfile
+        - scratch-git/package.json
+        - gitlab-ci/stages/01-build-and-test.yml
+        - gitlab-ci/stages/03-push-images.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
+# =============================================================================
 # MISC
 # =============================================================================
 
@@ -271,5 +325,4 @@ dummy job:
         - gitlab-ci/**/*
         - .vscode/**/*
         - experimental/**/*
-        - scratch-git/**/*
         - "*"
