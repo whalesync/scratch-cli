@@ -56,8 +56,14 @@ export interface IGitService {
 
   rebaseDirty(
     repoId: string,
+    strategy?: "ours" | "diff3",
   ): Promise<{ rebased: boolean; conflicts: string[] }>;
   getDirtyStatus(repoId: string): Promise<DirtyFile[]>;
+
+  createCheckpoint(repoId: string, name: string): Promise<void>;
+  revertToCheckpoint(repoId: string, name: string): Promise<void>;
+  listCheckpoints(repoId: string): Promise<string[]>;
+  deleteCheckpoint(repoId: string, name: string): Promise<void>;
 
   /**
    * Gets the OID (hash) of a reference (branch/tag).

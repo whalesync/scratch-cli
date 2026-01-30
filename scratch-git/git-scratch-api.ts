@@ -34,7 +34,13 @@ app.delete("/api/repo/:id", async (req, res) => {
 
 app.post("/api/repo/:id/rebase", async (req, res) => {
   try {
-    const result = await gitService.rebaseDirty(req.params.id);
+    const strategy = req.body.strategy; // Expects JSON body now if strategy provided, or query? Post body usually.
+    // The previous implementation didn't check body mostly.
+    // Let's assume req.body.strategy for POST.
+    const result = await gitService.rebaseDirty(
+      req.params.id,
+      strategy as "ours" | "diff3",
+    );
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -140,6 +146,46 @@ app.post("/api/repo/:id/publish", async (req, res) => {
       file,
       message || "Publish file",
     );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post("/api/repo/:id/checkpoint", async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) throw new Error("Checkpoint name required");
+    await gitService.createCheckpoint(req.params.id, name);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post("/api/repo/:id/checkpoint/revert", async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) throw new Error("Checkpoint name required");
+    await gitService.revertToCheckpoint(req.params.id, name);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.get("/api/repo/:id/checkpoints", async (req, res) => {
+  try {
+    const checkpoints = await gitService.listCheckpoints(req.params.id);
+    res.json(checkpoints);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.delete("/api/repo/:id/checkpoint/:name", async (req, res) => {
+  try {
+    await gitService.deleteCheckpoint(req.params.id, req.params.name);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
