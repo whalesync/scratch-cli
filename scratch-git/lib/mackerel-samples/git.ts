@@ -1,6 +1,12 @@
+/**
+ * DO NOT USE
+ * This file is sometimes copied from mackeres repo and is not used.
+ * It is used just as a reference.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import git from "isomorphic-git";
+import { diff3Merge } from "node-diff3";
 
 // Base directory for git repos (local development)
 const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || ".scratch-repos";
@@ -599,6 +605,10 @@ export type DirtyFileStatus = DirtyFile["status"];
  * Get the filesystem path for a workspace's git repo
  */
 export function getRepoPath(gitBucket: string): string {
+  // If REPOS_BASE_DIR is absolute, use it directly; otherwise prepend cwd
+  if (path.isAbsolute(REPOS_BASE_DIR)) {
+    return path.join(REPOS_BASE_DIR, gitBucket);
+  }
   return path.join(process.cwd(), REPOS_BASE_DIR, gitBucket);
 }
 
@@ -769,8 +779,12 @@ async function getTreeFiles(
 }
 
 /**
- * Get list of dirty files for a user (comparing their dirty branch to main)
+ * Get list of dirty files for a user (comparing their dirty branch to merge-base with main)
  * Returns empty array if user has no dirty branch
+ *
+ * We compare to merge-base (not main directly) so that during a pull operation,
+ * when main moves forward, we still only show the user's actual edits - not the
+ * pulled content that hasn't been rebased yet.
  */
 export async function getDirtyFiles(
   gitBucket: string,
@@ -795,8 +809,24 @@ export async function getDirtyFiles(
     return [];
   }
 
-  // Compare the commits
-  return compareCommits(gitBucket, mainCommit, dirtyCommit);
+  // Find merge-base (common ancestor)
+  // This ensures we only show user's actual edits, not changes from main moving forward
+  const mergeBaseOids = await git.findMergeBase({
+    fs,
+    dir,
+    oids: [mainCommit, dirtyCommit],
+  });
+
+  if (mergeBaseOids.length === 0) {
+    // No common ancestor - shouldn't happen in our model
+    // Return empty to be safe (same as "no dirty files")
+    return [];
+  }
+
+  const mergeBase = mergeBaseOids[0];
+
+  // Compare dirty branch to merge-base (not to main)
+  return compareCommits(gitBucket, mergeBase, dirtyCommit);
 }
 
 /**
@@ -916,6 +946,86 @@ export async function readFileFromBranch(
 }
 
 /**
+ * Read file content from a specific commit OID (not a branch ref)
+ */
+export async function readFileFromCommit(
+  gitBucket: string,
+  commitOid: string,
+  filePath: string,
+): Promise<string | null> {
+  const dir = getRepoPath(gitBucket);
+
+  try {
+    const { blob } = await git.readBlob({
+      fs,
+      dir,
+      oid: commitOid,
+      filepath: filePath,
+    });
+    return new TextDecoder().decode(blob);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Perform a 3-way line-level merge of text content.
+ *
+ * Takes three versions:
+ * - base: The common ancestor (e.g., where dirty branch split from main)
+ * - ours: The user's version (from dirty branch)
+ * - theirs: The upstream version (from new main after pull)
+ *
+ * Returns merged content where:
+ * - Non-overlapping changes from both sides are combined
+ * - Conflicting changes (same lines modified) use "ours" (user's version wins)
+ *
+ * This ensures users never see merge conflicts while preserving as many
+ * upstream changes as possible (e.g., refreshed image URLs).
+ */
+export function mergeFileContents(
+  base: string,
+  ours: string,
+  theirs: string,
+): string {
+  // If ours equals base, user made no changes - take theirs entirely
+  if (ours === base) {
+    return theirs;
+  }
+
+  // If theirs equals base, upstream made no changes - take ours entirely
+  if (theirs === base) {
+    return ours;
+  }
+
+  // If ours equals theirs, no conflict - return either
+  if (ours === theirs) {
+    return ours;
+  }
+
+  // Perform 3-way merge at line level
+  const baseLines = base.split("\n");
+  const oursLines = ours.split("\n");
+  const theirsLines = theirs.split("\n");
+
+  const result = diff3Merge(oursLines, baseLines, theirsLines);
+
+  // Build merged content, taking "ours" for any conflicts
+  const mergedLines: string[] = [];
+  for (const region of result) {
+    if (region.ok) {
+      // Clean merge - add the merged lines
+      mergedLines.push(...region.ok);
+    } else if (region.conflict) {
+      // Conflict - user's version (ours/a) wins
+      mergedLines.push(...region.conflict.a);
+    }
+  }
+
+  return mergedLines.join("\n");
+}
+
+/**
  * Reset the dirty branch to match main (used after successful publish + pull)
  * This effectively "rebases" by resetting the dirty branch to main's state,
  * since any successfully published changes are now in main.
@@ -949,15 +1059,23 @@ export async function resetDirtyBranchToMain(
 }
 
 /**
- * Rebase the dirty branch onto main by preserving user's edits.
+ * Rebase the dirty branch onto main using 3-way merge.
  *
- * This simulates a rebase without true cherry-picking:
+ * This performs a smart rebase that preserves both user edits AND upstream changes:
  * 1. Find the merge-base (where dirty branched from main)
  * 2. Get user's changes by comparing merge-base to dirty branch
  * 3. Reset dirty branch to new main
- * 4. Re-apply the user's edits on top of the new main
+ * 4. For each modified file, perform a 3-way line-level merge:
+ *    - Non-overlapping changes from user and main are both preserved
+ *    - Overlapping changes (same lines modified): user's version wins
  *
- * This preserves the user's work while incorporating pulled changes.
+ * This is critical for files like Airtable records where:
+ * - User might edit the "Description" field
+ * - A pull updates the "Image" URL (which expires every 2 hours)
+ * - Without 3-way merge, user's whole file would overwrite the fresh URL
+ * - With 3-way merge, user's Description change AND fresh URL are preserved
+ *
+ * The merge is guaranteed conflict-free: user edits always win for conflicts.
  * Uses direct object manipulation - no checkout required.
  */
 export async function rebaseDirtyBranchOntoMain(
@@ -1010,15 +1128,22 @@ export async function rebaseDirtyBranchOntoMain(
   }
 
   // Save the content of modified/added files from dirty branch
+  // For modified files, also save the base content for 3-way merge
   const savedEdits: Array<{
     path: string;
     status: "added" | "modified" | "deleted";
     content: string | null;
+    baseContent: string | null; // Content at merge-base for 3-way merge
   }> = [];
 
   for (const file of userChanges) {
     if (file.status === "deleted") {
-      savedEdits.push({ path: file.path, status: "deleted", content: null });
+      savedEdits.push({
+        path: file.path,
+        status: "deleted",
+        content: null,
+        baseContent: null,
+      });
     } else {
       // Read content from dirty branch
       const content = await readFileFromBranch(
@@ -1026,7 +1151,19 @@ export async function rebaseDirtyBranchOntoMain(
         branchName,
         file.path,
       );
-      savedEdits.push({ path: file.path, status: file.status, content });
+
+      // For modified files, also read base content for 3-way merge
+      let baseContent: string | null = null;
+      if (file.status === "modified") {
+        baseContent = await readFileFromCommit(gitBucket, mergeBase, file.path);
+      }
+
+      savedEdits.push({
+        path: file.path,
+        status: file.status,
+        content,
+        baseContent,
+      });
     }
   }
 
@@ -1039,8 +1176,8 @@ export async function rebaseDirtyBranchOntoMain(
     force: true,
   });
 
-  // Build changes to re-apply user's edits
-  const conflicts: string[] = [];
+  // Build changes to re-apply user's edits using 3-way merge
+  const conflicts: string[] = []; // Files where user and main both changed (user wins)
   const changes: FileChange[] = [];
 
   for (const edit of savedEdits) {
@@ -1054,29 +1191,58 @@ export async function rebaseDirtyBranchOntoMain(
         // If file doesn't exist on main, nothing to do
       } else if (edit.content !== null) {
         // User added or modified this file
-        // Check if file exists on new main and has different content
         const mainContent = await readFileFromBranch(
           gitBucket,
           "main",
           edit.path,
         );
 
-        if (mainContent !== null && mainContent !== edit.content) {
-          // File exists on main with different content - potential conflict
-          // For now, user's edit wins (like git rebase with "theirs" strategy)
-          conflicts.push(edit.path);
+        let finalContent: string;
+
+        if (
+          edit.status === "modified" &&
+          edit.baseContent !== null &&
+          mainContent !== null
+        ) {
+          // 3-way merge: combine user's changes with main's changes
+          // User's changes win for any conflicting lines
+          finalContent = mergeFileContents(
+            edit.baseContent,
+            edit.content,
+            mainContent,
+          );
+
+          // Track if there were overlapping changes (informational only)
+          if (
+            mainContent !== edit.baseContent &&
+            finalContent !== mainContent
+          ) {
+            conflicts.push(edit.path);
+          }
+        } else {
+          // Added file or no base content - just use user's version
+          finalContent = edit.content;
         }
 
-        // Add user's version to changes
+        // Only add to changes if content differs from main
+        if (finalContent !== mainContent) {
+          changes.push({
+            path: edit.path,
+            content: finalContent,
+            type: "modify",
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to prepare edit for ${edit.path}:`, error);
+      // On error, fall back to user's content to ensure no data loss
+      if (edit.content !== null) {
         changes.push({
           path: edit.path,
           content: edit.content,
           type: "modify",
         });
       }
-    } catch (error) {
-      console.error(`Failed to prepare edit for ${edit.path}:`, error);
-      conflicts.push(edit.path);
     }
   }
 

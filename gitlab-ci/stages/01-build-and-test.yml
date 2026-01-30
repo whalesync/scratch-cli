@@ -271,4 +271,5 @@ dummy job:
         - gitlab-ci/**/*
         - .vscode/**/*
         - experimental/**/*
+        - scratch-git/**/*
         - "*"
