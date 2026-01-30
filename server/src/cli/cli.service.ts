@@ -1,15 +1,19 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import { createConnectorAccountId, Service, SnapshotRecordId } from '@spinner/shared-types';
+import { createConnectorAccountId, Service, SnapshotRecordId, WorkbookId } from '@spinner/shared-types';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { BaseColumnSpec, ConnectorFile, TablePreview } from 'src/remote-service/connectors/types';
+import { ConnectorFile, TablePreview } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
+import { DataFolderService } from 'src/workbook/data-folder.service';
+import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
+import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { normalizeFileName } from 'src/workbook/util';
+import { WorkbookService } from 'src/workbook/workbook.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
@@ -22,6 +26,8 @@ export class CliService {
     private readonly config: ScratchpadConfigService,
     private readonly connectorsService: ConnectorsService,
     private readonly posthogService: PostHogService,
+    private readonly workbookService: WorkbookService,
+    private readonly dataFolderService: DataFolderService,
   ) {}
 
   /**
@@ -109,6 +115,33 @@ export class CliService {
         });
       }
     }
+  }
+
+  /**
+   * Lists all workbooks for the authenticated user.
+   */
+  async listWorkbooks(actor: Actor): Promise<Workbook[]> {
+    const workbooks = await this.workbookService.findAllForUser(actor, 'updatedAt', 'desc');
+
+    this.posthogService.captureEvent(PostHogEventName.CLI_LIST_WORKBOOKS, actor.userId, {
+      workbookCount: workbooks.length,
+    });
+
+    return workbooks.map((w) => new Workbook(w));
+  }
+
+  /**
+   * Lists all data folders in a workbook.
+   */
+  async listDataFolders(workbookId: WorkbookId, actor: Actor): Promise<DataFolderEntity[]> {
+    const folders = await this.dataFolderService.listAll(workbookId, actor);
+
+    this.posthogService.captureEvent(PostHogEventName.CLI_LIST_DATA_FOLDERS, actor.userId, {
+      workbookId,
+      folderCount: folders.length,
+    });
+
+    return folders;
   }
 
   /**
@@ -480,13 +513,5 @@ export class CliService {
    */
   private convertOperationDataToFields(data: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'remoteId'));
-  }
-
-  private extractExtraInfo(col: BaseColumnSpec): Record<string, string> {
-    const extraInfo: Record<string, string> = {};
-    if (col.metadata?.attachments) {
-      extraInfo.attachments = col.metadata.attachments;
-    }
-    return extraInfo;
   }
 }

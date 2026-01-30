@@ -49,6 +49,6 @@ import { FolderService } from './folder.service';
     FilePublishingService,
     DataFolderService,
   ],
-  exports: [WorkbookService, SnapshotEventService, FolderService, FilePublishingService],
+  exports: [WorkbookService, SnapshotEventService, FolderService, FilePublishingService, DataFolderService],
 })
 export class WorkbookModule {}

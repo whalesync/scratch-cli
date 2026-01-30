@@ -39,6 +39,24 @@ export class DataFolderService {
     private readonly scratchGitService: ScratchGitService,
   ) {}
 
+  /**
+   * Lists all data folders in a workbook as a flat list.
+   */
+  async listAll(workbookId: WorkbookId, actor: Actor): Promise<DataFolderEntity[]> {
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    const dataFolders = await this.db.client.dataFolder.findMany({
+      where: { workbookId },
+      include: DataFolderCluster._validator.include,
+      orderBy: { name: 'asc' },
+    });
+
+    return dataFolders.map((f) => new DataFolderEntity(f));
+  }
+
   async listGroupedByConnectorBases(workbookId: WorkbookId, actor: Actor): Promise<DataFolderGroup[]> {
     // Verify user has access to the workbook
     const workbook = await this.workbookService.findOne(workbookId, actor);

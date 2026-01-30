@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -62,10 +63,28 @@ Examples:
 	RunE: runFolderRemove,
 }
 
+// folderListCmd represents the folder list command (for workbook data folders)
+var folderListCmd = &cobra.Command{
+	Use:   "list <workbook-id>",
+	Short: "[NON-INTERACTIVE] List data folders in a workbook",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+List all data folders within a specified workbook.
+
+Requires authentication. Run 'scratchmd auth login' first.
+
+Examples:
+  scratchmd folder list wkb_abc123
+  scratchmd folder list wkb_abc123 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFolderList,
+}
+
 func init() {
 	rootCmd.AddCommand(folderCmd)
 	folderCmd.AddCommand(folderLinkCmd)
 	folderCmd.AddCommand(folderRemoveCmd)
+	folderCmd.AddCommand(folderListCmd)
 
 	folderLinkCmd.Flags().String("account.name", "", "Account name to link (required)")
 	folderLinkCmd.Flags().String("table-id", "", "Table ID to link (required)")
@@ -73,6 +92,10 @@ func init() {
 	folderLinkCmd.MarkFlagRequired("table-id")
 
 	folderRemoveCmd.Flags().Bool("no-review", false, "Skip confirmation prompt")
+
+	// Flags for folder list
+	folderListCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	folderListCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
 }
 
 func runFolderLink(cmd *cobra.Command, args []string) error {
@@ -252,5 +275,105 @@ func runFolderRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Folder '%s' removed successfully.\n", folderName)
+	return nil
+}
+
+func runFolderList(cmd *cobra.Command, args []string) error {
+	workbookId := args[0]
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	// Use default or config server URL
+	if serverURL == "" {
+		cfg, err := config.LoadConfig()
+		if err == nil && cfg.Settings != nil && cfg.Settings.ScratchServerURL != "" {
+			serverURL = cfg.Settings.ScratchServerURL
+		} else {
+			serverURL = api.DefaultScratchServerURL
+		}
+	}
+
+	// Check if logged in
+	if !config.IsLoggedIn(serverURL) {
+		if jsonOutput {
+			output := map[string]interface{}{
+				"error": "Not logged in. Run 'scratchmd auth login' first.",
+			}
+			data, _ := json.MarshalIndent(output, "", "  ")
+			fmt.Println(string(data))
+			os.Exit(1)
+		}
+		return fmt.Errorf("not logged in. Run 'scratchmd auth login' first")
+	}
+
+	// Load credentials
+	creds, err := config.LoadGlobalCredentials(serverURL)
+	if err != nil {
+		if jsonOutput {
+			output := map[string]interface{}{
+				"error": fmt.Sprintf("Failed to load credentials: %s", err.Error()),
+			}
+			data, _ := json.MarshalIndent(output, "", "  ")
+			fmt.Println(string(data))
+			os.Exit(1)
+		}
+		return fmt.Errorf("failed to load credentials: %w", err)
+	}
+
+	// Create API client with authentication
+	client := api.NewClient(
+		api.WithBaseURL(serverURL),
+		api.WithAPIToken(creds.APIToken),
+	)
+
+	// Fetch data folders
+	folders, err := client.ListDataFolders(workbookId)
+	if err != nil {
+		if jsonOutput {
+			output := map[string]interface{}{
+				"error": fmt.Sprintf("Failed to list folders: %s", err.Error()),
+			}
+			data, _ := json.MarshalIndent(output, "", "  ")
+			fmt.Println(string(data))
+			os.Exit(1)
+		}
+		return fmt.Errorf("failed to list folders: %w", err)
+	}
+
+	// Output results
+	if jsonOutput {
+		data, err := json.MarshalIndent(folders, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal response: %w", err)
+		}
+		fmt.Println(string(data))
+		return nil
+	}
+
+	// Human-readable output
+	if len(folders) == 0 {
+		fmt.Println()
+		fmt.Printf("No data folders found in workbook %s.\n", workbookId)
+		fmt.Println()
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("Data Folders (%d total)\n", len(folders))
+	fmt.Println()
+
+	for _, f := range folders {
+		connector := "Scratch"
+		if f.ConnectorService != "" {
+			connector = f.ConnectorService
+			if f.ConnectorDisplayName != "" {
+				connector = f.ConnectorDisplayName
+			}
+		}
+		fmt.Printf("  %s  %-20s  (%s)\n", f.ID, f.Name, connector)
+	}
+
+	fmt.Println()
+
 	return nil
 }

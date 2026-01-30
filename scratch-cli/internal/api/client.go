@@ -176,6 +176,34 @@ type ValidateFilesResponse struct {
 	Files []ValidatedFileResult `json:"files,omitempty"`
 }
 
+// Workbook represents a workbook returned by the API.
+type Workbook struct {
+	ID             string       `json:"id,omitempty"`
+	Name           string       `json:"name,omitempty"`
+	CreatedAt      string       `json:"createdAt,omitempty"`
+	UpdatedAt      string       `json:"updatedAt,omitempty"`
+	UserId         string       `json:"userId,omitempty"`
+	OrganizationId string       `json:"organizationId,omitempty"`
+	DataFolders    []DataFolder `json:"dataFolders,omitempty"`
+}
+
+// DataFolder represents a data folder within a workbook.
+type DataFolder struct {
+	ID                   string   `json:"id,omitempty"`
+	Name                 string   `json:"name,omitempty"`
+	CreatedAt            string   `json:"createdAt,omitempty"`
+	UpdatedAt            string   `json:"updatedAt,omitempty"`
+	WorkbookId           string   `json:"workbookId,omitempty"`
+	ConnectorAccountId   string   `json:"connectorAccountId,omitempty"`
+	ConnectorService     string   `json:"connectorService,omitempty"`
+	ConnectorDisplayName string   `json:"connectorDisplayName,omitempty"`
+	ParentId             string   `json:"parentId,omitempty"`
+	Path                 string   `json:"path,omitempty"`
+	Lock                 string   `json:"lock,omitempty"`
+	LastSyncTime         string   `json:"lastSyncTime,omitempty"`
+	TableId              []string `json:"tableId,omitempty"`
+}
+
 // ClientOption is a function that configures a Client.
 type ClientOption func(*Client)
 
@@ -420,4 +448,23 @@ func (c *Client) ValidateFiles(creds *ConnectorCredentials, req *ValidateFilesRe
 		return nil, err
 	}
 	return &result, nil
+}
+
+// ListWorkbooks retrieves the list of workbooks available for the authenticated user.
+func (c *Client) ListWorkbooks() ([]Workbook, error) {
+	var result []Workbook
+	if err := c.doRequest(http.MethodGet, "workbooks", nil, nil, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ListDataFolders retrieves the list of data folders in a workbook.
+func (c *Client) ListDataFolders(workbookId string) ([]DataFolder, error) {
+	var result []DataFolder
+	path := fmt.Sprintf("workbooks/%s/folders", workbookId)
+	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }

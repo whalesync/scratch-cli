@@ -190,6 +190,8 @@ export enum PostHogEventName {
   SUBSCRIPTION_CANCELLED = 'subscription_cancelled',
   CLI_TEST_CONNECTION = 'cli_test_connection',
   CLI_LIST_TABLES = 'cli_list_tables',
+  CLI_LIST_WORKBOOKS = 'cli_list_workbooks',
+  CLI_LIST_DATA_FOLDERS = 'cli_list_data_folders',
   CLI_DOWNLOAD = 'cli_download',
   CLI_UPLOAD = 'cli_upload',
   CLI_VALIDATE_FILES = 'cli_validate_files',
