@@ -9,9 +9,9 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { getConnectorsWithStatus } from '@/types/server-entities/workbook';
-import { Code, Group, Loader, Menu, ScrollArea, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Group, Menu, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Workbook } from '@spinner/shared-types';
-import { Edit3Icon, GitBranchIcon, Table2, Trash2 } from 'lucide-react';
+import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -20,13 +20,11 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
   const { deleteWorkbook, updateWorkbook, getWorkbookPageUrl } = useWorkbooks();
   const [saving, setSaving] = useState(false);
   const [workbookName, setWorkbookName] = useState(workbook.name ?? undefined);
-  const modalStack = useModalsStack(['confirm-delete', 'rename', 'git-status']);
+  const modalStack = useModalsStack(['confirm-delete', 'rename']);
   const connectorList = getConnectorsWithStatus(workbook);
 
   const [contextMenuOpened, setContextMenuOpened] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
-  const [gitStatus, setGitStatus] = useState<object | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState(false);
 
   const handleDelete = async () => {
     if (!workbook) return;
@@ -66,26 +64,6 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleGitStatus = async () => {
-    setLoadingStatus(true);
-    setGitStatus(null);
-    modalStack.open('git-status');
-    try {
-      const res = await fetch(`/api/scratch-git/${workbook.id}/status`);
-      if (!res.ok) throw new Error('Failed to fetch status');
-      const data = await res.json();
-      setGitStatus(data);
-    } catch (e) {
-      console.error(e);
-      ScratchpadNotifications.error({
-        title: 'Git Status Failed',
-        message: 'Could not fetch git status.',
-      });
-    } finally {
-      setLoadingStatus(false);
     }
   };
 
@@ -132,26 +110,6 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
       </ModalWrapper>
 
-      <ModalWrapper
-        title="Git Status"
-        customProps={{
-          // size: 'lg',
-          noBodyPadding: true,
-          footer: null,
-        }}
-        {...modalStack.register('git-status')}
-      >
-        {loadingStatus ? (
-          <Group justify="center" p="xl">
-            <Loader size="sm" />
-          </Group>
-        ) : (
-          <ScrollArea.Autosize style={{ maxHeight: 500 }}>
-            <Code block>{gitStatus ? JSON.stringify(gitStatus, null, 2) : 'No status data'}</Code>
-          </ScrollArea.Autosize>
-        )}
-      </ModalWrapper>
-
       <Menu opened={contextMenuOpened} onChange={setContextMenuOpened} withinPortal shadow="md">
         <Menu.Target>
           <div
@@ -168,9 +126,6 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
         <Menu.Dropdown>
           <Menu.Item leftSection={<Edit3Icon size={16} />} onClick={() => modalStack.open('rename')}>
             Rename workbook
-          </Menu.Item>
-          <Menu.Item leftSection={<GitBranchIcon size={16} />} onClick={handleGitStatus}>
-            Git Status
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item

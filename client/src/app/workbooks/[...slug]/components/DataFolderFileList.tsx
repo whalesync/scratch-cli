@@ -8,7 +8,15 @@ import { filesApi } from '@/lib/api/files';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Box, Button, Center, Group, LoadingOverlay, Menu, Modal, Stack, Text } from '@mantine/core';
 import { DataFolderId, FileId, FileRefEntity } from '@spinner/shared-types';
-import { FileDiffIcon, FileIcon, FileMinusIcon, FilePlusIcon, RefreshCw, Trash2Icon } from 'lucide-react';
+import {
+  CloudUploadIcon,
+  FileDiffIcon,
+  FileIcon,
+  FileMinusIcon,
+  FilePlusIcon,
+  RefreshCw,
+  Trash2Icon,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useDataFolder } from '../../../../hooks/use-data-folder';
 import { useFolderFileList } from '../../../../hooks/use-folder-file-list';
@@ -89,6 +97,25 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
     setDeleteModalOpened(false);
     setFileToDelete(null);
   }, []);
+
+  const handleFilePublish = useCallback(
+    async (fileId: FileId) => {
+      if (!workbook?.id) return;
+      try {
+        await filesApi.publishFile(workbook.id, fileId);
+        ScratchpadNotifications.success({
+          message: 'File published',
+        });
+        refreshFiles();
+      } catch {
+        ScratchpadNotifications.error({
+          title: 'Error',
+          message: 'Failed to publish file',
+        });
+      }
+    },
+    [workbook, refreshFiles],
+  );
 
   // Track previous lock state to detect transitions
   const prevLockRef = useRef(dataFolder?.lock);
@@ -208,6 +235,15 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
           <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
         </Menu.Target>
         <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<CloudUploadIcon size={16} />}
+            onClick={() => {
+              if (selectedFile) handleFilePublish(selectedFile.id);
+              setMenuOpened(false);
+            }}
+          >
+            Mock Publish
+          </Menu.Item>
           <Menu.Item leftSection={<Trash2Icon size={16} />} color="red" onClick={handleDeleteClick}>
             Delete
           </Menu.Item>

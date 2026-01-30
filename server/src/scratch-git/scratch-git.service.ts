@@ -97,4 +97,8 @@ export class ScratchGitService {
   ): Promise<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>> {
     return this.scratchGitClient.getFolderDiff(workbookId, folderPath);
   }
+
+  async getGraph(workbookId: WorkbookId): Promise<any> {
+    return this.scratchGitClient.getGraph(workbookId);
+  }
 }

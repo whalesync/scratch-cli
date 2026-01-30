@@ -280,4 +280,26 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  getGraph: async (workbookId: WorkbookId): Promise<{ commits: unknown[]; refs: unknown[] }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<{ commits: unknown[]; refs: unknown[] }>(`/scratch-git/${workbookId}/graph`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get git graph');
+      throw error;
+    }
+  },
+
+  getStatus: async (workbookId: WorkbookId): Promise<unknown> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get(`/scratch-git/${workbookId}/git-status`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get git status');
+      throw error;
+    }
+  },
 };

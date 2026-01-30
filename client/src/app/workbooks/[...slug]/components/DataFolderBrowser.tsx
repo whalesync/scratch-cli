@@ -2,13 +2,18 @@
 
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { Text13Medium, Text13Regular } from '@/app/components/base/text';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   ActionIcon,
   Box,
   Button,
+  Code,
   Collapse,
   Group,
   Loader,
@@ -27,14 +32,19 @@ import {
   CopyMinusIcon,
   CopyPlusIcon,
   DownloadIcon,
+  FileDiffIcon,
   FilePlusIcon,
   FolderIcon,
   FolderPlusIcon,
+  FolderSearchIcon,
   FolderSyncIcon,
+  GitBranchIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { GitBrowserModal } from '../../components/GitBrowserModal';
+import { GitGraphModal } from '../../components/GitGraphModal';
 import styles from './DataFolderBrowser.module.css';
 
 interface DataFolderBrowserProps {
@@ -45,6 +55,8 @@ const SCRATCH_GROUP_NAME = 'Scratch';
 
 export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   const { dataFolderGroups, isLoading, deleteFolder } = useDataFolders();
+  const { workbook } = useActiveWorkbook();
+  const { isAdmin } = useScratchPadUser();
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
@@ -55,6 +67,40 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
     folder: DataFolder;
     onConfirm: () => Promise<void>;
   } | null>(null);
+
+  // Git menu state
+  const [gitBrowserOpen, setGitBrowserOpen] = useState(false);
+  const [gitGraphOpen, setGitGraphOpen] = useState(false);
+  const [gitStatusOpen, setGitStatusOpen] = useState(false);
+  const [gitStatus, setGitStatus] = useState<object | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+
+  const handleGitStatus = useCallback(async () => {
+    if (!workbook) return;
+    setLoadingStatus(true);
+    setGitStatus(null);
+    setGitStatusOpen(true);
+    try {
+      const data = await workbookApi.getStatus(workbook.id);
+      setGitStatus(data as object);
+    } catch (e) {
+      console.error(e);
+      ScratchpadNotifications.error({
+        title: 'Git Status Failed',
+        message: 'Could not fetch git status.',
+      });
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, [workbook]);
+
+  const handleBrowseFiles = useCallback(() => {
+    setGitBrowserOpen(true);
+  }, []);
+
+  const handleGitGraph = useCallback(() => {
+    setGitGraphOpen(true);
+  }, []);
 
   const expandAllGroups = useCallback(() => {
     setExpandedGroups(new Set(dataFolderGroups.map((g) => g.name)));
@@ -196,6 +242,30 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               <CopyPlusIcon size={14} />
             </ActionIcon>
           </Tooltip>
+
+          <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+
+          {isAdmin && (
+            <Menu shadow="md" width={200} position="bottom-end">
+              <Menu.Target>
+                <ActionIcon variant="subtle" color="violet" size="sm">
+                  <GitBranchIcon size={14} />
+                </ActionIcon>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<FileDiffIcon size={14} />} onClick={handleGitStatus} color="violet">
+                  main vs dirty
+                </Menu.Item>
+                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
+                  Git Graph
+                </Menu.Item>
+                <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
+                  Browse Files
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
         </Group>
       </Group>
       <ScrollArea className={styles.container}>
@@ -228,6 +298,25 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
             </Button>
           </Group>
         </Stack>
+      </Modal>
+
+      {workbook && (
+        <GitBrowserModal workbookId={workbook.id} isOpen={gitBrowserOpen} onClose={() => setGitBrowserOpen(false)} />
+      )}
+      {workbook && (
+        <GitGraphModal workbookId={workbook.id} isOpen={gitGraphOpen} onClose={() => setGitGraphOpen(false)} />
+      )}
+
+      <Modal opened={gitStatusOpen} onClose={() => setGitStatusOpen(false)} title="Git Status" size="lg">
+        {loadingStatus ? (
+          <Group justify="center" p="xl">
+            <Loader size="sm" />
+          </Group>
+        ) : (
+          <ScrollArea.Autosize style={{ maxHeight: 500 }}>
+            <Code block>{gitStatus ? JSON.stringify(gitStatus, null, 2) : 'No status data'}</Code>
+          </ScrollArea.Autosize>
+        )}
       </Modal>
     </Stack>
   );

@@ -36,4 +36,10 @@ export class ScratchGitController {
     console.log(`[ScratchGitController] getFileDiff called for ${workbookId} path=${path}`);
     return this.scratchGitService.getFileDiff(workbookId, path);
   }
+
+  @Get(':id/graph')
+  async getGraph(@Param('id') workbookId: WorkbookId): Promise<unknown> {
+    console.log(`[ScratchGitController] getGraph called for ${workbookId}`);
+    return this.scratchGitService.getGraph(workbookId);
+  }
 }

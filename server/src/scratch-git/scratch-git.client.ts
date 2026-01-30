@@ -90,4 +90,8 @@ export class ScratchGitClient {
       Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>
     >;
   }
+
+  async getGraph(repoId: string): Promise<any> {
+    return this.callGitApi(`/api/repo/${repoId}/graph`, 'GET');
+  }
 }

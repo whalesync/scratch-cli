@@ -1,19 +1,15 @@
-import fs from "node:fs";
-import path from "node:path";
-import git from "isomorphic-git";
-import { diff3Merge } from "node-diff3";
+import git from 'isomorphic-git';
+import { diff3Merge } from 'node-diff3';
+import fs from 'node:fs';
+import path from 'node:path';
 
-import { IGitService, GitFile, DirtyFile, FileChange } from "./types";
+import { DirtyFile, FileChange, GitFile, IGitService } from './types';
 
-const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || "repos";
-const DEFAULT_AUTHOR = { name: "Scratch", email: "scratch@example.com" };
+const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || 'repos';
+const DEFAULT_AUTHOR = { name: 'Scratch', email: 'scratch@example.com' };
 const writeLocks = new Map<string, Promise<unknown>>();
 
-async function withWriteLock<T>(
-  gitBucket: string,
-  ref: string,
-  operation: () => Promise<T>,
-): Promise<T> {
+async function withWriteLock<T>(gitBucket: string, ref: string, operation: () => Promise<T>): Promise<T> {
   const lockKey = `${gitBucket}:${ref}`;
   const previousPromise = writeLocks.get(lockKey);
   const ourPromise = (async () => {
@@ -42,19 +38,19 @@ export class GitService implements IGitService {
     await fs.promises.mkdir(dir, { recursive: true });
 
     // Check if HEAD exists (bare repo structure)
-    if (!fs.existsSync(path.join(dir, "HEAD"))) {
+    if (!fs.existsSync(path.join(dir, 'HEAD'))) {
       await git.init({
         fs,
         dir,
         gitdir: dir,
-        defaultBranch: "main",
+        defaultBranch: 'main',
         bare: true,
       });
     }
 
     // Create initial commit if empty
     try {
-      await git.resolveRef({ fs, dir, gitdir: dir, ref: "main" });
+      await git.resolveRef({ fs, dir, gitdir: dir, ref: 'main' });
     } catch {
       // Create empty initial commit
       const emptyTreeOid = await git.writeTree({
@@ -80,18 +76,18 @@ export class GitService implements IGitService {
             timestamp: Math.floor(Date.now() / 1000),
             timezoneOffset: 0,
           },
-          message: "Initial commit",
+          message: 'Initial commit',
         },
       });
       // Point main to this commit
-      await this.forceRef(dir, "main", commitOid);
+      await this.forceRef(dir, 'main', commitOid);
 
       // Ensure dirty branch exists and points to main
       await git.branch({
         fs,
         dir,
         gitdir: dir,
-        ref: "dirty",
+        ref: 'dirty',
         object: commitOid,
         checkout: false,
       });
@@ -107,11 +103,11 @@ export class GitService implements IGitService {
 
   async rebaseDirty(
     repoId: string,
-    strategy: "ours" | "diff3" = "ours",
+    strategy: 'ours' | 'diff3' = 'ours',
   ): Promise<{ rebased: boolean; conflicts: string[] }> {
     const dir = this.getRepoPath(repoId);
-    const mainRef = "main";
-    const dirtyRef = "dirty";
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
 
     // Ensure dirty exists
     try {
@@ -158,11 +154,7 @@ export class GitService implements IGitService {
     const mergeBase = mergeBaseOids[0];
 
     // Get changes on dirty since mergeBase
-    const userChanges = await this.compareCommits(
-      repoId,
-      mergeBase,
-      dirtyCommit,
-    );
+    const userChanges = await this.compareCommits(repoId, mergeBase, dirtyCommit);
 
     if (userChanges.length === 0) {
       await this.forceRef(dir, dirtyRef, mainCommit);
@@ -172,17 +164,17 @@ export class GitService implements IGitService {
     // For diff3, we need the base content for modified files
     const edits = await Promise.all(
       userChanges.map(async (change) => {
-        if (change.status === "deleted") {
+        if (change.status === 'deleted') {
           return {
             path: change.path,
-            status: "deleted" as const,
+            status: 'deleted' as const,
             content: null,
             baseContent: null,
           };
         }
         const content = await this.getFile(repoId, dirtyRef, change.path);
         let baseContent: string | null = null;
-        if (strategy === "diff3" && change.status === "modified") {
+        if (strategy === 'diff3' && change.status === 'modified') {
           // Get content from mergeBase for 3-way merge
           try {
             const { blob } = await git.readBlob({
@@ -214,27 +206,18 @@ export class GitService implements IGitService {
     const changesToCommit: FileChange[] = [];
 
     for (const edit of edits) {
-      if (edit.status === "deleted") {
+      if (edit.status === 'deleted') {
         const existsOnMain = await this.fileExists(repoId, mainRef, edit.path);
-        if (existsOnMain)
-          changesToCommit.push({ path: edit.path, type: "delete" });
+        if (existsOnMain) changesToCommit.push({ path: edit.path, type: 'delete' });
       } else if (edit.content !== null) {
         const mainContent = await this.getFile(repoId, mainRef, edit.path);
 
         let finalContent = edit.content;
 
-        if (strategy === "diff3" && edit.status === "modified") {
-          if (
-            edit.baseContent !== null &&
-            mainContent !== null &&
-            edit.baseContent !== mainContent
-          ) {
+        if (strategy === 'diff3' && edit.status === 'modified') {
+          if (edit.baseContent !== null && mainContent !== null && edit.baseContent !== mainContent) {
             // 3-way merge
-            finalContent = this.mergeFileContents(
-              edit.baseContent,
-              edit.content,
-              mainContent,
-            );
+            finalContent = this.mergeFileContents(edit.baseContent, edit.content, mainContent);
             if (finalContent !== mainContent && finalContent !== edit.content) {
               // It merged something, might check for true conflicts if needed
               // but for now relying on strict user-wins for conflicts logic in mergeFileContents
@@ -259,19 +242,14 @@ export class GitService implements IGitService {
           changesToCommit.push({
             path: edit.path,
             content: finalContent,
-            type: "modify",
+            type: 'modify',
           });
         }
       }
     }
 
     if (changesToCommit.length > 0) {
-      await this.commitChangesToRef(
-        repoId,
-        dirtyRef,
-        changesToCommit,
-        "Rebase dirty on main",
-      );
+      await this.commitChangesToRef(repoId, dirtyRef, changesToCommit, 'Rebase dirty on main');
     }
 
     return { rebased: true, conflicts };
@@ -279,8 +257,8 @@ export class GitService implements IGitService {
 
   async getDirtyStatus(repoId: string): Promise<DirtyFile[]> {
     const dir = this.getRepoPath(repoId);
-    const mainRef = "main";
-    const dirtyRef = "dirty";
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
     try {
       const [mainCommit, dirtyCommit] = await Promise.all([
         git.resolveRef({ fs, dir, gitdir: dir, ref: mainRef }),
@@ -293,28 +271,19 @@ export class GitService implements IGitService {
     }
   }
 
-  async getFolderDirtyStatus(
-    repoId: string,
-    folderPath: string,
-  ): Promise<DirtyFile[]> {
+  async getFolderDirtyStatus(repoId: string, folderPath: string): Promise<DirtyFile[]> {
     const dir = this.getRepoPath(repoId);
-    const mainRef = "main";
-    const dirtyRef = "dirty";
-    const folder = folderPath.startsWith("/")
-      ? folderPath.slice(1)
-      : folderPath;
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
+    const folder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
     try {
       const [mainCommit, dirtyCommit] = await Promise.all([
         git.resolveRef({ fs, dir, gitdir: dir, ref: mainRef }),
         git.resolveRef({ fs, dir, gitdir: dir, ref: dirtyRef }),
       ]);
       if (mainCommit === dirtyCommit) return [];
-      const allChanges = await this.compareCommits(
-        repoId,
-        mainCommit,
-        dirtyCommit,
-      );
-      const prefix = folder.endsWith("/") ? folder : folder + "/";
+      const allChanges = await this.compareCommits(repoId, mainCommit, dirtyCommit);
+      const prefix = folder.endsWith('/') ? folder : folder + '/';
       return allChanges.filter((f) => f.path.startsWith(prefix));
     } catch {
       return [];
@@ -336,11 +305,7 @@ export class GitService implements IGitService {
     }
   }
 
-  async getLog(
-    repoId: string,
-    ref: string,
-    depth: number = 10,
-  ): Promise<Array<{ oid: string; parent: string[] }>> {
+  async getLog(repoId: string, ref: string, depth: number = 10): Promise<Array<{ oid: string; parent: string[] }>> {
     const dir = this.getRepoPath(repoId);
     try {
       const commits = await git.log({ fs, dir, gitdir: dir, ref, depth });
@@ -350,21 +315,115 @@ export class GitService implements IGitService {
     }
   }
 
-  async getFileDiff(
-    repoId: string,
-    filePath: string,
-  ): Promise<{ main: string | null; dirty: string | null } | null> {
-    const mainContent = await this.getFile(repoId, "main", filePath);
-    const dirtyContent = await this.getFile(repoId, "dirty", filePath);
+  async getGraphData(repoId: string): Promise<{
+    commits: Array<{
+      oid: string;
+      message: string;
+      parents: string[];
+      author: { name: string; email: string; timestamp: number };
+    }>;
+    refs: Array<{ name: string; oid: string; type: 'branch' | 'tag' }>;
+  }> {
+    const dir = this.getRepoPath(repoId);
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
+
+    // Get refs (branches and tags)
+    const refs: Array<{ name: string; oid: string; type: 'branch' | 'tag' }> = [];
+
+    try {
+      const mainOid = await git.resolveRef({
+        fs,
+        dir,
+        gitdir: dir,
+        ref: mainRef,
+      });
+      refs.push({ name: 'main', oid: mainOid, type: 'branch' });
+    } catch {}
+
+    try {
+      const dirtyOid = await git.resolveRef({
+        fs,
+        dir,
+        gitdir: dir,
+        ref: dirtyRef,
+      });
+      refs.push({ name: 'dirty', oid: dirtyOid, type: 'branch' });
+    } catch {}
+
+    try {
+      const tags = await git.listTags({ fs, dir, gitdir: dir });
+      for (const tag of tags) {
+        const oid = await git.resolveRef({
+          fs,
+          dir,
+          gitdir: dir,
+          ref: tag,
+        });
+        // listTags returns ref names like "main_checkpoint1", resolveRef needs complete ref or just name if simple
+        // actually listTags returns just names.
+        // check if it's annotated tag or lightweight. resolveRef follows.
+        refs.push({ name: tag, oid, type: 'tag' });
+      }
+    } catch {}
+
+    // Get commits. We want a graph, so we need history from all tips.
+    // simplified: just log from dirty (which should include main usually) and main.
+    // If dirty exists, it usually stems from main.
+    // git.log can take multiple refs but isomorphic-git log takes one ref.
+    // We'll log from dirty (if exists) and main, and unique them.
+
+    const commitsMap = new Map<
+      string,
+      {
+        oid: string;
+        message: string;
+        parents: string[];
+        author: { name: string; email: string; timestamp: number };
+      }
+    >();
+
+    const fetchLog = async (ref: string) => {
+      try {
+        const requestLog = await git.log({
+          fs,
+          dir,
+          gitdir: dir,
+          ref,
+          depth: 50, // Limit depth for performance, adjustable
+        });
+        for (const c of requestLog) {
+          commitsMap.set(c.oid, {
+            oid: c.oid,
+            message: c.commit.message,
+            parents: c.commit.parent,
+            author: {
+              name: c.commit.author.name,
+              email: c.commit.author.email,
+              timestamp: c.commit.author.timestamp,
+            },
+          });
+        }
+      } catch {}
+    };
+
+    await fetchLog('dirty');
+    await fetchLog('main');
+
+    // Sort by timestamp desc
+    const sortedCommits = Array.from(commitsMap.values()).sort((a, b) => b.author.timestamp - a.author.timestamp);
+
+    return { commits: sortedCommits, refs };
+  }
+
+  async getFileDiff(repoId: string, filePath: string): Promise<{ main: string | null; dirty: string | null } | null> {
+    const mainContent = await this.getFile(repoId, 'main', filePath);
+    const dirtyContent = await this.getFile(repoId, 'dirty', filePath);
     if (mainContent === null && dirtyContent === null) return null;
     return { main: mainContent, dirty: dirtyContent };
   }
 
-  async list(
-    repoId: string,
-    branch: string,
-    folderPath: string,
-  ): Promise<GitFile[]> {
+  async list(repoId: string, branch: string, folderPath: string): Promise<GitFile[]> {
     const dir = this.getRepoPath(repoId);
     try {
       const commitOid = await git.resolveRef({
@@ -381,28 +440,20 @@ export class GitService implements IGitService {
         trees: [git.TREE({ ref: commitOid })],
         map: async (filepath, [entry]) => {
           if (!entry) return;
-          if (folderPath && !filepath.startsWith(folderPath + "/")) return;
-          if (
-            folderPath &&
-            filepath !== folderPath &&
-            filepath.slice(folderPath.length + 1).includes("/")
-          )
-            return; // Direct children only
-          if (!folderPath && filepath.includes("/")) return; // Root children only
+          if (folderPath && !filepath.startsWith(folderPath + '/')) return;
+          if (folderPath && filepath !== folderPath && filepath.slice(folderPath.length + 1).includes('/')) return; // Direct children only
+          if (!folderPath && filepath.includes('/')) return; // Root children only
 
-          const relativePath = folderPath
-            ? filepath.slice(folderPath.length + 1)
-            : filepath;
-          if (relativePath === "" || relativePath.startsWith(".")) return;
+          const relativePath = folderPath ? filepath.slice(folderPath.length + 1) : filepath;
+          if (relativePath === '' || relativePath.startsWith('.')) return;
 
           const type = await entry.type();
-          if (type === "blob")
-            files.push({ name: relativePath, path: filepath, type: "file" });
-          else if (type === "tree")
+          if (type === 'blob') files.push({ name: relativePath, path: filepath, type: 'file' });
+          else if (type === 'tree')
             files.push({
               name: relativePath,
               path: filepath,
-              type: "directory",
+              type: 'directory',
             });
         },
       });
@@ -412,13 +463,9 @@ export class GitService implements IGitService {
     }
   }
 
-  async getFile(
-    repoId: string,
-    branch: string,
-    filePath: string,
-  ): Promise<string | null> {
+  async getFile(repoId: string, branch: string, filePath: string): Promise<string | null> {
     const dir = this.getRepoPath(repoId);
-    if (filePath.startsWith("/")) {
+    if (filePath.startsWith('/')) {
       filePath = filePath.slice(1);
     }
     try {
@@ -441,11 +488,7 @@ export class GitService implements IGitService {
     }
   }
 
-  async fileExists(
-    repoId: string,
-    branch: string,
-    filePath: string,
-  ): Promise<boolean> {
+  async fileExists(repoId: string, branch: string, filePath: string): Promise<boolean> {
     return (await this.getFile(repoId, branch, filePath)) !== null;
   }
 
@@ -457,44 +500,35 @@ export class GitService implements IGitService {
   ): Promise<void> {
     return withWriteLock(repoId, branch, async () => {
       const changes: FileChange[] = files.map((f) => ({
-        path: f.path.startsWith("/") ? f.path.slice(1) : f.path,
+        path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
         content: f.content,
-        type: "modify",
+        type: 'modify',
       }));
       await this.commitChangesToRef(repoId, branch, changes, message);
     });
   }
 
-  async deleteFiles(
-    repoId: string,
-    branch: string,
-    filePaths: string[],
-    message: string,
-  ): Promise<void> {
+  async deleteFiles(repoId: string, branch: string, filePaths: string[], message: string): Promise<void> {
     return withWriteLock(repoId, branch, async () => {
       const changes: FileChange[] = filePaths.map((p) => ({
-        path: p.startsWith("/") ? p.slice(1) : p,
-        type: "delete",
+        path: p.startsWith('/') ? p.slice(1) : p,
+        type: 'delete',
       }));
       await this.commitChangesToRef(repoId, branch, changes, message);
     });
   }
 
-  async publishFile(
-    repoId: string,
-    file: { path: string; content: string },
-    message: string,
-  ): Promise<void> {
+  async publishFile(repoId: string, file: { path: string; content: string }, message: string): Promise<void> {
     // 1. Commit to main
-    await this.commitFiles(repoId, "main", [file], message);
+    await this.commitFiles(repoId, 'main', [file], message);
     // 2. Rebase dirty (this will sync the repo state)
     await this.rebaseDirty(repoId);
   }
 
   async createCheckpoint(repoId: string, name: string): Promise<void> {
     const dir = this.getRepoPath(repoId);
-    const mainRef = "main";
-    const dirtyRef = "dirty";
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
 
     // Resolve current commits
     const mainCommit = await git.resolveRef({
@@ -549,8 +583,8 @@ export class GitService implements IGitService {
         ref: `dirty_${name}`,
       });
 
-      await this.forceRef(dir, "main", mainTag);
-      await this.forceRef(dir, "dirty", dirtyTag);
+      await this.forceRef(dir, 'main', mainTag);
+      await this.forceRef(dir, 'dirty', dirtyTag);
     } catch (e) {
       throw new Error(`Checkpoint ${name} not found or incomplete`);
     }
@@ -559,12 +593,8 @@ export class GitService implements IGitService {
   async listCheckpoints(repoId: string): Promise<string[]> {
     const dir = this.getRepoPath(repoId);
     const tags = await git.listTags({ fs, dir, gitdir: dir });
-    const mainTags = tags
-      .filter((t) => t.startsWith("main_"))
-      .map((t) => t.slice(5));
-    const dirtyTags = new Set(
-      tags.filter((t) => t.startsWith("dirty_")).map((t) => t.slice(6)),
-    );
+    const mainTags = tags.filter((t) => t.startsWith('main_')).map((t) => t.slice(5));
+    const dirtyTags = new Set(tags.filter((t) => t.startsWith('dirty_')).map((t) => t.slice(6)));
 
     return mainTags.filter((name) => dirtyTags.has(name));
   }
@@ -581,18 +611,14 @@ export class GitService implements IGitService {
     } catch {}
   }
 
-  private mergeFileContents(
-    base: string,
-    ours: string,
-    theirs: string,
-  ): string {
+  private mergeFileContents(base: string, ours: string, theirs: string): string {
     if (ours === base) return theirs;
     if (theirs === base) return ours;
     if (ours === theirs) return ours;
 
-    const baseLines = base.split("\n");
-    const oursLines = ours.split("\n");
-    const theirsLines = theirs.split("\n");
+    const baseLines = base.split('\n');
+    const oursLines = ours.split('\n');
+    const theirsLines = theirs.split('\n');
 
     const result = diff3Merge(oursLines, baseLines, theirsLines);
 
@@ -605,7 +631,7 @@ export class GitService implements IGitService {
         mergedLines.push(...region.conflict.a);
       }
     }
-    return mergedLines.join("\n");
+    return mergedLines.join('\n');
   }
 
   // --- Helpers ---
@@ -621,11 +647,7 @@ export class GitService implements IGitService {
     });
   }
 
-  private async compareCommits(
-    repoId: string,
-    oidA: string,
-    oidB: string,
-  ): Promise<DirtyFile[]> {
+  private async compareCommits(repoId: string, oidA: string, oidB: string): Promise<DirtyFile[]> {
     const dir = this.getRepoPath(repoId);
     const filesA = await this.getTreeFiles(dir, oidA);
     const filesB = await this.getTreeFiles(dir, oidB);
@@ -633,19 +655,16 @@ export class GitService implements IGitService {
 
     for (const [path, oid] of filesB) {
       const hashA = filesA.get(path);
-      if (!hashA) dirty.push({ path, status: "added" });
-      else if (hashA !== oid) dirty.push({ path, status: "modified" });
+      if (!hashA) dirty.push({ path, status: 'added' });
+      else if (hashA !== oid) dirty.push({ path, status: 'modified' });
     }
     for (const [path] of filesA) {
-      if (!filesB.has(path)) dirty.push({ path, status: "deleted" });
+      if (!filesB.has(path)) dirty.push({ path, status: 'deleted' });
     }
     return dirty;
   }
 
-  private async getTreeFiles(
-    dir: string,
-    commitOid: string,
-  ): Promise<Map<string, string>> {
+  private async getTreeFiles(dir: string, commitOid: string): Promise<Map<string, string>> {
     const files = new Map<string, string>();
     await git.walk({
       fs,
@@ -653,22 +672,16 @@ export class GitService implements IGitService {
       gitdir: dir,
       trees: [git.TREE({ ref: commitOid })],
       map: async (filepath, [entry]) => {
-        if (entry && (await entry.type()) === "blob") {
-          if (!filepath.split("/").some((p) => p.startsWith(".")))
-            files.set(filepath, await entry.oid());
+        if (entry && (await entry.type()) === 'blob') {
+          if (!filepath.split('/').some((p) => p.startsWith('.'))) files.set(filepath, await entry.oid());
         }
-        return entry && (await entry.type()) === "tree" ? true : undefined;
+        return entry && (await entry.type()) === 'tree' ? true : undefined;
       },
     });
     return files;
   }
 
-  private async commitChangesToRef(
-    repoId: string,
-    ref: string,
-    changes: FileChange[],
-    message: string,
-  ) {
+  private async commitChangesToRef(repoId: string, ref: string, changes: FileChange[], message: string) {
     const dir = this.getRepoPath(repoId);
     const parentCommit = await git.resolveRef({ fs, dir, gitdir: dir, ref });
     const { tree: currentTree } = await git.readTree({
@@ -709,14 +722,14 @@ export class GitService implements IGitService {
   private async syncIndexForChanges(dir: string, changes: FileChange[]) {
     for (const change of changes) {
       const filePath = path.join(dir, change.path);
-      if (change.type === "delete") {
+      if (change.type === 'delete') {
         await git.resetIndex({ fs, dir, filepath: change.path });
         await fs.promises.unlink(filePath).catch(() => {});
       } else {
         await git.resetIndex({ fs, dir, filepath: change.path });
         const parentDir = path.dirname(filePath);
         await fs.promises.mkdir(parentDir, { recursive: true });
-        await fs.promises.writeFile(filePath, change.content || "");
+        await fs.promises.writeFile(filePath, change.content || '');
       }
     }
   }
@@ -725,7 +738,7 @@ export class GitService implements IGitService {
     dir: string,
     currentEntries: any[],
     changes: FileChange[],
-    prefix = "",
+    prefix = '',
   ): Promise<string> {
     // Simplified version of applyChangesToTree from git.ts logic, recursion needed
     // Group changes by their first path component at this level
@@ -733,10 +746,8 @@ export class GitService implements IGitService {
     const subtreeChanges: Map<string, FileChange[]> = new Map();
 
     for (const change of changes) {
-      const relativePath = prefix
-        ? change.path.slice(prefix.length + 1)
-        : change.path;
-      const slashIndex = relativePath.indexOf("/");
+      const relativePath = prefix ? change.path.slice(prefix.length + 1) : change.path;
+      const slashIndex = relativePath.indexOf('/');
       if (slashIndex === -1) {
         directChanges.push({ ...change, path: relativePath });
       } else {
@@ -753,20 +764,20 @@ export class GitService implements IGitService {
       const subtree = subtreeChanges.get(entry.path);
 
       if (direct) {
-        if (direct.type === "delete") continue;
+        if (direct.type === 'delete') continue;
         const newBlob = await git.writeBlob({
           fs,
           dir,
           gitdir: dir,
-          blob: Buffer.from(direct.content || ""),
+          blob: Buffer.from(direct.content || ''),
         });
         newEntries.push({
-          mode: "100644",
+          mode: '100644',
           path: entry.path,
           oid: newBlob,
-          type: "blob",
+          type: 'blob',
         });
-      } else if (subtree && entry.type === "tree") {
+      } else if (subtree && entry.type === 'tree') {
         const { tree } = await git.readTree({
           fs,
           dir,
@@ -783,7 +794,7 @@ export class GitService implements IGitService {
           mode: entry.mode,
           path: entry.path,
           oid: newSubtree,
-          type: "tree",
+          type: 'tree',
         });
         subtreeChanges.delete(entry.path);
       } else {
@@ -793,21 +804,18 @@ export class GitService implements IGitService {
 
     // Add new files
     for (const change of directChanges) {
-      if (
-        (change.type === "add" || change.type === "modify") &&
-        !currentEntries.some((e) => e.path === change.path)
-      ) {
+      if ((change.type === 'add' || change.type === 'modify') && !currentEntries.some((e) => e.path === change.path)) {
         const newBlob = await git.writeBlob({
           fs,
           dir,
           gitdir: dir,
-          blob: Buffer.from(change.content || ""),
+          blob: Buffer.from(change.content || ''),
         });
         newEntries.push({
-          mode: "100644",
+          mode: '100644',
           path: change.path,
           oid: newBlob,
-          type: "blob",
+          type: 'blob',
         });
       }
     }
@@ -815,24 +823,19 @@ export class GitService implements IGitService {
     // New subtrees
     for (const [name, subChanges] of subtreeChanges) {
       if (!currentEntries.some((e) => e.path === name)) {
-        const newSubtree = await this.applyChangesToTree(
-          dir,
-          [],
-          subChanges,
-          prefix ? `${prefix}/${name}` : name,
-        );
+        const newSubtree = await this.applyChangesToTree(dir, [], subChanges, prefix ? `${prefix}/${name}` : name);
         newEntries.push({
-          mode: "040000",
+          mode: '040000',
           path: name,
           oid: newSubtree,
-          type: "tree",
+          type: 'tree',
         });
       }
     }
 
     newEntries.sort((a, b) => {
-      const aName = a.type === "tree" ? `${a.path}/` : a.path;
-      const bName = b.type === "tree" ? `${b.path}/` : b.path;
+      const aName = a.type === 'tree' ? `${a.path}/` : a.path;
+      const bName = b.type === 'tree' ? `${b.path}/` : b.path;
       return aName.localeCompare(bName);
     });
 
