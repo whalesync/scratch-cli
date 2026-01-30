@@ -29,6 +29,7 @@ The service consists of two distinct HTTP servers running as separate processes:
 
 ### Prerequisites
 
+- npm
 - Node.js
 - Git installed and in PATH
 
@@ -49,13 +50,36 @@ The services are designed to run independently.
 **Start the RPC API:**
 
 ```bash
-npx ts-node git-scratch-api.ts
+npm run dev:api
 ```
 
 **Start the Git HTTP Backend:**
 
 ```bash
-npx ts-node git-http-backend.ts
+npm run dev:http-backend
+```
+
+## Docker
+
+### Build the image
+
+```bash
+docker build -t scratch-git .
+```
+
+### Run the container
+
+```bash
+docker run -p 3100:3100 -p 3101:3101 scratch-git
+```
+
+Override environment variables and mount a persistent volume for repository storage:
+
+```bash
+docker run -p 3100:3100 -p 3101:3101 \
+  -e GIT_REPOS_DIR=/data/repos \
+  -v /host/path/repos:/data/repos \
+  scratch-git
 ```
 
 ## Git Client Usage
