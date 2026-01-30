@@ -50,6 +50,17 @@ app.get("/api/repo/:id/status", async (req, res) => {
   }
 });
 
+app.get("/api/repo/:id/folder-diff", async (req, res) => {
+  try {
+    const folder = req.query.folder as string;
+    if (!folder) throw new Error("Query param folder is required");
+    const files = await gitService.getFolderDirtyStatus(req.params.id, folder);
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 app.get("/api/repo/:id/diff", async (req, res) => {
   try {
     const filePath = req.query.path as string;

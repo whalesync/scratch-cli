@@ -81,4 +81,13 @@ export class ScratchGitClient {
   async getDiff(repoId: string, path: string): Promise<string> {
     return this.callGitApi(`/api/repo/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
   }
+
+  async getFolderDiff(
+    repoId: string,
+    folder: string,
+  ): Promise<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>> {
+    return this.callGitApi(`/api/repo/${repoId}/folder-diff?folder=${encodeURIComponent(folder)}`, 'GET') as Promise<
+      Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>
+    >;
+  }
 }

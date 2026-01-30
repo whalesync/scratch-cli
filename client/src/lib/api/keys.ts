@@ -70,6 +70,7 @@ export const SWR_KEYS = {
   },
   files: {
     list: (workbookId: WorkbookId) => ['files', 'list', workbookId] as const,
+    listByFolder: (workbookId: WorkbookId, folderId: string) => ['files', 'list', workbookId, folderId] as const,
     listDetails: (workbookId: WorkbookId, folderId?: string | null) =>
       ['files', 'listDetails', workbookId, folderId ?? 'root'] as const,
     detail: (workbookId: WorkbookId, fileId: string) => ['files', 'detail', workbookId, fileId] as const,

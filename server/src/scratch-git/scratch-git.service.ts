@@ -2,6 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
 import { ScratchGitClient } from './scratch-git.client';
 
+// The object returned by listRepoFiles
+export interface RepoFileRef {
+  name: string;
+  path: string;
+  type: 'file' | 'folder';
+}
+
+export const MAIN_BRANCH = 'main';
+export const DIRTY_BRANCH = 'dirty';
+
 @Injectable()
 export class ScratchGitService {
   constructor(private readonly scratchGitClient: ScratchGitClient) {}
@@ -79,5 +89,12 @@ export class ScratchGitService {
 
   async getFileDiff(workbookId: WorkbookId, path: string): Promise<any> {
     return this.scratchGitClient.getDiff(workbookId, path);
+  }
+
+  async getFolderDiff(
+    workbookId: WorkbookId,
+    folderPath: string,
+  ): Promise<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>> {
+    return this.scratchGitClient.getFolderDiff(workbookId, folderPath);
   }
 }

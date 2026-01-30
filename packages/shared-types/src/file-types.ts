@@ -18,6 +18,8 @@ export interface FileRefEntity {
   path: string;
   /** Whether the file has unpublished changes */
   dirty?: boolean;
+  /** a marker showing if this file has been modified */
+  status?: string;
 }
 
 /**

@@ -3,7 +3,6 @@ import {
   DataFolder,
   DataFolderId,
   FileId,
-  ListDataFolderFilesResponseDto,
   MoveDataFolderDto,
   RenameDataFolderDto,
 } from '@spinner/shared-types';
@@ -57,18 +56,6 @@ export const dataFolderApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to move data folder');
-    }
-  },
-
-  listFiles: async (id: DataFolderId, limit?: number, offset?: number): Promise<ListDataFolderFilesResponseDto> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<ListDataFolderFilesResponseDto>(`/data-folder/${id}/files`, {
-        params: { limit, offset },
-      });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to list data folder files');
     }
   },
 

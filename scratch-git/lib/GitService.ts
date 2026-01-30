@@ -238,6 +238,34 @@ export class GitService implements IGitService {
     }
   }
 
+  async getFolderDirtyStatus(
+    repoId: string,
+    folderPath: string,
+  ): Promise<DirtyFile[]> {
+    const dir = this.getRepoPath(repoId);
+    const mainRef = "main";
+    const dirtyRef = "dirty";
+    const folder = folderPath.startsWith("/")
+      ? folderPath.slice(1)
+      : folderPath;
+    try {
+      const [mainCommit, dirtyCommit] = await Promise.all([
+        git.resolveRef({ fs, dir, gitdir: dir, ref: mainRef }),
+        git.resolveRef({ fs, dir, gitdir: dir, ref: dirtyRef }),
+      ]);
+      if (mainCommit === dirtyCommit) return [];
+      const allChanges = await this.compareCommits(
+        repoId,
+        mainCommit,
+        dirtyCommit,
+      );
+      const prefix = folder.endsWith("/") ? folder : folder + "/";
+      return allChanges.filter((f) => f.path.startsWith(prefix));
+    } catch {
+      return [];
+    }
+  }
+
   async getRefOid(repoId: string, ref: string): Promise<string | null> {
     const dir = this.getRepoPath(repoId);
     try {

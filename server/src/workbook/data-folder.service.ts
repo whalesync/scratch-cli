@@ -4,8 +4,6 @@ import {
   createDataFolderId,
   DataFolderGroup,
   DataFolderId,
-  FileId,
-  ListDataFolderFilesResponseDto,
   Service,
   ValidatedCreateDataFolderDto,
   WorkbookId,
@@ -22,6 +20,7 @@ import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
+import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { WorkbookDbService } from './workbook-db.service';
 import { WorkbookService } from './workbook.service';
@@ -37,6 +36,7 @@ export class DataFolderService {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly workbookDbService: WorkbookDbService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
 
   async listGroupedByConnectorBases(workbookId: WorkbookId, actor: Actor): Promise<DataFolderGroup[]> {
@@ -129,76 +129,6 @@ export class DataFolderService {
     }
 
     return new DataFolderEntity(dataFolder);
-  }
-
-  async listFiles(
-    id: DataFolderId,
-    actor: Actor,
-    limit?: number,
-    offset?: number,
-  ): Promise<ListDataFolderFilesResponseDto> {
-    const dataFolder = await this.db.client.dataFolder.findUnique({
-      where: { id },
-      include: DataFolderCluster._validator.include,
-    });
-
-    if (!dataFolder) {
-      throw new NotFoundException('Data folder not found');
-    }
-
-    // Verify user has access to the workbook
-    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
-    if (!workbook) {
-      throw new NotFoundException('Data folder not found');
-    }
-
-    // Get files from the workbook database using the data folder's path
-    const [allFiles, totalCount] = await Promise.all([
-      this.workbookDbService.workbookDb.getFilesByFolderId(dataFolder.workbookId as WorkbookId, id, { offset, limit }),
-      this.workbookDbService.workbookDb.countFilesByFolderId(dataFolder.workbookId as WorkbookId, id),
-    ]);
-
-    return {
-      files: allFiles.map((f) => ({
-        fileId: f.id as FileId,
-        filename: f.name,
-        path: f.path,
-        deleted: f.deleted,
-      })),
-      totalCount,
-    };
-  }
-
-  async deleteFile(dataFolderId: DataFolderId, fileId: FileId, actor: Actor): Promise<void> {
-    const dataFolder = await this.db.client.dataFolder.findUnique({
-      where: { id: dataFolderId },
-      include: DataFolderCluster._validator.include,
-    });
-
-    if (!dataFolder) {
-      throw new NotFoundException('Data folder not found');
-    }
-
-    // Verify user has access to the workbook
-    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
-    if (!workbook) {
-      throw new NotFoundException('Data folder not found');
-    }
-
-    // Delete the file
-    await this.workbookDbService.workbookDb.deleteFileById(dataFolder.workbookId as WorkbookId, fileId, false);
-
-    // Log audit event
-    await this.auditLogService.logEvent({
-      actor,
-      eventType: 'delete',
-      message: `Deleted file ${fileId} from data folder ${dataFolder.name}`,
-      entityId: fileId,
-      context: {
-        workbookId: dataFolder.workbookId,
-        dataFolderId,
-      },
-    });
   }
 
   async createFolder(dto: ValidatedCreateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {
@@ -366,6 +296,8 @@ export class DataFolderService {
       dataFolder.workbookId as WorkbookId,
       dataFolder.id as DataFolderId,
     );
+
+    // TODO: delete folder in git
 
     // Delete the data folder (cascades to children due to schema relation)
     await this.db.client.dataFolder.delete({

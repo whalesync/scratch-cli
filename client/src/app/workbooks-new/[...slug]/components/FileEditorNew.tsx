@@ -1,31 +1,30 @@
 'use client';
 
 import { IconButtonOutline } from '@/app/components/base/buttons';
-import { useFile } from '@/hooks/use-file';
-import { foldersApi } from '@/lib/api/files';
 import { markdown } from '@codemirror/lang-markdown';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
 import { Box, Button, Group, Modal, Select, Text, Tooltip } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { FileId, WorkbookId } from '@spinner/shared-types';
+import type { WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
 import DOMPurify from 'dompurify';
 import matter from 'gray-matter';
-import { DownloadIcon, EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
+import { EyeIcon, SaveIcon, TextAlignEndIcon, TextAlignJustifyIcon } from 'lucide-react';
 import htmlParser from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFileByPath } from '../../../../hooks/use-file-path';
 
 type ViewMode = 'original' | 'original-current' | 'current' | 'current-suggested' | 'suggested';
 
-interface FileEditorProps {
+interface FileEditorNewProps {
   workbookId: WorkbookId;
-  fileId: FileId | null;
+  filePath: string | null;
 }
 
-export function FileEditor({ workbookId, fileId }: FileEditorProps) {
-  const { file: fileResponse, isLoading, updateFile } = useFile(workbookId, fileId);
+export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
+  const { file: fileResponse, isLoading, updateFile } = useFileByPath(workbookId, filePath);
   const [content, setContent] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,7 +72,7 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   );
 
   const handleSave = useCallback(async () => {
-    if (!fileId || !hasChanges) return;
+    if (!filePath || !hasChanges) return;
 
     setIsSaving(true);
     try {
@@ -84,12 +83,7 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [fileId, hasChanges, content, updateFile]);
-
-  const handleDownload = useCallback(() => {
-    if (!fileId) return;
-    foldersApi.downloadFile(workbookId, fileId);
-  }, [workbookId, fileId]);
+  }, [filePath, hasChanges, content, updateFile]);
 
   // Content formatting (Preview, Prettify, Minify) - same logic as HtmlActionButtons
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
@@ -208,7 +202,7 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
     return `${viewMode}-${viewMode === 'current-suggested' ? content.length : 0}`;
   }, [viewMode, content]);
 
-  if (!fileId) {
+  if (!filePath) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Text c="dimmed">Select a folder to view content</Text>
@@ -284,14 +278,6 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
             </Group>
           </Group>
           <Group gap="xs">
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              leftSection={<DownloadIcon size={12} />}
-              onClick={handleDownload}
-            >
-              Download
-            </Button>
             {hasChanges && (
               <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
                 Save

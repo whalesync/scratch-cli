@@ -1,3 +1,5 @@
+import * as posixPath from 'path/posix';
+
 import { SnapshotTableCluster, WorkbookCluster } from 'src/db/cluster-types';
 import { AnyTableSpec } from 'src/remote-service/connectors/library/custom-spec-registry';
 
@@ -65,6 +67,15 @@ export function normalizeFileName(filename: string): string {
  */
 export function normalizeFolderName(name: string): string {
   return name.toString().replace(/\//g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Extract the filename from a POSIX path.
+ * @param path - a POSIX-style file path (e.g. "/folder/subfolder/file.txt")
+ * @returns the filename portion of the path (e.g. "file.txt")
+ */
+export function extractFilenameFromPath(path: string): string {
+  return posixPath.basename(path);
 }
 
 export function assertFolderPathIsValid(path: unknown): asserts path is string {

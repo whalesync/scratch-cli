@@ -1,5 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  NotImplementedException,
+} from '@nestjs/common';
 import type {
+  DataFolderId,
   FileId,
   FileOrFolderRefEntity,
   FileRefEntity,
@@ -24,8 +31,11 @@ import {
 import * as archiver from 'archiver';
 import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
+import { DIRTY_BRANCH, MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { Actor } from '../users/types';
+import { DataFolderService } from './data-folder.service';
 import { FolderService } from './folder.service';
+import { extractFilenameFromPath } from './util';
 import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
@@ -34,6 +44,8 @@ export class FilesService {
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly folderService: FolderService,
+    private readonly dataFolderService: DataFolderService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
 
   /**
@@ -1008,5 +1020,110 @@ export class FilesService {
       parentFolderId: targetFolderId,
       path: fullPath,
     };
+  }
+
+  async listByFolderId(workbookId: WorkbookId, folderId: DataFolderId, actor: Actor): Promise<ListFilesResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    const folder = await this.dataFolderService.findOne(folderId, actor);
+
+    if (!folder.path) {
+      throw new InternalServerErrorException(`Path missing from DataFolder ${folderId}`);
+    }
+
+    const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
+    const repoFiles = (await this.scratchGitService.listRepoFiles(
+      workbookId,
+      MAIN_BRANCH,
+      folderPath,
+    )) as RepoFileRef[];
+
+    // TODO: this solution is too simplistic.
+    // We need to do a more active diff between main and dirty to show pending deletes
+    const diffs = await this.scratchGitService.getFolderDiff(workbookId, folderPath);
+
+    const checkDirty = (path: string): boolean => {
+      return diffs.some((d) => d.path === path);
+    };
+
+    const modifiedStatus = (path: string): string | undefined => {
+      return diffs.find((d) => d.path === path)?.status;
+    };
+
+    // Convert files to FileRefEntity
+    const fileEntities: FileRefEntity[] = repoFiles.map((f) => ({
+      type: 'file',
+      id: f.path as FileId,
+      name: f.name,
+      parentFolderId: null,
+      path: f.path,
+      dirty: checkDirty(f.path),
+      status: modifiedStatus(f.path),
+    }));
+
+    return { items: fileEntities };
+  }
+
+  /**
+   * Get a single file by its path.
+   * Used by the file agent's `cat` command.
+   */
+  async getFileByPathGit(workbookId: WorkbookId, path: string, actor: Actor): Promise<FileDetailsResponseDto> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    const { content: mainContent } = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, path);
+    const { content: dirtyContent } = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, path);
+
+    return {
+      file: {
+        ref: {
+          type: 'file',
+          id: path as FileId, // The git variant uses the full path as the ID, since it should be unique
+          name: extractFilenameFromPath(path),
+          parentFolderId: null,
+          path: path,
+        },
+        content: dirtyContent,
+        originalContent: mainContent,
+        suggestedContent: null, // has no equivilent in the new world
+        createdAt: '', // TODO - get this metadata from git?
+        updatedAt: '', // TODO - get this metadata from git?
+      },
+    };
+  }
+
+  /**
+   * Delete a file by path.
+   * Used by the file agent's `rm` command.
+   */
+  async deleteFileByPathGit(workbookId: WorkbookId, path: string, actor: Actor): Promise<void> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    const existingFile = await this.getFileByPathGit(workbookId, path, actor);
+
+    if (!existingFile) {
+      throw new NotFoundException(`Unable to find ${path}`);
+    }
+    await this.scratchGitService.deleteFile(workbookId, path, `Delete ${path}`);
+  }
+
+  /**
+   * Update the content of the file by path.
+   */
+  async updateFileByPathGit(
+    workbookId: WorkbookId,
+    path: string,
+    updateFileDto: ValidatedUpdateFileDto,
+    actor: Actor,
+  ): Promise<void> {
+    await this.verifyWorkbookAccess(workbookId, actor);
+
+    if (updateFileDto.name || updateFileDto.parentFolderId !== undefined) {
+      throw new NotImplementedException('move and rename not supported yet');
+    }
+
+    if (updateFileDto.content !== undefined && updateFileDto.content !== null) {
+      await this.scratchGitService.commitFile(workbookId, path, updateFileDto.content, `Update ${path}`);
+    }
   }
 }

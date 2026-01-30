@@ -75,4 +75,9 @@ export interface IGitService {
     repoId: string,
     filePath: string,
   ): Promise<{ main: string | null; dirty: string | null } | null>;
+
+  getFolderDirtyStatus(
+    repoId: string,
+    folderPath: string,
+  ): Promise<DirtyFile[]>;
 }

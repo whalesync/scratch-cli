@@ -14,7 +14,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { FileId, FolderId, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, FileId, FolderId, ListFilesDetailsResponseDto, WorkbookId } from '@spinner/shared-types';
 import {
   CopyFileDto,
   CreateFileDto,
@@ -79,6 +79,19 @@ export class FilesController {
    * List files and folders at a given path (non-recursive, like `ls`).
    * GET /workbooks/:workbookId/files/list/by-path?path=/folder/path
    */
+  @Get('list/by-folder')
+  async listFilesByFolder(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('folderId') folderId: DataFolderId,
+    @Req() req: RequestWithUser,
+  ): Promise<ListFilesResponseDto> {
+    return await this.filesService.listByFolderId(workbookId, folderId, userToActor(req.user));
+  }
+
+  /**
+   * List files and folders at a given path (non-recursive, like `ls`).
+   * GET /workbooks/:workbookId/files/list/by-path?path=/folder/path
+   */
   @Get('list/by-path')
   async listFilesByPath(
     @Param('workbookId') workbookId: WorkbookId,
@@ -98,7 +111,7 @@ export class FilesController {
     @Query('path') path: string,
     @Req() req: RequestWithUser,
   ): Promise<FileDetailsResponseDto> {
-    return await this.filesService.getFileByPath(workbookId, path, userToActor(req.user));
+    return await this.filesService.getFileByPathGit(workbookId, path, userToActor(req.user));
   }
 
   /**
@@ -160,6 +173,21 @@ export class FilesController {
     }
 
     return file;
+  }
+
+  /**
+   * Update a file by path.
+   * PATCH /workbooks/:workbookId/files/by-path?path=/folder/file.md
+   */
+  @Patch('by-path')
+  @HttpCode(204)
+  async updateFileByPath(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Query('path') path: string,
+    @Body() updateFileDto: UpdateFileDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.filesService.updateFileByPathGit(workbookId, path, updateFileDto, userToActor(req.user));
   }
 
   /**

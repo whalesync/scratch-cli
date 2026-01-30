@@ -37,7 +37,6 @@ export * from './dto/connector-account/list-tables.dto';
 export * from './dto/connector-account/update-connector-account.dto';
 export * from './dto/create-style-guide.dto';
 export * from './dto/data-folder/create-data-folder.dto';
-export * from './dto/data-folder/list-data-folder-files.dto';
 export * from './dto/data-folder/move-data-folder.dto';
 export * from './dto/data-folder/rename-data-folder.dto';
 export * from './dto/dev-tools/update-dev-subscription.dto';

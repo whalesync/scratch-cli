@@ -21,7 +21,7 @@ import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Stack } from '@mantine/core';
-import type { DataFolder, DataFolderId, FileId } from '@spinner/shared-types';
+import type { DataFolder, DataFolderId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { Text12Book } from '../../components/base/text';
@@ -29,7 +29,7 @@ import { WorkbookEditorModals } from '../../workbooks-md/[...slug]/components/mo
 import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
-import { FileEditor } from './components/FileEditor';
+import { FileEditorNew } from './components/FileEditorNew';
 import { TabBar } from './components/TabBar';
 
 const DEFAULT_LIST_WIDTH = '300px';
@@ -128,7 +128,7 @@ function WorkbookFilesPageContent() {
                         return <AddLinkedFolderTab />;
                       }
                       if (activeTab?.type === 'file') {
-                        return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;
+                        return <FileEditorNew workbookId={workbook.id} filePath={activeFileTabId} />;
                       }
                       // Default to an empty state
                       return (
