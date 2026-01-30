@@ -204,6 +204,39 @@ type DataFolder struct {
 	TableId              []string `json:"tableId,omitempty"`
 }
 
+// FolderFileContent represents a file's content within a downloaded folder.
+type FolderFileContent struct {
+	FileID   string `json:"fileId"`
+	RemoteID string `json:"remoteId,omitempty"`
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	Content  string `json:"content,omitempty"`
+	Original string `json:"original,omitempty"`
+	Deleted  bool   `json:"deleted"`
+	Dirty    bool   `json:"dirty"`
+}
+
+// FolderMetadata represents metadata about a downloaded folder.
+type FolderMetadata struct {
+	ID                   string                 `json:"id"`
+	Name                 string                 `json:"name"`
+	WorkbookID           string                 `json:"workbookId"`
+	ConnectorService     string                 `json:"connectorService,omitempty"`
+	ConnectorDisplayName string                 `json:"connectorDisplayName,omitempty"`
+	TableID              []string               `json:"tableId,omitempty"`
+	Path                 string                 `json:"path,omitempty"`
+	Schema               map[string]interface{} `json:"schema,omitempty"`
+	LastSyncTime         string                 `json:"lastSyncTime,omitempty"`
+}
+
+// DownloadFolderResponse represents the response from the folder download endpoint.
+type DownloadFolderResponse struct {
+	Error      string              `json:"error,omitempty"`
+	Folder     *FolderMetadata     `json:"folder,omitempty"`
+	Files      []FolderFileContent `json:"files,omitempty"`
+	TotalCount int                 `json:"totalCount,omitempty"`
+}
+
 // ClientOption is a function that configures a Client.
 type ClientOption func(*Client)
 
@@ -467,4 +500,14 @@ func (c *Client) ListDataFolders(workbookId string) ([]DataFolder, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+// DownloadFolder downloads a data folder and all its files.
+func (c *Client) DownloadFolder(folderId string) (*DownloadFolderResponse, error) {
+	var result DownloadFolderResponse
+	path := fmt.Sprintf("folders/%s/download", folderId)
+	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

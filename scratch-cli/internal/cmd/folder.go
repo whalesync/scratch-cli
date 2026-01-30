@@ -1,16 +1,212 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 )
+
+// Pre-compiled regexes for folder name validation (cross-platform compatibility)
+var (
+	// Windows reserved device names
+	windowsReservedNames = regexp.MustCompile(`(?i)^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$`)
+	// Invalid characters for cross-platform file names
+	invalidFileNameChars = regexp.MustCompile(`[<>:"|?*\x00-\x1f]`)
+)
+
+// outputJSONError outputs an error message in JSON format and exits with code 1.
+// Used by commands that support --json output mode.
+func outputJSONError(errMsg string) {
+	output := map[string]interface{}{
+		"error": errMsg,
+	}
+	data, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(data))
+	os.Exit(1)
+}
+
+// createOutputErrorFunc creates a helper function for consistent error output.
+// In JSON mode, it outputs JSON and exits. Otherwise, it returns an error.
+func createOutputErrorFunc(jsonOutput bool) func(string) error {
+	return func(errMsg string) error {
+		if jsonOutput {
+			outputJSONError(errMsg)
+		}
+		return fmt.Errorf("%s", errMsg)
+	}
+}
+
+// getAuthenticatedFolderClient creates an authenticated API client for folder operations.
+// Returns the client and server URL, or an error if authentication fails.
+func getAuthenticatedFolderClient(serverURLOverride string, outputError func(string) error) (*api.Client, string, error) {
+	serverURL := serverURLOverride
+
+	// Use default or config server URL
+	if serverURL == "" {
+		cfg, err := config.LoadConfig()
+		if err == nil && cfg.Settings != nil && cfg.Settings.ScratchServerURL != "" {
+			serverURL = cfg.Settings.ScratchServerURL
+		} else {
+			serverURL = api.DefaultScratchServerURL
+		}
+	}
+
+	// Check if logged in
+	if !config.IsLoggedIn(serverURL) {
+		return nil, "", outputError("Not logged in. Run 'scratchmd auth login' first.")
+	}
+
+	// Load credentials
+	creds, err := config.LoadGlobalCredentials(serverURL)
+	if err != nil {
+		return nil, "", outputError(fmt.Sprintf("Failed to load credentials: %s", err.Error()))
+	}
+
+	// Create API client with authentication
+	client := api.NewClient(
+		api.WithBaseURL(serverURL),
+		api.WithAPIToken(creds.APIToken),
+	)
+
+	return client, serverURL, nil
+}
+
+// folderDownloadResult holds the result of downloading folder files.
+type folderDownloadResult struct {
+	TotalSaved   int
+	TotalSkipped int
+	TotalDeleted int
+}
+
+// downloadFolderFiles downloads files from a server response to local directories.
+// If preserveLocalChanges is true, locally modified files are preserved.
+// If preserveLocalChanges is false (reset mode), all files are overwritten.
+func downloadFolderFiles(
+	resp *api.DownloadFolderResponse,
+	contentDir, originalDir string,
+	preserveLocalChanges bool,
+	jsonOutput bool,
+) folderDownloadResult {
+	result := folderDownloadResult{}
+
+	for _, file := range resp.Files {
+		// Sanitize file name to prevent path traversal attacks
+		fileName := filepath.Base(file.Name)
+		if fileName == "." || fileName == ".." || fileName == "" {
+			if !jsonOutput {
+				fmt.Printf("   Skipping invalid file name: '%s'\n", file.Name)
+			}
+			continue
+		}
+
+		mainPath := filepath.Join(contentDir, fileName)
+		originalPath := filepath.Join(originalDir, fileName)
+
+		// Skip deleted files
+		if file.Deleted {
+			result.TotalDeleted++
+			continue
+		}
+
+		// Get content to write (prefer content, fall back to original)
+		var fileContent []byte
+		if file.Content != "" {
+			fileContent = []byte(file.Content)
+		} else if file.Original != "" {
+			fileContent = []byte(file.Original)
+		} else {
+			// Skip files with no content
+			continue
+		}
+
+		// Check if main file should be updated
+		shouldUpdateMain := true
+		if preserveLocalChanges {
+			oldOriginal, errOldOrig := os.ReadFile(originalPath)
+			currentMain, errMain := os.ReadFile(mainPath)
+
+			if errOldOrig == nil && errMain == nil {
+				// Both files exist - only update main if it matches old original
+				if !bytes.Equal(currentMain, oldOriginal) {
+					shouldUpdateMain = false
+					result.TotalSkipped++
+					if !jsonOutput {
+						fmt.Printf("   Skipping '%s' (locally modified)\n", fileName)
+					}
+				}
+			}
+		}
+
+		// Always update the original file
+		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
+			if !jsonOutput {
+				fmt.Printf("   Warning: Failed to save original '%s': %v\n", originalPath, err)
+			}
+			continue
+		}
+
+		// Update main file only if appropriate
+		if shouldUpdateMain {
+			if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
+				if !jsonOutput {
+					fmt.Printf("   Warning: Failed to save '%s': %v\n", mainPath, err)
+				}
+				continue
+			}
+		}
+
+		result.TotalSaved++
+	}
+
+	return result
+}
+
+// sanitizeFolderName validates and sanitizes a folder name to prevent path traversal attacks.
+// Returns an error if the folder name is invalid or potentially malicious.
+func sanitizeFolderName(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("folder name cannot be empty")
+	}
+
+	// Clean the path to normalize it
+	cleaned := filepath.Clean(name)
+
+	// Check for path traversal attempts
+	if strings.Contains(cleaned, "..") {
+		return "", fmt.Errorf("folder name cannot contain path traversal sequences (..)")
+	}
+
+	// Check for absolute paths
+	if filepath.IsAbs(cleaned) {
+		return "", fmt.Errorf("folder name cannot be an absolute path")
+	}
+
+	// Check for path separators (folder name should be a single directory name)
+	if strings.ContainsAny(cleaned, `/\`) {
+		return "", fmt.Errorf("folder name cannot contain path separators")
+	}
+
+	// Check for reserved names on Windows
+	if windowsReservedNames.MatchString(cleaned) {
+		return "", fmt.Errorf("folder name '%s' is a reserved name on Windows", cleaned)
+	}
+
+	// Check for invalid characters (Windows restrictions apply for cross-platform compatibility)
+	if invalidFileNameChars.MatchString(cleaned) {
+		return "", fmt.Errorf("folder name contains invalid characters")
+	}
+
+	return cleaned, nil
+}
 
 // folderCmd represents the folder command
 var folderCmd = &cobra.Command{
@@ -80,11 +276,81 @@ Examples:
 	RunE: runFolderList,
 }
 
+// folderDownloadCmd represents the folder download command
+var folderDownloadCmd = &cobra.Command{
+	Use:   "download <folder-id>",
+	Short: "[NON-INTERACTIVE] Download a data folder and all its files",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Download a workbook data folder and all its files to the local filesystem.
+
+Creates the following structure:
+  <folder-name>/              # User-editable content (JSON files)
+  .scratchmd/<folder-name>/   # Metadata and pristine copies
+    scratchmd.folder.yaml     # Folder config (commit this)
+    original/                 # Pristine copies (gitignore recommended)
+
+Change detection:
+  - Files are only overwritten if unchanged locally (matches original)
+  - Locally modified files are preserved
+  - Use --clobber to force overwrite all files
+
+Requires authentication. Run 'scratchmd auth login' first.
+
+Examples:
+  scratchmd folder download dfd_abc123
+  scratchmd folder download dfd_abc123 --json
+  scratchmd folder download dfd_abc123 --clobber`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFolderDownload,
+}
+
+// folderResetCmd represents the folder reset command
+var folderResetCmd = &cobra.Command{
+	Use:   "reset <folder-id>",
+	Short: "[NON-INTERACTIVE] (DESTRUCTIVE) Reset folder to server state, discarding ALL local changes",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! WARNING: DESTRUCTIVE OPERATION                                            !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+This command PERMANENTLY DESTROYS all local changes and resets the folder to
+match the server state exactly.
+
+WHAT WILL BE DELETED:
+  - ALL files in the content folder (<folder-name>/)
+  - ALL files in the original folder (.scratchmd/<folder-name>/original/)
+  - Any local modifications, additions, or work-in-progress
+
+WHAT WILL BE PRESERVED:
+  - The folder configuration file (scratchmd.folder.yaml)
+
+This is equivalent to deleting the folder and re-downloading it fresh.
+Use this when you want to abandon all local changes and start over.
+
+THIS ACTION CANNOT BE UNDONE. Your local changes will be permanently lost.
+
+For a safer download that preserves local modifications, use:
+  scratchmd folder download <folder-id>
+
+Requires authentication. Run 'scratchmd auth login' first.
+
+Examples:
+  scratchmd folder reset dfd_abc123
+  scratchmd folder reset dfd_abc123 --json
+  scratchmd folder reset dfd_abc123 --yes    # Skip confirmation prompt`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFolderReset,
+}
+
 func init() {
 	rootCmd.AddCommand(folderCmd)
 	folderCmd.AddCommand(folderLinkCmd)
 	folderCmd.AddCommand(folderRemoveCmd)
 	folderCmd.AddCommand(folderListCmd)
+	folderCmd.AddCommand(folderDownloadCmd)
+	folderCmd.AddCommand(folderResetCmd)
 
 	folderLinkCmd.Flags().String("account.name", "", "Account name to link (required)")
 	folderLinkCmd.Flags().String("table-id", "", "Table ID to link (required)")
@@ -96,6 +362,16 @@ func init() {
 	// Flags for folder list
 	folderListCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
 	folderListCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+
+	// Flags for folder download
+	folderDownloadCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	folderDownloadCmd.Flags().Bool("clobber", false, "Delete ALL local files and re-download fresh")
+	folderDownloadCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+
+	// Flags for folder reset (DESTRUCTIVE)
+	folderResetCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	folderResetCmd.Flags().Bool("yes", false, "Skip confirmation prompt (DANGEROUS: use with caution)")
+	folderResetCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
 }
 
 func runFolderLink(cmd *cobra.Command, args []string) error {
@@ -165,6 +441,12 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Sanitize folder name to prevent path traversal and ensure cross-platform compatibility
+	folderName, err = sanitizeFolderName(folderName)
+	if err != nil {
+		return fmt.Errorf("invalid folder name '%s': %w", folderName, err)
+	}
+
 	// Check if folder already exists with config
 	existingConfig, err := config.LoadTableConfig(folderName)
 	if err != nil {
@@ -217,8 +499,14 @@ func runFolderLink(cmd *cobra.Command, args []string) error {
 }
 
 func runFolderRemove(cmd *cobra.Command, args []string) error {
-	folderName := args[0]
+	rawFolderName := args[0]
 	noReview, _ := cmd.Flags().GetBool("no-review")
+
+	// Sanitize folder name to prevent path traversal attacks
+	folderName, err := sanitizeFolderName(rawFolderName)
+	if err != nil {
+		return fmt.Errorf("invalid folder name: %w", err)
+	}
 
 	contentDir := folderName
 	metadataDir := filepath.Join(".scratchmd", folderName)
@@ -283,61 +571,18 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 	serverURL, _ := cmd.Flags().GetString("server")
 
-	// Use default or config server URL
-	if serverURL == "" {
-		cfg, err := config.LoadConfig()
-		if err == nil && cfg.Settings != nil && cfg.Settings.ScratchServerURL != "" {
-			serverURL = cfg.Settings.ScratchServerURL
-		} else {
-			serverURL = api.DefaultScratchServerURL
-		}
-	}
+	outputError := createOutputErrorFunc(jsonOutput)
 
-	// Check if logged in
-	if !config.IsLoggedIn(serverURL) {
-		if jsonOutput {
-			output := map[string]interface{}{
-				"error": "Not logged in. Run 'scratchmd auth login' first.",
-			}
-			data, _ := json.MarshalIndent(output, "", "  ")
-			fmt.Println(string(data))
-			os.Exit(1)
-		}
-		return fmt.Errorf("not logged in. Run 'scratchmd auth login' first")
-	}
-
-	// Load credentials
-	creds, err := config.LoadGlobalCredentials(serverURL)
+	// Get authenticated client
+	client, _, err := getAuthenticatedFolderClient(serverURL, outputError)
 	if err != nil {
-		if jsonOutput {
-			output := map[string]interface{}{
-				"error": fmt.Sprintf("Failed to load credentials: %s", err.Error()),
-			}
-			data, _ := json.MarshalIndent(output, "", "  ")
-			fmt.Println(string(data))
-			os.Exit(1)
-		}
-		return fmt.Errorf("failed to load credentials: %w", err)
+		return err
 	}
-
-	// Create API client with authentication
-	client := api.NewClient(
-		api.WithBaseURL(serverURL),
-		api.WithAPIToken(creds.APIToken),
-	)
 
 	// Fetch data folders
 	folders, err := client.ListDataFolders(workbookId)
 	if err != nil {
-		if jsonOutput {
-			output := map[string]interface{}{
-				"error": fmt.Sprintf("Failed to list folders: %s", err.Error()),
-			}
-			data, _ := json.MarshalIndent(output, "", "  ")
-			fmt.Println(string(data))
-			os.Exit(1)
-		}
-		return fmt.Errorf("failed to list folders: %w", err)
+		return outputError(fmt.Sprintf("Failed to list folders: %s", err.Error()))
 	}
 
 	// Output results
@@ -373,6 +618,272 @@ func runFolderList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %s  %-20s  (%s)\n", f.ID, f.Name, connector)
 	}
 
+	fmt.Println()
+
+	return nil
+}
+
+func runFolderDownload(cmd *cobra.Command, args []string) error {
+	folderId := args[0]
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	clobber, _ := cmd.Flags().GetBool("clobber")
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	outputError := createOutputErrorFunc(jsonOutput)
+
+	// Get authenticated client
+	client, _, err := getAuthenticatedFolderClient(serverURL, outputError)
+	if err != nil {
+		return err
+	}
+
+	// Fetch folder and files from server
+	resp, err := client.DownloadFolder(folderId)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to download folder: %s", err.Error()))
+	}
+
+	if resp.Error != "" {
+		return outputError(fmt.Sprintf("Server error: %s", resp.Error))
+	}
+
+	if resp.Folder == nil {
+		return outputError("No folder data returned from server")
+	}
+
+	// Determine local folder name and sanitize it to prevent path traversal
+	rawFolderName := resp.Folder.Name
+	folderName, err := sanitizeFolderName(rawFolderName)
+	if err != nil {
+		return outputError(fmt.Sprintf("Invalid folder name from server '%s': %s", rawFolderName, err.Error()))
+	}
+
+	// Create directory structure
+	contentDir := folderName
+	metadataDir := config.GetFolderMetadataDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
+
+	// If clobber, remove existing files first
+	if clobber {
+		if !jsonOutput {
+			fmt.Printf("Clobbering existing files for '%s'...\n", folderName)
+		}
+		// Remove JSON files from content directory
+		if entries, err := os.ReadDir(contentDir); err == nil {
+			for _, entry := range entries {
+				if strings.HasSuffix(entry.Name(), ".json") {
+					os.Remove(filepath.Join(contentDir, entry.Name()))
+				}
+			}
+		}
+		// Remove original directory entirely
+		os.RemoveAll(originalDir)
+	}
+
+	// Create directories
+	if err := os.MkdirAll(contentDir, 0755); err != nil {
+		return outputError(fmt.Sprintf("Failed to create content directory: %s", err.Error()))
+	}
+	if err := os.MkdirAll(originalDir, 0755); err != nil {
+		return outputError(fmt.Sprintf("Failed to create original directory: %s", err.Error()))
+	}
+
+	// Save folder config
+	folderConfig := &config.FolderConfig{
+		FolderID:             resp.Folder.ID,
+		WorkbookID:           resp.Folder.WorkbookID,
+		FolderName:           resp.Folder.Name,
+		ConnectorService:     resp.Folder.ConnectorService,
+		ConnectorDisplayName: resp.Folder.ConnectorDisplayName,
+		TableID:              resp.Folder.TableID,
+		Path:                 resp.Folder.Path,
+		Schema:               resp.Folder.Schema,
+		LastDownload:         time.Now().Format(time.RFC3339),
+		LastSyncTime:         resp.Folder.LastSyncTime,
+	}
+	if err := config.SaveFolderConfig(folderName, folderConfig); err != nil {
+		return outputError(fmt.Sprintf("Failed to save folder config: %s", err.Error()))
+	}
+
+	// Process files - preserve local changes unless clobber is set
+	preserveLocalChanges := !clobber
+	result := downloadFolderFiles(resp, contentDir, originalDir, preserveLocalChanges, jsonOutput)
+
+	// Output results
+	if jsonOutput {
+		output := map[string]interface{}{
+			"success":      true,
+			"folderId":     resp.Folder.ID,
+			"folderName":   resp.Folder.Name,
+			"workbookId":   resp.Folder.WorkbookID,
+			"totalFiles":   resp.TotalCount,
+			"totalSaved":   result.TotalSaved,
+			"totalSkipped": result.TotalSkipped,
+			"contentDir":   contentDir,
+			"metadataDir":  metadataDir,
+		}
+		data, _ := json.MarshalIndent(output, "", "  ")
+		fmt.Println(string(data))
+		return nil
+	}
+
+	// Human-readable output
+	fmt.Println()
+	if result.TotalSkipped > 0 {
+		fmt.Printf("Downloaded %d file(s) to '%s/' (%d locally modified files preserved)\n", result.TotalSaved, folderName, result.TotalSkipped)
+	} else {
+		fmt.Printf("Downloaded %d file(s) to '%s/'\n", result.TotalSaved, folderName)
+	}
+	fmt.Printf("Folder config saved to '%s/%s'\n", metadataDir, config.FolderConfigFileName)
+	fmt.Println()
+
+	return nil
+}
+
+func runFolderReset(cmd *cobra.Command, args []string) error {
+	folderId := args[0]
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	skipConfirm, _ := cmd.Flags().GetBool("yes")
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	outputError := createOutputErrorFunc(jsonOutput)
+
+	// Get authenticated client
+	client, _, err := getAuthenticatedFolderClient(serverURL, outputError)
+	if err != nil {
+		return err
+	}
+
+	// Fetch folder and files from server
+	resp, err := client.DownloadFolder(folderId)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to download folder: %s", err.Error()))
+	}
+
+	if resp.Error != "" {
+		return outputError(fmt.Sprintf("Server error: %s", resp.Error))
+	}
+
+	if resp.Folder == nil {
+		return outputError("No folder data returned from server")
+	}
+
+	// Determine local folder name and sanitize it to prevent path traversal
+	rawFolderName := resp.Folder.Name
+	folderName, err := sanitizeFolderName(rawFolderName)
+	if err != nil {
+		return outputError(fmt.Sprintf("Invalid folder name from server '%s': %s", rawFolderName, err.Error()))
+	}
+
+	// Create directory structure paths
+	contentDir := folderName
+	metadataDir := config.GetFolderMetadataDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
+
+	// Show warning and get confirmation (unless --yes flag or --json mode)
+	if !skipConfirm && !jsonOutput {
+		fmt.Println()
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		fmt.Println("!! WARNING: DESTRUCTIVE OPERATION                                             !!")
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		fmt.Println()
+		fmt.Printf("This will PERMANENTLY DELETE all local changes in '%s/'.\n", folderName)
+		fmt.Println()
+		fmt.Println("The following will be destroyed:")
+		fmt.Printf("  - All files in %s/\n", contentDir)
+		fmt.Printf("  - All files in %s/\n", originalDir)
+		fmt.Println()
+		fmt.Println("This action CANNOT BE UNDONE.")
+		fmt.Println()
+		fmt.Print("Type 'yes' to confirm destruction of local changes: ")
+
+		var response string
+		fmt.Scanln(&response)
+		if response != "yes" {
+			fmt.Println()
+			fmt.Println("Reset cancelled. Your local changes are safe.")
+			return nil
+		}
+		fmt.Println()
+	}
+
+	// DESTRUCTIVE: Remove all files from content directory
+	if !jsonOutput {
+		fmt.Printf("Destroying local changes in '%s/'...\n", folderName)
+	}
+
+	// Remove all files from content directory (but keep the directory)
+	if entries, err := os.ReadDir(contentDir); err == nil {
+		for _, entry := range entries {
+			entryPath := filepath.Join(contentDir, entry.Name())
+			if err := os.RemoveAll(entryPath); err != nil {
+				if !jsonOutput {
+					fmt.Printf("   Warning: Failed to remove '%s': %v\n", entryPath, err)
+				}
+			}
+		}
+	}
+
+	// Remove original directory entirely and recreate it
+	os.RemoveAll(originalDir)
+
+	// Create directories (in case they don't exist)
+	if err := os.MkdirAll(contentDir, 0755); err != nil {
+		return outputError(fmt.Sprintf("Failed to create content directory: %s", err.Error()))
+	}
+	if err := os.MkdirAll(originalDir, 0755); err != nil {
+		return outputError(fmt.Sprintf("Failed to create original directory: %s", err.Error()))
+	}
+
+	// Save folder config
+	folderConfig := &config.FolderConfig{
+		FolderID:             resp.Folder.ID,
+		WorkbookID:           resp.Folder.WorkbookID,
+		FolderName:           resp.Folder.Name,
+		ConnectorService:     resp.Folder.ConnectorService,
+		ConnectorDisplayName: resp.Folder.ConnectorDisplayName,
+		TableID:              resp.Folder.TableID,
+		Path:                 resp.Folder.Path,
+		Schema:               resp.Folder.Schema,
+		LastDownload:         time.Now().Format(time.RFC3339),
+		LastSyncTime:         resp.Folder.LastSyncTime,
+	}
+	if err := config.SaveFolderConfig(folderName, folderConfig); err != nil {
+		return outputError(fmt.Sprintf("Failed to save folder config: %s", err.Error()))
+	}
+
+	// Download all files fresh (no skip logic - this is a reset, preserveLocalChanges=false)
+	result := downloadFolderFiles(resp, contentDir, originalDir, false, jsonOutput)
+
+	// Output results
+	if jsonOutput {
+		output := map[string]interface{}{
+			"success":      true,
+			"operation":    "reset",
+			"destructive":  true,
+			"folderId":     resp.Folder.ID,
+			"folderName":   resp.Folder.Name,
+			"workbookId":   resp.Folder.WorkbookID,
+			"totalFiles":   resp.TotalCount,
+			"totalSaved":   result.TotalSaved,
+			"totalDeleted": result.TotalDeleted,
+			"contentDir":   contentDir,
+			"metadataDir":  metadataDir,
+			"message":      "All local changes have been destroyed. Folder reset to server state.",
+		}
+		data, _ := json.MarshalIndent(output, "", "  ")
+		fmt.Println(string(data))
+		return nil
+	}
+
+	// Human-readable output
+	fmt.Println()
+	fmt.Println("Reset complete. All local changes have been destroyed.")
+	fmt.Printf("Downloaded %d file(s) fresh from server to '%s/'\n", result.TotalSaved, folderName)
+	if result.TotalDeleted > 0 {
+		fmt.Printf("Skipped %d deleted file(s) from server\n", result.TotalDeleted)
+	}
+	fmt.Printf("Folder config saved to '%s/%s'\n", metadataDir, config.FolderConfigFileName)
 	fmt.Println()
 
 	return nil

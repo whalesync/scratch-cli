@@ -1,6 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import { createConnectorAccountId, Service, SnapshotRecordId, WorkbookId } from '@spinner/shared-types';
+import {
+  createConnectorAccountId,
+  DataFolderId,
+  FileId,
+  Service,
+  SnapshotRecordId,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
@@ -13,8 +20,14 @@ import { DataFolderService } from 'src/workbook/data-folder.service';
 import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
 import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { normalizeFileName } from 'src/workbook/util';
+import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
+import {
+  DownloadFolderResponseDto,
+  ValidatedFolderFileContentDto,
+  ValidatedFolderMetadataDto,
+} from './dtos/download-folder.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
@@ -28,6 +41,7 @@ export class CliService {
     private readonly posthogService: PostHogService,
     private readonly workbookService: WorkbookService,
     private readonly dataFolderService: DataFolderService,
+    private readonly workbookDbService: WorkbookDbService,
   ) {}
 
   /**
@@ -513,5 +527,69 @@ export class CliService {
    */
   private convertOperationDataToFields(data: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'remoteId'));
+  }
+
+  /**
+   * Downloads a data folder and all its files for the CLI.
+   * Returns folder metadata and file contents for local storage.
+   */
+  async downloadFolder(folderId: DataFolderId, actor: Actor): Promise<DownloadFolderResponseDto> {
+    try {
+      // Fetch folder via dataFolderService.findOne (includes access check)
+      const folder = await this.dataFolderService.findOne(folderId, actor);
+
+      // Fetch all files for this folder
+      const files = await this.workbookDbService.workbookDb.getFilesByFolderId(folder.workbookId, folderId);
+
+      // Build folder metadata
+      const folderMetadata: ValidatedFolderMetadataDto = {
+        id: folder.id,
+        name: folder.name,
+        workbookId: folder.workbookId,
+        connectorService: folder.connectorService ?? null,
+        connectorDisplayName: folder.connectorDisplayName ?? null,
+        tableId: folder.tableId ?? [],
+        path: folder.path ?? null,
+        schema: folder.schema ?? null,
+        lastSyncTime: folder.lastSyncTime ?? null,
+      };
+
+      // Convert files to response format
+      const fileContents: ValidatedFolderFileContentDto[] = files.map((file) => ({
+        fileId: file.id as FileId,
+        remoteId: file.remote_id ?? null,
+        name: file.name,
+        path: file.path,
+        content: file.content ?? null,
+        original: file.original ?? null,
+        deleted: file.deleted,
+        dirty: file.dirty,
+      }));
+
+      // Track event
+      this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD_FOLDER, actor.userId, {
+        folderId,
+        workbookId: folder.workbookId,
+        fileCount: files.length,
+        connectorService: folder.connectorService,
+      });
+
+      return {
+        folder: folderMetadata,
+        files: fileContents,
+        totalCount: files.length,
+      };
+    } catch (error: unknown) {
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error downloading folder',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        folderId,
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        error: errorMessage,
+      };
+    }
   }
 }

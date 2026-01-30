@@ -193,6 +193,7 @@ export enum PostHogEventName {
   CLI_LIST_WORKBOOKS = 'cli_list_workbooks',
   CLI_LIST_DATA_FOLDERS = 'cli_list_data_folders',
   CLI_DOWNLOAD = 'cli_download',
+  CLI_DOWNLOAD_FOLDER = 'cli_download_folder',
   CLI_UPLOAD = 'cli_upload',
   CLI_VALIDATE_FILES = 'cli_validate_files',
 }

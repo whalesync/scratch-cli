@@ -11,7 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
 import type { CliConnectorCredentials, CliRequestWithUser } from 'src/auth/types';
 import { Actor, userToActor } from 'src/users/types';
@@ -20,6 +20,7 @@ import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
 import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
+import { DownloadFolderResponseDto } from './dtos/download-folder.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
@@ -61,6 +62,18 @@ export class CliController {
       throw new ForbiddenException('Authentication required');
     }
     return this.cliService.listDataFolders(workbookId, actor);
+  }
+
+  @Get('folders/:folderId/download')
+  async downloadFolder(
+    @Param('folderId') folderId: DataFolderId,
+    @Req() req: CliRequestWithUser,
+  ): Promise<DownloadFolderResponseDto> {
+    const actor = this.getActorFromRequest(req);
+    if (!actor) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.cliService.downloadFolder(folderId, actor);
   }
 
   @Get('test-connection')
