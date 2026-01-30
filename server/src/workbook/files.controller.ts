@@ -337,37 +337,28 @@ export class FilesController {
    * Publish a file (commit to main and rebase dirty)
    * POST /workbooks/:workbookId/files/:fileId/publish
    */
-  @Post(':fileId/publish')
+  @Post('publish')
   @HttpCode(204)
-  async publishFile(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('fileId') fileId: FileId,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    const file = await this.filesService.getFileById(workbookId, fileId, userToActor(req.user));
+  async publishFile(@Param('workbookId') workbookId: WorkbookId, @Body() body: { path: string }): Promise<void> {
+    const { path } = body;
 
-    if (file && file.file && file.file.ref && file.file.ref.path && file.file.content !== undefined) {
-      try {
-        await this.scratchGitService.publishFile(
-          workbookId,
-          file.file.ref.path,
-          file.file.content || '',
-          `Publish ${file.file.ref.path}`,
-        );
+    try {
+      // Fetch current content from dirty branch directly from git
+      const fileContent = await this.scratchGitService.getRepoFile(workbookId, 'dirty', path);
 
-        // Clear the dirty flag in the database
-        await this.filesService.setFileDirtyState(workbookId, fileId, false, userToActor(req.user));
-      } catch (e) {
-        WSLogger.error({
-          source: 'FilesController.publishFile',
-          message: 'Failed to publish file',
-          error: e,
-          workbookId,
-        });
-        throw e;
+      if (!fileContent) {
+        throw new Error('File not found in git dirty branch');
       }
-    } else {
-      throw new Error('File not found or content missing');
+
+      await this.scratchGitService.publishFile(workbookId, path, fileContent.content, `Publish ${path}`);
+    } catch (e) {
+      WSLogger.error({
+        source: 'FilesController.publishFile',
+        message: 'Failed to publish file',
+        error: e,
+        workbookId,
+      });
+      throw e;
     }
   }
 }

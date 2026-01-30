@@ -23,7 +23,6 @@ import {
   Tooltip,
 } from '@mantine/core';
 import type { FileWithPath } from '@mantine/dropzone';
-import { notifications } from '@mantine/notifications';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
 import type {
   FileId,
@@ -47,7 +46,6 @@ import {
   FolderInputIcon,
   FolderPlusIcon,
   FolderSyncIcon,
-  GitBranchIcon,
   InfoIcon,
   PencilIcon,
   RefreshCwIcon,
@@ -81,10 +79,6 @@ type InputModalType =
   | { type: 'renameFolder'; folderId: FolderId; currentName: string }
   | { type: 'renameFile'; fileId: FileId; currentName: string }
   | { type: 'duplicateFile'; fileId: FileId; parentFolderId: FolderId | null; currentName: string };
-
-interface WorkbookFileBrowserProps {
-  refreshWorkbook?: () => Promise<void>;
-}
 
 // Special ID for the workbook root node in the tree
 const WORKBOOK_ROOT_ID = 'workbook-root';
@@ -139,11 +133,6 @@ interface TreeNodeRendererProps {
   onCsvConvert: (fileId: FileId, fileName: string, parentFolderId: FolderId | null) => void;
   onRenameWorkbook: () => void;
   onDeleteWorkbook: () => void;
-  onBackupWorkbook: () => void;
-  isBackingUp: boolean;
-  onBrowseGit: () => void;
-  onGitStatus: () => void;
-  onFilePublish: (fileId: FileId) => void;
 }
 
 function TreeNodeRenderer({
@@ -179,11 +168,6 @@ function TreeNodeRenderer({
   onCsvConvert,
   onRenameWorkbook,
   onDeleteWorkbook,
-  onBackupWorkbook,
-  isBackingUp,
-  onBrowseGit,
-  onGitStatus,
-  onFilePublish,
 }: TreeNodeRendererProps) {
   const nodeData = node.data;
   const [menuOpened, setMenuOpened] = useState(false);
@@ -322,37 +306,7 @@ function TreeNodeRenderer({
             >
               Rename workbook
             </Menu.Item>
-            <Menu.Item
-              leftSection={isBackingUp ? <Loader size={12} /> : <GitBranchIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onBackupWorkbook();
-                setMenuOpened(false);
-              }}
-              disabled={isBackingUp}
-            >
-              Back up to repo
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<GitBranchIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onGitStatus();
-                setMenuOpened(false);
-              }}
-            >
-              Git Status
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<FolderIcon size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onBrowseGit();
-                setMenuOpened(false);
-              }}
-            >
-              Browse Files
-            </Menu.Item>
+
             <Menu.Divider />
             <Menu.Item
               leftSection={<Trash2Icon size={16} />}
@@ -481,6 +435,7 @@ function TreeNodeRenderer({
                       New Folder
                     </Menu.Item>
                   )}
+
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<PencilIcon size={16} />}
@@ -689,15 +644,7 @@ function TreeNodeRenderer({
                     Move to...
                   </Menu.Item>
                   <Menu.Divider />
-                  <Menu.Item
-                    leftSection={<CloudUploadIcon size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFilePublish(nodeData.id as FileId);
-                    }}
-                  >
-                    Mock Publish
-                  </Menu.Item>
+
                   <Menu.Divider />
                   <Menu.Item
                     leftSection={<Trash2Icon size={16} />}
@@ -773,7 +720,7 @@ function convertToTreeNode(entity: FileOrFolderRefEntity): NodeModel<TreeNodeDat
   }
 }
 
-export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
+export function WorkbookFileBrowser() {
   const { workbook } = useActiveWorkbook();
   const { isAdmin } = useScratchPadUser();
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
@@ -827,8 +774,8 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
 
   const [gitBrowserOpen, setGitBrowserOpen] = useState(false);
   const [gitStatusOpen, setGitStatusOpen] = useState(false);
-  const [gitStatus, setGitStatus] = useState<object | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [gitStatus] = useState<object | null>(null);
+  const [loadingStatus] = useState(false);
 
   // Sync server data to local state
   useEffect(() => {
@@ -1183,28 +1130,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     [treeData, workbook],
   );
 
-  const handleFilePublish = useCallback(
-    async (fileId: FileId) => {
-      if (!workbook?.id) return;
-      try {
-        await filesApi.publishFile(workbook.id, fileId);
-        notifications.show({
-          title: 'Success',
-          message: 'File published',
-          color: 'green',
-        });
-        refreshFiles();
-      } catch {
-        notifications.show({
-          title: 'Error',
-          message: 'Failed to publish file',
-          color: 'red',
-        });
-      }
-    },
-    [workbook, refreshFiles],
-  );
-
   const handleFileCopy = useCallback((fileId: FileId) => {
     setCopyFileId(fileId);
   }, []);
@@ -1521,50 +1446,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
     }
   };
 
-  // State for backup
-  const [isBackingUp, setIsBackingUp] = useState(false);
-
-  const handleBackupWorkbook = useCallback(async () => {
-    if (!workbook) return;
-    setIsBackingUp(true);
-    try {
-      const data = await workbookApi.backupWorkbookToRepo(workbook.id);
-      notifications.show({
-        title: 'Backup Successful',
-        message: data.message || 'Workbook backed up to repo',
-        color: 'green',
-      });
-    } catch (error) {
-      notifications.show({
-        title: 'Backup Failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        color: 'red',
-      });
-    } finally {
-      setIsBackingUp(false);
-    }
-  }, [workbook]);
-
-  const handleGitStatus = useCallback(async () => {
-    if (!workbook) return;
-    setLoadingStatus(true);
-    setGitStatus(null);
-    setGitStatusOpen(true);
-    try {
-      const data = await workbookApi.getRepoStatus(workbook.id);
-      setGitStatus(data);
-    } catch (e) {
-      console.error(e);
-      notifications.show({
-        title: 'Git Status Failed',
-        message: 'Could not fetch git status.',
-        color: 'red',
-      });
-    } finally {
-      setLoadingStatus(false);
-    }
-  }, [workbook]);
-
   // Debug: log tree data
   console.log('treeData:', treeData);
 
@@ -1843,11 +1724,6 @@ export function WorkbookFileBrowser({}: WorkbookFileBrowserProps) {
                     }
                     onRenameWorkbook={() => showModal({ type: WorkbookModals.RENAME_WORKBOOK })}
                     onDeleteWorkbook={() => showModal({ type: WorkbookModals.CONFIRM_DELETE, workbookId: workbook.id })}
-                    onBackupWorkbook={handleBackupWorkbook}
-                    isBackingUp={isBackingUp}
-                    onBrowseGit={() => setGitBrowserOpen(true)}
-                    onGitStatus={handleGitStatus}
-                    onFilePublish={handleFilePublish}
                   />
                 )}
               />

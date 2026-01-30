@@ -146,10 +146,10 @@ export const filesApi = {
    * Publish a file
    * POST /workbooks/:workbookId/files/:fileId/publish
    */
-  publishFile: async (workbookId: WorkbookId, fileId: FileId): Promise<void> => {
+  publishFile: async (workbookId: WorkbookId, path: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbooks/${workbookId}/files/${fileId}/publish`);
+      await axios.post(`/workbooks/${workbookId}/files/publish`, { path });
     } catch (error) {
       handleAxiosError(error, 'Failed to publish file');
     }

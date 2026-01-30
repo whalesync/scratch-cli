@@ -320,58 +320,62 @@ export class GitService implements IGitService {
       oid: string;
       message: string;
       parents: string[];
-      author: { name: string; email: string; timestamp: number };
+      timestamp: number;
+      author: { name: string; email: string };
     }>;
     refs: Array<{ name: string; oid: string; type: 'branch' | 'tag' }>;
   }> {
     const dir = this.getRepoPath(repoId);
-    const mainRef = 'main';
-    const dirtyRef = 'dirty';
 
-    // Get refs (branches and tags)
+    // Helper to peel tags to commits
+    const resolveToCommit = async (oid: string): Promise<string> => {
+      try {
+        const type = await git.readObject({ fs, dir, gitdir: dir, oid }).then((r) => r.type);
+        if (type === 'tag') {
+          const { tag } = await git.readTag({ fs, dir, gitdir: dir, oid });
+          return resolveToCommit(tag.object);
+        }
+        return oid;
+      } catch (e) {
+        return oid;
+      }
+    };
+
+    // Get all refs (branches and tags)
     const refs: Array<{ name: string; oid: string; type: 'branch' | 'tag' }> = [];
 
+    // listBranches returns names of local branches
     try {
-      const mainOid = await git.resolveRef({
-        fs,
-        dir,
-        gitdir: dir,
-        ref: mainRef,
-      });
-      refs.push({ name: 'main', oid: mainOid, type: 'branch' });
-    } catch {}
-
-    try {
-      const dirtyOid = await git.resolveRef({
-        fs,
-        dir,
-        gitdir: dir,
-        ref: dirtyRef,
-      });
-      refs.push({ name: 'dirty', oid: dirtyOid, type: 'branch' });
-    } catch {}
-
-    try {
-      const tags = await git.listTags({ fs, dir, gitdir: dir });
-      for (const tag of tags) {
-        const oid = await git.resolveRef({
-          fs,
-          dir,
-          gitdir: dir,
-          ref: tag,
-        });
-        // listTags returns ref names like "main_checkpoint1", resolveRef needs complete ref or just name if simple
-        // actually listTags returns just names.
-        // check if it's annotated tag or lightweight. resolveRef follows.
-        refs.push({ name: tag, oid, type: 'tag' });
+      const branches = await git.listBranches({ fs, dir, gitdir: dir });
+      for (const branch of branches) {
+        const oid = await git.resolveRef({ fs, dir, gitdir: dir, ref: branch });
+        const commitOid = await resolveToCommit(oid);
+        refs.push({ name: branch, oid: commitOid, type: 'branch' });
       }
     } catch {}
 
-    // Get commits. We want a graph, so we need history from all tips.
-    // simplified: just log from dirty (which should include main usually) and main.
-    // If dirty exists, it usually stems from main.
-    // git.log can take multiple refs but isomorphic-git log takes one ref.
-    // We'll log from dirty (if exists) and main, and unique them.
+    // listTags returns names of tags
+    try {
+      const tags = await git.listTags({ fs, dir, gitdir: dir });
+      for (const tag of tags) {
+        const oid = await git.resolveRef({ fs, dir, gitdir: dir, ref: tag });
+        const commitOid = await resolveToCommit(oid);
+        refs.push({ name: tag, oid: commitOid, type: 'tag' });
+      }
+    } catch {}
+
+    // Collect all unique OIDs from refs to fetch history from
+    const uniqueHeads = new Set(refs.map((r) => r.oid));
+
+    // Fallback if no refs found
+    if (refs.length === 0) {
+      try {
+        const mainOid = await git.resolveRef({ fs, dir, gitdir: dir, ref: 'main' });
+        const commitOid = await resolveToCommit(mainOid);
+        refs.push({ name: 'main', oid: commitOid, type: 'branch' });
+        uniqueHeads.add(commitOid);
+      } catch {}
+    }
 
     const commitsMap = new Map<
       string,
@@ -379,7 +383,8 @@ export class GitService implements IGitService {
         oid: string;
         message: string;
         parents: string[];
-        author: { name: string; email: string; timestamp: number };
+        timestamp: number;
+        author: { name: string; email: string };
       }
     >();
 
@@ -390,28 +395,39 @@ export class GitService implements IGitService {
           dir,
           gitdir: dir,
           ref,
-          depth: 50, // Limit depth for performance, adjustable
+          depth: 50, // Limit depth per branch
         });
         for (const c of requestLog) {
-          commitsMap.set(c.oid, {
-            oid: c.oid,
-            message: c.commit.message,
-            parents: c.commit.parent,
-            author: {
-              name: c.commit.author.name,
-              email: c.commit.author.email,
+          if (!commitsMap.has(c.oid)) {
+            commitsMap.set(c.oid, {
+              oid: c.oid,
+              message: c.commit.message,
+              parents: c.commit.parent,
               timestamp: c.commit.author.timestamp,
-            },
-          });
+              author: {
+                name: c.commit.author.name,
+                email: c.commit.author.email,
+              },
+            });
+          }
         }
-      } catch {}
+      } catch (e) {
+        // console.error(`Failed to fetch log for ref ${ref}:`, e);
+      }
     };
 
-    await fetchLog('dirty');
-    await fetchLog('main');
+    // Fetch log for each unique head
+    // git.log needs a ref or OID.
+    for (const oid of uniqueHeads) {
+      await fetchLog(oid);
+    }
+
+    // Edge case: if we have dirty branch but it points to same commit as main,
+    // uniqueHeads will effectively just be main's OID. That is fine, we get the commits.
+    // The refs array will still allow UI to show both labels on that commit.
 
     // Sort by timestamp desc
-    const sortedCommits = Array.from(commitsMap.values()).sort((a, b) => b.author.timestamp - a.author.timestamp);
+    const sortedCommits = Array.from(commitsMap.values()).sort((a, b) => b.timestamp - a.timestamp);
 
     return { commits: sortedCommits, refs };
   }

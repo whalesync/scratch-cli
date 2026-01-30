@@ -116,7 +116,7 @@ function WorkbookFilesPageContent() {
             <Split h="100%">
               {/* Left Pane: Tree View */}
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
-                <WorkbookFileBrowser refreshWorkbook={refreshWorkbook} />
+                <WorkbookFileBrowser />
               </Split.Pane>
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />
