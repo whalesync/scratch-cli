@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import cors from 'cors';
 import express from 'express';
 import { GitService } from './lib/GitService';
@@ -34,7 +35,8 @@ app.delete('/api/repo/:id', async (req, res) => {
 
 app.post('/api/repo/:id/rebase', async (req, res) => {
   try {
-    const strategy = req.body.strategy; // Expects JSON body now if strategy provided, or query? Post body usually.
+    const body = req.body as { strategy?: string };
+    const strategy = body.strategy; // Expects JSON body now if strategy provided, or query? Post body usually.
     // The previous implementation didn't check body mostly.
     // Let's assume req.body.strategy for POST.
     const result = await gitService.rebaseDirty(req.params.id, strategy as 'ours' | 'diff3');
@@ -102,7 +104,7 @@ app.get('/api/repo/:id/file', async (req, res) => {
 app.post('/api/repo/:id/files', async (req, res) => {
   try {
     const branch = (req.query.branch as string) || 'main';
-    const { files, message } = req.body;
+    const { files, message } = req.body as { files: { path: string; content: string }[]; message?: string };
     await gitService.commitFiles(
       req.params.id,
       branch,
@@ -121,7 +123,7 @@ app.post('/api/repo/:id/files', async (req, res) => {
 app.delete('/api/repo/:id/files', async (req, res) => {
   try {
     const branch = (req.query.branch as string) || 'main';
-    const { files, message } = req.body; // files is array of paths
+    const { files, message } = req.body as { files: string[]; message?: string }; // files is array of paths
     await gitService.deleteFiles(req.params.id, branch, files, message || 'Delete files');
     res.json({ success: true });
   } catch (err) {
@@ -131,7 +133,7 @@ app.delete('/api/repo/:id/files', async (req, res) => {
 
 app.post('/api/repo/:id/publish', async (req, res) => {
   try {
-    const { file, message } = req.body;
+    const { file, message } = req.body as { file: { path: string; content: string }; message?: string };
     await gitService.publishFile(req.params.id, file, message || 'Publish file');
     res.json({ success: true });
   } catch (err) {
@@ -141,7 +143,7 @@ app.post('/api/repo/:id/publish', async (req, res) => {
 
 app.post('/api/repo/:id/checkpoint', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name } = req.body as { name: string };
     if (!name) throw new Error('Checkpoint name required');
     await gitService.createCheckpoint(req.params.id, name);
     res.json({ success: true });
@@ -152,7 +154,7 @@ app.post('/api/repo/:id/checkpoint', async (req, res) => {
 
 app.post('/api/repo/:id/checkpoint/revert', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name } = req.body as { name: string };
     if (!name) throw new Error('Checkpoint name required');
     await gitService.revertToCheckpoint(req.params.id, name);
     res.json({ success: true });

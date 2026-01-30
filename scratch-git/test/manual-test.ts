@@ -1,23 +1,21 @@
-import { GitService } from "../lib/GitService";
-import { checkPort, pause, checkRepoState } from "./test-utils";
+import { GitService } from '../lib/GitService';
+import { checkPort, checkRepoState, pause } from './test-utils';
 
 // TODO: Consider converting this to a proper test suite
 
 async function runTest() {
-  console.log("Checking services...");
+  console.log('Checking services...');
   const apiUp = await checkPort(3100);
   const backendUp = await checkPort(3101);
 
   if (!apiUp || !backendUp) {
-    console.error(
-      `Services not running: API(3100)=${apiUp}, Backend(3101)=${backendUp}`,
-    );
+    console.error(`Services not running: API(3100)=${apiUp}, Backend(3101)=${backendUp}`);
     process.exit(1);
   }
-  console.log("Services are up.");
+  console.log('Services are up.');
 
   const service = new GitService();
-  const repoId = "test-repo-" + Date.now();
+  const repoId = 'test-repo-' + Date.now();
   console.log(`\nTo inspect this repo locally:`);
   console.log(`git clone http://localhost:3101/${repoId}.git`);
   console.log(`cursor ./${repoId}.git`);
@@ -25,203 +23,184 @@ async function runTest() {
 
   try {
     // 1. Init
-    console.log("--------------------");
-    console.log("Step 1: Init");
+    console.log('--------------------');
+    console.log('Step 1: Init');
     await service.initRepo(repoId);
 
-    await checkRepoState(service, repoId, "Init", {
+    await checkRepoState(service, repoId, 'Init', {
       mainRefExists: true,
       dirtyRefExists: true,
       dirtyAheadOfMain: false,
     });
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
 
     // 2. Download (Create files in main)
-    console.log("Step 2: Download (Creating files 1, 2, 3 in main)");
+    console.log('Step 2: Download (Creating files 1, 2, 3 in main)');
     await service.commitFiles(
       repoId,
-      "main",
+      'main',
       [
-        { path: "file1.md", content: "v1" },
-        { path: "file2.md", content: "v2" }, // Changed to v2
-        { path: "file3.md", content: "v3" }, // Changed to v3
+        { path: 'file1.md', content: 'v1' },
+        { path: 'file2.md', content: 'v2' }, // Changed to v2
+        { path: 'file3.md', content: 'v3' }, // Changed to v3
       ],
-      "Download files",
+      'Download files',
     );
     await service.rebaseDirty(repoId);
 
-    await checkRepoState(service, repoId, "Download", {
+    await checkRepoState(service, repoId, 'Download', {
       dirtyAheadOfMain: false,
       filesInMain: {
-        "file1.md": "v1",
-        "file2.md": "v2",
-        "file3.md": "v3",
+        'file1.md': 'v1',
+        'file2.md': 'v2',
+        'file3.md': 'v3',
       },
       filesInDirty: {
-        "file1.md": "v1",
-        "file2.md": "v2",
-        "file3.md": "v3",
+        'file1.md': 'v1',
+        'file2.md': 'v2',
+        'file3.md': 'v3',
       },
     });
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
 
     // 3. User edits on dirty
-    console.log(
-      "Step 3: Edit (Dirty changes: mod file1, del file2, mod file3, add file4)",
-    );
+    console.log('Step 3: Edit (Dirty changes: mod file1, del file2, mod file3, add file4)');
     await service.commitFiles(
       repoId,
-      "dirty",
+      'dirty',
       [
-        { path: "file1.md", content: "v1.1" },
-        { path: "file3.md", content: "v3.1" }, // from v3 -> v3.1
-        { path: "file4.md", content: "v4" },
+        { path: 'file1.md', content: 'v1.1' },
+        { path: 'file3.md', content: 'v3.1' }, // from v3 -> v3.1
+        { path: 'file4.md', content: 'v4' },
       ],
-      "User edits",
+      'User edits',
     );
-    await service.deleteFiles(
-      repoId,
-      "dirty",
-      ["file2.md"],
-      "User deletes file2",
-    );
+    await service.deleteFiles(repoId, 'dirty', ['file2.md'], 'User deletes file2');
 
-    await checkRepoState(service, repoId, "Edit", {
+    await checkRepoState(service, repoId, 'Edit', {
       dirtyAheadOfMain: true,
       filesInMain: {
-        "file1.md": "v1",
-        "file2.md": "v2",
-        "file3.md": "v3",
+        'file1.md': 'v1',
+        'file2.md': 'v2',
+        'file3.md': 'v3',
       },
       filesInDirty: {
-        "file1.md": "v1.1",
-        "file2.md": null,
-        "file3.md": "v3.1",
-        "file4.md": "v4",
+        'file1.md': 'v1.1',
+        'file2.md': null,
+        'file3.md': 'v3.1',
+        'file4.md': 'v4',
       },
     });
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
 
     // 4. Pull (Main updates + Rebase)
-    console.log(
-      "Step 4: Pull (Main changes: mod file1, mod file2, del file3, add file5)",
-    );
+    console.log('Step 4: Pull (Main changes: mod file1, mod file2, del file3, add file5)');
     await service.commitFiles(
       repoId,
-      "main",
+      'main',
       [
-        { path: "file1.md", content: "v1.2" },
-        { path: "file2.md", content: "v2.1" }, // from v2 -> v2.1
-        { path: "file5.md", content: "v5" },
+        { path: 'file1.md', content: 'v1.2' },
+        { path: 'file2.md', content: 'v2.1' }, // from v2 -> v2.1
+        { path: 'file5.md', content: 'v5' },
       ],
-      "Remote updates",
+      'Remote updates',
     );
-    await service.deleteFiles(
-      repoId,
-      "main",
-      ["file3.md"],
-      "Remote delete file3",
-    );
+    await service.deleteFiles(repoId, 'main', ['file3.md'], 'Remote delete file3');
 
-    console.log("Rebasing dirty on main...");
+    console.log('Rebasing dirty on main...');
     const result = await service.rebaseDirty(repoId);
-    console.log("Rebase result:", result);
+    console.log('Rebase result:', result);
 
-    await checkRepoState(service, repoId, "Pull", {
+    await checkRepoState(service, repoId, 'Pull', {
       dirtyAheadOfMain: true,
       filesInMain: {
-        "file1.md": "v1.2",
-        "file2.md": "v2.1",
-        "file3.md": null,
-        "file5.md": "v5",
+        'file1.md': 'v1.2',
+        'file2.md': 'v2.1',
+        'file3.md': null,
+        'file5.md': 'v5',
       },
       filesInDirty: {
-        "file1.md": "v1.1",
-        "file2.md": null,
-        "file3.md": "v3.1",
-        "file4.md": "v4",
-        "file5.md": "v5",
+        'file1.md': 'v1.1',
+        'file2.md': null,
+        'file3.md': 'v3.1',
+        'file4.md': 'v4',
+        'file5.md': 'v5',
       },
     });
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
 
     // 5. Publish Deletes
-    console.log("Step 5: Publish Deletes");
-    await service.deleteFiles(
-      repoId,
-      "main",
-      ["file2.md"],
-      "Publish delete file2",
-    );
+    console.log('Step 5: Publish Deletes');
+    await service.deleteFiles(repoId, 'main', ['file2.md'], 'Publish delete file2');
     await service.rebaseDirty(repoId);
 
-    await checkRepoState(service, repoId, "Publish Deletes", {
+    await checkRepoState(service, repoId, 'Publish Deletes', {
       dirtyAheadOfMain: true,
       filesInMain: {
-        "file2.md": null,
+        'file2.md': null,
       },
       filesInDirty: {
-        "file2.md": null,
-        "file1.md": "v1.1",
-        "file3.md": "v3.1",
-        "file4.md": "v4",
-        "file5.md": "v5",
+        'file2.md': null,
+        'file1.md': 'v1.1',
+        'file3.md': 'v3.1',
+        'file4.md': 'v4',
+        'file5.md': 'v5',
       },
     });
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
 
     // 6. Publish Non-delete Changes
-    console.log("Step 6: Publish Non-delete Changes");
+    console.log('Step 6: Publish Non-delete Changes');
     await service.commitFiles(
       repoId,
-      "main",
+      'main',
       [
-        { path: "file1.md", content: "v1.1" },
-        { path: "file3.md", content: "v3.1" },
-        { path: "file4.md", content: "v4" },
+        { path: 'file1.md', content: 'v1.1' },
+        { path: 'file3.md', content: 'v3.1' },
+        { path: 'file4.md', content: 'v4' },
       ],
-      "Publish changes",
+      'Publish changes',
     );
     await service.rebaseDirty(repoId);
 
-    await checkRepoState(service, repoId, "Publish Changes", {
+    await checkRepoState(service, repoId, 'Publish Changes', {
       dirtyAheadOfMain: false,
       filesInMain: {
-        "file1.md": "v1.1",
-        "file2.md": null,
-        "file3.md": "v3.1",
-        "file4.md": "v4",
-        "file5.md": "v5",
+        'file1.md': 'v1.1',
+        'file2.md': null,
+        'file3.md': 'v3.1',
+        'file4.md': 'v4',
+        'file5.md': 'v5',
       },
       filesInDirty: {
-        "file1.md": "v1.1",
-        "file2.md": null,
-        "file3.md": "v3.1",
-        "file4.md": "v4",
-        "file5.md": "v5",
+        'file1.md': 'v1.1',
+        'file2.md': null,
+        'file3.md': 'v3.1',
+        'file4.md': 'v4',
+        'file5.md': 'v5',
       },
     });
 
-    console.log("Test Completed Successfully!");
+    console.log('Test Completed Successfully!');
 
     await pause();
-    console.log("--------------------");
+    console.log('--------------------');
   } catch (err) {
-    console.error("Test failed:", err);
+    console.error('Test failed:', err);
   } finally {
     // Cleanup
     // await service.deleteRepo(repoId);
   }
 }
 
-runTest();
+void runTest();

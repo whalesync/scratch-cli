@@ -2,7 +2,7 @@ import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
 import { Gitgraph, templateExtend, TemplateName } from '@gitgraph/react';
-import { ActionIcon, Code, Loader, ScrollArea, Text } from '@mantine/core';
+import { ActionIcon, Code, Loader, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { Code2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -106,21 +106,19 @@ export const GitGraphModal = ({ workbookId, isOpen, onClose }: GitGraphModalProp
         noBodyPadding: true,
       }}
     >
-      <ScrollArea style={{ height: 600 }}>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-            <Loader />
-          </div>
-        ) : !data || data.commits.length === 0 ? (
-          <Text p="xl">No commits found</Text>
-        ) : showRaw ? (
-          <Code block style={{ whiteSpace: 'pre-wrap', margin: 20 }}>
-            {JSON.stringify(data, null, 2)}
-          </Code>
-        ) : (
-          <GitGraphRenderer key={renderKey} data={data} />
-        )}
-      </ScrollArea>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+          <Loader />
+        </div>
+      ) : !data || data.commits.length === 0 ? (
+        <Text p="xl">No commits found</Text>
+      ) : showRaw ? (
+        <Code block style={{ whiteSpace: 'pre-wrap', margin: 20 }}>
+          {JSON.stringify(data, null, 2)}
+        </Code>
+      ) : (
+        <GitGraphRenderer key={renderKey} data={data} />
+      )}
     </ModalWrapper>
   );
 };

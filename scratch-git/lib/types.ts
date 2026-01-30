@@ -9,18 +9,18 @@ export interface CommitOptions {
 export interface FileChange {
   path: string;
   content?: string;
-  type: "add" | "modify" | "delete";
+  type: 'add' | 'modify' | 'delete';
 }
 
 export interface GitFile {
   name: string;
   path: string;
-  type: "file" | "directory";
+  type: 'file' | 'directory';
 }
 
 export interface DirtyFile {
   path: string;
-  status: "added" | "modified" | "deleted";
+  status: 'added' | 'modified' | 'deleted';
 }
 
 export interface IGitService {
@@ -30,16 +30,8 @@ export interface IGitService {
 
   list(repoId: string, branch: string, folderPath: string): Promise<GitFile[]>;
 
-  getFile(
-    repoId: string,
-    branch: string,
-    filePath: string,
-  ): Promise<string | null>;
-  fileExists(
-    repoId: string,
-    branch: string,
-    filePath: string,
-  ): Promise<boolean>;
+  getFile(repoId: string, branch: string, filePath: string): Promise<string | null>;
+  fileExists(repoId: string, branch: string, filePath: string): Promise<boolean>;
 
   commitFiles(
     repoId: string,
@@ -47,17 +39,9 @@ export interface IGitService {
     files: Array<{ path: string; content: string }>,
     message: string,
   ): Promise<void>;
-  deleteFiles(
-    repoId: string,
-    branch: string,
-    filePaths: string[],
-    message: string,
-  ): Promise<void>;
+  deleteFiles(repoId: string, branch: string, filePaths: string[], message: string): Promise<void>;
 
-  rebaseDirty(
-    repoId: string,
-    strategy?: "ours" | "diff3",
-  ): Promise<{ rebased: boolean; conflicts: string[] }>;
+  rebaseDirty(repoId: string, strategy?: 'ours' | 'diff3'): Promise<{ rebased: boolean; conflicts: string[] }>;
   getDirtyStatus(repoId: string): Promise<DirtyFile[]>;
 
   createCheckpoint(repoId: string, name: string): Promise<void>;
@@ -71,19 +55,16 @@ export interface IGitService {
    */
   getRefOid(repoId: string, ref: string): Promise<string | null>;
 
-  getLog(
-    repoId: string,
-    ref: string,
-    depth?: number,
-  ): Promise<Array<{ oid: string; parent: string[] }>>;
+  getLog(repoId: string, ref: string, depth?: number): Promise<Array<{ oid: string; parent: string[] }>>;
 
-  getFileDiff(
-    repoId: string,
-    filePath: string,
-  ): Promise<{ main: string | null; dirty: string | null } | null>;
+  getFileDiff(repoId: string, filePath: string): Promise<{ main: string | null; dirty: string | null } | null>;
 
-  getFolderDirtyStatus(
-    repoId: string,
-    folderPath: string,
-  ): Promise<DirtyFile[]>;
+  getFolderDirtyStatus(repoId: string, folderPath: string): Promise<DirtyFile[]>;
+}
+
+export interface TreeEntry {
+  mode: string;
+  path: string;
+  oid: string;
+  type: 'blob' | 'tree' | 'commit';
 }

@@ -3,7 +3,7 @@ import { diff3Merge } from 'node-diff3';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { DirtyFile, FileChange, GitFile, IGitService } from './types';
+import { DirtyFile, FileChange, GitFile, IGitService, TreeEntry } from './types';
 
 const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || 'repos';
 const DEFAULT_AUTHOR = { name: 'Scratch', email: 'scratch@example.com' };
@@ -13,7 +13,7 @@ async function withWriteLock<T>(gitBucket: string, ref: string, operation: () =>
   const lockKey = `${gitBucket}:${ref}`;
   const previousPromise = writeLocks.get(lockKey);
   const ourPromise = (async () => {
-    if (previousPromise) {
+    if (previousPromise !== undefined) {
       await previousPromise.catch(() => {});
     }
     return operation();
@@ -151,7 +151,7 @@ export class GitService implements IGitService {
       await this.forceRef(dir, dirtyRef, mainCommit);
       return { rebased: true, conflicts: [] };
     }
-    const mergeBase = mergeBaseOids[0];
+    const mergeBase = mergeBaseOids[0] as string;
 
     // Get changes on dirty since mergeBase
     const userChanges = await this.compareCommits(repoId, mergeBase, dirtyCommit);
@@ -336,7 +336,7 @@ export class GitService implements IGitService {
           return resolveToCommit(tag.object);
         }
         return oid;
-      } catch (e) {
+      } catch {
         return oid;
       }
     };
@@ -352,7 +352,9 @@ export class GitService implements IGitService {
         const commitOid = await resolveToCommit(oid);
         refs.push({ name: branch, oid: commitOid, type: 'branch' });
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     // listTags returns names of tags
     try {
@@ -362,7 +364,9 @@ export class GitService implements IGitService {
         const commitOid = await resolveToCommit(oid);
         refs.push({ name: tag, oid: commitOid, type: 'tag' });
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     // Collect all unique OIDs from refs to fetch history from
     const uniqueHeads = new Set(refs.map((r) => r.oid));
@@ -374,7 +378,9 @@ export class GitService implements IGitService {
         const commitOid = await resolveToCommit(mainOid);
         refs.push({ name: 'main', oid: commitOid, type: 'branch' });
         uniqueHeads.add(commitOid);
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
 
     const commitsMap = new Map<
@@ -411,7 +417,7 @@ export class GitService implements IGitService {
             });
           }
         }
-      } catch (e) {
+      } catch {
         // console.error(`Failed to fetch log for ref ${ref}:`, e);
       }
     };
@@ -601,7 +607,7 @@ export class GitService implements IGitService {
 
       await this.forceRef(dir, 'main', mainTag);
       await this.forceRef(dir, 'dirty', dirtyTag);
-    } catch (e) {
+    } catch {
       throw new Error(`Checkpoint ${name} not found or incomplete`);
     }
   }
@@ -621,10 +627,14 @@ export class GitService implements IGitService {
     // isomorphic-git deleteTag: ref - The name of the tag to delete
     try {
       await git.deleteTag({ fs, dir, gitdir: dir, ref: `main_${name}` });
-    } catch {}
+    } catch {
+      // ignore
+    }
     try {
       await git.deleteTag({ fs, dir, gitdir: dir, ref: `dirty_${name}` });
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
 
   private mergeFileContents(base: string, ours: string, theirs: string): string {
@@ -752,7 +762,7 @@ export class GitService implements IGitService {
 
   private async applyChangesToTree(
     dir: string,
-    currentEntries: any[],
+    currentEntries: TreeEntry[],
     changes: FileChange[],
     prefix = '',
   ): Promise<string> {
@@ -774,7 +784,7 @@ export class GitService implements IGitService {
       }
     }
 
-    const newEntries: any[] = [];
+    const newEntries: TreeEntry[] = [];
     for (const entry of currentEntries) {
       const direct = directChanges.find((c) => c.path === entry.path);
       const subtree = subtreeChanges.get(entry.path);
@@ -800,16 +810,16 @@ export class GitService implements IGitService {
           gitdir: dir,
           oid: entry.oid,
         });
-        const newSubtree = await this.applyChangesToTree(
+        const newSubtreeOid = await this.applyChangesToTree(
           dir,
-          tree,
+          tree as unknown as TreeEntry[],
           subtree,
           prefix ? `${prefix}/${entry.path}` : entry.path,
         );
         newEntries.push({
           mode: entry.mode,
           path: entry.path,
-          oid: newSubtree,
+          oid: newSubtreeOid,
           type: 'tree',
         });
         subtreeChanges.delete(entry.path);
@@ -839,11 +849,11 @@ export class GitService implements IGitService {
     // New subtrees
     for (const [name, subChanges] of subtreeChanges) {
       if (!currentEntries.some((e) => e.path === name)) {
-        const newSubtree = await this.applyChangesToTree(dir, [], subChanges, prefix ? `${prefix}/${name}` : name);
+        const newSubtreeOid = await this.applyChangesToTree(dir, [], subChanges, prefix ? `${prefix}/${name}` : name);
         newEntries.push({
           mode: '040000',
           path: name,
-          oid: newSubtree,
+          oid: newSubtreeOid,
           type: 'tree',
         });
       }

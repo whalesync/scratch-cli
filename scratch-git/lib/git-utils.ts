@@ -1,54 +1,12 @@
-import fs from "node:fs";
-import path from "node:path";
-import git from "isomorphic-git";
+import git from 'isomorphic-git';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Base directory for git repos (local development)
-const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || ".scratch-repos";
+const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || '.scratch-repos';
 
 // Default author for commits
-const DEFAULT_AUTHOR = { name: "Scratch", email: "scratch@example.com" };
-
-// Lock mechanism for serializing writes to the same branch
-// Maps "gitBucket:ref" to the last promise in the queue
-const writeLocks = new Map<string, Promise<unknown>>();
-
-/**
- * Execute a write operation with serialization to prevent race conditions.
- * This ensures concurrent writes to the same branch are executed sequentially.
- * Each new write waits for ALL previous writes to complete.
- */
-async function withWriteLock<T>(
-  gitBucket: string,
-  ref: string,
-  operation: () => Promise<T>,
-): Promise<T> {
-  const lockKey = `${gitBucket}:${ref}`;
-
-  // Get the current tail of the queue (if any)
-  const previousPromise = writeLocks.get(lockKey);
-
-  // Create our operation that waits for the previous one
-  const ourPromise = (async () => {
-    // Wait for previous write to complete (ignore its errors)
-    if (previousPromise) {
-      await previousPromise.catch(() => {});
-    }
-    // Now execute our operation
-    return operation();
-  })();
-
-  // Add ourselves to the queue immediately (before awaiting)
-  writeLocks.set(lockKey, ourPromise);
-
-  try {
-    return await ourPromise;
-  } finally {
-    // Only clear the lock if we're still the last one in the queue
-    if (writeLocks.get(lockKey) === ourPromise) {
-      writeLocks.delete(lockKey);
-    }
-  }
-}
+const DEFAULT_AUTHOR = { name: 'Scratch', email: 'scratch@example.com' };
 
 // =============================================================================
 // FILE CHANGE TYPES
@@ -62,7 +20,7 @@ async function withWriteLock<T>(
 export interface FileChange {
   path: string;
   content?: string; // Required for add/modify, not used for delete
-  type: "add" | "modify" | "delete";
+  type: 'add' | 'modify' | 'delete';
 }
 
 // =============================================================================
@@ -76,7 +34,7 @@ interface TreeEntry {
   mode: string;
   path: string;
   oid: string;
-  type: "blob" | "tree" | "commit";
+  type: 'blob' | 'tree' | 'commit';
 }
 
 /**
@@ -108,20 +66,21 @@ export async function commitChangesToRef(
   const parentCommit = await git.resolveRef({ fs, dir, gitdir: dir, ref });
 
   // Get the current tree from that commit
-  const { tree: currentTree } = await git.readTree({ fs, dir, gitdir: dir,
-    oid: parentCommit,
-  });
+  const { tree: currentTree } = await git.readTree({ fs, dir, gitdir: dir, oid: parentCommit });
 
   // Apply changes to build the new tree
   const newTreeOid = await applyChangesToTree(
     dir,
     currentTree,
     changes,
-    "", // root path prefix
+    '', // root path prefix
   );
 
   // Create commit pointing to new tree
-  const newCommit = await git.writeCommit({ fs, dir, gitdir: dir,
+  const newCommit = await git.writeCommit({
+    fs,
+    dir,
+    gitdir: dir,
     commit: {
       tree: newTreeOid,
       parent: [parentCommit],
@@ -140,11 +99,7 @@ export async function commitChangesToRef(
   });
 
   // Update the ref to point to new commit
-  await git.writeRef({ fs, dir, gitdir: dir,
-    ref: `refs/heads/${ref}`,
-    value: newCommit,
-    force: true,
-  });
+  await git.writeRef({ fs, dir, gitdir: dir, ref: `refs/heads/${ref}`, value: newCommit, force: true });
 
   return newCommit;
 }
@@ -165,11 +120,9 @@ async function applyChangesToTree(
 
   for (const change of changes) {
     // Get the path relative to current tree level
-    const relativePath = pathPrefix
-      ? change.path.slice(pathPrefix.length + 1)
-      : change.path;
+    const relativePath = pathPrefix ? change.path.slice(pathPrefix.length + 1) : change.path;
 
-    const slashIndex = relativePath.indexOf("/");
+    const slashIndex = relativePath.indexOf('/');
     if (slashIndex === -1) {
       // This change is for a file directly in this tree
       directChanges.push({ ...change, path: relativePath });
@@ -192,25 +145,21 @@ async function applyChangesToTree(
     const subtreeChange = subtreeChanges.get(entry.path);
 
     if (directChange) {
-      if (directChange.type === "delete") {
+      if (directChange.type === 'delete') {
         // Skip this entry (delete it)
         continue;
       }
       // Replace with new content
-      const newBlobOid = await git.writeBlob({ fs, dir, gitdir: dir,
-        blob: Buffer.from(directChange.content || ""),
-      });
+      const newBlobOid = await git.writeBlob({ fs, dir, gitdir: dir, blob: Buffer.from(directChange.content || '') });
       newEntries.push({
-        mode: "100644",
+        mode: '100644',
         path: entry.path,
         oid: newBlobOid,
-        type: "blob",
+        type: 'blob',
       });
-    } else if (subtreeChange && entry.type === "tree") {
+    } else if (subtreeChange && entry.type === 'tree') {
       // Recursively process subtree
-      const { tree: subtreeEntries } = await git.readTree({ fs, dir, gitdir: dir,
-        oid: entry.oid,
-      });
+      const { tree: subtreeEntries } = await git.readTree({ fs, dir, gitdir: dir, oid: entry.oid });
       const newSubtreeOid = await applyChangesToTree(
         dir,
         subtreeEntries,
@@ -221,7 +170,7 @@ async function applyChangesToTree(
         mode: entry.mode,
         path: entry.path,
         oid: newSubtreeOid,
-        type: "tree",
+        type: 'tree',
       });
       subtreeChanges.delete(entry.path);
     } else {
@@ -233,18 +182,13 @@ async function applyChangesToTree(
   // Add new files (not replacing existing)
   // Both "add" and "modify" types can create new files
   for (const change of directChanges) {
-    if (
-      (change.type === "add" || change.type === "modify") &&
-      !currentEntries.some((e) => e.path === change.path)
-    ) {
-      const newBlobOid = await git.writeBlob({ fs, dir, gitdir: dir,
-        blob: Buffer.from(change.content || ""),
-      });
+    if ((change.type === 'add' || change.type === 'modify') && !currentEntries.some((e) => e.path === change.path)) {
+      const newBlobOid = await git.writeBlob({ fs, dir, gitdir: dir, blob: Buffer.from(change.content || '') });
       newEntries.push({
-        mode: "100644",
+        mode: '100644',
         path: change.path,
         oid: newBlobOid,
-        type: "blob",
+        type: 'blob',
       });
     }
   }
@@ -260,10 +204,10 @@ async function applyChangesToTree(
         pathPrefix ? `${pathPrefix}/${subtreeName}` : subtreeName,
       );
       newEntries.push({
-        mode: "040000",
+        mode: '040000',
         path: subtreeName,
         oid: newSubtreeOid,
-        type: "tree",
+        type: 'tree',
       });
     }
   }
@@ -271,15 +215,13 @@ async function applyChangesToTree(
   // Sort entries (git requires sorted tree entries)
   newEntries.sort((a, b) => {
     // Git sorts directories with a trailing slash for comparison purposes
-    const aName = a.type === "tree" ? `${a.path}/` : a.path;
-    const bName = b.type === "tree" ? `${b.path}/` : b.path;
+    const aName = a.type === 'tree' ? `${a.path}/` : a.path;
+    const bName = b.type === 'tree' ? `${b.path}/` : b.path;
     return aName.localeCompare(bName);
   });
 
   // Write the new tree
-  const newTreeOid = await git.writeTree({ fs, dir, gitdir: dir,
-    tree: newEntries,
-  });
+  const newTreeOid = await git.writeTree({ fs, dir, gitdir: dir, tree: newEntries });
 
   return newTreeOid;
 }
@@ -295,21 +237,21 @@ export async function initRepo(gitBucket: string): Promise<void> {
 
   // Check if HEAD exists (has initial commit)
   try {
-    await git.resolveRef({ fs, dir, gitdir: dir, ref: "HEAD" });
+    await git.resolveRef({ fs, dir, gitdir: dir, ref: 'HEAD' });
     return; // Already initialized with commits
   } catch {
     // HEAD doesn't exist, proceed to init if needed
   }
 
   // Check if config exists to determine if it's already a repo
-  const configPath = path.join(dir, "config");
-  const gitDir = path.join(dir, ".git");
+  const configPath = path.join(dir, 'config');
+  const gitDir = path.join(dir, '.git');
 
   // If neither bare config nor .git dir exists, initialize
   if (!fs.existsSync(configPath) && !fs.existsSync(gitDir)) {
     // Explicitly set gitdir to dir to ensure it doesn't create a .git subdirectory
-    console.log("Running git.init with gitdir=dir");
-    await git.init({ fs, dir, gitdir: dir, defaultBranch: "main", bare: true });
+    console.log('Running git.init with gitdir=dir');
+    await git.init({ fs, dir, gitdir: dir, defaultBranch: 'main', bare: true });
   }
 
   // Create initial commit with empty .gitkeep
@@ -317,24 +259,28 @@ export async function initRepo(gitBucket: string): Promise<void> {
   // We'll construct the tree and commit manually
 
   // 1. Create blob for .gitkeep
-  const blobOid = await git.writeBlob({ fs, dir, gitdir: dir,
-    blob: Buffer.from(""),
-  });
+  const blobOid = await git.writeBlob({ fs, dir, gitdir: dir, blob: Buffer.from('') });
 
   // 2. Create tree containing .gitkeep
-  const treeOid = await git.writeTree({ fs, dir, gitdir: dir,
+  const treeOid = await git.writeTree({
+    fs,
+    dir,
+    gitdir: dir,
     tree: [
       {
-        mode: "100644",
-        path: ".gitkeep",
+        mode: '100644',
+        path: '.gitkeep',
         oid: blobOid,
-        type: "blob",
+        type: 'blob',
       },
     ],
   });
 
   // 3. Create initial commit
-  const commitOid = await git.writeCommit({ fs, dir, gitdir: dir,
+  const commitOid = await git.writeCommit({
+    fs,
+    dir,
+    gitdir: dir,
     commit: {
       tree: treeOid,
       parent: [],
@@ -348,16 +294,12 @@ export async function initRepo(gitBucket: string): Promise<void> {
         timestamp: Math.floor(Date.now() / 1000),
         timezoneOffset: 0,
       },
-      message: "Initial commit",
+      message: 'Initial commit',
     },
   });
 
   // 4. Update HEAD to point to main
-  await git.writeRef({ fs, dir, gitdir: dir,
-    ref: "refs/heads/main",
-    value: commitOid,
-    force: true,
-  });
+  await git.writeRef({ fs, dir, gitdir: dir, ref: 'refs/heads/main', value: commitOid, force: true });
 }
 
 // =====================
@@ -374,10 +316,7 @@ export function getDirtyBranchName(userId: string): string {
 /**
  * Check if a branch exists
  */
-export async function branchExists(
-  gitBucket: string,
-  branchName: string,
-): Promise<boolean> {
+export async function branchExists(gitBucket: string, branchName: string): Promise<boolean> {
   const dir = getRepoPath(gitBucket);
   try {
     await git.resolveRef({ fs, dir, gitdir: dir, ref: branchName });
@@ -391,10 +330,7 @@ export async function branchExists(
  * Create a dirty branch for a user, branching from main
  * If the branch already exists, this does nothing
  */
-export async function createDirtyBranch(
-  gitBucket: string,
-  userId: string,
-): Promise<void> {
+export async function createDirtyBranch(gitBucket: string, userId: string): Promise<void> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -404,7 +340,7 @@ export async function createDirtyBranch(
   }
 
   // Create the new branch pointing to main's current commit
-  const mainCommit = await git.resolveRef({ fs, dir, gitdir: dir, ref: "main" });
+  const mainCommit = await git.resolveRef({ fs, dir, gitdir: dir, ref: 'main' });
   await git.branch({ fs, dir, gitdir: dir, ref: branchName, object: mainCommit });
 }
 
@@ -420,10 +356,7 @@ export async function readFileFromBranch(
 
   try {
     const commitOid = await git.resolveRef({ fs, dir, gitdir: dir, ref: branchName });
-    const { blob } = await git.readBlob({ fs, dir, gitdir: dir,
-      oid: commitOid,
-      filepath: filePath,
-    });
+    const { blob } = await git.readBlob({ fs, dir, gitdir: dir, oid: commitOid, filepath: filePath });
     return new TextDecoder().decode(blob);
   } catch {
     return null;
