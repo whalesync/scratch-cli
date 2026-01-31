@@ -13,7 +13,15 @@ app.use((req, res, next) => {
 });
 
 const port = process.env.PORT || 3100;
+const buildVersion = process.env.BUILD_VERSION || '0.0.0-local';
 const gitService = new GitService();
+
+app.get('/', (_, res) =>
+  res.json({
+    server: 'ScratchGit API',
+    build_version: buildVersion,
+  }),
+);
 
 app.post('/api/repo/:id/init', async (req, res) => {
   try {
@@ -190,7 +198,13 @@ app.delete('/api/repo/:id/checkpoint/:name', async (req, res) => {
   }
 });
 
-app.get('/health', (_, res) => res.json({ status: 'ok' }));
+app.get('/health', (_, res) =>
+  res.json({
+    status: 'alive',
+    build_version: buildVersion,
+    timestamp: new Date().toISOString(),
+  }),
+);
 
 app.listen(port, () => {
   console.log(`ScratchGit API listening at http://localhost:${port}`);

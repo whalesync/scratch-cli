@@ -27,6 +27,9 @@ module "test" {
   enable_email_notifications     = false
   enable_pagerduty_notifications = false
 
+  # Scratch Git
+  enable_scratch_git = true
+
   # Services
   force_reload_services = var.force_reload_services
 }

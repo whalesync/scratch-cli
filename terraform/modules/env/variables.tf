@@ -255,3 +255,9 @@ variable "agent_enable_full_logfire_instrumentation" {
   default     = true
   description = "Whether to enable full Logfire instrumentation for the agent service."
 }
+
+variable "enable_scratch_git" {
+  type        = bool
+  default     = false
+  description = "Whether to enable the scratch-git GCE instance."
+}

@@ -42,6 +42,15 @@ locals {
         "roles/cloudsql.client"
       ]
     },
+    {
+      name        = "scratch-git-service-account"
+      account_id  = "scratch-git-service-account"
+      description = "Service account for the scratch-git GCE instance"
+      roles = [
+        "roles/artifactregistry.reader",
+        "roles/logging.logWriter"
+      ]
+    },
   ]
 
   # Name of the the Gitlab service account
@@ -276,6 +285,32 @@ module "gce_instance" {
   depends_on = [module.vpc, module.iam-sa]
 }
 
+## ---------------------------------------------------------------------------------------------------------------------
+## Scratch Git VM
+## ---------------------------------------------------------------------------------------------------------------------
+
+module "scratch_git_gce" {
+  count  = var.enable_scratch_git ? 1 : 0
+  source = "../../modules/scratch_git_gce"
+
+  providers = {
+    google           = google
+    google.no_labels = google.no_labels
+  }
+
+  instance_name         = "scratch-git"
+  zone                  = var.gcp_zone
+  region                = var.gcp_region
+  network               = module.vpc.network
+  subnetwork            = module.vpc.subnets_id[0]
+  gcp_project_id        = var.gcp_project_id
+  service_account_email = module.iam-sa.service_accounts["scratch-git-service-account"].email
+  docker_image          = "${local.artifact_registry_url}/spinner-scratch-git:latest"
+  network_name          = local.vpc_network_name
+  vpc_cidr_ranges       = [for s in local.custom_subnetworks : s.ip_cidr_range]
+
+  depends_on = [module.vpc, module.iam-sa]
+}
 
 ## ---------------------------------------------------------------------------------------------------------------------
 ## Redis Cache
