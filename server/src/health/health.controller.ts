@@ -1,6 +1,19 @@
 import { ClassSerializerInterceptor, Controller, Get, UseInterceptors } from '@nestjs/common';
+import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { BUILD_VERSION } from 'src/version';
+
+interface ConnectionTestResult {
+  status: 'ok' | 'error' | 'not_enabled';
+  url?: string;
+  error?: string;
+}
+
+interface ConnectionTestResponse {
+  timestamp: string;
+  redis: ConnectionTestResult;
+  scratch_git: ConnectionTestResult;
+}
 
 /**
  * Health check endpoint for the Scratch API.
@@ -10,6 +23,8 @@ import { BUILD_VERSION } from 'src/version';
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class HealthController {
+  constructor(private readonly configService: ScratchpadConfigService) {}
+
   @Get()
   getRoot() {
     return {
@@ -29,5 +44,59 @@ export class HealthController {
       app_url: ScratchpadConfigService.getClientBaseUrl(),
       apptype: ScratchpadConfigService.getScratchpadServiceType(),
     };
+  }
+
+  @Get('connection-test')
+  async getConnectionTest(): Promise<ConnectionTestResponse> {
+    const [redis, scratchGit] = await Promise.all([this.testRedis(), this.testScratchGit()]);
+
+    return {
+      timestamp: new Date().toISOString(),
+      redis,
+      scratch_git: scratchGit,
+    };
+  }
+
+  private async testRedis(): Promise<ConnectionTestResult> {
+    let client: IORedis | undefined;
+    try {
+      client = new IORedis({
+        host: this.configService.getRedisHost(),
+        port: this.configService.getRedisPort(),
+        password: this.configService.getRedisPassword(),
+        connectTimeout: 5000,
+        lazyConnect: true,
+      });
+      await client.connect();
+      const pong = await client.ping();
+      return pong === 'PONG'
+        ? { status: 'ok' as const }
+        : { status: 'error' as const, error: `Unexpected ping response: ${String(pong)}` };
+    } catch (err) {
+      return { status: 'error', error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      await client?.quit().catch(() => {});
+    }
+  }
+
+  private async testScratchGit(): Promise<ConnectionTestResult> {
+    const scratchGitUrl = process.env.SCRATCH_GIT_URL;
+    if (!scratchGitUrl) {
+      return { status: 'not_enabled' };
+    }
+
+    const healthUrl = `${scratchGitUrl}/health`;
+    try {
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      if (response.ok) {
+        return { status: 'ok', url: scratchGitUrl };
+      }
+      return { status: 'error', url: scratchGitUrl, error: `HTTP ${response.status}: ${await response.text()}` };
+    } catch (err) {
+      return { status: 'error', url: scratchGitUrl, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 }

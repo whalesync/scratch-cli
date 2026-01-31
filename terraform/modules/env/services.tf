@@ -167,27 +167,32 @@ resource "google_cloud_run_v2_service" "api_service" {
       }
 
       dynamic "env" {
-        for_each = {
-          "APP_ENV" : var.env_name,
-          "AUTO_CREATE_TRIAL_SUBSCRIPTION" : "true",
-          "GCP_PROJECT_NUMBER" : var.gcp_project_number,
-          "GENERATE_OPENROUTER_KEY_FOR_NEW_USERS" : "true",
-          "NEW_USER_OPENROUTER_CREDIT_LIMIT" : "5",
-          "NODE_ENV" : "production",
-          "NODE_OPTIONS" : var.api_service_node_options,
-          "NOTION_PAGE_SIZE" : "100",
-          "POSTHOG_HOST" : "https://us.i.posthog.com",
-          "REDIRECT_URI" : "https://${var.client_domain}/oauth/callback",
-          "REDIS_HOST" : module.redis.host,
-          "REDIS_PORT" : module.redis.port,
-          "REQUIRE_SUBSCRIPTION" : "true",
-          "RUNNING_IN_CLOUD" : "true",
-          "SCRATCHPAD_AGENT_JWT_EXPIRES_IN" : "6h",
-          "SERVICE_TYPE" : "monolith",
-          "SLACK_NOTIFICATION_ENABLED" : "true",
-          "TRIAL_REQUIRE_PAYMENT_METHOD" : "false",
-          "USE_JOBS" : "true",
-        }
+        for_each = merge(
+          {
+            "APP_ENV" : var.env_name,
+            "AUTO_CREATE_TRIAL_SUBSCRIPTION" : "true",
+            "GCP_PROJECT_NUMBER" : var.gcp_project_number,
+            "GENERATE_OPENROUTER_KEY_FOR_NEW_USERS" : "true",
+            "NEW_USER_OPENROUTER_CREDIT_LIMIT" : "5",
+            "NODE_ENV" : "production",
+            "NODE_OPTIONS" : var.api_service_node_options,
+            "NOTION_PAGE_SIZE" : "100",
+            "POSTHOG_HOST" : "https://us.i.posthog.com",
+            "REDIRECT_URI" : "https://${var.client_domain}/oauth/callback",
+            "REDIS_HOST" : module.redis.host,
+            "REDIS_PORT" : module.redis.port,
+            "REQUIRE_SUBSCRIPTION" : "true",
+            "RUNNING_IN_CLOUD" : "true",
+            "SCRATCHPAD_AGENT_JWT_EXPIRES_IN" : "6h",
+            "SERVICE_TYPE" : "monolith",
+            "SLACK_NOTIFICATION_ENABLED" : "true",
+            "TRIAL_REQUIRE_PAYMENT_METHOD" : "false",
+            "USE_JOBS" : "true",
+          },
+          var.enable_scratch_git ? {
+            "SCRATCH_GIT_URL" : "http://${module.scratch_git_gce[0].lb_ip}:3100"
+          } : {}
+        )
         content {
           name  = env.key
           value = env.value
