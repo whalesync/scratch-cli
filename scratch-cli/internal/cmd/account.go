@@ -54,10 +54,12 @@ For non-interactive/LLM use, use 'account add' instead.`,
 // accountListCmd represents the account list command
 var accountListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "[NON-INTERACTIVE] List configured accounts",
+	Short: "[NON-INTERACTIVE] List accounts (-> then fetch-sources)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 Display all configured CMS accounts and their status.
+
+NEXT STEP: Use 'fetch-sources <account>' to see available tables.
 
 Use --json for machine-readable output.`,
 	RunE: runAccountList,
@@ -112,10 +114,12 @@ Examples:
 // accountFetchSourcesCmd represents the account fetch-sources command
 var accountFetchSourcesCmd = &cobra.Command{
 	Use:   "fetch-sources [account-name]",
-	Short: "[NON-INTERACTIVE] List available remote sources (tables) and their link status",
+	Short: "[NON-INTERACTIVE] Fetch tables (-> then folder link)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 List available tables/collections from the CMS and show if they are linked to local folders.
+
+NEXT STEP: Use 'folder link <folder> --account.name=<account> --table-id=<id>' to link a table.
 
 Arguments:
   account-name: Optional if configured via 'config set account.name'

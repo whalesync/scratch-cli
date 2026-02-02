@@ -174,12 +174,14 @@ Examples:
 // pullCmd is an alias for 'content download'
 var pullCmd = &cobra.Command{
 	Use:   "pull [folder]",
-	Short: "[NON-INTERACTIVE] Alias for 'content download'",
+	Short: "[NON-INTERACTIVE] Download from CMS (-> edit, then push)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 Alias for 'scratchmd content download'.
 
 Downloads content from the CMS to local JSON files.
+
+NEXT STEPS: Edit the JSON files locally, then use 'push' to upload changes.
 
 Examples:
   scratchmd pull                  # download all linked tables
@@ -191,12 +193,14 @@ Examples:
 // pushCmd is an alias for 'content upload'
 var pushCmd = &cobra.Command{
 	Use:   "push [folder[/file.json]]",
-	Short: "[NON-INTERACTIVE] Alias for 'content upload'",
+	Short: "[NON-INTERACTIVE] Upload to CMS (check status first)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 Alias for 'scratchmd content upload'.
 
 Uploads local changes to the CMS.
+
+TIP: Run 'status --json' first to see what will be uploaded.
 
 Examples:
   scratchmd push                       # upload all changes (with review)
@@ -220,10 +224,12 @@ func init() {
 	// Flags for content download
 	contentDownloadCmd.Flags().Bool("clobber", false, "Delete ALL local files and re-download fresh (DESTRUCTIVE - discards local changes)")
 	contentDownloadCmd.Flags().Bool("no-attachments", false, "Skip downloading attachments")
+	contentDownloadCmd.Flags().Bool("explain", false, "Show what would happen without executing (structured JSON output)")
 
 	// Flags for pull (alias for content download)
 	pullCmd.Flags().Bool("clobber", false, "Delete ALL local files and re-download fresh (DESTRUCTIVE - discards local changes)")
 	pullCmd.Flags().Bool("no-attachments", false, "Skip downloading attachments")
+	pullCmd.Flags().Bool("explain", false, "Show what would happen without executing (structured JSON output)")
 
 	// Flags for content dirty-fields
 	contentDirtyFieldsCmd.Flags().String("file", "", "Check a specific file only")
@@ -240,6 +246,7 @@ func init() {
 	contentUploadCmd.Flags().Bool("simulate", false, "Show what would happen without making changes (writes to file)")
 	contentUploadCmd.Flags().Bool("dry-run", false, "Alias for --simulate")
 	contentUploadCmd.Flags().Bool("json", false, "Output results as JSON (for automation/LLM use)")
+	contentUploadCmd.Flags().Bool("explain", false, "Show what would happen without executing (structured JSON output)")
 
 	// Flags for push (alias for content upload)
 	pushCmd.Flags().Bool("no-review", false, "Skip confirmation prompt (for automation/LLM use)")
@@ -247,6 +254,7 @@ func init() {
 	pushCmd.Flags().Bool("simulate", false, "Show what would happen without making changes (writes to file)")
 	pushCmd.Flags().Bool("dry-run", false, "Alias for --simulate")
 	pushCmd.Flags().Bool("json", false, "Output results as JSON (for automation/LLM use)")
+	pushCmd.Flags().Bool("explain", false, "Show what would happen without executing (structured JSON output)")
 
 	// Flags for content validate
 	contentValidateCmd.Flags().Bool("all", false, "Validate all files without prompting (non-interactive)")
@@ -269,16 +277,7 @@ const (
 func runContentDownload(cmd *cobra.Command, args []string) error {
 	clobber, _ := cmd.Flags().GetBool("clobber")
 	noAttachments, _ := cmd.Flags().GetBool("no-attachments")
-
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
-
-	secrets, err := config.LoadSecrets()
-	if err != nil {
-		return fmt.Errorf("failed to load secrets: %w", err)
-	}
+	explain, _ := cmd.Flags().GetBool("explain")
 
 	// Get list of tables to download
 	var tablesToDownload []string
@@ -298,6 +297,21 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 		tablesToDownload = tables
+	}
+
+	// --explain mode: show what would happen without executing
+	if explain {
+		return runContentDownloadExplain(tablesToDownload, clobber, noAttachments)
+	}
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	secrets, err := config.LoadSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to load secrets: %w", err)
 	}
 
 	// Create the downloader
@@ -321,6 +335,45 @@ func runContentDownload(cmd *cobra.Command, args []string) error {
 	if hasErrors {
 		return fmt.Errorf("one or more downloads failed")
 	}
+	return nil
+}
+
+// runContentDownloadExplain shows what a download would do without executing
+func runContentDownloadExplain(tablesToDownload []string, clobber, noAttachments bool) error {
+	type explainOutput struct {
+		Action      string   `json:"action"`
+		Folders     []string `json:"folders"`
+		Clobber     bool     `json:"clobber"`
+		Attachments bool     `json:"attachments"`
+		Destructive bool     `json:"destructive"`
+		Reversible  bool     `json:"reversible"`
+		Warning     string   `json:"warning,omitempty"`
+		NextSteps   []string `json:"nextSteps,omitempty"`
+	}
+
+	output := explainOutput{
+		Action:      "download",
+		Folders:     tablesToDownload,
+		Clobber:     clobber,
+		Attachments: !noAttachments,
+		Destructive: clobber, // Only destructive if clobber is true
+		Reversible:  !clobber,
+	}
+
+	if clobber {
+		output.Warning = "DESTRUCTIVE: --clobber will delete ALL local changes before downloading"
+	}
+
+	output.NextSteps = []string{
+		"Run 'pull' to execute this download",
+		"After download, edit files locally then 'push' to upload changes",
+	}
+	if clobber {
+		output.NextSteps = append([]string{"Consider running without --clobber to preserve local edits"}, output.NextSteps...)
+	}
+
+	jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(jsonBytes))
 	return nil
 }
 
@@ -1025,6 +1078,133 @@ func runFolderDirtyFields(tableName, originalDir, contentFieldName string) error
 	return nil
 }
 
+// runContentUploadExplain shows what an upload would do without executing
+func runContentUploadExplain(tablesToProcess []string, specificFile string, syncDeletes bool) error {
+	type fileAction struct {
+		File      string `json:"file"`
+		Operation string `json:"operation"`
+	}
+	type explainOutput struct {
+		Action      string                 `json:"action"`
+		Folders     []string               `json:"folders"`
+		Files       map[string]interface{} `json:"files"`
+		Destructive bool                   `json:"destructive"`
+		Reversible  bool                   `json:"reversible"`
+		NextSteps   []string               `json:"nextSteps,omitempty"`
+	}
+
+	output := explainOutput{
+		Action:      "upload",
+		Folders:     tablesToProcess,
+		Files:       make(map[string]interface{}),
+		Destructive: syncDeletes,
+		Reversible:  true,
+	}
+
+	totalCreate := 0
+	totalUpdate := 0
+	totalDelete := 0
+
+	for _, table := range tablesToProcess {
+		// Check that the table folder exists
+		if _, err := os.Stat(table); os.IsNotExist(err) {
+			continue
+		}
+
+		// Check that the original folder exists
+		originalDir := filepath.Join(".scratchmd", table, "original")
+		if _, err := os.Stat(originalDir); os.IsNotExist(err) {
+			continue
+		}
+
+		// Get list of .json files in both directories
+		currentFiles := make(map[string]bool)
+		originalFiles := make(map[string]bool)
+
+		entries, err := os.ReadDir(table)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				currentFiles[entry.Name()] = true
+			}
+		}
+
+		entries, err = os.ReadDir(originalDir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				originalFiles[entry.Name()] = true
+			}
+		}
+
+		var actions []fileAction
+
+		// Check for modified and deleted files
+		for filename := range originalFiles {
+			if specificFile != "" && filename != specificFile {
+				continue
+			}
+			if currentFiles[filename] {
+				// File exists in both - check if actually modified
+				currentPath := filepath.Join(table, filename)
+				originalPath := filepath.Join(originalDir, filename)
+				currentContent, _ := os.ReadFile(currentPath)
+				originalContent, _ := os.ReadFile(originalPath)
+				if !bytes.Equal(currentContent, originalContent) {
+					actions = append(actions, fileAction{File: filename, Operation: "update"})
+					totalUpdate++
+				}
+			} else if syncDeletes {
+				// File only in original - deleted (only if sync-deletes enabled)
+				actions = append(actions, fileAction{File: filename, Operation: "delete"})
+				totalDelete++
+			}
+		}
+
+		// Check for created files
+		for filename := range currentFiles {
+			if specificFile != "" && filename != specificFile {
+				continue
+			}
+			if !originalFiles[filename] {
+				actions = append(actions, fileAction{File: filename, Operation: "create"})
+				totalCreate++
+			}
+		}
+
+		if len(actions) > 0 {
+			output.Files[table] = actions
+		}
+	}
+
+	output.Files["_summary"] = map[string]int{
+		"create": totalCreate,
+		"update": totalUpdate,
+		"delete": totalDelete,
+	}
+
+	// Add next steps guidance
+	if totalCreate+totalUpdate+totalDelete == 0 {
+		output.NextSteps = []string{"No changes to upload. Edit local files first."}
+	} else {
+		output.NextSteps = []string{
+			"Run 'push --no-review' to execute this upload",
+			"Run 'status --json' to see detailed change list",
+		}
+		if totalDelete > 0 && !syncDeletes {
+			output.NextSteps = append(output.NextSteps, "Note: Deleted files shown only if --sync-deletes is used")
+		}
+	}
+
+	jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(jsonBytes))
+	return nil
+}
+
 // UploadChange represents a single change to upload
 type UploadChange struct {
 	Operation     string                 // "delete", "create", "update"
@@ -1041,6 +1221,7 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 	simulate, _ := cmd.Flags().GetBool("simulate")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	jsonOutput, _ := cmd.Flags().GetBool("json")
+	explain, _ := cmd.Flags().GetBool("explain")
 	simulate = simulate || dryRun // --dry-run is an alias for --simulate
 
 	// JSON output type definitions
@@ -1087,6 +1268,11 @@ func runContentUpload(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 		tablesToProcess = tables
+	}
+
+	// --explain mode: show what would happen without executing
+	if explain {
+		return runContentUploadExplain(tablesToProcess, fileName, syncDeletes)
 	}
 
 	// Load config and secrets for API calls

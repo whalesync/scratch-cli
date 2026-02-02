@@ -26,15 +26,56 @@ var (
 	invalidFileNameChars = regexp.MustCompile(`[<>:"|?*\x00-\x1f]`)
 )
 
+// ErrorCode constants for machine-parseable errors in JSON output
+const (
+	ErrCodeAuthFailed     = "AUTH_FAILED"
+	ErrCodeNotFound       = "NOT_FOUND"
+	ErrCodeRateLimited    = "RATE_LIMITED"
+	ErrCodeSchemaMismatch = "SCHEMA_MISMATCH"
+	ErrCodeConflict       = "CONFLICT"
+	ErrCodeNotConfigured  = "NOT_CONFIGURED"
+	ErrCodeInvalidInput   = "INVALID_INPUT"
+	ErrCodeServerError    = "SERVER_ERROR"
+	ErrCodeNetworkError   = "NETWORK_ERROR"
+)
+
 // outputJSONError outputs an error message in JSON format and exits with code 1.
 // Used by commands that support --json output mode.
 func outputJSONError(errMsg string) {
 	output := map[string]interface{}{
-		"error": errMsg,
+		"success": false,
+		"error":   errMsg,
 	}
 	data, _ := json.MarshalIndent(output, "", "  ")
 	fmt.Println(string(data))
 	os.Exit(1)
+}
+
+// outputJSONErrorWithCode outputs a structured error with code, message, and suggestion.
+// Used for machine-parseable error handling in JSON output mode.
+func outputJSONErrorWithCode(code, errMsg, suggestion string) {
+	output := map[string]interface{}{
+		"success": false,
+		"error": map[string]interface{}{
+			"code":       code,
+			"message":    errMsg,
+			"suggestion": suggestion,
+		},
+	}
+	data, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(data))
+	os.Exit(1)
+}
+
+// createOutputErrorWithCodeFunc creates a helper function for consistent error output with codes.
+// In JSON mode, it outputs structured JSON and exits. Otherwise, it returns an error.
+func createOutputErrorWithCodeFunc(jsonOutput bool) func(code, errMsg, suggestion string) error {
+	return func(code, errMsg, suggestion string) error {
+		if jsonOutput {
+			outputJSONErrorWithCode(code, errMsg, suggestion)
+		}
+		return fmt.Errorf("%s", errMsg)
+	}
 }
 
 // createOutputErrorFunc creates a helper function for consistent error output.
@@ -483,7 +524,7 @@ var folderCmd = &cobra.Command{
 // folderLinkCmd represents the folder link command
 var folderLinkCmd = &cobra.Command{
 	Use:   "link [folder-name]",
-	Short: "[NON-INTERACTIVE] Link a remote table to a local folder",
+	Short: "[NON-INTERACTIVE] Link folder (-> then pull)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 Create a local folder linked to a remote CMS table/collection.
@@ -491,9 +532,9 @@ Create a local folder linked to a remote CMS table/collection.
 This creates the folder structure and configuration files needed to sync content.
 If folder-name is not provided, the table's slug will be used.
 
-Requires --account.name and --table-id flags.
+NEXT STEP: Use 'pull <folder>' to download content from the CMS.
 
-After linking, use 'content download <folder>' to fetch records.
+Requires --account.name and --table-id flags.
 
 Examples:
   scratchmd folder link --account.name=webflow --table-id=6789abc

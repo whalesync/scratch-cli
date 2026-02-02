@@ -1,56 +1,184 @@
-# scratchmd CLI - Agent Reference
+# scratchmd CLI - LLM Agent Reference
 
-This document provides a quick reference for AI agents (Claude, GPT, etc.) using the scratchmd CLI.
+Quick reference for AI agents using the scratchmd CLI to sync local files with CMS platforms.
 
-## Overview
-
-`scratchmd` syncs local JSON files with CMS platforms (Webflow, WordPress, Airtable, Notion, etc.). Each CMS table/collection maps to a local folder containing JSON files.
-
-## Quick Command Reference
-
-### Discovery Commands (use --json for machine-readable output)
+## Quick Start
 
 ```bash
-scratchmd account list [--json]           # List configured CMS accounts
-scratchmd account fetch-sources <account> [--json]  # List available tables
-scratchmd status [--json]                 # Show pending changes
+# One-time setup
+scratchmd account add myblog --provider=webflow --api-key=<key>
+scratchmd sources myblog --json      # Find table ID
+scratchmd init posts --account.name=myblog --table-id=<id>
+
+# Daily workflow
+scratchmd pull posts                 # Download from CMS
+# ... edit files ...
+scratchmd status --json              # Check changes
+scratchmd push posts --no-review     # Upload to CMS
 ```
 
-### Setup Commands
+---
 
-```bash
-# Add a CMS account
-scratchmd account add <name> --provider=<provider> --api-key=<key>
+## Command Categories
 
-# Providers: webflow, wordpress, airtable, notion, audienceful, moco, youtube, wix-blog
+### DISCOVERY (read-only, safe to run anytime)
 
-# Link a table to a local folder
-scratchmd folder link <folder> --account.name=<account> --table-id=<id>
+| Command | Description | Next Step |
+|---------|-------------|-----------|
+| `ls --json` | List configured accounts | `sources <account>` |
+| `sources <account> --json` | List available CMS tables | `init` |
+| `status --json` | Show local changes | `push` if changes |
+| `check --json` | Alias for status | `push` if changes |
+
+### SETUP (idempotent, safe to retry)
+
+| Command | Description | Prerequisites |
+|---------|-------------|---------------|
+| `account add <name> --provider=X --api-key=Y` | Add CMS account | None |
+| `init <folder> --account.name=X --table-id=Y` | Link folder to table | Account exists, table ID known |
+
+### SYNC (modifies state)
+
+| Command | Description | Risk Level |
+|---------|-------------|------------|
+| `pull [folder]` | Download CMS → local | LOW: Only overwrites unchanged files |
+| `pull --clobber` | Force re-download | HIGH: Discards ALL local changes |
+| `push [folder] --no-review` | Upload local → CMS | MEDIUM: Creates/updates records |
+| `push --sync-deletes` | Upload + delete | HIGH: Deletes remote records |
+
+---
+
+## Prerequisites Table
+
+| Command | Requires |
+|---------|----------|
+| `ls` | None |
+| `sources <account>` | Account configured |
+| `init` | Account + table ID (from `sources`) |
+| `pull` | Folder linked (via `init`) |
+| `push` | Folder linked + has content |
+| `status` | Folder linked + has content |
+
+---
+
+## Idempotency Reference
+
+| Command | Safe to Retry? | Notes |
+|---------|----------------|-------|
+| `ls` | Yes | Read-only |
+| `sources` | Yes | Read-only |
+| `status` | Yes | Read-only |
+| `account add` | No | Fails if account exists |
+| `init` | No | Fails if folder already linked |
+| `pull` | Yes | Merges changes, preserves local edits |
+| `push` | Yes | Only uploads changed files |
+
+---
+
+## Decision Trees
+
+### "I need to set up a new CMS connection"
+
+```
+START
+  │
+  ▼
+[ls --json] → Do I have an account?
+  │
+  ├─ NO → [account add <name> --provider=X --api-key=Y]
+  │         │
+  │         ▼
+  │       [sources <account> --json] → Find table ID
+  │         │
+  │         ▼
+  │       [init <folder> --account.name=X --table-id=Y]
+  │         │
+  │         ▼
+  │       [pull <folder>] → Done!
+  │
+  └─ YES → [sources <account> --json] → (continue from there)
 ```
 
-### Content Sync Commands
+### "I want to edit CMS content"
 
-```bash
-# Download content from CMS
-scratchmd content download [folder]
-scratchmd pull [folder]                   # Alias
-
-# Upload changes to CMS
-scratchmd content upload [folder] --no-review [--json]
-scratchmd push [folder] --no-review [--json]  # Alias
-
-# Upload including deletions
-scratchmd content upload [folder] --sync-deletes --no-review
-
-# Preview without making changes (--dry-run is alias for --simulate)
-scratchmd content upload [folder] --dry-run [--json]
 ```
+START
+  │
+  ▼
+[status --json] → Are there local changes?
+  │
+  ├─ YES → Review changes, then [push --no-review]
+  │
+  └─ NO → [pull] to get latest, edit files, then [push]
+```
+
+### "I want to sync my changes"
+
+```
+START
+  │
+  ▼
+[status --json] → Check what changed
+  │
+  ├─ hasChanges: true
+  │     │
+  │     ▼
+  │   [push --explain] → Preview what will happen
+  │     │
+  │     ▼
+  │   [push --no-review --json] → Upload changes
+  │
+  └─ hasChanges: false → Nothing to upload
+```
+
+### "Something seems wrong"
+
+```
+START
+  │
+  ▼
+What's the error?
+  │
+  ├─ "Not logged in" → [auth login] or check credentials
+  │
+  ├─ "Account not found" → [ls] to see available accounts
+  │
+  ├─ "Table not found" → [sources <account>] to see available tables
+  │
+  ├─ "Folder not linked" → [init] to link folder
+  │
+  └─ "No original data" → [pull] to download content first
+```
+
+---
+
+## Error Codes
+
+When using `--json` output, errors include machine-parseable codes:
+
+| Code | Meaning | Suggested Action |
+|------|---------|------------------|
+| `AUTH_FAILED` | Invalid credentials | Check API key, run `account test` |
+| `NOT_FOUND` | Resource doesn't exist | Verify account/table/folder name |
+| `NOT_CONFIGURED` | Missing setup | Run appropriate setup command |
+| `INVALID_INPUT` | Bad parameter | Check command syntax |
+| `RATE_LIMITED` | Too many requests | Wait and retry |
+| `CONFLICT` | Merge conflict | Review changes, decide resolution |
+| `SERVER_ERROR` | CMS API error | Check CMS status, retry later |
+
+---
 
 ## JSON Output Examples
 
 ### status --json
+
 ```json
 {
+  "state": {
+    "accounts": 1,
+    "linkedFolders": 2,
+    "pendingChanges": 3
+  },
   "folders": [
     {
       "name": "blog-posts",
@@ -65,11 +193,37 @@ scratchmd content upload [folder] --dry-run [--json]
       ]
     }
   ],
-  "hasChanges": true
+  "hasChanges": true,
+  "nextActions": [
+    {"action": "push", "reason": "3 file(s) have local changes"}
+  ]
 }
 ```
 
-### upload --json
+### push --explain
+
+```json
+{
+  "action": "upload",
+  "folders": ["blog-posts"],
+  "files": {
+    "blog-posts": [
+      {"file": "new-post.json", "operation": "create"},
+      {"file": "updated.json", "operation": "update"}
+    ],
+    "_summary": {"create": 1, "update": 1, "delete": 0}
+  },
+  "destructive": false,
+  "reversible": true,
+  "nextSteps": [
+    "Run 'push --no-review' to execute this upload",
+    "Run 'status --json' to see detailed change list"
+  ]
+}
+```
+
+### push --json (after execution)
+
 ```json
 {
   "success": true,
@@ -80,12 +234,37 @@ scratchmd content upload [folder] --dry-run [--json]
 }
 ```
 
-### account list --json
+### ls --json (account list)
+
 ```json
 [
-  {"name": "myblog", "id": "acc_123", "provider": "wordpress", "tested": true}
+  {"name": "myblog", "id": "acc_123", "provider": "webflow", "tested": true}
 ]
 ```
+
+### sources --json (fetch-sources)
+
+```json
+[
+  {"id": "tbl_abc", "name": "Blog Posts", "linkedFolders": ["blog-posts"]},
+  {"id": "tbl_def", "name": "Products", "linkedFolders": []}
+]
+```
+
+### Error response (--json mode)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "AUTH_FAILED",
+    "message": "Invalid API key",
+    "suggestion": "Check your API key and run 'account test <account>'"
+  }
+}
+```
+
+---
 
 ## File Format
 
@@ -93,70 +272,30 @@ Records are stored as JSON files with the CMS record ID:
 
 ```json
 {
-  "id": 1234,
+  "id": "rec_abc123",
   "title": "My Post",
   "content": "<p>Hello world</p>",
-  "status": "publish"
+  "status": "publish",
+  "slug": "my-post"
 }
 ```
 
-The `id` field links the local file to the remote CMS record.
+- The `id` field links the local file to the remote CMS record
+- Filenames are based on the `slug` or `id` field (e.g., `my-post.json`)
+- New files get an `id` field added after first upload
 
-## Typical Workflow
+---
 
-```bash
-# 1. Setup (one-time)
-scratchmd account add myblog --provider=wordpress \
-  --account.endpoint=https://example.com \
-  --account.username=user \
-  --account.password=app-password
-
-# 2. Discover tables
-scratchmd account fetch-sources myblog --json
-
-# 3. Link a table
-scratchmd folder link posts --account.name=myblog --table-id=posts
-
-# 4. Download content
-scratchmd pull posts
-
-# 5. Edit files in posts/ folder
-
-# 6. Check status
-scratchmd status --json
-
-# 7. Upload changes
-scratchmd push posts --no-review --json
-```
-
-## Important Flags
-
-| Flag | Command | Description |
-|------|---------|-------------|
-| `--no-review` | upload/push | Skip confirmation prompt (required for automation) |
-| `--sync-deletes` | upload/push | Delete remote records when local file removed (DESTRUCTIVE) |
-| `--dry-run` | upload/push | Preview changes without executing |
-| `--json` | upload/push | Output results as JSON for parsing |
-| `--clobber` | download/pull | Delete local files and re-download (DESTRUCTIVE) |
-| `--json` | list, fetch-sources, status | Output as JSON for parsing |
-
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Error (check stderr for details) |
-
-## Provider-Specific Auth Properties
+## Provider-Specific Auth
 
 ### Webflow
 ```bash
---provider=webflow --api-key=<api-token>
+scratchmd account add myblog --provider=webflow --api-key=<token>
 ```
 
 ### WordPress
 ```bash
---provider=wordpress \
+scratchmd account add myblog --provider=wordpress \
   --account.endpoint=https://site.com \
   --account.username=<email> \
   --account.password=<app-password>
@@ -164,20 +303,39 @@ scratchmd push posts --no-review --json
 
 ### Airtable
 ```bash
---provider=airtable --api-key=<api-token>
+scratchmd account add mybase --provider=airtable --api-key=<token>
 ```
+
+---
+
+## Important Flags
+
+| Flag | Commands | Description |
+|------|----------|-------------|
+| `--json` | Most commands | Machine-readable output |
+| `--no-review` | push | Skip confirmation (required for automation) |
+| `--explain` | push, pull | Preview without executing |
+| `--sync-deletes` | push | Delete remote when local file removed |
+| `--clobber` | pull | Discard local changes, re-download |
+| `--dry-run` | push | Same as --simulate |
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Error (check stderr or JSON error field) |
+
+---
 
 ## When to Prompt the User
 
-- Before using `--sync-deletes` (permanently deletes CMS records)
-- Before using `--clobber` (discards local changes)
+Before proceeding, ask the user to confirm:
+
+- Before `--sync-deletes` (permanently deletes CMS records)
+- Before `--clobber` (discards local changes)
 - When credentials are missing or invalid
 - When table linking fails (table ID may be wrong)
-
-## File Naming
-
-Files are named by the `filenameField` configured for the table (usually `slug` or `id`):
-- `my-post-slug.json`
-- `1234.json`
-
-New files created locally will get an `id` field added after upload.
+- When conflicts occur during sync

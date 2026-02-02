@@ -19,7 +19,7 @@ import (
 // statusCmd shows which files have changed across all linked tables
 var statusCmd = &cobra.Command{
 	Use:   "status [folder[/file.json]]",
-	Short: "[NON-INTERACTIVE] Show which files have changed",
+	Short: "[NON-INTERACTIVE] Check changes (-> push if changes)",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
 Show which files differ from the original downloaded versions.
@@ -109,7 +109,54 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		}
 		if len(tables) == 0 {
 			if jsonOutput {
-				fmt.Println(`{"folders":[],"hasChanges":false}`)
+				// Count accounts for state info
+				accountCount := 0
+				if cfg, err := config.LoadConfig(); err == nil && cfg != nil {
+					accountCount = len(cfg.Accounts)
+				}
+
+				// Build response with state and nextActions
+				type stateInfo struct {
+					Accounts       int `json:"accounts"`
+					LinkedFolders  int `json:"linkedFolders"`
+					PendingChanges int `json:"pendingChanges"`
+				}
+				type nextAction struct {
+					Action string `json:"action"`
+					Reason string `json:"reason"`
+				}
+				type emptyStatusOutput struct {
+					State       stateInfo    `json:"state"`
+					Folders     []struct{}   `json:"folders"`
+					HasChanges  bool         `json:"hasChanges"`
+					NextActions []nextAction `json:"nextActions,omitempty"`
+				}
+
+				output := emptyStatusOutput{
+					State: stateInfo{
+						Accounts:       accountCount,
+						LinkedFolders:  0,
+						PendingChanges: 0,
+					},
+					Folders:    []struct{}{},
+					HasChanges: false,
+				}
+
+				// Add appropriate next action
+				if accountCount == 0 {
+					output.NextActions = []nextAction{{
+						Action: "account add",
+						Reason: "No accounts configured",
+					}}
+				} else {
+					output.NextActions = []nextAction{{
+						Action: "folder link",
+						Reason: "No folders linked to CMS tables",
+					}}
+				}
+
+				jsonBytes, _ := json.MarshalIndent(output, "", "  ")
+				fmt.Println(string(jsonBytes))
 				return nil
 			}
 			fmt.Println("No tables configured.")
@@ -135,15 +182,40 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			Changes      []fileChange `json:"changes,omitempty"`
 			Error        string       `json:"error,omitempty"`
 		}
+		type stateInfo struct {
+			Accounts       int `json:"accounts"`
+			LinkedFolders  int `json:"linkedFolders"`
+			PendingChanges int `json:"pendingChanges"`
+		}
+		type nextAction struct {
+			Action string `json:"action"`
+			Reason string `json:"reason"`
+		}
 		type statusOutput struct {
-			Folders    []folderStatus `json:"folders"`
-			HasChanges bool           `json:"hasChanges"`
+			State       stateInfo      `json:"state"`
+			Folders     []folderStatus `json:"folders"`
+			HasChanges  bool           `json:"hasChanges"`
+			NextActions []nextAction   `json:"nextActions,omitempty"`
+		}
+
+		// Count accounts
+		accountCount := 0
+		if cfg, err := config.LoadConfig(); err == nil && cfg != nil {
+			accountCount = len(cfg.Accounts)
 		}
 
 		output := statusOutput{
+			State: stateInfo{
+				Accounts:       accountCount,
+				LinkedFolders:  len(tablesToCheck),
+				PendingChanges: 0,
+			},
 			Folders:    []folderStatus{},
 			HasChanges: false,
 		}
+
+		totalPendingChanges := 0
+		foldersWithContent := 0
 
 		for _, table := range tablesToCheck {
 			status := getTableStatus(table)
@@ -160,6 +232,11 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			} else {
 				fs.LastDownload = status.lastDownload
 
+				// Track folders with content
+				if status.unchanged > 0 || len(status.modified) > 0 || len(status.added) > 0 || len(status.deleted) > 0 {
+					foldersWithContent++
+				}
+
 				// Collect changes
 				var changes []fileChange
 				for _, f := range status.deleted {
@@ -174,10 +251,42 @@ func runStatus(cmd *cobra.Command, args []string) error {
 				if len(changes) > 0 {
 					fs.Changes = changes
 					output.HasChanges = true
+					totalPendingChanges += len(changes)
 				}
 			}
 
 			output.Folders = append(output.Folders, fs)
+		}
+
+		output.State.PendingChanges = totalPendingChanges
+
+		// Build nextActions based on current state
+		var nextActions []nextAction
+
+		if accountCount == 0 {
+			nextActions = append(nextActions, nextAction{
+				Action: "account add",
+				Reason: "No accounts configured",
+			})
+		} else if len(tablesToCheck) == 0 {
+			nextActions = append(nextActions, nextAction{
+				Action: "folder link",
+				Reason: "No folders linked to CMS tables",
+			})
+		} else if foldersWithContent == 0 {
+			nextActions = append(nextActions, nextAction{
+				Action: "pull",
+				Reason: "Folders linked but no content downloaded yet",
+			})
+		} else if totalPendingChanges > 0 {
+			nextActions = append(nextActions, nextAction{
+				Action: "push",
+				Reason: fmt.Sprintf("%d file(s) have local changes", totalPendingChanges),
+			})
+		}
+
+		if len(nextActions) > 0 {
+			output.NextActions = nextActions
 		}
 
 		jsonBytes, _ := json.MarshalIndent(output, "", "  ")
