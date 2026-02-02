@@ -11,6 +11,12 @@
       }
     ]
   },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(nanoid)/)"
+  ],
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../../src/$1"
+  },
   "globalSetup": "<rootDir>/jest-setup.ts",
   "maxWorkers": 1
 }

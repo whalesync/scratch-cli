@@ -1,6 +1,6 @@
 import { SyncState } from '../enums/enums';
 import { SyncId } from '../ids';
-import { SyncMapping } from '../sync';
+import { SyncMapping } from '../sync-mapping';
 
 ///
 /// NOTE: Keep this in sync with server/prisma/schema.prisma Sync model

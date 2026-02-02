@@ -73,6 +73,11 @@ enum SyncState {
   ON
 }
 
+enum SyncSide {
+  SOURCE
+  DESTINATION
+}
+
 ///
 /// End "keep in sync" section
 ///
@@ -496,8 +501,10 @@ model DataFolder {
   // Version number of the folder structure, to help with future migrations
   version Int @default(1)
 
-  syncsPairsAsSource      SyncTablePair[] @relation("sourceDataFolder")
-  syncsPairsAsDestination SyncTablePair[] @relation("destinationDataFolder")
+  syncsPairsAsSource      SyncTablePair[]        @relation("sourceDataFolder")
+  syncsPairsAsDestination SyncTablePair[]        @relation("destinationDataFolder")
+  foreignKeyRecords       SyncForeignKeyRecord[]
+  remoteIdMappings        SyncRemoteIdMapping[]
 
   // Table ID path for connectors that represent tables as a path (e.g., ["database", "schema", "table"])
   // Empty array for scratch folders, populated for linked folders
@@ -592,7 +599,7 @@ model Sync {
   displayOrder Int      @default(0) @db.SmallInt
 
   // No default here, so the application should set a valid empty SyncMapping on creation
-  mappings Json // SyncMapping - @see packages/shared-types/src/sync.ts
+  mappings Json // SyncMapping - @see packages/shared-types/src/sync-mapping.ts
 
   /// Whether the sync is enabled.
   syncState            SyncState @default(OFF)
@@ -601,7 +608,9 @@ model Sync {
   /// The time the most recent full sync was run.
   lastSyncTime         DateTime?
 
-  syncTablePairs SyncTablePair[]
+  syncTablePairs    SyncTablePair[]
+  foreignKeyRecords SyncForeignKeyRecord[]
+  remoteIdMappings  SyncRemoteIdMapping[]
 }
 
 model SyncTablePair {
@@ -617,6 +626,75 @@ model SyncTablePair {
 
   destinationDataFolder   DataFolder @relation("destinationDataFolder", fields: [destinationDataFolderId], references: [id], onDelete: Cascade)
   destinationDataFolderId String
+}
+
+model SyncMatchKeys {
+  // TODO: double check cuid IDs
+  id String @id @default(cuid())
+
+  // Intentionally without FKs here, because we only need this table as a dumb unique index
+  syncId       String
+  dataFolderId String
+  matchId      String
+  remoteId     String // The remote ID of the record (e.g., file path)
+
+  @@unique([syncId, dataFolderId, matchId])
+  @@index([syncId, matchId])
+}
+
+/// Caches JSON data of records referenced by foreign keys in source records.
+/// For example, if a Post has category_id: "cat_123", this stores the Category record data.
+model SyncForeignKeyRecord {
+  // TODO: double check cuid IDs
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sync   Sync   @relation(fields: [syncId], references: [id], onDelete: Cascade)
+  syncId String
+
+  dataFolder   DataFolder @relation(fields: [dataFolderId], references: [id], onDelete: Cascade)
+  dataFolderId String
+
+  /// Whether foreignKeyId came from the source or destination
+  /// This is somewhat redundant, since dataFolderId already associates it with a specific DataFolder
+  side SyncSide
+
+  /// The remote column ID for this specific foreign key on the source table
+  foreignKeyColumnId String
+
+  /// The foreign key value (remote ID of the referenced record)
+  foreignKeyValue String
+
+  /// JSON representation of the referenced record
+  recordData Json
+
+  @@unique([syncId, dataFolderId, foreignKeyColumnId, foreignKeyValue])
+  @@index([syncId])
+  @@index([dataFolderId])
+}
+
+/// Maps source remote IDs to destination remote IDs for synced records.
+model SyncRemoteIdMapping {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sync   Sync   @relation(fields: [syncId], references: [id], onDelete: Cascade)
+  syncId String
+
+  dataFolder   DataFolder @relation(fields: [dataFolderId], references: [id], onDelete: Cascade)
+  dataFolderId String
+
+  /// The remote ID of the record in the source system
+  sourceRemoteId String
+
+  /// The remote ID of the corresponding record in the destination system (nullable for unmatched source records)
+  destinationRemoteId String?
+
+  @@unique([syncId, dataFolderId, sourceRemoteId])
+  @@index([syncId])
+  @@index([dataFolderId])
 }
 
 //#endregion

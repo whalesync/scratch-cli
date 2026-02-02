@@ -6,7 +6,9 @@ import { getAgentUrl, getAgentWebSocketUrl, getApiUrl, getAuthToken } from './co
 import { AgentCredential, RecordsResponse, Session, Table, Workbook } from './types';
 import { waitForWebSocketMessage } from './websocket';
 
-describe('Smoke Tests', () => {
+const describeOrSkip = process.env.RUN_JEST_SMOKE_TESTS ? describe : describe.skip;
+
+describeOrSkip('Smoke Tests', () => {
   let authToken: string;
   let agentJwt: string;
   let agentCredentialId: string | undefined;
