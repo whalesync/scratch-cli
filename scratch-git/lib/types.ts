@@ -46,7 +46,7 @@ export interface IGitService {
 
   createCheckpoint(repoId: string, name: string): Promise<void>;
   revertToCheckpoint(repoId: string, name: string): Promise<void>;
-  listCheckpoints(repoId: string): Promise<string[]>;
+  listCheckpoints(repoId: string): Promise<{ name: string; timestamp: number; message: string }[]>;
   deleteCheckpoint(repoId: string, name: string): Promise<void>;
 
   /**

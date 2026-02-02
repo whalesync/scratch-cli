@@ -101,4 +101,20 @@ export class ScratchGitService {
   async getGraph(workbookId: WorkbookId): Promise<any> {
     return this.scratchGitClient.getGraph(workbookId);
   }
+
+  async createCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    await this.scratchGitClient.createCheckpoint(workbookId, name);
+  }
+
+  async listCheckpoints(workbookId: WorkbookId): Promise<{ name: string; timestamp: number; message: string }[]> {
+    return this.scratchGitClient.listCheckpoints(workbookId);
+  }
+
+  async revertToCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    await this.scratchGitClient.revertToCheckpoint(workbookId, name);
+  }
+
+  async deleteCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    await this.scratchGitClient.deleteCheckpoint(workbookId, name);
+  }
 }

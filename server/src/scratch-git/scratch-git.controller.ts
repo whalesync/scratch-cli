@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import { ScratchGitService } from './scratch-git.service';
@@ -41,5 +41,31 @@ export class ScratchGitController {
   async getGraph(@Param('id') workbookId: WorkbookId): Promise<unknown> {
     console.log(`[ScratchGitController] getGraph called for ${workbookId}`);
     return this.scratchGitService.getGraph(workbookId);
+  }
+
+  @Post(':id/checkpoint')
+  async createCheckpoint(@Param('id') workbookId: WorkbookId, @Body('name') name: string): Promise<void> {
+    console.log(`[ScratchGitController] createCheckpoint called for ${workbookId} name=${name}`);
+    return this.scratchGitService.createCheckpoint(workbookId, name);
+  }
+
+  @Get(':id/checkpoints')
+  async listCheckpoints(
+    @Param('id') workbookId: WorkbookId,
+  ): Promise<{ name: string; timestamp: number; message: string }[]> {
+    console.log(`[ScratchGitController] listCheckpoints called for ${workbookId}`);
+    return this.scratchGitService.listCheckpoints(workbookId);
+  }
+
+  @Post(':id/checkpoint/revert')
+  async revertToCheckpoint(@Param('id') workbookId: WorkbookId, @Body('name') name: string): Promise<void> {
+    console.log(`[ScratchGitController] revertToCheckpoint called for ${workbookId} name=${name}`);
+    return this.scratchGitService.revertToCheckpoint(workbookId, name);
+  }
+
+  @Delete(':id/checkpoint/:name')
+  async deleteCheckpoint(@Param('id') workbookId: WorkbookId, @Param('name') name: string): Promise<void> {
+    console.log(`[ScratchGitController] deleteCheckpoint called for ${workbookId} name=${name}`);
+    return this.scratchGitService.deleteCheckpoint(workbookId, name);
   }
 }

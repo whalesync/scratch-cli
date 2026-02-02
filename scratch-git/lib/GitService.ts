@@ -612,13 +612,32 @@ export class GitService implements IGitService {
     }
   }
 
-  async listCheckpoints(repoId: string): Promise<string[]> {
+  async listCheckpoints(repoId: string): Promise<{ name: string; timestamp: number; message: string }[]> {
     const dir = this.getRepoPath(repoId);
     const tags = await git.listTags({ fs, dir, gitdir: dir });
     const mainTags = tags.filter((t) => t.startsWith('main_')).map((t) => t.slice(5));
     const dirtyTags = new Set(tags.filter((t) => t.startsWith('dirty_')).map((t) => t.slice(6)));
 
-    return mainTags.filter((name) => dirtyTags.has(name));
+    // Checkpoints exist where both main_ and dirty_ tags exist
+    const checkpointNames = mainTags.filter((name) => dirtyTags.has(name));
+
+    const results = await Promise.all(
+      checkpointNames.map(async (name) => {
+        try {
+          const oid = await git.resolveRef({ fs, dir, gitdir: dir, ref: `dirty_${name}` });
+          const { commit } = await git.readCommit({ fs, dir, gitdir: dir, oid });
+          return {
+            name,
+            timestamp: commit.committer.timestamp,
+            message: commit.message,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    return results.filter((r): r is { name: string; timestamp: number; message: string } => r !== null);
   }
 
   async deleteCheckpoint(repoId: string, name: string): Promise<void> {

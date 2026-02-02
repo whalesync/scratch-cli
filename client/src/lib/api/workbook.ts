@@ -302,4 +302,47 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  async createCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/scratch-git/${workbookId}/checkpoint`, { name });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create checkpoint');
+      throw error;
+    }
+  },
+
+  async listCheckpoints(workbookId: WorkbookId): Promise<{ name: string; timestamp: number; message: string }[]> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<{ name: string; timestamp: number; message: string }[]>(
+        `/scratch-git/${workbookId}/checkpoints`,
+      );
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list checkpoints');
+      throw error;
+    }
+  },
+
+  async revertToCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/scratch-git/${workbookId}/checkpoint/revert`, { name });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to revert to checkpoint');
+      throw error;
+    }
+  },
+
+  async deleteCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/scratch-git/${workbookId}/checkpoint/${name}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete checkpoint');
+      throw error;
+    }
+  },
 };

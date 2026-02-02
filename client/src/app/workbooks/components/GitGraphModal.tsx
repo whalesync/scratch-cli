@@ -20,12 +20,23 @@ interface GitGraphModalProps {
 }
 
 // Helper to build commit info
-const buildCommitInfo = (commit: CommitData, refs: string[]) => {
+const buildCommitInfo = (commit: CommitData, refs: RefData[]) => {
   const msg = commit.message.trim().split('\n')[0];
   const timeAgo = dayjs.unix(commit.timestamp).fromNow();
-  const refString = refs.length > 0 ? refs.map((r) => `[${r}]`).join(' ') : '';
+  const refString =
+    refs.length > 0
+      ? refs
+          .map((r) => {
+            const icon = r.type === 'branch' ? '⎇' : '🏷';
+            return `[${icon} ${r.name}]`;
+          })
+          .join(' ')
+      : '';
 
-  const line1 = `${commit.oid.substring(0, 7)} - ${timeAgo} ${refString}`;
+  const parentString =
+    commit.parents.length > 0 ? ` {parents: ${commit.parents.map((p) => p.substring(0, 7)).join(', ')}}` : '';
+
+  const line1 = `${commit.oid.substring(0, 7)} - ${timeAgo} ${refString}${parentString}`;
   return { subject: line1, body: msg };
 };
 
@@ -138,15 +149,13 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
               lineWidth: 2,
               spacing: 30,
               label: {
-                display: false, // Hide native branch labels if we rely on manual refs? User said "do not render the tags in the native way", probably meant branch labels too if they align badly?
-                // "at the moment the top commit is both dirty and main but only main is shown" -> implies native branch labeling only shows one.
-                // So manual ref string is better.
+                display: false,
                 font: '10px sans-serif',
                 borderRadius: 4,
               },
             },
             commit: {
-              spacing: 24,
+              spacing: 15,
               dot: { size: 6 },
               message: {
                 displayAuthor: false,
@@ -161,7 +170,11 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
           if (hasPopulatedRef.current) return;
           hasPopulatedRef.current = true;
 
-          // Map OID -> Refs
+          // 1. Index commits
+          const commitMap = new Map<string, CommitData>();
+          data.commits.forEach((c) => commitMap.set(c.oid, c));
+
+          // 2. Map OID -> Refs
           const refsByOid = new Map<string, RefData[]>();
           data.refs.forEach((r) => {
             const list = refsByOid.get(r.oid) || [];
@@ -169,24 +182,12 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
             refsByOid.set(r.oid, list);
           });
 
-          // Sort commits: oldest first (backend sorts desc, we need asc for gitgraph usually? No, gitgraph usually builds from whatever we feed it which is linear history)
-          // The backend returns DESC (newest first). Gitgraph usually expects this order to build correctly implicitly?
-          // Wait, existing code did: [...data.commits].sort((a,b) => a.author.timestamp - b.author.timestamp). This is ASCENDING (oldest first).
-          // So we should keep that.
-
-          const sortedCommits = [...data.commits].sort((a, b) => a.timestamp - b.timestamp);
-          const commitMap = new Map<string, CommitData>();
-          data.commits.forEach((c) => commitMap.set(c.oid, c));
-
-          // ... (oidToBranchName, branchObjs logic remains)
+          // 3. Pre-calculate branch assignment (Walk back from tips)
           const oidToBranchName = new Map<string, string>();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const branchObjs = new Map<string, any>();
-
-          // Pre-calculate branch ownership (naive: walk back from tips)
           const branchTips = data.refs.filter((r) => r.type === 'branch');
-          const priority = ['main', 'master', 'dirty']; // priority list
+          const priority = ['main', 'master', 'dirty'];
 
+          // Sort pointers by priority then name
           branchTips.sort((a, b) => {
             const idxA = priority.indexOf(a.name);
             const idxB = priority.indexOf(b.name);
@@ -196,51 +197,116 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
             return a.name.localeCompare(b.name);
           });
 
-          const getOrInitBranch = (name: string) => {
-            if (!branchObjs.has(name)) {
-              branchObjs.set(name, gitgraph.branch(name));
+          // Walk back from each tip
+          for (const tip of branchTips) {
+            let currentOid: string | undefined = tip.oid;
+            while (currentOid) {
+              if (oidToBranchName.has(currentOid)) {
+                // Already claimed by a higher priority branch
+                break;
+              }
+              oidToBranchName.set(currentOid, tip.name);
+
+              const commit = commitMap.get(currentOid);
+              if (!commit || commit.parents.length === 0) {
+                break;
+              }
+              // Follow first parent for main line of history
+              currentOid = commit.parents[0];
             }
-            return branchObjs.get(name);
-          };
+          }
 
-          if (branchTips.find((b) => b.name === 'main')) getOrInitBranch('main');
+          // 4. Sort commits topologically (Parents before Children, then Oldest first)
+          const sortedCommits: CommitData[] = [];
 
-          for (const commit of sortedCommits) {
-            // ... existing branch determination logic ...
-            const refs = refsByOid.get(commit.oid) || [];
-            const branchRefs = refs.filter((r) => r.type === 'branch');
-            // Collect ALL ref names for display
-            const allRefNames = refs.map((r) => r.name);
+          {
+            const commitOids = new Set(data.commits.map((c) => c.oid));
+            const inDegree = new Map<string, number>(); // oid -> number of parents in dataset
+            const childrenMap = new Map<string, string[]>(); // parent -> list of children
 
-            let targetBranchName = 'main';
+            // Initialize
+            data.commits.forEach((c) => {
+              inDegree.set(c.oid, 0);
+              childrenMap.set(c.oid, []);
+            });
 
-            if (branchRefs.length > 0) {
-              branchRefs.sort((a, b) => {
-                const idxA = priority.indexOf(a.name);
-                const idxB = priority.indexOf(b.name);
-                if (idxA > -1 && idxB > -1) return idxA - idxB;
-                if (idxA > -1) return -1;
-                if (idxB > -1) return 1;
-                return a.name.localeCompare(b.name);
+            // Build Graph
+            data.commits.forEach((child) => {
+              let recognizedParents = 0;
+              child.parents.forEach((p_oid) => {
+                if (commitOids.has(p_oid)) {
+                  recognizedParents++;
+                  const siblings = childrenMap.get(p_oid) || [];
+                  siblings.push(child.oid);
+                  childrenMap.set(p_oid, siblings);
+                }
               });
-              targetBranchName = branchRefs[0].name;
-            } else {
-              if (commit.parents.length > 0) {
-                const pOid = commit.parents[0];
-                const parentBranchName = oidToBranchName.get(pOid);
-                if (parentBranchName) targetBranchName = parentBranchName;
+              inDegree.set(child.oid, recognizedParents);
+            });
+
+            // Queue of commits with 0 parents (roots in this dataset context)
+            const queue = data.commits.filter((c) => (inDegree.get(c.oid) || 0) === 0);
+
+            // Process
+            while (queue.length > 0) {
+              // Always pick the oldest available commit to keep chronological order
+              queue.sort((a, b) => a.timestamp - b.timestamp);
+
+              const current = queue.shift()!;
+              sortedCommits.push(current);
+
+              const children = childrenMap.get(current.oid) || [];
+              for (const childOid of children) {
+                const currentInDegree = (inDegree.get(childOid) || 0) - 1;
+                inDegree.set(childOid, currentInDegree);
+
+                if (currentInDegree === 0) {
+                  const child = commitMap.get(childOid)!;
+                  queue.push(child);
+                }
               }
             }
 
-            oidToBranchName.set(commit.oid, targetBranchName);
-            let branch = branchObjs.get(targetBranchName);
+            // Handle cycles / orphans (fallback to remaining commits sorted by timestamp)
+            if (sortedCommits.length !== data.commits.length) {
+              const processed = new Set(sortedCommits.map((c) => c.oid));
+              const remaining = data.commits
+                .filter((c) => !processed.has(c.oid))
+                .sort((a, b) => a.timestamp - b.timestamp);
+              sortedCommits.push(...remaining);
+            }
+          }
 
+          // 5. Render loop
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const branchObjs = new Map<string, any>();
+
+          for (const commit of sortedCommits) {
+            const refs = refsByOid.get(commit.oid) || [];
+
+            // Determine which visual branch this commit belongs to
+            let targetBranchName = oidToBranchName.get(commit.oid);
+
+            // Fallback for orphans or merged commits not reached by first-parent walk
+            if (!targetBranchName) {
+              if (commit.parents.length > 0) {
+                // inherit from first parent if possible
+                targetBranchName = oidToBranchName.get(commit.parents[0]);
+              }
+            }
+            if (!targetBranchName) {
+              targetBranchName = 'detached';
+            }
+
+            // Ensure branch object exists
+            let branch = branchObjs.get(targetBranchName);
             if (!branch) {
-              // ... create branch logic ...
+              // Try to find a parent to branch off from
               if (commit.parents.length > 0) {
                 const pOid = commit.parents[0];
-                const parentName = oidToBranchName.get(pOid) || 'main';
-                const parentBranch = branchObjs.get(parentName);
+                const parentBranchName = oidToBranchName.get(pOid) || 'main'; // best guess
+                const parentBranch = branchObjs.get(parentBranchName);
+
                 if (parentBranch) {
                   branch = parentBranch.branch(targetBranchName);
                 } else {
@@ -252,18 +318,21 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
               branchObjs.set(targetBranchName, branch);
             }
 
+            // Update oid map dynamically for next iterations (in case we synthesized a fallback)
+            oidToBranchName.set(commit.oid, targetBranchName);
+
             // Prepare commit info
-            const { subject, body } = buildCommitInfo(commit, allRefNames);
+            const { subject, body } = buildCommitInfo(commit, refs);
 
             const commitOptions = {
               subject,
               body,
-              // tag: undefined, // Explicitly no tag
             };
 
+            // Handle merges (2+ parents)
             if (commit.parents.length > 1) {
-              // Find the other branch
               const otherParentOid = commit.parents[1];
+              // The "other" parent might belong to a different branch
               const otherBranchName = oidToBranchName.get(otherParentOid);
               const otherBranch = otherBranchName ? branchObjs.get(otherBranchName) : undefined;
 
@@ -273,7 +342,6 @@ const GitGraphRenderer = ({ data }: { data: GraphData }) => {
                   commitOptions,
                 });
               } else {
-                // Fallback normal commit if can't find other branch
                 branch.commit(commitOptions);
               }
             } else {

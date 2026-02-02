@@ -94,4 +94,22 @@ export class ScratchGitClient {
   async getGraph(repoId: string): Promise<any> {
     return this.callGitApi(`/api/repo/${repoId}/graph`, 'GET');
   }
+
+  async createCheckpoint(repoId: string, name: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/checkpoint`, 'POST', { name });
+  }
+
+  async listCheckpoints(repoId: string): Promise<{ name: string; timestamp: number; message: string }[]> {
+    return this.callGitApi(`/api/repo/${repoId}/checkpoints`, 'GET') as Promise<
+      { name: string; timestamp: number; message: string }[]
+    >;
+  }
+
+  async revertToCheckpoint(repoId: string, name: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/checkpoint/revert`, 'POST', { name });
+  }
+
+  async deleteCheckpoint(repoId: string, name: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/checkpoint/${encodeURIComponent(name)}`, 'DELETE');
+  }
 }

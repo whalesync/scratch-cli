@@ -45,6 +45,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { GitBrowserModal } from '../../components/GitBrowserModal';
 import { GitGraphModal } from '../../components/GitGraphModal';
+import { VersionsModal } from '../../components/VersionsModal';
 import styles from './DataFolderBrowser.module.css';
 
 interface DataFolderBrowserProps {
@@ -71,6 +72,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   // Git menu state
   const [gitBrowserOpen, setGitBrowserOpen] = useState(false);
   const [gitGraphOpen, setGitGraphOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [gitStatusOpen, setGitStatusOpen] = useState(false);
   const [gitStatus, setGitStatus] = useState<object | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -96,6 +98,10 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
 
   const handleBrowseFiles = useCallback(() => {
     setGitBrowserOpen(true);
+  }, []);
+
+  const handleVersions = useCallback(() => {
+    setVersionsOpen(true);
   }, []);
 
   const handleGitGraph = useCallback(() => {
@@ -260,6 +266,9 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
                 <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
                   Git Graph
                 </Menu.Item>
+                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleVersions} color="violet">
+                  Version History
+                </Menu.Item>
                 <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
                   Browse Files
                 </Menu.Item>
@@ -305,6 +314,18 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
       )}
       {workbook && (
         <GitGraphModal workbookId={workbook.id} isOpen={gitGraphOpen} onClose={() => setGitGraphOpen(false)} />
+      )}
+      {workbook && (
+        <VersionsModal
+          workbookId={workbook.id}
+          isOpen={versionsOpen}
+          onClose={() => setVersionsOpen(false)}
+          onSuccess={() => {
+            // Maybe refresh data folders or something if needed?
+            // Since versions affect the FS, we might assume live queries handle it
+            setVersionsOpen(false);
+          }}
+        />
       )}
 
       <Modal opened={gitStatusOpen} onClose={() => setGitStatusOpen(false)} title="Git Status" size="lg">
