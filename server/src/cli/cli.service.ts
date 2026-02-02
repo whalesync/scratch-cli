@@ -1,13 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import {
-  createConnectorAccountId,
-  DataFolderId,
-  FileId,
-  Service,
-  SnapshotRecordId,
-  WorkbookId,
-} from '@spinner/shared-types';
+import { createConnectorAccountId, DataFolderId, Service, SnapshotRecordId, WorkbookId } from '@spinner/shared-types';
+import { createHash } from 'crypto';
+import * as path from 'path';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
@@ -15,6 +10,7 @@ import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { ConnectorFile, TablePreview } from 'src/remote-service/connectors/types';
+import { DIRTY_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { Actor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
@@ -23,15 +19,25 @@ import { normalizeFileName } from 'src/workbook/util';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
+import { ValidatedFolderMetadataDto } from './dtos/download-folder.dto';
 import {
-  DownloadFolderResponseDto,
-  ValidatedFolderFileContentDto,
-  ValidatedFolderMetadataDto,
-} from './dtos/download-folder.dto';
+  GetFolderFilesResponseDto,
+  PutFolderFilesResponseDto,
+  ValidatedPutFolderFilesRequestDto,
+} from './dtos/folder-files.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
 import { ValidatedFileResult, ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
+
+/**
+ * Represents a file from the dirty branch (server state)
+ */
+interface DirtyFile {
+  name: string;
+  path: string;
+  content: string;
+}
 
 @Injectable()
 export class CliService {
@@ -42,7 +48,15 @@ export class CliService {
     private readonly workbookService: WorkbookService,
     private readonly dataFolderService: DataFolderService,
     private readonly workbookDbService: WorkbookDbService,
+    private readonly scratchGitService: ScratchGitService,
   ) {}
+
+  /**
+   * Computes SHA256 hash of content
+   */
+  private hash(content: string): string {
+    return createHash('sha256').update(content, 'utf8').digest('hex');
+  }
 
   /**
    * Converts a lowercase service name (e.g., "notion", "airtable") to the Service enum value.
@@ -530,66 +544,170 @@ export class CliService {
   }
 
   /**
-   * Downloads a data folder and all its files for the CLI.
-   * Returns folder metadata and file contents for local storage.
+   * Validates a file name to prevent path traversal attacks.
+   * Returns the sanitized basename if valid, throws BadRequestException if invalid.
+   *
+   * IMPORTANT: This validation must be OS-agnostic since clients may run on
+   * Windows, Linux, or macOS. We check for both forward and backward slashes
+   * regardless of the server's OS.
    */
-  async downloadFolder(folderId: DataFolderId, actor: Actor): Promise<DownloadFolderResponseDto> {
-    try {
-      // Fetch folder via dataFolderService.findOne (includes access check)
-      const folder = await this.dataFolderService.findOne(folderId, actor);
+  private validateFileName(name: string): string {
+    if (!name || name.trim() === '') {
+      throw new BadRequestException('File name cannot be empty');
+    }
 
-      // Fetch all files for this folder
-      const files = await this.workbookDbService.workbookDb.getFilesByFolderId(folder.workbookId, folderId);
+    // Reject path traversal patterns (check before any processing)
+    if (name.includes('..') || name.includes('\0')) {
+      throw new BadRequestException(`Invalid file name: ${name} (path traversal not allowed)`);
+    }
 
-      // Build folder metadata
-      const folderMetadata: ValidatedFolderMetadataDto = {
-        id: folder.id,
-        name: folder.name,
-        workbookId: folder.workbookId,
-        connectorService: folder.connectorService ?? null,
-        connectorDisplayName: folder.connectorDisplayName ?? null,
-        tableId: folder.tableId ?? [],
-        path: folder.path ?? null,
-        schema: folder.schema ?? null,
-        lastSyncTime: folder.lastSyncTime ?? null,
-      };
+    // Reject any path separators - file names should not contain directory components
+    // Check BOTH forward and backward slashes for cross-platform safety
+    // (path.basename behavior varies by OS - on Linux, backslash is not a separator)
+    if (name.includes('/') || name.includes('\\')) {
+      throw new BadRequestException(`Invalid file name: ${name} (path separators not allowed)`);
+    }
 
-      // Convert files to response format
-      const fileContents: ValidatedFolderFileContentDto[] = files.map((file) => ({
-        fileId: file.id as FileId,
-        remoteId: file.remote_id ?? null,
-        name: file.name,
-        path: file.path,
-        content: file.content ?? null,
-        original: file.original ?? null,
-        deleted: file.deleted,
-        dirty: file.dirty,
+    // Get basename as a safety measure (should be same as name at this point)
+    const basename = path.basename(name);
+
+    // Double-check: reject if the original name had path components
+    if (basename !== name) {
+      throw new BadRequestException(`Invalid file name: ${name} (path traversal not allowed)`);
+    }
+
+    return basename;
+  }
+
+  /**
+   * Gets all files from a folder on the dirty branch (simple storage layer).
+   * No merge logic - just returns files.
+   */
+  async getFolderFiles(folderId: DataFolderId, actor: Actor): Promise<GetFolderFilesResponseDto> {
+    const folder = await this.dataFolderService.findOne(folderId, actor);
+    const workbookId = folder.workbookId;
+    const rawPath = folder.path || folder.name;
+    const folderPath = rawPath.startsWith('/') ? rawPath.slice(1) : rawPath;
+
+    const dirtyFiles = await this.getDirtyBranchFiles(workbookId, folderPath);
+
+    const folderMetadata: ValidatedFolderMetadataDto = {
+      id: folder.id,
+      name: folder.name,
+      workbookId: folder.workbookId,
+      connectorService: folder.connectorService ?? null,
+      connectorDisplayName: folder.connectorDisplayName ?? null,
+      tableId: folder.tableId ?? [],
+      path: folder.path ?? null,
+      schema: folder.schema ?? null,
+      lastSyncTime: folder.lastSyncTime ?? null,
+    };
+
+    return {
+      success: true,
+      folder: folderMetadata,
+      files: dirtyFiles.map((f) => ({
+        name: f.name,
+        content: f.content,
+        hash: this.hash(f.content),
+      })),
+    };
+  }
+
+  /**
+   * Writes pre-merged files to a folder on the dirty branch (simple storage layer).
+   * The CLI performs all merge logic locally before calling this endpoint.
+   */
+  async putFolderFiles(
+    folderId: DataFolderId,
+    request: ValidatedPutFolderFilesRequestDto,
+    actor: Actor,
+  ): Promise<PutFolderFilesResponseDto> {
+    const folder = await this.dataFolderService.findOne(folderId, actor);
+    const workbookId = folder.workbookId;
+    const rawPath = folder.path || folder.name;
+    const folderPath = rawPath.startsWith('/') ? rawPath.slice(1) : rawPath;
+
+    // Validate and write files
+    if (request.files && request.files.length > 0) {
+      const filesToCommit = request.files.map((f) => ({
+        path: `${folderPath}/${this.validateFileName(f.name)}`,
+        content: f.content,
       }));
 
-      // Track event
-      this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD_FOLDER, actor.userId, {
-        folderId,
-        workbookId: folder.workbookId,
-        fileCount: files.length,
-        connectorService: folder.connectorService,
-      });
+      await this.scratchGitService.commitFilesToBranch(workbookId, DIRTY_BRANCH, filesToCommit, 'CLI upload');
+    }
 
-      return {
-        folder: folderMetadata,
-        files: fileContents,
-        totalCount: files.length,
-      };
-    } catch (error: unknown) {
-      WSLogger.error({
+    // Handle deletions
+    if (request.deletedFiles && request.deletedFiles.length > 0) {
+      for (const fileName of request.deletedFiles) {
+        const validatedName = this.validateFileName(fileName);
+        await this.scratchGitService.deleteFile(workbookId, `${folderPath}/${validatedName}`, 'CLI delete');
+      }
+    }
+
+    // Compute sync hash
+    const allHashes = (request.files || []).map((f) => this.hash(f.content)).join(':');
+    const syncHash = this.hash(allHashes || 'empty');
+
+    this.posthogService.captureEvent(PostHogEventName.CLI_UPLOAD_FOLDER, actor.userId, {
+      folderId,
+      workbookId,
+      operation: 'upload',
+      fileCount: request.files?.length ?? 0,
+      deletedCount: request.deletedFiles?.length ?? 0,
+    });
+
+    return {
+      success: true,
+      syncHash,
+    };
+  }
+
+  /**
+   * Gets all files from the dirty branch for a folder.
+   */
+  private async getDirtyBranchFiles(workbookId: WorkbookId, folderPath: string): Promise<DirtyFile[]> {
+    try {
+      // List files in the folder on dirty branch
+      const fileRefs = (await this.scratchGitService.listRepoFiles(
+        workbookId,
+        DIRTY_BRANCH,
+        folderPath,
+      )) as RepoFileRef[];
+
+      // Fetch content for each file
+      const files: DirtyFile[] = [];
+      for (const ref of fileRefs) {
+        if (ref.type === 'file') {
+          try {
+            const fileData = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, ref.path);
+            files.push({
+              name: ref.name,
+              path: ref.path,
+              content: fileData?.content ?? '{}',
+            });
+          } catch {
+            // Skip files that can't be read
+            WSLogger.warn({
+              source: 'CliService',
+              message: 'Could not read file from dirty branch',
+              path: ref.path,
+            });
+          }
+        }
+      }
+
+      return files;
+    } catch (error) {
+      // If folder doesn't exist yet, return empty array
+      WSLogger.info({
         source: 'CliService',
-        message: 'Error downloading folder',
+        message: 'Folder not found on dirty branch, treating as empty',
+        folderPath,
         error: error instanceof Error ? error.message : 'Unknown error',
-        folderId,
       });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        error: errorMessage,
-      };
+      return [];
     }
   }
 }

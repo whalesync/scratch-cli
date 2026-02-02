@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
@@ -204,18 +205,6 @@ type DataFolder struct {
 	TableId              []string `json:"tableId,omitempty"`
 }
 
-// FolderFileContent represents a file's content within a downloaded folder.
-type FolderFileContent struct {
-	FileID   string `json:"fileId"`
-	RemoteID string `json:"remoteId,omitempty"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Content  string `json:"content,omitempty"`
-	Original string `json:"original,omitempty"`
-	Deleted  bool   `json:"deleted"`
-	Dirty    bool   `json:"dirty"`
-}
-
 // FolderMetadata represents metadata about a downloaded folder.
 type FolderMetadata struct {
 	ID                   string                 `json:"id"`
@@ -229,12 +218,61 @@ type FolderMetadata struct {
 	LastSyncTime         string                 `json:"lastSyncTime,omitempty"`
 }
 
-// DownloadFolderResponse represents the response from the folder download endpoint.
-type DownloadFolderResponse struct {
-	Error      string              `json:"error,omitempty"`
-	Folder     *FolderMetadata     `json:"folder,omitempty"`
-	Files      []FolderFileContent `json:"files,omitempty"`
-	TotalCount int                 `json:"totalCount,omitempty"`
+// SyncOperation represents the type of sync operation.
+type SyncOperation string
+
+const (
+	SyncOperationDownload SyncOperation = "download"
+	SyncOperationUpload   SyncOperation = "upload"
+)
+
+// LocalFile represents a file from the CLI's local filesystem.
+type LocalFile struct {
+	Name            string `json:"name"`
+	Content         string `json:"content"`
+	OriginalHash    string `json:"originalHash"`
+	OriginalContent string `json:"originalContent,omitempty"` // For three-way merge
+	Deleted         bool   `json:"deleted,omitempty"`
+}
+
+// SyncFolderRequest represents the request body for the sync endpoint.
+type SyncFolderRequest struct {
+	Operation  SyncOperation `json:"operation"`
+	LocalFiles []LocalFile   `json:"localFiles"`
+}
+
+// SyncedFile represents a file returned from the sync endpoint.
+type SyncedFile struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+	Hash    string `json:"hash"`
+}
+
+// DeletedFileInfo represents information about a deleted file.
+type DeletedFileInfo struct {
+	Name            string `json:"name"`
+	DeletedBy       string `json:"deletedBy"` // "local" or "server"
+	HadLocalChanges bool   `json:"hadLocalChanges"`
+}
+
+// ConflictInfo represents information about a resolved conflict.
+type ConflictInfo struct {
+	File        string `json:"file"`
+	Field       string `json:"field,omitempty"`
+	Resolution  string `json:"resolution"`
+	LocalValue  string `json:"localValue,omitempty"`
+	ServerValue string `json:"serverValue,omitempty"`
+}
+
+// SyncFolderResponse represents the response from the sync endpoint.
+type SyncFolderResponse struct {
+	Success      bool              `json:"success"`
+	Error        string            `json:"error,omitempty"`
+	Folder       *FolderMetadata   `json:"folder,omitempty"`
+	Files        []SyncedFile      `json:"files,omitempty"`
+	DeletedFiles []DeletedFileInfo `json:"deletedFiles,omitempty"`
+	Conflicts    []ConflictInfo    `json:"conflicts,omitempty"`
+	SyncHash     string            `json:"syncHash,omitempty"`
 }
 
 // ClientOption is a function that configures a Client.
@@ -307,11 +345,14 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 
 	var bodyReader io.Reader
 	if body != nil {
-		data, err := json.Marshal(body)
-		if err != nil {
+		// Use encoder with SetEscapeHTML(false) to preserve characters like & without escaping to \u0026
+		var buf bytes.Buffer
+		encoder := json.NewEncoder(&buf)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(body); err != nil {
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
-		bodyReader = bytes.NewReader(data)
+		bodyReader = &buf
 	}
 
 	req, err := http.NewRequest(method, u, bodyReader)
@@ -502,12 +543,136 @@ func (c *Client) ListDataFolders(workbookId string) ([]DataFolder, error) {
 	return result, nil
 }
 
-// DownloadFolder downloads a data folder and all its files.
-func (c *Client) DownloadFolder(folderId string) (*DownloadFolderResponse, error) {
-	var result DownloadFolderResponse
-	path := fmt.Sprintf("folders/%s/download", folderId)
+// SyncFolder syncs a folder between local and server state.
+// For download: merges server state with local files, local wins on conflict.
+// For upload: merges local files with server state and commits to dirty branch.
+// Deprecated: Use GetFolderFiles + local merge + PutFolderFiles instead.
+func (c *Client) SyncFolder(folderId string, req *SyncFolderRequest) (*SyncFolderResponse, error) {
+	var result SyncFolderResponse
+	path := fmt.Sprintf("folders/%s/sync", folderId)
+	if err := c.doRequest(http.MethodPost, path, nil, req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// ServerFile represents a file from the server's dirty branch.
+type ServerFile struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+	Hash    string `json:"hash"`
+}
+
+// GetFolderFilesResponse represents the response from the get folder files endpoint.
+type GetFolderFilesResponse struct {
+	Success bool            `json:"success"`
+	Error   string          `json:"error,omitempty"`
+	Folder  *FolderMetadata `json:"folder,omitempty"`
+	Files   []ServerFile    `json:"files,omitempty"`
+}
+
+// FileToWrite represents a file to write to the server.
+type FileToWrite struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
+// PutFolderFilesRequest represents the request body for the put folder files endpoint.
+type PutFolderFilesRequest struct {
+	Files        []FileToWrite `json:"files"`
+	DeletedFiles []string      `json:"deletedFiles"`
+}
+
+// PutFolderFilesResponse represents the response from the put folder files endpoint.
+type PutFolderFilesResponse struct {
+	Success  bool   `json:"success"`
+	Error    string `json:"error,omitempty"`
+	SyncHash string `json:"syncHash,omitempty"`
+}
+
+// GetFolderFiles retrieves all files from a folder on the server's dirty branch.
+// This is a simple storage layer operation - no merge logic.
+func (c *Client) GetFolderFiles(folderId string) (*GetFolderFilesResponse, error) {
+	var result GetFolderFilesResponse
+	path := fmt.Sprintf("folders/%s/files", folderId)
 	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
 		return nil, err
 	}
+	return &result, nil
+}
+
+// PutFolderFiles writes pre-merged files to a folder on the server's dirty branch.
+// Uses multipart/form-data to send raw file content without JSON encoding.
+func (c *Client) PutFolderFiles(folderId string, req *PutFolderFilesRequest) (*PutFolderFilesResponse, error) {
+	u, err := url.JoinPath(c.baseURL, "cli/v1", fmt.Sprintf("folders/%s/files", folderId))
+	if err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add each file as a form file part with raw content
+	for _, file := range req.Files {
+		part, err := writer.CreateFormFile("files", file.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create form file: %w", err)
+		}
+		if _, err := part.Write([]byte(file.Content)); err != nil {
+			return nil, fmt.Errorf("failed to write file content: %w", err)
+		}
+	}
+
+	// Add deleted files as a JSON field
+	if len(req.DeletedFiles) > 0 {
+		deletedJSON, _ := json.Marshal(req.DeletedFiles)
+		if err := writer.WriteField("deletedFiles", string(deletedJSON)); err != nil {
+			return nil, fmt.Errorf("failed to write deleted files: %w", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create request
+	httpReq, err := http.NewRequest(http.MethodPut, u, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("User-Agent", DefaultUserAgent+"/"+Version)
+	httpReq.Header.Set("X-Scratch-CLI-Version", Version)
+
+	// Add auth token (same as doRequest)
+	if c.apiToken != "" {
+		httpReq.Header.Set("Authorization", "API-Token "+c.apiToken)
+	}
+
+	// Send request
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result PutFolderFilesResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
 	return &result, nil
 }

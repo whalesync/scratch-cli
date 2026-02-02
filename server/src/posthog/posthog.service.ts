@@ -196,4 +196,5 @@ export enum PostHogEventName {
   CLI_DOWNLOAD_FOLDER = 'cli_download_folder',
   CLI_UPLOAD = 'cli_upload',
   CLI_VALIDATE_FILES = 'cli_validate_files',
+  CLI_UPLOAD_FOLDER = 'cli_upload_folder',
 }

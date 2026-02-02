@@ -92,6 +92,8 @@ export class AppModule implements NestModule {
         { path: '/workbook/*/tables/*/import-suggestions', method: RequestMethod.POST },
         // Payment webhook
         { path: '/payment/webhook', method: RequestMethod.POST },
+        // CLI folder files upload (multipart/form-data)
+        { path: '/cli/v1/folders/*/files', method: RequestMethod.PUT },
       )
       .forRoutes('*');
   }

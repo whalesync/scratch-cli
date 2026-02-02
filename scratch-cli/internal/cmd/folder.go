@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
+	"github.com/whalesync/scratch-cli/internal/merge"
+	"golang.org/x/text/unicode/norm"
 )
 
 // Pre-compiled regexes for folder name validation (cross-platform compatibility)
@@ -80,96 +83,6 @@ func getAuthenticatedFolderClient(serverURLOverride string, outputError func(str
 	return client, serverURL, nil
 }
 
-// folderDownloadResult holds the result of downloading folder files.
-type folderDownloadResult struct {
-	TotalSaved   int
-	TotalSkipped int
-	TotalDeleted int
-}
-
-// downloadFolderFiles downloads files from a server response to local directories.
-// If preserveLocalChanges is true, locally modified files are preserved.
-// If preserveLocalChanges is false (reset mode), all files are overwritten.
-func downloadFolderFiles(
-	resp *api.DownloadFolderResponse,
-	contentDir, originalDir string,
-	preserveLocalChanges bool,
-	jsonOutput bool,
-) folderDownloadResult {
-	result := folderDownloadResult{}
-
-	for _, file := range resp.Files {
-		// Sanitize file name to prevent path traversal attacks
-		fileName := filepath.Base(file.Name)
-		if fileName == "." || fileName == ".." || fileName == "" {
-			if !jsonOutput {
-				fmt.Printf("   Skipping invalid file name: '%s'\n", file.Name)
-			}
-			continue
-		}
-
-		mainPath := filepath.Join(contentDir, fileName)
-		originalPath := filepath.Join(originalDir, fileName)
-
-		// Skip deleted files
-		if file.Deleted {
-			result.TotalDeleted++
-			continue
-		}
-
-		// Get content to write (prefer content, fall back to original)
-		var fileContent []byte
-		if file.Content != "" {
-			fileContent = []byte(file.Content)
-		} else if file.Original != "" {
-			fileContent = []byte(file.Original)
-		} else {
-			// Skip files with no content
-			continue
-		}
-
-		// Check if main file should be updated
-		shouldUpdateMain := true
-		if preserveLocalChanges {
-			oldOriginal, errOldOrig := os.ReadFile(originalPath)
-			currentMain, errMain := os.ReadFile(mainPath)
-
-			if errOldOrig == nil && errMain == nil {
-				// Both files exist - only update main if it matches old original
-				if !bytes.Equal(currentMain, oldOriginal) {
-					shouldUpdateMain = false
-					result.TotalSkipped++
-					if !jsonOutput {
-						fmt.Printf("   Skipping '%s' (locally modified)\n", fileName)
-					}
-				}
-			}
-		}
-
-		// Always update the original file
-		if err := os.WriteFile(originalPath, fileContent, 0644); err != nil {
-			if !jsonOutput {
-				fmt.Printf("   Warning: Failed to save original '%s': %v\n", originalPath, err)
-			}
-			continue
-		}
-
-		// Update main file only if appropriate
-		if shouldUpdateMain {
-			if err := os.WriteFile(mainPath, fileContent, 0644); err != nil {
-				if !jsonOutput {
-					fmt.Printf("   Warning: Failed to save '%s': %v\n", mainPath, err)
-				}
-				continue
-			}
-		}
-
-		result.TotalSaved++
-	}
-
-	return result
-}
-
 // sanitizeFolderName validates and sanitizes a folder name to prevent path traversal attacks.
 // Returns an error if the folder name is invalid or potentially malicious.
 func sanitizeFolderName(name string) (string, error) {
@@ -206,6 +119,358 @@ func sanitizeFolderName(name string) (string, error) {
 	}
 
 	return cleaned, nil
+}
+
+// computeSHA256 computes the SHA256 hash of content and returns it as a hex string.
+func computeSHA256(content []byte) string {
+	hash := sha256.Sum256(content)
+	return hex.EncodeToString(hash[:])
+}
+
+// normalizeFileName normalizes a filename to NFC (Composed) Unicode form.
+// This ensures consistent filename handling across operating systems:
+// - macOS uses NFD (Decomposed) form for filenames
+// - Windows and Linux use NFC (Composed) form
+// By normalizing to NFC, we ensure files created on macOS can be synced
+// correctly with Windows/Linux systems.
+func normalizeFileName(name string) string {
+	return norm.NFC.String(name)
+}
+
+// syncResult holds the result of a sync operation.
+type syncResult struct {
+	FilesWritten      int
+	FilesDeleted      int
+	ConflictsResolved int
+}
+
+// readLocalFolderState reads all JSON files from a folder and computes their hashes.
+// Returns the local files ready for sync, or an empty slice if the folder doesn't exist.
+// Also detects files deleted locally (exist in original but not in content).
+func readLocalFolderState(folderName string) ([]api.LocalFile, error) {
+	contentDir := config.GetFolderContentDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
+
+	var files []api.LocalFile
+
+	// Track files we've seen in content dir
+	contentFiles := make(map[string]bool)
+	contentDirExists := true
+
+	// Read all JSON files in content directory
+	entries, err := os.ReadDir(contentDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			contentDirExists = false
+			// Don't return early - check original dir for deleted files
+		} else {
+			return nil, err
+		}
+	}
+
+	if contentDirExists {
+		for _, entry := range entries {
+			// Skip directories
+			if entry.IsDir() {
+				continue
+			}
+
+			// Skip non-JSON files
+			if !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			// Skip symlinks to prevent potential issues (infinite loops, sandbox escape)
+			// Use entry.Type() instead of entry.Info().Mode() because Info() follows symlinks
+			// This is cross-platform safe - on Windows, symlinks/junctions are also detected
+			if entry.Type()&os.ModeSymlink != 0 {
+				continue
+			}
+
+			// Normalize filename to NFC for cross-platform consistency
+			// (macOS uses NFD, Windows/Linux use NFC)
+			fileName := normalizeFileName(entry.Name())
+			contentFiles[fileName] = true
+
+			// Read current content
+			content, err := os.ReadFile(filepath.Join(contentDir, entry.Name()))
+			if err != nil {
+				continue
+			}
+
+			// Read original for hash and content (for three-way merge)
+			originalHash := ""
+			originalContent := ""
+			if original, err := os.ReadFile(filepath.Join(originalDir, entry.Name())); err == nil {
+				originalHash = computeSHA256(original)
+				originalContent = string(original)
+			}
+
+			files = append(files, api.LocalFile{
+				Name:            fileName,
+				Content:         string(content),
+				OriginalHash:    originalHash,
+				OriginalContent: originalContent,
+			})
+		}
+	}
+
+	// Check for files in original that aren't in content (deleted locally)
+	if origEntries, err := os.ReadDir(originalDir); err == nil {
+		for _, entry := range origEntries {
+			// Skip directories
+			if entry.IsDir() {
+				continue
+			}
+
+			// Skip non-JSON files
+			if !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+
+			// Skip symlinks - use entry.Type() instead of Info().Mode() because Info() follows symlinks
+			if entry.Type()&os.ModeSymlink != 0 {
+				continue
+			}
+
+			// Normalize filename for consistent cross-platform matching
+			fileName := normalizeFileName(entry.Name())
+
+			// Check if file exists in content
+			if !contentFiles[fileName] {
+				// File was deleted locally
+				original, err := os.ReadFile(filepath.Join(originalDir, entry.Name()))
+				if err != nil {
+					continue
+				}
+				files = append(files, api.LocalFile{
+					Name:         fileName,
+					Content:      "",
+					OriginalHash: computeSHA256(original),
+					Deleted:      true,
+				})
+			}
+		}
+	}
+
+	// If neither content nor original have any files, return nil (first download scenario)
+	if len(files) == 0 && !contentDirExists {
+		return nil, nil
+	}
+
+	return files, nil
+}
+
+// applySyncResult writes the merged files from a sync response to disk.
+// Both content and original directories are updated to match (local = original = server).
+func applySyncResult(folderName string, resp *api.SyncFolderResponse) (*syncResult, error) {
+	contentDir := config.GetFolderContentDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
+
+	// Ensure directories exist
+	if err := os.MkdirAll(contentDir, 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(originalDir, 0755); err != nil {
+		return nil, err
+	}
+
+	result := &syncResult{}
+
+	// Write all files from response
+	for _, file := range resp.Files {
+		contentPath := filepath.Join(contentDir, file.Name)
+		originalPath := filepath.Join(originalDir, file.Name)
+
+		// Write to both content and original (they should match after sync)
+		if err := os.WriteFile(contentPath, []byte(file.Content), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write %s: %w", file.Name, err)
+		}
+		if err := os.WriteFile(originalPath, []byte(file.Content), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write original %s: %w", file.Name, err)
+		}
+		result.FilesWritten++
+	}
+
+	// Remove files that were deleted
+	for _, deleted := range resp.DeletedFiles {
+		os.Remove(filepath.Join(contentDir, deleted.Name))
+		os.Remove(filepath.Join(originalDir, deleted.Name))
+		result.FilesDeleted++
+	}
+
+	result.ConflictsResolved = len(resp.Conflicts)
+
+	return result, nil
+}
+
+// logSyncInfo outputs information about conflicts and deletions from a sync.
+func logSyncInfo(resp *api.SyncFolderResponse, jsonOutput bool) {
+	if jsonOutput {
+		return
+	}
+
+	// Log conflicts
+	if len(resp.Conflicts) > 0 {
+		fmt.Printf("  Auto-resolved %d conflict(s) (local changes kept):\n", len(resp.Conflicts))
+		for _, c := range resp.Conflicts {
+			if c.Field != "" {
+				fmt.Printf("    - %s: field '%s'\n", c.File, c.Field)
+			} else {
+				fmt.Printf("    - %s\n", c.File)
+			}
+		}
+	}
+
+	// Log deletions with warnings
+	for _, d := range resp.DeletedFiles {
+		if d.DeletedBy == "server" && d.HadLocalChanges {
+			fmt.Printf("  Warning: '%s' was deleted on server (your local changes were discarded)\n", d.Name)
+		}
+	}
+}
+
+// applyMergeResult writes the merged files from a local merge result to disk.
+// Both content and original directories are updated to match.
+func applyMergeResult(folderName string, mergeResult *merge.FolderMergeResult) (*syncResult, error) {
+	contentDir := config.GetFolderContentDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
+
+	// Ensure directories exist
+	if err := os.MkdirAll(contentDir, 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(originalDir, 0755); err != nil {
+		return nil, err
+	}
+
+	result := &syncResult{}
+
+	// Write all files from merge result
+	for _, file := range mergeResult.Files {
+		contentPath := filepath.Join(contentDir, file.Name)
+		originalPath := filepath.Join(originalDir, file.Name)
+
+		// Content is already properly formatted from the merge logic
+		content := file.Content
+
+		// Write to both content and original (they should match after sync)
+		if err := os.WriteFile(contentPath, []byte(content), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write %s: %w", file.Name, err)
+		}
+		if err := os.WriteFile(originalPath, []byte(content), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write original %s: %w", file.Name, err)
+		}
+		result.FilesWritten++
+	}
+
+	// Remove files that were deleted
+	for _, deleted := range mergeResult.DeletedFiles {
+		os.Remove(filepath.Join(contentDir, deleted.Name))
+		os.Remove(filepath.Join(originalDir, deleted.Name))
+		result.FilesDeleted++
+	}
+
+	result.ConflictsResolved = len(mergeResult.Conflicts)
+
+	return result, nil
+}
+
+// logMergeInfo outputs information about conflicts and deletions from a local merge.
+func logMergeInfo(mergeResult *merge.FolderMergeResult, jsonOutput bool) {
+	if jsonOutput {
+		return
+	}
+
+	// Log conflicts
+	if len(mergeResult.Conflicts) > 0 {
+		fmt.Printf("  Auto-resolved %d conflict(s) (local changes kept):\n", len(mergeResult.Conflicts))
+		for _, c := range mergeResult.Conflicts {
+			if c.Field != "" {
+				fmt.Printf("    - %s: field '%s'\n", c.File, c.Field)
+			} else {
+				fmt.Printf("    - %s\n", c.File)
+			}
+		}
+	}
+
+	// Log deletions with warnings
+	for _, d := range mergeResult.DeletedFiles {
+		if d.DeletedBy == "server" && d.HadLocalChanges {
+			fmt.Printf("  Warning: '%s' was deleted on server (your local changes were discarded)\n", d.Name)
+		}
+	}
+}
+
+// convertToMergeLocalFiles converts api.LocalFile to merge.LocalFile
+func convertToMergeLocalFiles(apiFiles []api.LocalFile) []merge.LocalFile {
+	result := make([]merge.LocalFile, len(apiFiles))
+	for i, f := range apiFiles {
+		result[i] = merge.LocalFile{
+			Name:            f.Name,
+			Content:         f.Content,
+			OriginalHash:    f.OriginalHash,
+			OriginalContent: f.OriginalContent,
+			Deleted:         f.Deleted,
+		}
+	}
+	return result
+}
+
+// convertToDirtyFiles converts api.ServerFile to merge.DirtyFile.
+// Content is passed through as-is to preserve the original JSON format.
+// Filenames are normalized to NFC for cross-platform consistency.
+func convertToDirtyFiles(serverFiles []api.ServerFile) []merge.DirtyFile {
+	result := make([]merge.DirtyFile, len(serverFiles))
+	for i, f := range serverFiles {
+		// Normalize filename to NFC for cross-platform consistency
+		fileName := normalizeFileName(f.Name)
+
+		// Pass through content as-is - no JSON re-encoding to preserve original format
+		result[i] = merge.DirtyFile{
+			Name:    fileName,
+			Content: f.Content,
+		}
+	}
+	return result
+}
+
+// convertToFilesToWrite converts merge.SyncedFile to api.FileToWrite
+func convertToFilesToWrite(files []merge.SyncedFile) []api.FileToWrite {
+	result := make([]api.FileToWrite, len(files))
+	for i, f := range files {
+		result[i] = api.FileToWrite{
+			Name:    f.Name,
+			Content: f.Content,
+		}
+	}
+	return result
+}
+
+// convertToAPIConflicts converts merge.ConflictInfo to api.ConflictInfo
+func convertToAPIConflicts(conflicts []merge.ConflictInfo) []api.ConflictInfo {
+	result := make([]api.ConflictInfo, len(conflicts))
+	for i, c := range conflicts {
+		result[i] = api.ConflictInfo{
+			File:        c.File,
+			Field:       c.Field,
+			Resolution:  c.Resolution,
+			LocalValue:  c.LocalValue,
+			ServerValue: c.ServerValue,
+		}
+	}
+	return result
+}
+
+// extractDeletedFileNames extracts file names from deleted files (local deletions only)
+func extractDeletedFileNames(deleted []merge.DeletedFileInfo) []string {
+	var result []string
+	for _, d := range deleted {
+		if d.DeletedBy == "local" {
+			result = append(result, d.Name)
+		}
+	}
+	return result
 }
 
 // folderCmd represents the folder command
@@ -344,6 +609,40 @@ Examples:
 	RunE: runFolderReset,
 }
 
+// folderUploadCmd represents the folder upload command
+var folderUploadCmd = &cobra.Command{
+	Use:   "upload <folder-name>",
+	Short: "[NON-INTERACTIVE] Upload local changes to the server",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Upload local changes in a folder to the server's dirty branch.
+
+This command:
+  1. Reads your local files and detects changes since last sync
+  2. Merges your changes with any server-side changes (if any)
+  3. Commits the merged result to the dirty branch
+  4. Updates your local files to match the merged result
+
+Conflict resolution:
+  - If both local and server modified the same file, LOCAL WINS
+  - Conflicts are resolved at the JSON field level when possible
+  - A log message shows which conflicts were auto-resolved
+
+After upload, your local files will exactly match the server's dirty branch.
+
+You can safely run upload at any time, regardless of how stale your local copy is.
+The command will automatically merge with any server changes.
+
+Requires authentication. Run 'scratchmd auth login' first.
+Requires a previous download (folder must exist with .scratchmd config).
+
+Examples:
+  scratchmd folder upload blog-posts
+  scratchmd folder upload blog-posts --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFolderUpload,
+}
+
 func init() {
 	rootCmd.AddCommand(folderCmd)
 	folderCmd.AddCommand(folderLinkCmd)
@@ -351,6 +650,7 @@ func init() {
 	folderCmd.AddCommand(folderListCmd)
 	folderCmd.AddCommand(folderDownloadCmd)
 	folderCmd.AddCommand(folderResetCmd)
+	folderCmd.AddCommand(folderUploadCmd)
 
 	folderLinkCmd.Flags().String("account.name", "", "Account name to link (required)")
 	folderLinkCmd.Flags().String("table-id", "", "Table ID to link (required)")
@@ -372,6 +672,10 @@ func init() {
 	folderResetCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
 	folderResetCmd.Flags().Bool("yes", false, "Skip confirmation prompt (DANGEROUS: use with caution)")
 	folderResetCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+
+	// Flags for folder upload
+	folderUploadCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	folderUploadCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
 }
 
 func runFolderLink(cmd *cobra.Command, args []string) error {
@@ -508,7 +812,7 @@ func runFolderRemove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid folder name: %w", err)
 	}
 
-	contentDir := folderName
+	contentDir := config.GetFolderContentDir(folderName)
 	metadataDir := filepath.Join(".scratchmd", folderName)
 
 	// Check if either directory exists
@@ -637,33 +941,47 @@ func runFolderDownload(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Fetch folder and files from server
-	resp, err := client.DownloadFolder(folderId)
+	// Try to find existing folder config to get the folder name
+	existingConfig, folderName, _ := config.LoadFolderConfigByID(folderId)
+
+	// Read local folder state (empty if first-time download)
+	var localFiles []api.LocalFile
+	if existingConfig != nil && !clobber {
+		localFiles, err = readLocalFolderState(folderName)
+		if err != nil {
+			return outputError(fmt.Sprintf("Failed to read local files: %s", err.Error()))
+		}
+	}
+
+	// If clobber, clear local files to get fresh state
+	if clobber {
+		localFiles = nil
+	}
+
+	// Fetch server files (simple storage layer - no merge on server)
+	serverResp, err := client.GetFolderFiles(folderId)
 	if err != nil {
-		return outputError(fmt.Sprintf("Failed to download folder: %s", err.Error()))
+		return outputError(fmt.Sprintf("Failed to fetch folder files: %s", err.Error()))
 	}
 
-	if resp.Error != "" {
-		return outputError(fmt.Sprintf("Server error: %s", resp.Error))
+	if !serverResp.Success {
+		return outputError(fmt.Sprintf("Server error: %s", serverResp.Error))
 	}
 
-	if resp.Folder == nil {
+	if serverResp.Folder == nil {
 		return outputError("No folder data returned from server")
 	}
 
-	// Determine local folder name and sanitize it to prevent path traversal
-	rawFolderName := resp.Folder.Name
-	folderName, err := sanitizeFolderName(rawFolderName)
+	// Determine local folder name from server response and sanitize it
+	rawFolderName := serverResp.Folder.Name
+	folderName, err = sanitizeFolderName(rawFolderName)
 	if err != nil {
 		return outputError(fmt.Sprintf("Invalid folder name from server '%s': %s", rawFolderName, err.Error()))
 	}
 
-	// Create directory structure
-	contentDir := folderName
-	metadataDir := config.GetFolderMetadataDir(folderName)
-	originalDir := config.GetFolderOriginalDir(folderName)
-
 	// If clobber, remove existing files first
+	contentDir := config.GetFolderContentDir(folderName)
+	originalDir := config.GetFolderOriginalDir(folderName)
 	if clobber {
 		if !jsonOutput {
 			fmt.Printf("Clobbering existing files for '%s'...\n", folderName)
@@ -680,47 +998,62 @@ func runFolderDownload(cmd *cobra.Command, args []string) error {
 		os.RemoveAll(originalDir)
 	}
 
-	// Create directories
-	if err := os.MkdirAll(contentDir, 0755); err != nil {
-		return outputError(fmt.Sprintf("Failed to create content directory: %s", err.Error()))
-	}
-	if err := os.MkdirAll(originalDir, 0755); err != nil {
-		return outputError(fmt.Sprintf("Failed to create original directory: %s", err.Error()))
+	// Perform merge LOCALLY
+	mergeLocalFiles := convertToMergeLocalFiles(localFiles)
+	mergeDirtyFiles := convertToDirtyFiles(serverResp.Files)
+	mergeResult := merge.MergeFolder(mergeLocalFiles, mergeDirtyFiles)
+
+	// Apply merge result to disk
+	result, err := applyMergeResult(folderName, mergeResult)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to apply merge result: %s", err.Error()))
 	}
 
 	// Save folder config
+	metadataDir := config.GetFolderMetadataDir(folderName)
 	folderConfig := &config.FolderConfig{
-		FolderID:             resp.Folder.ID,
-		WorkbookID:           resp.Folder.WorkbookID,
-		FolderName:           resp.Folder.Name,
-		ConnectorService:     resp.Folder.ConnectorService,
-		ConnectorDisplayName: resp.Folder.ConnectorDisplayName,
-		TableID:              resp.Folder.TableID,
-		Path:                 resp.Folder.Path,
-		Schema:               resp.Folder.Schema,
+		FolderID:             serverResp.Folder.ID,
+		WorkbookID:           serverResp.Folder.WorkbookID,
+		FolderName:           serverResp.Folder.Name,
+		ConnectorService:     serverResp.Folder.ConnectorService,
+		ConnectorDisplayName: serverResp.Folder.ConnectorDisplayName,
+		TableID:              serverResp.Folder.TableID,
+		Path:                 serverResp.Folder.Path,
+		Schema:               serverResp.Folder.Schema,
 		LastDownload:         time.Now().Format(time.RFC3339),
-		LastSyncTime:         resp.Folder.LastSyncTime,
+		LastSyncTime:         serverResp.Folder.LastSyncTime,
 	}
 	if err := config.SaveFolderConfig(folderName, folderConfig); err != nil {
 		return outputError(fmt.Sprintf("Failed to save folder config: %s", err.Error()))
 	}
 
-	// Process files - preserve local changes unless clobber is set
-	preserveLocalChanges := !clobber
-	result := downloadFolderFiles(resp, contentDir, originalDir, preserveLocalChanges, jsonOutput)
+	// Log conflicts and info
+	logMergeInfo(mergeResult, jsonOutput)
+
+	// Compute sync hash for output
+	var allHashes []string
+	for _, f := range mergeResult.Files {
+		allHashes = append(allHashes, f.Hash)
+	}
+	syncHash := merge.Hash(strings.Join(allHashes, ":"))
 
 	// Output results
 	if jsonOutput {
 		output := map[string]interface{}{
-			"success":      true,
-			"folderId":     resp.Folder.ID,
-			"folderName":   resp.Folder.Name,
-			"workbookId":   resp.Folder.WorkbookID,
-			"totalFiles":   resp.TotalCount,
-			"totalSaved":   result.TotalSaved,
-			"totalSkipped": result.TotalSkipped,
-			"contentDir":   contentDir,
-			"metadataDir":  metadataDir,
+			"success":           true,
+			"operation":         "download",
+			"folderId":          serverResp.Folder.ID,
+			"folderName":        serverResp.Folder.Name,
+			"workbookId":        serverResp.Folder.WorkbookID,
+			"filesDownloaded":   result.FilesWritten,
+			"filesDeleted":      result.FilesDeleted,
+			"conflictsResolved": result.ConflictsResolved,
+			"contentDir":        contentDir,
+			"metadataDir":       metadataDir,
+			"syncHash":          syncHash,
+		}
+		if len(mergeResult.Conflicts) > 0 {
+			output["conflicts"] = mergeResult.Conflicts
 		}
 		data, _ := json.MarshalIndent(output, "", "  ")
 		fmt.Println(string(data))
@@ -729,10 +1062,12 @@ func runFolderDownload(cmd *cobra.Command, args []string) error {
 
 	// Human-readable output
 	fmt.Println()
-	if result.TotalSkipped > 0 {
-		fmt.Printf("Downloaded %d file(s) to '%s/' (%d locally modified files preserved)\n", result.TotalSaved, folderName, result.TotalSkipped)
-	} else {
-		fmt.Printf("Downloaded %d file(s) to '%s/'\n", result.TotalSaved, folderName)
+	fmt.Printf("Downloaded %d file(s) to '%s/'\n", result.FilesWritten, folderName)
+	if result.ConflictsResolved > 0 {
+		fmt.Printf("  %d conflict(s) auto-resolved (local changes kept)\n", result.ConflictsResolved)
+	}
+	if result.FilesDeleted > 0 {
+		fmt.Printf("  %d file(s) deleted\n", result.FilesDeleted)
 	}
 	fmt.Printf("Folder config saved to '%s/%s'\n", metadataDir, config.FolderConfigFileName)
 	fmt.Println()
@@ -754,30 +1089,14 @@ func runFolderReset(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Fetch folder and files from server
-	resp, err := client.DownloadFolder(folderId)
-	if err != nil {
-		return outputError(fmt.Sprintf("Failed to download folder: %s", err.Error()))
+	// Try to find existing folder config to get folder name for the warning
+	_, folderName, _ := config.LoadFolderConfigByID(folderId)
+	if folderName == "" {
+		folderName = folderId // Use ID as placeholder if no local config
 	}
 
-	if resp.Error != "" {
-		return outputError(fmt.Sprintf("Server error: %s", resp.Error))
-	}
-
-	if resp.Folder == nil {
-		return outputError("No folder data returned from server")
-	}
-
-	// Determine local folder name and sanitize it to prevent path traversal
-	rawFolderName := resp.Folder.Name
-	folderName, err := sanitizeFolderName(rawFolderName)
-	if err != nil {
-		return outputError(fmt.Sprintf("Invalid folder name from server '%s': %s", rawFolderName, err.Error()))
-	}
-
-	// Create directory structure paths
-	contentDir := folderName
-	metadataDir := config.GetFolderMetadataDir(folderName)
+	// Create directory structure paths for warning display
+	contentDir := config.GetFolderContentDir(folderName)
 	originalDir := config.GetFolderOriginalDir(folderName)
 
 	// Show warning and get confirmation (unless --yes flag or --json mode)
@@ -807,32 +1126,55 @@ func runFolderReset(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	// DESTRUCTIVE: Remove all files from content directory
+	// Call sync endpoint with empty localFiles to get fresh server state
+	resp, err := client.SyncFolder(folderId, &api.SyncFolderRequest{
+		Operation:  api.SyncOperationDownload,
+		LocalFiles: nil, // Empty = fresh download
+	})
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to reset folder: %s", err.Error()))
+	}
+
+	if !resp.Success {
+		return outputError(fmt.Sprintf("Server error: %s", resp.Error))
+	}
+
+	if resp.Folder == nil {
+		return outputError("No folder data returned from server")
+	}
+
+	// Get actual folder name from server
+	rawFolderName := resp.Folder.Name
+	folderName, err = sanitizeFolderName(rawFolderName)
+	if err != nil {
+		return outputError(fmt.Sprintf("Invalid folder name from server '%s': %s", rawFolderName, err.Error()))
+	}
+
+	// Update paths with actual folder name
+	contentDir = folderName
+	originalDir = config.GetFolderOriginalDir(folderName)
+	metadataDir := config.GetFolderMetadataDir(folderName)
+
+	// DESTRUCTIVE: Remove all existing files
 	if !jsonOutput {
 		fmt.Printf("Destroying local changes in '%s/'...\n", folderName)
 	}
 
-	// Remove all files from content directory (but keep the directory)
+	// Remove all files from content directory
 	if entries, err := os.ReadDir(contentDir); err == nil {
 		for _, entry := range entries {
 			entryPath := filepath.Join(contentDir, entry.Name())
-			if err := os.RemoveAll(entryPath); err != nil {
-				if !jsonOutput {
-					fmt.Printf("   Warning: Failed to remove '%s': %v\n", entryPath, err)
-				}
-			}
+			os.RemoveAll(entryPath)
 		}
 	}
 
-	// Remove original directory entirely and recreate it
+	// Remove original directory entirely
 	os.RemoveAll(originalDir)
 
-	// Create directories (in case they don't exist)
-	if err := os.MkdirAll(contentDir, 0755); err != nil {
-		return outputError(fmt.Sprintf("Failed to create content directory: %s", err.Error()))
-	}
-	if err := os.MkdirAll(originalDir, 0755); err != nil {
-		return outputError(fmt.Sprintf("Failed to create original directory: %s", err.Error()))
+	// Apply sync result (writes fresh files)
+	result, err := applySyncResult(folderName, resp)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to apply sync result: %s", err.Error()))
 	}
 
 	// Save folder config
@@ -852,24 +1194,20 @@ func runFolderReset(cmd *cobra.Command, args []string) error {
 		return outputError(fmt.Sprintf("Failed to save folder config: %s", err.Error()))
 	}
 
-	// Download all files fresh (no skip logic - this is a reset, preserveLocalChanges=false)
-	result := downloadFolderFiles(resp, contentDir, originalDir, false, jsonOutput)
-
 	// Output results
 	if jsonOutput {
 		output := map[string]interface{}{
-			"success":      true,
-			"operation":    "reset",
-			"destructive":  true,
-			"folderId":     resp.Folder.ID,
-			"folderName":   resp.Folder.Name,
-			"workbookId":   resp.Folder.WorkbookID,
-			"totalFiles":   resp.TotalCount,
-			"totalSaved":   result.TotalSaved,
-			"totalDeleted": result.TotalDeleted,
-			"contentDir":   contentDir,
-			"metadataDir":  metadataDir,
-			"message":      "All local changes have been destroyed. Folder reset to server state.",
+			"success":         true,
+			"operation":       "reset",
+			"destructive":     true,
+			"folderId":        resp.Folder.ID,
+			"folderName":      resp.Folder.Name,
+			"workbookId":      resp.Folder.WorkbookID,
+			"filesDownloaded": result.FilesWritten,
+			"contentDir":      contentDir,
+			"metadataDir":     metadataDir,
+			"syncHash":        resp.SyncHash,
+			"message":         "All local changes have been destroyed. Folder reset to server state.",
 		}
 		data, _ := json.MarshalIndent(output, "", "  ")
 		fmt.Println(string(data))
@@ -879,11 +1217,156 @@ func runFolderReset(cmd *cobra.Command, args []string) error {
 	// Human-readable output
 	fmt.Println()
 	fmt.Println("Reset complete. All local changes have been destroyed.")
-	fmt.Printf("Downloaded %d file(s) fresh from server to '%s/'\n", result.TotalSaved, folderName)
-	if result.TotalDeleted > 0 {
-		fmt.Printf("Skipped %d deleted file(s) from server\n", result.TotalDeleted)
+	fmt.Printf("Downloaded %d file(s) fresh from server to '%s/'\n", result.FilesWritten, folderName)
+	if result.FilesDeleted > 0 {
+		fmt.Printf("Removed %d file(s) deleted from server\n", result.FilesDeleted)
 	}
 	fmt.Printf("Folder config saved to '%s/%s'\n", metadataDir, config.FolderConfigFileName)
+	fmt.Println()
+
+	return nil
+}
+
+func runFolderUpload(cmd *cobra.Command, args []string) error {
+	folderArg := args[0]
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	outputError := createOutputErrorFunc(jsonOutput)
+
+	var folderName string
+	var folderConfig *config.FolderConfig
+	var err error
+
+	// Check if arg is a folder ID (dfd_...) or a folder name
+	if strings.HasPrefix(folderArg, "dfd_") {
+		// Look up folder config by ID
+		folderConfig, folderName, err = config.LoadFolderConfigByID(folderArg)
+		if err != nil {
+			return outputError(fmt.Sprintf("Failed to load folder config: %s", err.Error()))
+		}
+		if folderConfig == nil {
+			return outputError(fmt.Sprintf("No local folder found for ID '%s'. Run 'folder download %s' first.", folderArg, folderArg))
+		}
+	} else {
+		// Sanitize folder name
+		folderName, err = sanitizeFolderName(folderArg)
+		if err != nil {
+			return outputError(fmt.Sprintf("Invalid folder name: %s", err.Error()))
+		}
+
+		// Load folder config to get folder ID
+		folderConfig, err = config.LoadFolderConfig(folderName)
+		if err != nil {
+			return outputError(fmt.Sprintf("Failed to load folder config: %s. Run 'folder download' first.", err.Error()))
+		}
+
+		if folderConfig == nil {
+			return outputError(fmt.Sprintf("No folder config found for '%s'. Run 'folder download' first.", folderName))
+		}
+	}
+
+	if folderConfig.FolderID == "" {
+		return outputError("Folder config missing folder ID. Run 'folder download' first.")
+	}
+
+	// Get authenticated client
+	client, _, err := getAuthenticatedFolderClient(serverURL, outputError)
+	if err != nil {
+		return err
+	}
+
+	// Read local folder state
+	localFiles, err := readLocalFolderState(folderName)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to read local files: %s", err.Error()))
+	}
+
+	if len(localFiles) == 0 {
+		return outputError("No files to upload. The folder has no files or pending deletions to sync.")
+	}
+
+	// Fetch server files (simple storage layer - no merge on server)
+	serverResp, err := client.GetFolderFiles(folderConfig.FolderID)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to fetch server files: %s", err.Error()))
+	}
+
+	if !serverResp.Success {
+		return outputError(fmt.Sprintf("Server error: %s", serverResp.Error))
+	}
+
+	// Perform merge LOCALLY
+	mergeLocalFiles := convertToMergeLocalFiles(localFiles)
+	mergeDirtyFiles := convertToDirtyFiles(serverResp.Files)
+	mergeResult := merge.MergeFolder(mergeLocalFiles, mergeDirtyFiles)
+
+	// Push merged files to server (conflicts are auto-resolved locally, not sent to server)
+	putResp, err := client.PutFolderFiles(folderConfig.FolderID, &api.PutFolderFilesRequest{
+		Files:        convertToFilesToWrite(mergeResult.Files),
+		DeletedFiles: extractDeletedFileNames(mergeResult.DeletedFiles),
+	})
+	if err != nil {
+		return outputError(fmt.Sprintf("Upload failed: %s", err.Error()))
+	}
+
+	if !putResp.Success {
+		return outputError(fmt.Sprintf("Upload failed: %s", putResp.Error))
+	}
+
+	// Apply merge result to disk
+	result, err := applyMergeResult(folderName, mergeResult)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to apply merge result: %s", err.Error()))
+	}
+
+	// Update folder config with new sync time
+	folderConfig.LastDownload = time.Now().Format(time.RFC3339)
+	if err := config.SaveFolderConfig(folderName, folderConfig); err != nil {
+		if !jsonOutput {
+			fmt.Printf("Warning: Failed to update folder config: %s\n", err.Error())
+		}
+	}
+
+	// Log conflicts and info
+	logMergeInfo(mergeResult, jsonOutput)
+
+	// Compute sync hash for output
+	var allHashes []string
+	for _, f := range mergeResult.Files {
+		allHashes = append(allHashes, f.Hash)
+	}
+	syncHash := merge.Hash(strings.Join(allHashes, ":"))
+
+	// Output results
+	if jsonOutput {
+		output := map[string]interface{}{
+			"success":           true,
+			"operation":         "upload",
+			"folderId":          folderConfig.FolderID,
+			"folderName":        folderName,
+			"filesUploaded":     result.FilesWritten,
+			"filesDeleted":      result.FilesDeleted,
+			"conflictsResolved": result.ConflictsResolved,
+			"syncHash":          syncHash,
+		}
+		if len(mergeResult.Conflicts) > 0 {
+			output["conflicts"] = mergeResult.Conflicts
+		}
+		data, _ := json.MarshalIndent(output, "", "  ")
+		fmt.Println(string(data))
+		return nil
+	}
+
+	// Human-readable output
+	fmt.Println()
+	fmt.Printf("Uploaded %d file(s) from '%s/'\n", result.FilesWritten, folderName)
+	if result.ConflictsResolved > 0 {
+		fmt.Printf("  %d conflict(s) auto-resolved (local changes kept)\n", result.ConflictsResolved)
+	}
+	if result.FilesDeleted > 0 {
+		fmt.Printf("  %d file(s) deleted\n", result.FilesDeleted)
+	}
 	fmt.Println()
 
 	return nil

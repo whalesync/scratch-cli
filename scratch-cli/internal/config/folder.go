@@ -12,6 +12,17 @@ import (
 // FolderConfigFileName is the name of the folder config file in the .scratchmd directory
 const FolderConfigFileName = "scratchmd.folder.yaml"
 
+// GetBaseDir returns the directory where the CLI executable is located.
+// All folder operations are relative to this directory.
+func GetBaseDir() string {
+	execPath, err := os.Executable()
+	if err != nil {
+		// Fall back to current directory if we can't determine executable path
+		return "."
+	}
+	return filepath.Dir(execPath)
+}
+
 // FolderConfig represents the configuration for a synced data folder from scratch.md
 type FolderConfig struct {
 	FolderID             string                 `yaml:"folderId"`                       // Server-side folder ID (dfd_...)
@@ -27,13 +38,21 @@ type FolderConfig struct {
 }
 
 // GetFolderMetadataDir returns the path to the .scratchmd/<folderName> directory
+// relative to the CLI executable's location
 func GetFolderMetadataDir(folderName string) string {
-	return filepath.Join(".scratchmd", folderName)
+	return filepath.Join(GetBaseDir(), ".scratchmd", folderName)
 }
 
 // GetFolderOriginalDir returns the path to the .scratchmd/<folderName>/original directory
+// relative to the CLI executable's location
 func GetFolderOriginalDir(folderName string) string {
-	return filepath.Join(".scratchmd", folderName, "original")
+	return filepath.Join(GetBaseDir(), ".scratchmd", folderName, "original")
+}
+
+// GetFolderContentDir returns the path to the <folderName> content directory
+// relative to the CLI executable's location
+func GetFolderContentDir(folderName string) string {
+	return filepath.Join(GetBaseDir(), folderName)
 }
 
 // LoadFolderConfig loads a folder configuration from the .scratchmd directory
@@ -86,7 +105,7 @@ func SaveFolderConfig(folderName string, config *FolderConfig) error {
 // LoadFolderConfigByID searches for a folder config by folder ID
 func LoadFolderConfigByID(folderId string) (*FolderConfig, string, error) {
 	// Check if .scratchmd directory exists
-	scratchmdDir := ".scratchmd"
+	scratchmdDir := filepath.Join(GetBaseDir(), ".scratchmd")
 	if _, err := os.Stat(scratchmdDir); os.IsNotExist(err) {
 		return nil, "", nil
 	}
@@ -119,7 +138,7 @@ func LoadFolderConfigByID(folderId string) (*FolderConfig, string, error) {
 func ListConfiguredFolders() ([]string, error) {
 	var folders []string
 
-	scratchmdDir := ".scratchmd"
+	scratchmdDir := filepath.Join(GetBaseDir(), ".scratchmd")
 	if _, err := os.Stat(scratchmdDir); os.IsNotExist(err) {
 		return folders, nil // No .scratchmd directory
 	}

@@ -7,10 +7,13 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Req,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import type { DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
 import type { CliConnectorCredentials, CliRequestWithUser } from 'src/auth/types';
@@ -20,7 +23,7 @@ import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
 import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
-import { DownloadFolderResponseDto } from './dtos/download-folder.dto';
+import { GetFolderFilesResponseDto, PutFolderFilesResponseDto } from './dtos/folder-files.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
@@ -64,16 +67,58 @@ export class CliController {
     return this.cliService.listDataFolders(workbookId, actor);
   }
 
-  @Get('folders/:folderId/download')
-  async downloadFolder(
+  @Get('folders/:folderId/files')
+  async getFolderFiles(
     @Param('folderId') folderId: DataFolderId,
     @Req() req: CliRequestWithUser,
-  ): Promise<DownloadFolderResponseDto> {
+  ): Promise<GetFolderFilesResponseDto> {
     const actor = this.getActorFromRequest(req);
     if (!actor) {
       throw new ForbiddenException('Authentication required');
     }
-    return this.cliService.downloadFolder(folderId, actor);
+    return this.cliService.getFolderFiles(folderId, actor);
+  }
+
+  @Put('folders/:folderId/files')
+  @UseInterceptors(FilesInterceptor('files', 1000)) // Accept up to 1000 files
+  async putFolderFiles(
+    @Param('folderId') folderId: DataFolderId,
+    @Req() req: CliRequestWithUser,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { deletedFiles?: string },
+  ): Promise<PutFolderFilesResponseDto> {
+    const actor = this.getActorFromRequest(req);
+    if (!actor) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    // Parse files from multipart - each file's content is raw (no JSON encoding)
+    const parsedFiles = (files || []).map((f) => ({
+      name: f.originalname,
+      content: f.buffer.toString('utf-8'),
+    }));
+
+    // Parse deletedFiles from JSON string (sent as form field)
+    let deletedFiles: string[] = [];
+    if (body.deletedFiles) {
+      try {
+        const parsed: unknown = JSON.parse(body.deletedFiles);
+        if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')) {
+          deletedFiles = parsed;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    return this.cliService.putFolderFiles(
+      folderId,
+      {
+        files: parsedFiles,
+        deletedFiles,
+      },
+      actor,
+    );
   }
 
   @Get('test-connection')
