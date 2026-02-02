@@ -67,6 +67,7 @@ locals {
     "roles/cloudkms.admin",
     "roles/cloudsql.editor",
     "roles/compute.instanceAdmin.v1",
+    "roles/compute.osAdminLogin",
     "roles/compute.loadBalancerAdmin",
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",

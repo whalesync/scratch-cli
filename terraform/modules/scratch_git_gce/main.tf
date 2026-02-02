@@ -77,7 +77,7 @@ resource "google_compute_instance" "scratch_git" {
 
   metadata = {
     block-project-ssh-keys = "true"
-    enable-oslogin         = "FALSE"
+    enable-oslogin         = "TRUE"
   }
 
   metadata_startup_script = <<-EOT
