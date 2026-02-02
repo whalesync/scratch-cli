@@ -26,7 +26,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
 
 # Create the default repos directory
-RUN mkdir -p /app/repos
+RUN mkdir -p /data/repos
 
 # Build version label
 ARG BUILD_VERSION=0.0.0-local
@@ -35,7 +35,7 @@ ENV BUILD_VERSION=${BUILD_VERSION}
 # Environment variables (supplied at runtime, these are defaults)
 ENV PORT=3100
 ENV GIT_BACKEND_PORT=3101
-ENV GIT_REPOS_DIR=/app/repos
+ENV GIT_REPOS_DIR=/data/repos
 
 EXPOSE 3100 3101
 

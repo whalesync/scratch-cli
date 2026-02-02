@@ -82,6 +82,96 @@ docker run -p 3100:3100 -p 3101:3101 \
   scratch-git
 ```
 
+## Deployment
+
+Docker images are built automatically by the GitLab CI/CD pipeline and pushed to Artifact Registry as `spinner-scratch-git:latest`.
+
+The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to both **Test** (`spv1-test`) and **Production** (`spv1-production`) environments.
+
+### Option 1: Deploy via Terraform
+
+Terraform apply will recreate the instance with the latest startup script, which pulls and runs the newest image. If necessary you can provide just a -target option if you don't want to run the full apply
+
+**Test:**
+
+```bash
+cd terraform/envs/test
+terraform apply
+```
+
+**Production:**
+
+```bash
+cd terraform/envs/production
+terraform apply
+```
+
+### Option 2: Deploy via gcloud (without Terraform)
+
+To update the running container without a full Terraform apply, SSH into the instance and re-run the startup script. This pulls the latest image and restarts the container.
+
+**Test:**
+
+```bash
+gcloud compute ssh scratch-git \
+  --project spv1-test \
+  --zone us-central1-c \
+  --tunnel-through-iap \
+  -- 'sudo google_metadata_script_runner startup'
+```
+
+**Production:**
+
+```bash
+gcloud compute ssh scratch-git \
+  --project spv1-production \
+  --zone us-central1-c \
+  --tunnel-through-iap \
+  -- 'sudo google_metadata_script_runner startup'
+```
+
+Alternatively, SSH in and manually pull and restart:
+
+```bash
+gcloud compute ssh scratch-git \
+  --project spv1-test \
+  --zone us-central1-c \
+  --tunnel-through-iap
+
+# On the instance:
+export HOME=/var/lib/docker-home
+docker pull us-central1-docker.pkg.dev/spv1-test/test-registry/spinner-scratch-git:latest
+docker stop scratch-git && docker rm scratch-git
+docker run -d \
+  --name scratch-git \
+  --restart unless-stopped \
+  --log-driver=gcplogs \
+  -p 3100:3100 \
+  -p 3101:3101 \
+  -v /mnt/disks/data:/data \
+  us-central1-docker.pkg.dev/spv1-test/test-registry/spinner-scratch-git:latest
+```
+
+### Accessing the service locally
+
+Use the tunnel script to forward port 3100 to your machine:
+
+```bash
+./terraform/tools/connect_to_git_service.sh test
+# or
+./terraform/tools/connect_to_git_service.sh production
+```
+
+The service will be available at `http://127.0.0.1:3100`.
+
+### Viewing logs
+
+Container logs are sent to GCP Cloud Logging. Filter by label in the Logs Explorer:
+
+```
+labels.service="scratch-git"
+```
+
 ## Git Client Usage
 
 To clone a repository hosted on this service:
