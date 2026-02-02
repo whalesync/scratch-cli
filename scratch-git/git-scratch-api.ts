@@ -221,5 +221,5 @@ app.get('/health', (_, res) =>
 );
 
 app.listen(port, () => {
-  console.log(`ScratchGit API listening at http://localhost:${port} (build: ${buildVersion}, repos: ${reposDir})`);
+  console.log(`ScratchGit API listening at http://localhost:${port} (build: ${buildVersion}, repos: ${reposDir}, env: ${process.env.NODE_ENV || 'development'})`);
 });

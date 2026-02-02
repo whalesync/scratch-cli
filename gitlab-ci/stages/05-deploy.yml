@@ -52,6 +52,24 @@ deploy agent service to Cloud Run test environment:
       allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
+deploy scratch-git to test environment:
+  stage: deploy
+  extends:
+    - .gcp_test_env
+  script:
+    - gcloud compute ssh scratch-git
+      --project spv1-test
+      --zone us-central1-c
+      --tunnel-through-iap
+      -- 'sudo google_metadata_script_runner startup'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - gitlab-ci/stages/05-deploy.yml
+      when: manual
+      allow_failure: true
+    - !reference [.rules, on_merge_to_master]
+
 notify slack on failure test environment:
   stage: deployment notifications
   needs:
@@ -59,6 +77,7 @@ notify slack on failure test environment:
       "deploy api service to Cloud Run test environment",
       "deploy client service to Cloud Run test environment",
       "deploy agent service to Cloud Run test environment",
+      "deploy scratch-git to test environment",
     ]
   script:
     - |
@@ -77,6 +96,7 @@ notify slack on success test environment:
       "deploy api service to Cloud Run test environment",
       "deploy client service to Cloud Run test environment",
       "deploy agent service to Cloud Run test environment",
+      "deploy scratch-git to test environment",
     ]
   script:
     - |

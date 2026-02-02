@@ -92,5 +92,5 @@ app.all('/:repoId.git/*', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Scratch Git HTTP Server listening on port ${port}`);
+  console.log(`Scratch Git HTTP Server listening on port ${port} (env: ${process.env.NODE_ENV || 'development'})`);
 });

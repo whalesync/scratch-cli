@@ -41,6 +41,9 @@ interface TreeEntry {
  * Get the filesystem path for a workspace's git repo
  */
 export function getRepoPath(gitBucket: string): string {
+  if (path.isAbsolute(REPOS_BASE_DIR)) {
+    return path.join(REPOS_BASE_DIR, gitBucket);
+  }
   return path.join(process.cwd(), REPOS_BASE_DIR, gitBucket);
 }
 

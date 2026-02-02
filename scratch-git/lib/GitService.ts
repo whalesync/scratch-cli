@@ -30,6 +30,9 @@ async function withWriteLock<T>(gitBucket: string, ref: string, operation: () =>
 
 export class GitService implements IGitService {
   public getRepoPath(repoId: string): string {
+    if (path.isAbsolute(REPOS_BASE_DIR)) {
+      return path.join(REPOS_BASE_DIR, `${repoId}.git`);
+    }
     return path.join(process.cwd(), REPOS_BASE_DIR, `${repoId}.git`);
   }
 
