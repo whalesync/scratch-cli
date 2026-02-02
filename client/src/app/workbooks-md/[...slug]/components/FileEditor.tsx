@@ -30,7 +30,14 @@ import htmlParser from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-type ViewMode = 'original' | 'original-current' | 'current' | 'current-suggested' | 'suggested';
+type ViewMode =
+  | 'original'
+  | 'original-current'
+  | 'original-current-split'
+  | 'current'
+  | 'current-suggested'
+  | 'current-suggested-split'
+  | 'suggested';
 
 interface FileEditorProps {
   workbookId: WorkbookId;
@@ -68,9 +75,15 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   const viewModeOptionsWithState = useMemo(() => {
     return [
       { value: 'original', label: 'Original (read-only)', disabled: !originalContent },
-      { value: 'original-current', label: 'Original <> Current', disabled: !originalContent },
+      { value: 'original-current', label: 'Original <> Current (Unified)', disabled: !originalContent },
+      { value: 'original-current-split', label: 'Original <> Current (Side-by-Side)', disabled: !originalContent },
       { value: 'current', label: 'Current', disabled: false },
-      { value: 'current-suggested', label: 'Current <> Suggested', disabled: !suggestedContent },
+      { value: 'current-suggested', label: 'Current <> Suggested (Unified)', disabled: !suggestedContent },
+      {
+        value: 'current-suggested-split',
+        label: 'Current <> Suggested (Side-by-Side)',
+        disabled: !suggestedContent,
+      },
       { value: 'suggested', label: 'Suggested (read-only)', disabled: !suggestedContent },
     ];
   }, [originalContent, suggestedContent]);
@@ -94,7 +107,13 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   const handleContentChange = useCallback(
     (newContent: string) => {
       // Only allow changes in editable modes
-      if (viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested') {
+      if (
+        viewMode === 'current' ||
+        viewMode === 'original-current' ||
+        viewMode === 'original-current-split' ||
+        viewMode === 'current-suggested' ||
+        viewMode === 'current-suggested-split'
+      ) {
         setContent(newContent);
         setHasChanges(true);
       }
@@ -191,7 +210,12 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
   }, [workbookId, fileResponse, openDiffModal]);
 
   // Check if content editing is allowed in current view mode
-  const isEditable = viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested';
+  const isEditable =
+    viewMode === 'current' ||
+    viewMode === 'original-current' ||
+    viewMode === 'original-current-split' ||
+    viewMode === 'current-suggested' ||
+    viewMode === 'current-suggested-split';
 
   // Extract the body content (after front matter) for preview
   const bodyContent = useMemo(() => {
@@ -479,6 +503,8 @@ export function FileEditor({ workbookId, fileId }: FileEditorProps) {
               fontSize: '14px',
               height: '100%',
               border: 'none',
+              // Hide this editor when in split mode
+              display: viewMode.endsWith('-split') ? 'none' : 'block',
             }}
           />
         </Box>

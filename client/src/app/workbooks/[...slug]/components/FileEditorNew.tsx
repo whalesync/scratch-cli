@@ -1,6 +1,7 @@
 'use client';
 
 import { IconButtonOutline } from '@/app/components/base/buttons';
+import { MergeEditor } from '@/app/workbooks/[...slug]/components/MergeEditor';
 import { markdown } from '@codemirror/lang-markdown';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
@@ -16,7 +17,7 @@ import prettier from 'prettier/standalone';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFileByPath } from '../../../../hooks/use-file-path';
 
-type ViewMode = 'original' | 'original-current' | 'current' | 'current-suggested' | 'suggested';
+type ViewMode = 'original' | 'original-current' | 'original-current-split' | 'current';
 
 interface FileEditorNewProps {
   workbookId: WorkbookId;
@@ -31,18 +32,16 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('current');
 
   const originalContent = fileResponse?.file?.originalContent ?? '';
-  const suggestedContent = fileResponse?.file?.suggestedContent ?? '';
 
   // Build view mode options with disabled state based on available data
   const viewModeOptionsWithState = useMemo(() => {
     return [
-      { value: 'original', label: 'Original (read-only)', disabled: !originalContent },
-      { value: 'original-current', label: 'Original <> Current', disabled: !originalContent },
       { value: 'current', label: 'Current', disabled: false },
-      { value: 'current-suggested', label: 'Current <> Suggested', disabled: !suggestedContent },
-      { value: 'suggested', label: 'Suggested (read-only)', disabled: !suggestedContent },
+      { value: 'original-current-split', label: 'Diff (side-by-side)', disabled: !originalContent },
+      { value: 'original-current', label: 'Diff (unified)', disabled: !originalContent },
+      { value: 'original', label: 'Original (read-only)', disabled: !originalContent },
     ];
-  }, [originalContent, suggestedContent]);
+  }, [originalContent]);
 
   // Reset view mode if current mode becomes unavailable
   useEffect(() => {
@@ -63,7 +62,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
   const handleContentChange = useCallback(
     (newContent: string) => {
       // Only allow changes in editable modes
-      if (viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested') {
+      if (viewMode === 'current' || viewMode === 'original-current') {
         setContent(newContent);
         setHasChanges(true);
       }
@@ -89,7 +88,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
 
   // Check if content editing is allowed in current view mode
-  const isEditable = viewMode === 'current' || viewMode === 'original-current' || viewMode === 'current-suggested';
+  const isEditable = viewMode === 'current' || viewMode === 'original-current';
 
   // Extract the body content (after front matter) for preview
   const bodyContent = useMemo(() => {
@@ -162,23 +161,10 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
       case 'current':
         return [markdown()];
 
-      case 'current-suggested':
-        return [
-          markdown(),
-          unifiedMergeView({
-            original: content,
-            mergeControls: true,
-            highlightChanges: true,
-          }),
-        ];
-
-      case 'suggested':
-        return [markdown(), EditorView.editable.of(false)];
-
       default:
         return [markdown()];
     }
-  }, [viewMode, originalContent, content]);
+  }, [viewMode, originalContent]);
 
   const editorValue = useMemo(() => {
     switch (viewMode) {
@@ -188,19 +174,15 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
         return content;
       case 'current':
         return content;
-      case 'current-suggested':
-        return suggestedContent;
-      case 'suggested':
-        return suggestedContent;
       default:
         return content;
     }
-  }, [viewMode, originalContent, content, suggestedContent]);
+  }, [viewMode, originalContent, content]);
 
   // Force re-mount when switching modes that change the diff base
   const editorKey = useMemo(() => {
-    return `${viewMode}-${viewMode === 'current-suggested' ? content.length : 0}`;
-  }, [viewMode, content]);
+    return `${viewMode}-0`;
+  }, [viewMode]);
 
   if (!filePath) {
     return (
@@ -251,6 +233,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
           }}
         >
           <Group gap="xs">
+            <>123</>
             <Select
               size="xs"
               w={200}
@@ -331,8 +314,15 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
               fontSize: '14px',
               height: '100%',
               border: 'none',
+              // Hide this editor when in split mode
+              display: viewMode.endsWith('-split') ? 'none' : 'block',
             }}
           />
+
+          {/* Merge Editor for split view */}
+          {viewMode === 'original-current-split' && (
+            <MergeEditor original={originalContent} modified={content} onModifiedChange={handleContentChange} />
+          )}
         </Box>
       </Box>
     </>
