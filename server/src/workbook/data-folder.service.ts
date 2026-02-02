@@ -311,13 +311,15 @@ export class DataFolderService {
       throw new NotFoundException('Data folder not found');
     }
 
-    // delete the files related to this folder
-    await this.workbookDbService.workbookDb.deleteFilesInFolder(
-      dataFolder.workbookId as WorkbookId,
-      dataFolder.id as DataFolderId,
-    );
-
-    // TODO: delete folder in git
+    // Delete folder in git
+    // Note: dataFolder.path includes leading slash, which is handled by service
+    if (dataFolder.path) {
+      await this.scratchGitService.deleteFolder(
+        dataFolder.workbookId as WorkbookId,
+        dataFolder.path,
+        `Delete folder ${dataFolder.name}`,
+      );
+    }
 
     // Delete the data folder (cascades to children due to schema relation)
     await this.db.client.dataFolder.delete({

@@ -233,7 +233,6 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
           }}
         >
           <Group gap="xs">
-            <>123</>
             <Select
               size="xs"
               w={200}

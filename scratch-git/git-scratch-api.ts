@@ -139,6 +139,18 @@ app.delete('/api/repo/:id/files', async (req, res) => {
   }
 });
 
+app.delete('/api/repo/:id/folder', async (req, res) => {
+  try {
+    const folder = req.query.folder as string;
+    if (!folder) throw new Error('Query param folder is required');
+    const { message } = req.body as { message?: string };
+    await gitService.deleteFolder(req.params.id, folder, message || 'Delete folder');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 app.post('/api/repo/:id/publish', async (req, res) => {
   try {
     const { file, message } = req.body as { file: { path: string; content: string }; message?: string };

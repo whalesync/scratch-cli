@@ -27,10 +27,9 @@ import { RouteUrls } from '@/utils/route-urls';
 import { getSnapshotTables } from '@/utils/snapshot-helpers';
 import { Split } from '@gfazioli/mantine-split-pane';
 import { Box, Stack } from '@mantine/core';
-import { isSnapshotTableId, type FileId, type SnapshotTable } from '@spinner/shared-types';
+import { isSnapshotTableId, type SnapshotTable } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { FileEditor } from './components/FileEditor';
 import { FileTabBar } from './components/FileTabBar';
 import { FolderDetailViewer } from './components/FolderDetailViewer';
 import { WorkbookEditorModals } from './components/modals/WorkbookEditorModals';
@@ -146,7 +145,7 @@ function WorkbookFilesPageContent() {
                         return <AddTableTab />;
                       }
                       // Default to file editor
-                      return <FileEditor workbookId={workbook.id} fileId={activeFileTabId as FileId} />;
+                      return null;
                     })()}
                   </Box>
                 </Stack>

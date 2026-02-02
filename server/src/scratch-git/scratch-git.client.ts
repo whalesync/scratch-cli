@@ -42,6 +42,12 @@ export class ScratchGitClient {
     });
   }
 
+  async deleteFolder(repoId: string, folder: string, message: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/folder?folder=${encodeURIComponent(folder)}`, 'DELETE', {
+      message,
+    });
+  }
+
   async deleteFiles(repoId: string, branch: string, files: string[], message: string): Promise<void> {
     await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'DELETE', {
       files,
