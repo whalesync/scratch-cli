@@ -222,6 +222,22 @@ export const workbookApi = {
     }
   },
 
+  createDataFolderFile: async (
+    folderId: string,
+    name: string,
+    useTemplate: boolean,
+    workbookId: WorkbookId,
+  ): Promise<unknown> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post(`/data-folder/${folderId}/files`, { name, useTemplate, workbookId });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to create file in data folder');
+      throw error;
+    }
+  },
+
   backupWorkbookToRepo: async (workbookId: WorkbookId): Promise<{ success: boolean; message: string }> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();

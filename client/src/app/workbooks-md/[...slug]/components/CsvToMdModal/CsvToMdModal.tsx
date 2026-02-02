@@ -2,6 +2,7 @@
 
 import { filesApi, foldersApi } from '@/lib/api/files';
 import { Alert, Loader, Modal, Progress, Stack, Text } from '@mantine/core';
+import { DataFolderId } from '@spinner/shared-types';
 import { AlertCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -13,13 +14,7 @@ import {
   type MarkdownPreview,
   type ParsedCsv,
 } from './csv-utils';
-import {
-  OrderContentStep,
-  PreviewStep,
-  SelectColumnsStep,
-  SelectContentStep,
-  SelectNameColumnStep,
-} from './steps';
+import { OrderContentStep, PreviewStep, SelectColumnsStep, SelectContentStep, SelectNameColumnStep } from './steps';
 import type { CsvConversionConfig, CsvToMdModalProps, ModalStep } from './types';
 
 export function CsvToMdModal({
@@ -133,7 +128,7 @@ export function CsvToMdModal({
 
       // Determine metadata columns
       const metadataColumns = config.includedColumns.filter(
-        (col) => col !== config.nameColumn && !config.contentColumns.includes(col)
+        (col) => col !== config.nameColumn && !config.contentColumns.includes(col),
       );
 
       // Track used filenames
@@ -167,7 +162,7 @@ export function CsvToMdModal({
         await filesApi.createFile(workbookId, {
           name: filename,
           content,
-          parentFolderId: folderId,
+          parentFolderId: folderId as DataFolderId,
         });
 
         setProgress({ current: i + 1, total: parsedCsv.rows.length });
@@ -179,14 +174,7 @@ export function CsvToMdModal({
       setError(err instanceof Error ? err.message : 'Failed to create files');
       setStep('error');
     }
-  }, [
-    parsedCsv,
-    workbookId,
-    folderName,
-    parentFolderId,
-    config,
-    onSuccess,
-  ]);
+  }, [parsedCsv, workbookId, folderName, parentFolderId, config, onSuccess]);
 
   // Get modal title based on step
   const getTitle = () => {

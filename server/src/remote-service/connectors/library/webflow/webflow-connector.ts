@@ -1,4 +1,4 @@
-import { TSchema, Type } from '@sinclair/typebox';
+import { TObject, TSchema, Type } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
@@ -82,6 +82,80 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   public downloadRecordDeep = undefined;
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getNewFile(tableSpec: BaseJsonTableSpec): Promise<Record<string, unknown>> {
+    const newFile: Record<string, unknown> = {
+      cmsLocaleId: null,
+      isArchived: false,
+      isDraft: true,
+      fieldData: {},
+    };
+
+    // Populate fieldData based on schema
+    const schema = tableSpec.schema as TObject;
+    const fieldDataSchema = schema.properties?.['fieldData'] as TObject | undefined;
+
+    if (fieldDataSchema && fieldDataSchema.type === 'object' && fieldDataSchema.properties) {
+      const fieldData: Record<string, unknown> = {};
+      const properties = fieldDataSchema.properties as Record<string, TSchema>;
+
+      for (const [key, propSchema] of Object.entries(properties)) {
+        fieldData[key] = this.getDefaultValueForSchema(propSchema);
+      }
+
+      newFile.fieldData = fieldData;
+    }
+
+    return newFile;
+  }
+
+  private getDefaultValueForSchema(schema: TSchema): unknown {
+    if (schema.default !== undefined) {
+      return schema.default;
+    }
+
+    // Handle Optional wrapper (TypeBox Union of [Type, Null] or similar structure for Optional)
+    // In TypeBox, Type.Optional(X) often creates a Modifier, but when compiled/inspected it might look specific.
+    // However, our `webflowFieldToJsonSchema` mostly returns simple types or Type.Optional wrappers.
+    // We'll approximate based on `type`.
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const type = schema.type;
+
+    if (type === 'string') {
+      if (schema.format === 'date-time') {
+        return new Date().toISOString();
+      }
+      if (schema.format === 'uri') {
+        return '';
+      }
+      return '';
+    }
+
+    if (type === 'number' || type === 'integer') {
+      return 0;
+    }
+
+    if (type === 'boolean') {
+      return false;
+    }
+
+    if (type === 'array') {
+      return [];
+    }
+
+    if (type === 'object') {
+      // For Image/File objects
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if ((schema as any).properties?.url) {
+        return { url: '', alt: '' };
+      }
+      return {};
+    }
+
+    return null;
+  }
 
   async downloadRecordFiles(
     tableSpec: BaseJsonTableSpec,

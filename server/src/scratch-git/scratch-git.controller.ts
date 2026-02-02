@@ -22,7 +22,7 @@ export class ScratchGitController {
     @Param('id') workbookId: WorkbookId,
     @Query('branch') branch = 'main',
     @Query('path') path: string,
-  ): Promise<{ content: string }> {
+  ): Promise<{ content: string } | null> {
     return this.scratchGitService.getRepoFile(workbookId, branch, path);
   }
   @Get(':id/git-status')

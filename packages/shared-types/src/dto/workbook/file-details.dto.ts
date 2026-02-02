@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { FileDetailsEntity } from '../../file-types';
-import { FolderId } from '../../ids';
+import { DataFolderId, FolderId } from '../../ids';
 
 export interface FileDetailsResponseDto {
   file: FileDetailsEntity;
@@ -17,15 +17,18 @@ export class CreateFileDto {
   /** ID of the parent folder, or null for workbook root */
   @IsString()
   @IsOptional()
-  parentFolderId?: FolderId | null;
+  parentFolderId?: DataFolderId | null;
 
   @IsString()
   @IsOptional()
   content?: string | null;
+
+  @IsOptional()
+  useTemplate?: boolean;
 }
 
 export type ValidatedCreateFileDto = Required<Pick<CreateFileDto, 'name'>> &
-  Pick<CreateFileDto, 'parentFolderId' | 'content'>;
+  Pick<CreateFileDto, 'parentFolderId' | 'content' | 'useTemplate'>;
 
 export class UpdateFileDto {
   /** New name for the file (with extension) */

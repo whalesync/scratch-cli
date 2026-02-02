@@ -18,6 +18,7 @@ import type {
   WorkbookId,
 } from '@spinner/shared-types';
 import {
+  createFileId,
   createFolderId,
   FileDetailsResponseDto,
   FolderResponseDto,
@@ -33,7 +34,6 @@ import matter from 'gray-matter';
 import { DbService } from '../db/db.service';
 import { DIRTY_BRANCH, MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { Actor } from '../users/types';
-import { DataFolderService } from './data-folder.service';
 import { FolderService } from './folder.service';
 import { extractFilenameFromPath } from './util';
 import { WorkbookDbService } from './workbook-db.service';
@@ -44,7 +44,6 @@ export class FilesService {
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly folderService: FolderService,
-    private readonly dataFolderService: DataFolderService,
     private readonly scratchGitService: ScratchGitService,
   ) {}
 
@@ -511,32 +510,32 @@ export class FilesService {
   ): Promise<FileRefEntity> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
+    const content = createFileDto.content ?? '';
+
     let parentPath = '';
     // Verify parent folder exists if specified
     if (createFileDto.parentFolderId) {
-      const folder = await this.db.client.folder.findFirst({
-        where: {
-          id: createFileDto.parentFolderId,
-          workbookId,
-        },
-        select: { path: true },
+      // Check DataFolder. FilesService doesn't need DataFolderService for DB lookups.
+      const dataFolder = await this.db.client.dataFolder.findUnique({
+        where: { id: createFileDto.parentFolderId },
+        select: { path: true, workbookId: true },
       });
-      if (!folder) {
+
+      if (dataFolder) {
+        if (dataFolder.workbookId !== workbookId) {
+          throw new NotFoundException('Parent folder found but belongs to different workbook');
+        }
+        parentPath = dataFolder.path ?? ''; // DataFolder paths are usually set
+      } else {
         throw new NotFoundException('Parent folder not found');
       }
-      parentPath =
-        folder.path ?? (await this.folderService.computeFolderPath(workbookId, createFileDto.parentFolderId));
     }
 
     const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + createFileDto.name;
 
-    const fileId = await this.workbookDbService.workbookDb.createFileWithFolderId(
-      workbookId,
-      createFileDto.name,
-      createFileDto.parentFolderId ?? null,
-      fullPath,
-      createFileDto.content ?? null,
-    );
+    await this.scratchGitService.commitFile(workbookId, fullPath, content, `Create file ${createFileDto.name}`);
+
+    const fileId = createFileId();
 
     return {
       type: 'file',
@@ -1025,7 +1024,13 @@ export class FilesService {
   async listByFolderId(workbookId: WorkbookId, folderId: DataFolderId, actor: Actor): Promise<ListFilesResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    const folder = await this.dataFolderService.findOne(folderId, actor);
+    const folder = await this.db.client.dataFolder.findUnique({
+      where: { id: folderId },
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Data folder not found');
+    }
 
     if (!folder.path) {
       throw new InternalServerErrorException(`Path missing from DataFolder ${folderId}`);
@@ -1034,7 +1039,7 @@ export class FilesService {
     const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
     const repoFiles = (await this.scratchGitService.listRepoFiles(
       workbookId,
-      MAIN_BRANCH,
+      DIRTY_BRANCH,
       folderPath,
     )) as RepoFileRef[];
 
@@ -1071,8 +1076,8 @@ export class FilesService {
   async getFileByPathGit(workbookId: WorkbookId, path: string, actor: Actor): Promise<FileDetailsResponseDto> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    const { content: mainContent } = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, path);
-    const { content: dirtyContent } = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, path);
+    const mainResponse = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, path);
+    const dirtyResponse = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, path);
 
     return {
       file: {
@@ -1083,8 +1088,8 @@ export class FilesService {
           parentFolderId: null,
           path: path,
         },
-        content: dirtyContent,
-        originalContent: mainContent,
+        content: dirtyResponse?.content ?? null,
+        originalContent: mainResponse?.content ?? null,
         suggestedContent: null, // has no equivilent in the new world
         createdAt: '', // TODO - get this metadata from git?
         updatedAt: '', // TODO - get this metadata from git?

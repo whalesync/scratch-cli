@@ -25,6 +25,7 @@ import {
 import type { FileWithPath } from '@mantine/dropzone';
 import { DndProvider, DropOptions, getBackendOptions, MultiBackend, NodeModel, Tree } from '@minoru/react-dnd-treeview';
 import type {
+  DataFolderId,
   FileId,
   FileOrFolderRefEntity,
   FolderId,
@@ -86,7 +87,7 @@ const WORKBOOK_ROOT_ID = 'workbook-root';
 interface TreeNodeData {
   id: string;
   name: string;
-  parentFolderId: FolderId | null;
+  parentFolderId: FolderId | DataFolderId | null;
   path: string;
   isFile: boolean;
   isFolder: boolean;
@@ -605,7 +606,7 @@ function TreeNodeRenderer({
                     leftSection={<CopyIcon size={16} />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onFileDuplicate(nodeData.id as FileId, nodeData.parentFolderId, nodeData.name);
+                      onFileDuplicate(nodeData.id as FileId, nodeData.parentFolderId as FolderId, nodeData.name);
                     }}
                   >
                     Duplicate
@@ -617,7 +618,7 @@ function TreeNodeRenderer({
                         leftSection={<TableIcon size={16} />}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onCsvConvert(nodeData.id as FileId, nodeData.name, nodeData.parentFolderId);
+                          onCsvConvert(nodeData.id as FileId, nodeData.name, nodeData.parentFolderId as FolderId);
                         }}
                       >
                         Convert to MD Folder
@@ -1078,7 +1079,7 @@ export function WorkbookFileBrowser() {
           const content = await file.text();
           await filesApi.createFile(workbook.id, {
             name: file.name,
-            parentFolderId: folderId,
+            parentFolderId: folderId as DataFolderId,
             content: content,
           });
         });
@@ -1377,7 +1378,7 @@ export function WorkbookFileBrowser() {
         case 'createFile':
           await filesApi.createFile(workbook.id, {
             name: inputValue.trim(),
-            parentFolderId: inputModal.parentFolderId,
+            parentFolderId: inputModal.parentFolderId as DataFolderId,
           });
           break;
         case 'renameFolder':

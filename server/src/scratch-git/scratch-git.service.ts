@@ -67,7 +67,7 @@ export class ScratchGitService {
     return this.scratchGitClient.list(workbookId, branch, folder);
   }
 
-  async getRepoFile(workbookId: WorkbookId, branch: string, path: string): Promise<{ content: string }> {
+  async getRepoFile(workbookId: WorkbookId, branch: string, path: string): Promise<{ content: string } | null> {
     return this.scratchGitClient.getFile(workbookId, branch, path);
   }
 

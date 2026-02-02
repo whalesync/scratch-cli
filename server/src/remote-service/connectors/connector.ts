@@ -76,6 +76,16 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   abstract fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec>;
 
   /**
+   * Get a new file template for the given table spec.
+   * @param tableSpec The table spec to get the new file template for.
+   * @returns The new file template.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getNewFile(tableSpec: BaseJsonTableSpec): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+
+  /**
    * Download all available records for a given table.
    * @param tableSpec The table spec to download records for.
    * @param callback The callback that will process batches of records as they are downloaded.

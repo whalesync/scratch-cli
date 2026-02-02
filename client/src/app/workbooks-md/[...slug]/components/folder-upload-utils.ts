@@ -1,5 +1,5 @@
 import { filesApi, foldersApi } from '@/lib/api/files';
-import { FolderId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, FolderId, WorkbookId } from '@spinner/shared-types';
 
 export interface PendingUploadFile {
   type: 'file';
@@ -167,7 +167,7 @@ export async function uploadStructure(
     if (item.type === 'file') {
       await filesApi.createFile(workbookId, {
         name: item.name,
-        parentFolderId: parentId,
+        parentFolderId: parentId as DataFolderId,
         content: item.content,
       });
     } else {

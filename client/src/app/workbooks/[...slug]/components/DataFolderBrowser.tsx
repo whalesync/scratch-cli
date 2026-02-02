@@ -13,6 +13,7 @@ import {
   ActionIcon,
   Box,
   Button,
+  Checkbox,
   Code,
   Collapse,
   Group,
@@ -22,10 +23,11 @@ import {
   ScrollArea,
   Stack,
   Text,
+  TextInput,
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import type { DataFolder, DataFolderGroup, DataFolderId } from '@spinner/shared-types';
+import type { DataFolder, DataFolderGroup, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -76,6 +78,18 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   const [gitStatusOpen, setGitStatusOpen] = useState(false);
   const [gitStatus, setGitStatus] = useState<object | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
+
+  // New File Modal State
+  const [newFileModalState, setNewFileModalState] = useState<{ isOpen: boolean; folder: DataFolder | null }>({
+    isOpen: false,
+    folder: null,
+  });
+
+  const handleOpenNewFileModal = useCallback((folder: DataFolder | null) => {
+    if (folder) {
+      setNewFileModalState({ isOpen: true, folder });
+    }
+  }, []);
 
   const handleGitStatus = useCallback(async () => {
     if (!workbook) return;
@@ -208,7 +222,21 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
         </Text>
         <Group gap={4}>
           <Tooltip label="New File" openDelay={500}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => {}} disabled>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={() => {
+                if (selectedFolderId) {
+                  // Find the folder object from groups
+                  const folder = dataFolderGroups.flatMap((g) => g.dataFolders).find((f) => f.id === selectedFolderId);
+                  if (folder) {
+                    handleOpenNewFileModal(folder);
+                  }
+                }
+              }}
+              disabled={!selectedFolderId}
+            >
               <FilePlusIcon size={14} />
             </ActionIcon>
           </Tooltip>
@@ -288,6 +316,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               selectedFolderId={selectedFolderId}
               onFolderClick={handleFolderClick}
               onFolderDelete={handleFolderDelete}
+              onNewFile={handleOpenNewFileModal}
             />
           ))}
         </Stack>
@@ -339,6 +368,18 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
           </ScrollArea.Autosize>
         )}
       </Modal>
+
+      {workbook && (
+        <NewFileModal
+          isOpen={newFileModalState.isOpen}
+          onClose={() => setNewFileModalState((prev) => ({ ...prev, isOpen: false }))}
+          folder={newFileModalState.folder}
+          workbookId={workbook.id}
+          onSuccess={() => {
+            // maybe refresh?
+          }}
+        />
+      )}
     </Stack>
   );
 }
@@ -348,9 +389,10 @@ interface DataFolderItemProps {
   isSelected: boolean;
   onClick: () => void;
   onDelete: () => void;
+  onNewFile: (folder: DataFolder) => void;
 }
 
-function DataFolderItem({ folder, isSelected, onClick, onDelete }: DataFolderItemProps) {
+function DataFolderItem({ folder, isSelected, onClick, onDelete, onNewFile }: DataFolderItemProps) {
   const [menuOpened, setMenuOpened] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
@@ -362,7 +404,7 @@ function DataFolderItem({ folder, isSelected, onClick, onDelete }: DataFolderIte
   };
 
   const handleNewFile = () => {
-    console.log('New File clicked for folder:', folder.id);
+    onNewFile(folder);
     setMenuOpened(false);
   };
 
@@ -396,7 +438,7 @@ function DataFolderItem({ folder, isSelected, onClick, onDelete }: DataFolderIte
           <Box style={{ position: 'fixed', top: menuPosition.y, left: menuPosition.x, width: 0, height: 0 }} />
         </Menu.Target>
         <Menu.Dropdown>
-          <Menu.Item leftSection={<FilePlusIcon size={16} />} onClick={handleNewFile} disabled>
+          <Menu.Item leftSection={<FilePlusIcon size={16} />} onClick={handleNewFile}>
             New File
           </Menu.Item>
           <Menu.Item leftSection={<DownloadIcon size={16} />} onClick={handleDownload} disabled>
@@ -418,6 +460,7 @@ interface DataFolderGroupItemProps {
   selectedFolderId: DataFolderId | null;
   onFolderClick: (folder: DataFolder) => void;
   onFolderDelete: (folder: DataFolder) => void;
+  onNewFile: (folder: DataFolder) => void;
 }
 
 function DataFolderGroupItem({
@@ -427,6 +470,7 @@ function DataFolderGroupItem({
   selectedFolderId,
   onFolderClick,
   onFolderDelete,
+  onNewFile,
 }: DataFolderGroupItemProps) {
   const isScratch = group.name === SCRATCH_GROUP_NAME;
 
@@ -455,6 +499,7 @@ function DataFolderGroupItem({
               isSelected={selectedFolderId === folder.id}
               onClick={() => onFolderClick(folder)}
               onDelete={() => onFolderDelete(folder)}
+              onNewFile={onNewFile}
             />
           ))}
           {group.dataFolders.length === 0 && (
@@ -465,5 +510,77 @@ function DataFolderGroupItem({
         </Stack>
       </Collapse>
     </Box>
+  );
+}
+
+interface NewFileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  folder: DataFolder | null;
+  onSuccess: () => void;
+  workbookId: string;
+}
+
+function NewFileModal({ isOpen, onClose, folder, onSuccess, workbookId }: NewFileModalProps) {
+  const [fileName, setFileName] = useState('');
+  const [useTemplate, setUseTemplate] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFileName('');
+      setUseTemplate(true);
+    }
+  }, [isOpen]);
+
+  const handleCreate = async () => {
+    if (!folder || !fileName.trim()) return;
+
+    setLoading(true);
+    try {
+      await workbookApi.createDataFolderFile(folder.id, fileName, useTemplate, workbookId as WorkbookId);
+
+      ScratchpadNotifications.success({
+        title: 'File Created',
+        message: `Created ${fileName}`,
+      });
+      onSuccess();
+      onClose();
+    } catch (error) {
+      console.error('Failed to create file', error);
+      ScratchpadNotifications.error({
+        title: 'Creation Failed',
+        message: 'Could not create file.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal opened={isOpen} onClose={onClose} title="New File" size="sm" centered>
+      <Stack gap="md">
+        <TextInput
+          label="Name"
+          placeholder="e.g., config.json"
+          value={fileName}
+          onChange={(e) => setFileName(e.currentTarget.value)}
+          data-autofocus
+        />
+        <Checkbox
+          label="Use Template"
+          checked={useTemplate}
+          onChange={(e) => setUseTemplate(e.currentTarget.checked)}
+        />
+        <Group justify="flex-end" gap="sm">
+          <Button variant="subtle" color="gray" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreate} loading={loading} disabled={!fileName.trim()}>
+            Create
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }

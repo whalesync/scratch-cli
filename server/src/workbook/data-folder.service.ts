@@ -22,6 +22,7 @@ import { ConnectorsService } from '../remote-service/connectors/connectors.servi
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
+import { FilesService } from './files.service';
 import { WorkbookDbService } from './workbook-db.service';
 import { WorkbookService } from './workbook.service';
 
@@ -37,6 +38,7 @@ export class DataFolderService {
     private readonly auditLogService: AuditLogService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly filesService: FilesService,
   ) {}
 
   /**
@@ -480,5 +482,77 @@ export class DataFolderService {
       // Recursively update grandchildren
       await this.updateChildrenPaths(child.id, childPath);
     }
+  }
+
+  async getNewFileTemplate(id: DataFolderId, actor: Actor): Promise<Record<string, unknown>> {
+    const dataFolder = await this.db.client.dataFolder.findUnique({
+      where: { id },
+      include: DataFolderCluster._validator.include,
+    });
+
+    if (!dataFolder) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    if (dataFolder.connectorAccountId && dataFolder.connectorService) {
+      const connectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, actor);
+      if (!connectorAccount) {
+        throw new NotFoundException('Connector account not found');
+      }
+
+      const connector = await this.connectorService.getConnector({
+        service: dataFolder.connectorService as Service,
+        connectorAccount: connectorAccount as ConnectorAccount,
+        decryptedCredentials: connectorAccount as unknown as DecryptedCredentials,
+      });
+
+      if (!dataFolder.schema) {
+        // Fallback if no schema is present (shouldn't happen for valid connected folders but safe to handle)
+        return {};
+      }
+
+      return await connector.getNewFile(dataFolder.schema as BaseJsonTableSpec);
+    }
+
+    // Default for scratch folders or if no connector logic applies
+    return {};
+  }
+
+  async createFile(
+    workbookId: WorkbookId,
+    id: DataFolderId,
+    dto: { name: string; useTemplate?: boolean },
+    actor: Actor,
+  ) {
+    let content = '{}';
+
+    if (dto.useTemplate) {
+      try {
+        const template = await this.getNewFileTemplate(id, actor);
+        content = JSON.stringify(template, null, 2);
+      } catch (e) {
+        WSLogger.warn({
+          source: 'DataFolderService.createFile',
+          message: 'Failed to fetch template for new file',
+          error: e,
+        });
+      }
+    }
+
+    return this.filesService.createFile(
+      workbookId,
+      {
+        name: dto.name,
+        parentFolderId: id,
+        content,
+      },
+      actor,
+    );
   }
 }

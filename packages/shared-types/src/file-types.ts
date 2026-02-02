@@ -3,7 +3,7 @@
  */
 
 import { Service } from './enums';
-import { FileId, FolderId, SnapshotTableId } from './ids';
+import { DataFolderId, FileId, FolderId, SnapshotTableId } from './ids';
 
 /**
  * Reference to a file in the workbook
@@ -13,7 +13,7 @@ export interface FileRefEntity {
   id: FileId;
   name: string;
   /** ID of the parent folder, or null if at workbook root */
-  parentFolderId: FolderId | null;
+  parentFolderId: FolderId | DataFolderId | null;
   /** Full path of the file, e.g. "/folder/file.md" */
   path: string;
   /** Whether the file has unpublished changes */

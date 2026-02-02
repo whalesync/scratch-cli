@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 export class ScratchGitClient {
   private readonly gitApiUrl = process.env.SCRATCH_GIT_URL || 'http://localhost:3100';
 
-  private async callGitApi(endpoint: string, method: string, body?: any): Promise<any> {
+  private async callGitApi(endpoint: string, method: string, body?: any): Promise<unknown> {
     const options: RequestInit = {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -67,11 +67,17 @@ export class ScratchGitClient {
     ) as Promise<any[]>;
   }
 
-  async getFile(repoId: string, branch: string, path: string): Promise<{ content: string }> {
-    return this.callGitApi(
-      `/api/repo/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
-      'GET',
-    ) as Promise<{ content: string }>;
+  async getFile(repoId: string, branch: string, path: string): Promise<{ content: string } | null> {
+    try {
+      const response = await this.callGitApi(
+        `/api/repo/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
+        'GET',
+      );
+      return response as { content: string };
+    } catch {
+      // TODO: handle error properly
+      return null;
+    }
   }
 
   async getStatus(repoId: string): Promise<any> {

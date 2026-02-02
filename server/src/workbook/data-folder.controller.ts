@@ -18,6 +18,7 @@ import type {
   ValidatedCreateDataFolderDto,
   ValidatedMoveDataFolderDto,
   ValidatedRenameDataFolderDto,
+  WorkbookId,
 } from '@spinner/shared-types';
 import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
@@ -77,5 +78,27 @@ export class DataFolderController {
   ): Promise<DataFolder> {
     const dto = moveDto as ValidatedMoveDataFolderDto;
     return await this.dataFolderService.moveFolder(id, dto.parentFolderId ?? null, userToActor(req.user));
+  }
+
+  @Get(':id/new-file')
+  async getNewFileTemplate(
+    @Param('id') id: DataFolderId,
+    @Req() req: RequestWithUser,
+  ): Promise<Record<string, unknown>> {
+    return await this.dataFolderService.getNewFileTemplate(id, userToActor(req.user));
+  }
+
+  @Post(':id/files')
+  async createFile(
+    @Param('id') id: DataFolderId,
+    @Body() body: { name: string; useTemplate?: boolean; workbookId: string },
+    @Req() req: RequestWithUser,
+  ) {
+    return await this.dataFolderService.createFile(
+      body.workbookId as WorkbookId,
+      id,
+      { name: body.name, useTemplate: body.useTemplate },
+      userToActor(req.user),
+    );
   }
 }
