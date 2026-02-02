@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import cors from 'cors';
 import express from 'express';
+import { resolve } from 'node:path';
 import { GitService } from './lib/GitService';
 
 const app = express();
@@ -14,6 +15,7 @@ app.use((req, res, next) => {
 
 const port = process.env.PORT || 3100;
 const buildVersion = process.env.BUILD_VERSION || '0.0.0-local';
+const reposDir = resolve(process.env.GIT_REPOS_DIR || 'repos');
 const gitService = new GitService();
 
 app.get('/', (_, res) =>
@@ -219,5 +221,5 @@ app.get('/health', (_, res) =>
 );
 
 app.listen(port, () => {
-  console.log(`ScratchGit API listening at http://localhost:${port}`);
+  console.log(`ScratchGit API listening at http://localhost:${port} (build: ${buildVersion}, repos: ${reposDir})`);
 });

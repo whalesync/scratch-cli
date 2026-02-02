@@ -7,6 +7,7 @@ interface ConnectionTestResult {
   status: 'ok' | 'error' | 'not_enabled';
   url?: string;
   error?: string;
+  build_version?: string;
 }
 
 interface ConnectionTestResponse {
@@ -92,7 +93,8 @@ export class HealthController {
         signal: AbortSignal.timeout(5000),
       });
       if (response.ok) {
-        return { status: 'ok', url: scratchGitUrl };
+        const body = (await response.json()) as { build_version?: string };
+        return { status: 'ok', url: scratchGitUrl, build_version: body.build_version };
       }
       return { status: 'error', url: scratchGitUrl, error: `HTTP ${response.status}: ${await response.text()}` };
     } catch (err) {

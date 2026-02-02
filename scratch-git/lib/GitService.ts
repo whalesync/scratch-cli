@@ -35,6 +35,7 @@ export class GitService implements IGitService {
 
   async initRepo(repoId: string): Promise<void> {
     const dir = this.getRepoPath(repoId);
+    console.log(`[GitService] Initializing repo "${repoId}" at ${dir}`);
     await fs.promises.mkdir(dir, { recursive: true });
 
     // Check if HEAD exists (bare repo structure)

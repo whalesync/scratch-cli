@@ -50,13 +50,13 @@ The services are designed to run independently.
 **Start the RPC API:**
 
 ```bash
-npm run dev:api
+yarn run dev:api
 ```
 
 **Start the Git HTTP Backend:**
 
 ```bash
-npm run dev:http-backend
+yarn run dev:http-backend
 ```
 
 ## Docker
@@ -88,25 +88,7 @@ Docker images are built automatically by the GitLab CI/CD pipeline and pushed to
 
 The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to both **Test** (`spv1-test`) and **Production** (`spv1-production`) environments.
 
-### Option 1: Deploy via Terraform
-
-Terraform apply will recreate the instance with the latest startup script, which pulls and runs the newest image. If necessary you can provide just a -target option if you don't want to run the full apply
-
-**Test:**
-
-```bash
-cd terraform/envs/test
-terraform apply
-```
-
-**Production:**
-
-```bash
-cd terraform/envs/production
-terraform apply
-```
-
-### Option 2: Deploy via gcloud (without Terraform)
+### Deploy via gcloud (without Terraform)
 
 To update the running container without a full Terraform apply, SSH into the instance and re-run the startup script. This pulls the latest image and restarts the container.
 

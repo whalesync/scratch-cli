@@ -6,11 +6,11 @@ FROM node:22.22.0-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN yarn build
 
 # Stage 2: Production runtime
 FROM node:22.22.0-alpine AS runner
