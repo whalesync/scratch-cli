@@ -25,6 +25,9 @@ module "production" {
   enable_email_notifications     = true
   enable_pagerduty_notifications = true
 
+  # Scratch Git
+  enable_scratch_git = true
+
   # Services
   force_reload_services = var.force_reload_services
 }

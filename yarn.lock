@@ -977,6 +977,18 @@
   resolved "https://registry.npmjs.org/@gfazioli/mantine-split-pane/-/mantine-split-pane-2.5.3.tgz"
   integrity sha512-XNiZVJKJn56diyoOfMLcxxEzzZlV3Itp/nGZ3eX8VG2qBaWBTC88VtJgHh/QFTi9fJqTlP3zZRzSGgTWPS0kxg==
 
+"@gitgraph/core@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@gitgraph/core/-/core-1.5.0.tgz#fc27924b82eabc5fa1f90480df5239e0c84dcafa"
+  integrity sha512-8CeeHbkKoFHM1y9vfjYiHyEpzl1mEhVrg5c/eFgDBsntOYswoDKU2yOf6DjtVINcE60wmcuynBSJqjMkQo07Ww==
+
+"@gitgraph/react@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@gitgraph/react/-/react-1.6.0.tgz#45783da838d975c225849766c337028a92cd3f14"
+  integrity sha512-cLFNZDoEiNbsnMfdT82zeZti5saYghQamfCbTpVvCRr+BrrQ/k94glkZqYPXKKNTEqbQV6L9JeOfAk1hNiFYXA==
+  dependencies:
+    "@gitgraph/core" "1.5.0"
+
 "@google/genai@^1.5.1":
   version "1.30.0"
   resolved "https://registry.npmjs.org/@google/genai/-/genai-1.30.0.tgz"

@@ -23,8 +23,8 @@ module "test" {
   db_high_availability = false
 
   # Monitoring
-  enable_alerts                  = false
-  enable_email_notifications     = false
+  enable_alerts                  = true
+  enable_email_notifications     = true
   enable_pagerduty_notifications = false
 
   # Scratch Git

@@ -570,6 +570,43 @@ resource "google_monitoring_alert_policy" "intrusion_detection_system_alert" {
   depends_on = [google_project_service.services]
 }
 
+## ---------------------------------------------------------------------------------------------------------------------
+## Scratch Git GCE Alerts
+## ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_monitoring_alert_policy" "scratch_git_cpu_too_high" {
+  display_name = "${local.display_env} Scratch Git CPU > 90%"
+  count        = var.enable_alerts && var.enable_scratch_git ? 1 : 0
+  documentation {
+    subject = "${local.display_env} Scratch Git CPU Utilization > 90%"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "VM Instance - CPU utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"gce_instance\" AND metric.type = \"compute.googleapis.com/instance/cpu/utilization\" AND metric.labels.instance_name = \"${module.scratch_git_gce[0].instance_name}\""
+      threshold_value = 0.9
+      trigger {
+        count = 3
+      }
+    }
+  }
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+  notification_channels = local.notification_channels
+  severity              = "WARNING"
+}
+
 resource "google_cloud_ids_endpoint" "intrusion_detection_system_endpoint" {
   count      = var.enable_intrusion_detection && var.intrusion_detection_external_url == null ? 1 : 0
   name       = "ids-endpoint"
