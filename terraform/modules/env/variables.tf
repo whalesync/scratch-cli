@@ -109,6 +109,12 @@ variable "enable_intrusion_detection" {
   description = "Whether to enable Cloud IDS. This is expensive so it's only needed in prod environments."
 }
 
+variable "intrusion_detection_external_url" {
+  type        = string
+  default     = null
+  description = "External IDS endpoint URL. If set, skips creation of google_cloud_ids_endpoint."
+}
+
 variable "enable_alerts" {
   type        = bool
   default     = true

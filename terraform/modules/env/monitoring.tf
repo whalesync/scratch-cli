@@ -571,7 +571,7 @@ resource "google_monitoring_alert_policy" "intrusion_detection_system_alert" {
 }
 
 resource "google_cloud_ids_endpoint" "intrusion_detection_system_endpoint" {
-  count      = var.enable_intrusion_detection ? 1 : 0
+  count      = var.enable_intrusion_detection && var.intrusion_detection_external_url == null ? 1 : 0
   name       = "ids-endpoint"
   location   = var.gcp_zone
   network    = module.vpc.network_id
@@ -588,7 +588,7 @@ resource "google_compute_packet_mirroring" "intrusion_detection_system_packet_mi
     url = module.vpc.network_id
   }
   collector_ilb {
-    url = google_cloud_ids_endpoint.intrusion_detection_system_endpoint[0].endpoint_forwarding_rule
+    url = var.intrusion_detection_external_url != null ? var.intrusion_detection_external_url : google_cloud_ids_endpoint.intrusion_detection_system_endpoint[0].endpoint_forwarding_rule
   }
   mirrored_resources {
     subnetworks {

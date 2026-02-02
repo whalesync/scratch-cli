@@ -10,6 +10,8 @@ module "production" {
 
   # Cloud IDS.
   enable_intrusion_detection = true
+  # Use the existing Cloud IDS endpoint from wsv1-production
+  intrusion_detection_external_url = "https://www.googleapis.com/compute/v1/projects/ld5863d2646ef8bfb-tp/regions/us-central1/forwardingRules/ids-fr-ids-en-vjgwaprqioazacaa"
 
   # Load Balancer
   enable_client_load_balancer = true
