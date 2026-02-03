@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { DataFolderId, SyncId, TableMapping, WorkbookId } from '@spinner/shared-types';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateSyncDto, DataFolderId, SyncId, TableMapping, WorkbookId, createSyncId } from '@spinner/shared-types';
 import matter from 'gray-matter';
 import { DbService } from 'src/db/db.service';
 import { ConnectorRecord } from 'src/remote-service/connectors/types';
 import { Actor } from 'src/users/types';
-import { FilesService } from 'src/workbook/files.service';
+import { DataFolderService } from 'src/workbook/data-folder.service';
+import { WorkbookService } from 'src/workbook/workbook.service';
 
 export interface RemoteIdMappingPair {
   sourceRemoteId: string;
@@ -21,8 +22,78 @@ interface FileContent {
 export class SyncService {
   constructor(
     private readonly db: DbService,
-    private readonly filesService: FilesService,
+    private readonly dataFolderService: DataFolderService,
+    private readonly workbookService: WorkbookService,
   ) {}
+
+  /**
+   * Creates a new sync.
+   * Ignores schedule and autoPublish for now as they are not in the data model.
+   */
+  async createSync(workbookId: WorkbookId, dto: CreateSyncDto, actor: Actor): Promise<unknown> {
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    const syncId = createSyncId();
+
+    // Create the sync and its table pairs in a transaction
+    const sync = await this.db.client.sync.create({
+      data: {
+        id: syncId,
+        displayName: dto.name,
+        // Using an empty object for now as SyncMapping structure is complex and we're using table pairs
+        mappings: {},
+        syncTablePairs: {
+          create: dto.folderMappings.map((mapping) => ({
+            id: createSyncId(), // Using sync ID generator for pair ID as well
+            sourceDataFolderId: mapping.sourceId,
+            destinationDataFolderId: mapping.destId,
+            // We would store fieldMap and matchingField here if the model supported it,
+            // but for now we just link the folders.
+            // TODO: Update SyncTablePair model to support field mappings
+          })),
+        },
+      },
+      include: {
+        syncTablePairs: true,
+      },
+    });
+
+    return sync;
+  }
+
+  /**
+   * Lists all syncs for a workbook.
+   */
+  async findAllForWorkbook(workbookId: WorkbookId, actor: Actor): Promise<unknown[]> {
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Consider adding workbookId to the sync.
+    return await this.db.client.sync.findMany({
+      where: {
+        syncTablePairs: {
+          some: {
+            sourceDataFolder: {
+              workbookId,
+            },
+          },
+        },
+      },
+      include: {
+        syncTablePairs: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 
   /**
    * Fills sync caches (match keys and remote ID mappings) before running a sync.
@@ -42,12 +113,12 @@ export class SyncService {
     actor: Actor,
   ): Promise<{ sourceRecords: Record<string, unknown>[]; destinationRecords: Record<string, unknown>[] }> {
     // Fetch source and destination files
-    const sourceFiles = await this.filesService.getAllFileContentsByFolderId(
+    const sourceFiles = await this.dataFolderService.getAllFileContentsByFolderId(
       workbookId,
       tableMapping.sourceDataFolderId,
       actor,
     );
-    const destinationFiles = await this.filesService.getAllFileContentsByFolderId(
+    const destinationFiles = await this.dataFolderService.getAllFileContentsByFolderId(
       workbookId,
       tableMapping.destinationDataFolderId,
       actor,

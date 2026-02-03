@@ -62,3 +62,5 @@ export * from './dto/workbook/set-content-column.dto';
 export * from './dto/workbook/set-title-column.dto';
 export * from './dto/workbook/update-column-settings.dto';
 export * from './dto/workbook/update-workbook.dto';
+
+export * from './dto/sync/create-sync.dto';

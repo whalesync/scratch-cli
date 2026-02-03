@@ -80,14 +80,6 @@ export class DataFolderController {
     return await this.dataFolderService.moveFolder(id, dto.parentFolderId ?? null, userToActor(req.user));
   }
 
-  @Get(':id/new-file')
-  async getNewFileTemplate(
-    @Param('id') id: DataFolderId,
-    @Req() req: RequestWithUser,
-  ): Promise<Record<string, unknown>> {
-    return await this.dataFolderService.getNewFileTemplate(id, userToActor(req.user));
-  }
-
   @Post(':id/files')
   async createFile(
     @Param('id') id: DataFolderId,

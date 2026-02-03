@@ -30,6 +30,7 @@ import { ConnectorsModule } from './remote-service/connectors/connectors.module'
 import { ScratchGitModule } from './scratch-git/scratch-git.module';
 import { SlackNotificationModule } from './slack/slack-notification.module';
 import { StyleGuideModule } from './style-guide/style-guide.module';
+import { SyncModule } from './sync/sync.module';
 import { UserModule } from './users/users.module';
 import { WorkbookModule } from './workbook/workbook.module';
 import { WorkerEnqueuerModule } from './worker-enqueuer/worker-enqueuer.module';
@@ -58,6 +59,7 @@ import { WorkerModule } from './worker/workers.module';
     WixCustomActionsModule,
     WorkbookModule,
     ScratchGitModule,
+    SyncModule,
     StyleGuideModule,
     AgentTokenUsageModule,
     PaymentModule,

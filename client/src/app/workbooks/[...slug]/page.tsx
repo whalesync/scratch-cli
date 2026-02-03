@@ -30,6 +30,7 @@ import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditorNew } from './components/FileEditorNew';
+import { SyncsView } from './components/SyncsView';
 import { TabBar } from './components/TabBar';
 
 const DEFAULT_LIST_WIDTH = '300px';
@@ -129,6 +130,9 @@ function WorkbookFilesPageContent() {
                       }
                       if (activeTab?.type === 'file') {
                         return <FileEditorNew workbookId={workbook.id} filePath={activeFileTabId} />;
+                      }
+                      if (activeTab?.type === 'syncs-view') {
+                        return <SyncsView />;
                       }
                       // Default to an empty state
                       return (

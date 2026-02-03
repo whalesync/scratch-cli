@@ -53,6 +53,7 @@ import { FolderService } from './folder.service';
     WorkbookService,
     SnapshotEventService,
     FolderService,
+    FilesService,
     FilePublishingService,
     DataFolderService,
     WorkbookDbModule,

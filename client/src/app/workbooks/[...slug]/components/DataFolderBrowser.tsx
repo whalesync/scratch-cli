@@ -264,6 +264,17 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
             </ActionIcon>
           </Tooltip>
 
+          <Tooltip label="Syncs" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={() => openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' })}
+            >
+              <FolderSyncIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
+
           <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
 
           <Tooltip label="Collapse All" openDelay={500}>

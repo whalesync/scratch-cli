@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount } from '@prisma/client';
 import {
   createDataFolderId,
@@ -20,10 +20,9 @@ import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
-import { ScratchGitService } from '../scratch-git/scratch-git.service';
+import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { FilesService } from './files.service';
-import { WorkbookDbService } from './workbook-db.service';
 import { WorkbookService } from './workbook.service';
 
 @Injectable()
@@ -36,7 +35,6 @@ export class DataFolderService {
     private readonly configService: ScratchpadConfigService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
-    private readonly workbookDbService: WorkbookDbService,
     private readonly scratchGitService: ScratchGitService,
     private readonly filesService: FilesService,
   ) {}
@@ -555,6 +553,44 @@ export class DataFolderService {
         content,
       },
       actor,
+    );
+  }
+
+  /**
+   *  @deprecated: Created only to block out access to git files for SyncService
+   */
+  async getAllFileContentsByFolderId(
+    workbookId: WorkbookId,
+    folderId: DataFolderId,
+    actor: Actor,
+  ): Promise<{ folderId: DataFolderId; path: string; content: string }[]> {
+    await this.filesService.verifyWorkbookAccess(workbookId, actor);
+
+    const folder = await this.findOne(folderId, actor);
+
+    if (!folder.path) {
+      throw new InternalServerErrorException(`Path missing from DataFolder ${folderId}`);
+    }
+
+    const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
+    const repoFiles = (await this.scratchGitService.listRepoFiles(
+      workbookId,
+      MAIN_BRANCH,
+      folderPath,
+    )) as RepoFileRef[];
+
+    return Promise.all(
+      repoFiles.map(async (fileRef) => {
+        const result = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, fileRef.path);
+        if (result === null) {
+          throw new NotFoundException(`Unable to find ${fileRef.path}`);
+        }
+        return {
+          folderId: folderId,
+          path: fileRef.path,
+          content: result.content,
+        };
+      }),
     );
   }
 }
