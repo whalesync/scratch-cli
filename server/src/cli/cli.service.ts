@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
 import { createConnectorAccountId, DataFolderId, Service, SnapshotRecordId, WorkbookId } from '@spinner/shared-types';
 import { createHash } from 'crypto';
 import * as path from 'path';
 import { CliConnectorCredentials } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { DbService } from 'src/db/db.service';
+import { JobService } from 'src/job/job.service';
 import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
@@ -18,6 +20,8 @@ import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { normalizeFileName } from 'src/workbook/util';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
+import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
+import { DownloadLinkedFolderFilesPublicProgress } from 'src/worker/jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ValidatedFolderMetadataDto } from './dtos/download-folder.dto';
 import {
@@ -25,8 +29,10 @@ import {
   PutFolderFilesResponseDto,
   ValidatedPutFolderFilesRequestDto,
 } from './dtos/folder-files.dto';
+import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
+import { TriggerDownloadResponseDto } from './dtos/trigger-download.dto';
 import { UploadChangesDto, UploadChangesResponseDto, UploadChangesResult } from './dtos/upload-changes.dto';
 import { ValidatedFileResult, ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
 
@@ -49,6 +55,9 @@ export class CliService {
     private readonly dataFolderService: DataFolderService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly jobService: JobService,
+    private readonly db: DbService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   /**
@@ -708,6 +717,119 @@ export class CliService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       return [];
+    }
+  }
+
+  /**
+   * Triggers a download job for a data folder in a workbook.
+   * Uses enqueueDownloadLinkedFolderFilesJob to download from the connector.
+   */
+  async triggerDownload(
+    workbookId: WorkbookId,
+    dataFolderId: string,
+    actor: Actor,
+  ): Promise<TriggerDownloadResponseDto> {
+    try {
+      // Verify user has access to workbook
+      const workbook = await this.workbookService.findOne(workbookId, actor);
+      if (!workbook) {
+        throw new NotFoundException(`Workbook ${workbookId} not found`);
+      }
+
+      // Find the data folder
+      const dataFolder = await this.db.client.dataFolder.findFirst({
+        where: {
+          id: dataFolderId as DataFolderId,
+          workbookId: workbook.id,
+        },
+      });
+
+      if (!dataFolder) {
+        return { error: `Data folder ${dataFolderId} not found in workbook ${workbookId}` };
+      }
+
+      // Set lock on the folder
+      await this.db.client.dataFolder.update({
+        where: { id: dataFolderId as DataFolderId },
+        data: { lock: 'download' },
+      });
+
+      // Build initial public progress
+      const initialPublicProgress: DownloadLinkedFolderFilesPublicProgress = {
+        totalFiles: 0,
+        status: 'pending',
+        folderId: dataFolder.id,
+        folderName: dataFolder.name,
+        connector: dataFolder.connectorService ?? '',
+      };
+
+      // Enqueue the download job
+      const job = await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(
+        workbookId,
+        actor,
+        dataFolderId as DataFolderId,
+        initialPublicProgress,
+      );
+
+      this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD, actor.userId, {
+        workbookId,
+        dataFolderId,
+        source: 'cli-trigger',
+      });
+
+      return { jobId: job.id as string };
+    } catch (error) {
+      WSLogger.error({
+        source: 'CliService',
+        message: 'Error triggering download',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        workbookId,
+        dataFolderId,
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: errorMessage };
+    }
+  }
+
+  /**
+   * Gets the status of a job by its BullMQ job ID.
+   * Returns real-time progress information from the job queue.
+   * Handles DownloadLinkedFolderFilesPublicProgress shape.
+   */
+  async getJobStatus(jobId: string): Promise<JobStatusResponseDto> {
+    try {
+      const jobEntity = await this.jobService.getJobProgress(jobId);
+
+      const rawProgress = jobEntity.publicProgress as DownloadLinkedFolderFilesPublicProgress | undefined;
+
+      // DownloadLinkedFolderFilesPublicProgress has: { totalFiles, folderId, folderName, connector, status }
+      const progress = rawProgress
+        ? {
+            totalFiles: rawProgress.totalFiles,
+            folders: [
+              {
+                id: rawProgress.folderId,
+                name: rawProgress.folderName,
+                connector: rawProgress.connector,
+                files: rawProgress.totalFiles,
+                status: rawProgress.status,
+              },
+            ],
+          }
+        : undefined;
+
+      return {
+        jobId: jobEntity.bullJobId ?? jobId,
+        state: jobEntity.state,
+        progress,
+        failedReason: jobEntity.failedReason ?? undefined,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return { error: `Job ${jobId} not found` };
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: errorMessage };
     }
   }
 }

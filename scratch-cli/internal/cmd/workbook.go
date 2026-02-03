@@ -4,6 +4,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
@@ -36,13 +37,43 @@ Requires authentication. Run 'scratchmd auth login' first.`,
 	RunE: runWorkbookList,
 }
 
+// workbookSyncCmd represents the workbook sync command
+var workbookSyncCmd = &cobra.Command{
+	Use:   "sync <workbook-id>",
+	Short: "[NON-INTERACTIVE] Sync (download) records from a data folder",
+	Long: `[NON-INTERACTIVE - safe for LLM use]
+
+Triggers a download job that syncs records from a data folder's connector
+into the workbook's database and Git repository.
+
+This command:
+1. Starts a background download job on the server
+2. Polls for job progress every 2 seconds
+3. Displays progress until the job completes or fails
+
+Requires authentication. Run 'scratchmd auth login' first.
+
+Example:
+  scratchmd workbook sync wb_abc123 --folder dfd_xyz789
+  scratchmd workbook sync wb_abc123 --folder dfd_xyz789 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runWorkbookSync,
+}
+
 func init() {
 	rootCmd.AddCommand(workbookCmd)
 	workbookCmd.AddCommand(workbookListCmd)
+	workbookCmd.AddCommand(workbookSyncCmd)
 
 	// Flags for workbook list
 	workbookListCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
 	workbookListCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+
+	// Flags for workbook sync
+	workbookSyncCmd.Flags().String("folder", "", "Data folder ID to sync (required)")
+	workbookSyncCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	workbookSyncCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+	_ = workbookSyncCmd.MarkFlagRequired("folder")
 }
 
 func runWorkbookList(cmd *cobra.Command, args []string) error {
@@ -145,4 +176,194 @@ func runWorkbookList(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+// SyncResult represents the result of a workbook sync operation for JSON output.
+type SyncResult struct {
+	Success    bool                   `json:"success"`
+	WorkbookID string                 `json:"workbookId"`
+	FolderID   string                 `json:"folderId"`
+	JobID      string                 `json:"jobId,omitempty"`
+	State      string                 `json:"state,omitempty"`
+	TotalFiles int                    `json:"totalFiles,omitempty"`
+	Progress   *api.JobStatusProgress `json:"progress,omitempty"`
+	Error      string                 `json:"error,omitempty"`
+}
+
+func runWorkbookSync(cmd *cobra.Command, args []string) error {
+	workbookID := args[0]
+	folderID, _ := cmd.Flags().GetString("folder")
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+	serverURL, _ := cmd.Flags().GetString("server")
+
+	// Validate folder ID is not empty
+	if folderID == "" {
+		if jsonOutput {
+			result := SyncResult{
+				Success:    false,
+				WorkbookID: workbookID,
+				Error:      "Folder ID cannot be empty",
+			}
+			data, _ := json.MarshalIndent(result, "", "  ")
+			fmt.Println(string(data))
+		}
+		return fmt.Errorf("folder ID cannot be empty")
+	}
+
+	// Use default or config server URL
+	if serverURL == "" {
+		cfg, err := config.LoadConfig()
+		if err == nil && cfg.Settings != nil && cfg.Settings.ScratchServerURL != "" {
+			serverURL = cfg.Settings.ScratchServerURL
+		} else {
+			serverURL = api.DefaultScratchServerURL
+		}
+	}
+
+	// Helper to output errors
+	outputError := func(err string) error {
+		if jsonOutput {
+			result := SyncResult{
+				Success:    false,
+				WorkbookID: workbookID,
+				FolderID:   folderID,
+				Error:      err,
+			}
+			data, _ := json.MarshalIndent(result, "", "  ")
+			fmt.Println(string(data))
+		}
+		return fmt.Errorf("%s", err)
+	}
+
+	// Check if logged in
+	if !config.IsLoggedIn(serverURL) {
+		return outputError("Not logged in. Run 'scratchmd auth login' first.")
+	}
+
+	// Load credentials
+	creds, err := config.LoadGlobalCredentials(serverURL)
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to load credentials: %s", err.Error()))
+	}
+
+	// Create API client with authentication
+	client := api.NewClient(
+		api.WithBaseURL(serverURL),
+		api.WithAPIToken(creds.APIToken),
+	)
+
+	// Trigger the download
+	if !jsonOutput {
+		fmt.Printf("Starting sync for folder %s in workbook %s...\n", folderID, workbookID)
+	}
+
+	triggerResp, err := client.TriggerWorkbookDownload(workbookID, &api.TriggerDownloadRequest{
+		DataFolderID: folderID,
+	})
+	if err != nil {
+		return outputError(fmt.Sprintf("Failed to trigger download: %s", err.Error()))
+	}
+
+	if triggerResp.Error != "" {
+		return outputError(triggerResp.Error)
+	}
+
+	if triggerResp.JobID == "" {
+		return outputError("Server returned empty job ID")
+	}
+
+	jobID := triggerResp.JobID
+	if !jsonOutput {
+		fmt.Printf("Job started: %s\n", jobID)
+	}
+
+	// Poll for job status
+	pollInterval := 2 * time.Second
+	maxPollDuration := 2 * time.Minute
+	startTime := time.Now()
+	var lastState string
+	var lastTotalFiles int
+
+	for {
+		// Check for timeout
+		if time.Since(startTime) > maxPollDuration {
+			return outputError(fmt.Sprintf("Timeout after %v waiting for job to complete", maxPollDuration))
+		}
+		statusResp, err := client.GetJobStatus(jobID)
+		if err != nil {
+			return outputError(fmt.Sprintf("Failed to get job status: %s", err.Error()))
+		}
+
+		if statusResp.Error != "" {
+			return outputError(statusResp.Error)
+		}
+
+		state := statusResp.State
+		totalFiles := 0
+		if statusResp.Progress != nil {
+			totalFiles = statusResp.Progress.TotalFiles
+		}
+
+		// Update display for human-readable output
+		if !jsonOutput {
+			if state != lastState || totalFiles != lastTotalFiles {
+				if statusResp.Progress != nil && len(statusResp.Progress.Folders) > 0 {
+					// Show progress for each folder
+					for _, folder := range statusResp.Progress.Folders {
+						fmt.Printf("  Status: %s | Folder: %s | Files: %d\n",
+							folder.Status, folder.Name, folder.Files)
+					}
+				} else {
+					fmt.Printf("  Status: %s | Files: %d\n", state, totalFiles)
+				}
+				lastState = state
+				lastTotalFiles = totalFiles
+			}
+		}
+
+		// Check for terminal states
+		if state == "completed" {
+			if jsonOutput {
+				result := SyncResult{
+					Success:    true,
+					WorkbookID: workbookID,
+					FolderID:   folderID,
+					JobID:      jobID,
+					State:      state,
+					TotalFiles: totalFiles,
+					Progress:   statusResp.Progress,
+				}
+				data, _ := json.MarshalIndent(result, "", "  ")
+				fmt.Println(string(data))
+			} else {
+				fmt.Println()
+				fmt.Printf("Sync completed! Downloaded %d files.\n", totalFiles)
+			}
+			return nil
+		}
+
+		if state == "failed" {
+			errMsg := "Job failed"
+			if statusResp.FailedReason != "" {
+				errMsg = statusResp.FailedReason
+			}
+			if jsonOutput {
+				result := SyncResult{
+					Success:    false,
+					WorkbookID: workbookID,
+					FolderID:   folderID,
+					JobID:      jobID,
+					State:      state,
+					TotalFiles: totalFiles,
+					Progress:   statusResp.Progress,
+					Error:      errMsg,
+				}
+				data, _ := json.MarshalIndent(result, "", "  ")
+				fmt.Println(string(data))
+			}
+			return fmt.Errorf("sync failed: %s", errMsg)
+		}
+
+		time.Sleep(pollInterval)
+	}
 }

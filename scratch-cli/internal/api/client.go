@@ -676,3 +676,58 @@ func (c *Client) PutFolderFiles(folderId string, req *PutFolderFilesRequest) (*P
 
 	return &result, nil
 }
+
+// TriggerDownloadRequest represents the request body for triggering a download job.
+type TriggerDownloadRequest struct {
+	DataFolderID string `json:"dataFolderId"`
+}
+
+// TriggerDownloadResponse represents the response from the trigger download endpoint.
+type TriggerDownloadResponse struct {
+	JobID string `json:"jobId,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+// FolderProgress represents the progress of a single folder in a download job.
+type FolderProgress struct {
+	ID        string `json:"id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Connector string `json:"connector,omitempty"`
+	Files     int    `json:"files,omitempty"`
+	Status    string `json:"status,omitempty"`
+}
+
+// JobStatusProgress represents the progress information of a job.
+type JobStatusProgress struct {
+	TotalFiles int              `json:"totalFiles,omitempty"`
+	Folders    []FolderProgress `json:"folders,omitempty"`
+}
+
+// JobStatusResponse represents the response from the job status endpoint.
+type JobStatusResponse struct {
+	JobID        string             `json:"jobId,omitempty"`
+	State        string             `json:"state,omitempty"`
+	Progress     *JobStatusProgress `json:"progress,omitempty"`
+	Error        string             `json:"error,omitempty"`
+	FailedReason string             `json:"failedReason,omitempty"`
+}
+
+// TriggerWorkbookDownload starts a download job for a data folder in a workbook.
+func (c *Client) TriggerWorkbookDownload(workbookID string, req *TriggerDownloadRequest) (*TriggerDownloadResponse, error) {
+	var result TriggerDownloadResponse
+	path := fmt.Sprintf("workbooks/%s/download", workbookID)
+	if err := c.doRequest(http.MethodPost, path, nil, req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GetJobStatus retrieves the status of a job by its ID.
+func (c *Client) GetJobStatus(jobID string) (*JobStatusResponse, error) {
+	var result JobStatusResponse
+	path := fmt.Sprintf("jobs/%s/status", jobID)
+	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

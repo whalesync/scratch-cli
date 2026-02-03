@@ -24,8 +24,10 @@ import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { CliService } from './cli.service';
 import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
 import { GetFolderFilesResponseDto, PutFolderFilesResponseDto } from './dtos/folder-files.dto';
+import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
+import { TriggerDownloadDto, TriggerDownloadResponseDto } from './dtos/trigger-download.dto';
 import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
 import { ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
 
@@ -162,6 +164,31 @@ export class CliController {
     const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
     return this.cliService.validateFiles(req.connectorCredentials as CliConnectorCredentials, dto, actor);
+  }
+
+  @Post('workbooks/:workbookId/download')
+  async triggerDownload(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() dto: TriggerDownloadDto,
+    @Req() req: CliRequestWithUser,
+  ): Promise<TriggerDownloadResponseDto> {
+    const actor = this.getActorFromRequest(req);
+    if (!actor) {
+      throw new ForbiddenException('Authentication required');
+    }
+    if (!dto.dataFolderId) {
+      throw new BadRequestException('dataFolderId is required');
+    }
+    return this.cliService.triggerDownload(workbookId, dto.dataFolderId, actor);
+  }
+
+  @Get('jobs/:jobId/status')
+  async getJobStatus(@Param('jobId') jobId: string, @Req() req: CliRequestWithUser): Promise<JobStatusResponseDto> {
+    const actor = this.getActorFromRequest(req);
+    if (!actor) {
+      throw new ForbiddenException('Authentication required');
+    }
+    return this.cliService.getJobStatus(jobId);
   }
 
   private validateCredentials(credentials?: CliConnectorCredentials): void {
