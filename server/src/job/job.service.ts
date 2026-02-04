@@ -98,6 +98,9 @@ export class JobService {
     return job;
   }
 
+  /**
+   * @deprecated - use the bulk version instead
+   */
   async getJobProgress(jobId: string): Promise<JobEntity> {
     // Get the job from the queue
     const queue = new (await import('bullmq')).Queue('worker-queue', {
@@ -123,6 +126,54 @@ export class JobService {
       finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
       failedReason: job.failedReason,
     };
+  }
+
+  async getJobsProgress(jobIds: string[]): Promise<JobEntity[]> {
+    const queue = new (await import('bullmq')).Queue('worker-queue', {
+      connection: this.getRedis(),
+    });
+
+    const jobs = await Promise.all(jobIds.map((id) => queue.getJob(id)));
+    const results: JobEntity[] = [];
+
+    await Promise.all(
+      jobs.map(async (job) => {
+        if (!job) return;
+
+        const state = await job.getState();
+        results.push({
+          bullJobId: job.id as string,
+          dbJobId: job.id as string,
+          type: job.name,
+          publicProgress:
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
+            (job.progress as Progress).publicProgress || (job.data as any).initialPublicProgress || undefined,
+          state: state,
+          processedOn: job.processedOn ? new Date(job.processedOn) : null,
+          finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
+          failedReason: job.failedReason,
+        });
+      }),
+    );
+
+    await queue.close();
+    return results;
+  }
+
+  async getJobRaw(jobId: string): Promise<any> {
+    const queue = new (await import('bullmq')).Queue('worker-queue', {
+      connection: this.getRedis(),
+    });
+
+    const job = await queue.getJob(jobId);
+    await queue.close();
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    // Return the full JSON representation
+    return job.asJSON();
   }
 
   async cancelJob(jobId: string): Promise<{ success: boolean; message: string }> {

@@ -1,10 +1,25 @@
 'use client';
 
 import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
-import { Badge, Button, Center, Group, Loader, Stack, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
-import { Check, Circle, Dot, Eye, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Center,
+  Group,
+  JsonInput,
+  Loader,
+  Modal,
+  Stack,
+  Table,
+  Text,
+  ThemeIcon,
+  Tooltip,
+} from '@mantine/core';
+import { Check, Circle, Code, Dot, Eye, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useJobs } from '../../../hooks/use-jobs';
+import { jobApi } from '../../../lib/api/job';
 import { JobEntity } from '../../../types/server-entities/job';
 import { formatDate, timeAgo } from '../../../utils/helpers';
 import { PublishJobProgressModal } from '../../components/jobs/publish/PublishJobProgressModal';
@@ -63,22 +78,10 @@ const getStatusColor = (status: JobEntity['state']) => {
   }
 };
 
-// const formatJobType = (type: JobEntity['type']) => {
-//   switch (type) {
-//     case 'DOWNLOAD_RECORDS':
-//       return 'Download Records';
-//     case 'ADD_TWO_NUMBERS':
-//       return 'Add Two Numbers';
-//     case 'ADD_THREE_NUMBERS':
-//       return 'Add Three Numbers';
-//     default:
-//       return type;
-//   }
-// };
-
 export default function JobsPage() {
   const { jobs, error, isLoading } = useJobs();
   const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);
+  const [viewRawJobId, setViewRawJobId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -125,87 +128,109 @@ export default function JobsPage() {
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Started</Table.Th>
+                <Table.Th>Duration</Table.Th>
                 <Table.Th>Completed</Table.Th>
                 <Table.Th>Error</Table.Th>
                 <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {jobs.map((job) => (
-                <Table.Tr key={`${job.dbJobId}-${job.bullJobId}`}>
-                  <Table.Td>
-                    <Stack>
-                      <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
-                        {job.dbJobId || '-'}
-                      </Text>
-                      <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
-                        {job.bullJobId || '-'}
-                      </Text>
-                    </Stack>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      {/* {JSON.stringify(job)} */}
-                      {getStatusIcon(job.state)}
-                      <Badge color={getStatusColor(job.state)} size="sm">
-                        {job.state}
-                      </Badge>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{job.type}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    {job.processedOn ? (
-                      <Tooltip label={formatDate(job.processedOn)}>
-                        <Text size="sm" c="dimmed">
-                          {timeAgo(job.processedOn)}
+              {jobs.map((job) => {
+                let duration: string | null = null;
+                if (job.processedOn && job.finishedOn) {
+                  const diff = new Date(job.finishedOn).getTime() - new Date(job.processedOn).getTime();
+                  const seconds = diff / 1000;
+                  duration = seconds >= 10 ? `${Math.floor(seconds)}s` : `${seconds.toFixed(3)}s`;
+                }
+
+                return (
+                  <Table.Tr key={`${job.dbJobId}-${job.bullJobId}`}>
+                    <Table.Td>
+                      <Stack>
+                        <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                          {job.dbJobId || '-'}
                         </Text>
-                      </Tooltip>
-                    ) : (
-                      '-'
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    {job.finishedOn ? (
-                      <Tooltip label={formatDate(job.finishedOn)}>
-                        <Text size="sm" c="dimmed">
-                          {timeAgo(job.finishedOn)}
+                        <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                          {job.bullJobId || '-'}
                         </Text>
-                      </Tooltip>
-                    ) : (
-                      '-'
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    {job.failedReason ? (
-                      <Text size="sm" c="red" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {job.failedReason}
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        {getStatusIcon(job.state)}
+                        <Badge color={getStatusColor(job.state)} size="sm">
+                          {job.state}
+                        </Badge>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{job.type}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      {job.processedOn ? (
+                        <Tooltip label={formatDate(job.processedOn)}>
+                          <Text size="sm" c="dimmed">
+                            {timeAgo(job.processedOn)}
+                          </Text>
+                        </Tooltip>
+                      ) : (
+                        '-'
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c="dimmed" style={{ fontFamily: 'monospace' }}>
+                        {duration || '-'}
                       </Text>
-                    ) : (
-                      '-'
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      leftSection={<Eye size={14} />}
-                      onClick={() => setSelectedJob(job)}
-                      disabled={!job.bullJobId}
-                    >
-                      View Result
-                    </Button>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
+                    </Table.Td>
+                    <Table.Td>
+                      {job.finishedOn ? (
+                        <Tooltip label={formatDate(job.finishedOn)}>
+                          <Text size="sm" c="dimmed">
+                            {timeAgo(job.finishedOn)}
+                          </Text>
+                        </Tooltip>
+                      ) : (
+                        '-'
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      {job.failedReason ? (
+                        <Text size="sm" c="red" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {job.failedReason}
+                        </Text>
+                      ) : (
+                        '-'
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap={4}>
+                        <Tooltip label="View Raw JSON">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            onClick={() => setViewRawJobId(job.bullJobId || job.dbJobId || null)}
+                          >
+                            <Code size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          leftSection={<Eye size={14} />}
+                          onClick={() => setSelectedJob(job)}
+                          disabled={!job.bullJobId}
+                        >
+                          View Result
+                        </Button>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                );
+              })}
             </Table.Tbody>
           </Table>
         )}
       </MainContent.Body>
-
-      {/* Pull Progress Modal */}
-      {/* Job Progress Modals */}
 
       {selectedJob && selectedJob.bullJobId && (
         <>
@@ -216,6 +241,41 @@ export default function JobsPage() {
           )}
         </>
       )}
+
+      <JobRawModal jobId={viewRawJobId} onClose={() => setViewRawJobId(null)} />
     </MainContent>
+  );
+}
+
+function JobRawModal({ jobId, onClose }: { jobId: string | null; onClose: () => void }) {
+  const [data, setData] = useState<object | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (jobId) {
+      setLoading(true);
+      jobApi
+        .getJobRaw(jobId)
+        .then(setData)
+        .catch((err) => {
+          console.error(err);
+          setData({ error: 'Failed to fetch' });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setData(null);
+    }
+  }, [jobId]);
+
+  return (
+    <Modal opened={!!jobId} onClose={onClose} title="Raw Job Data" size="xl">
+      {loading ? (
+        <Center p="xl">
+          <Loader />
+        </Center>
+      ) : (
+        <JsonInput value={JSON.stringify(data, null, 2)} formatOnBlur autosize minRows={10} readOnly />
+      )}
+    </Modal>
   );
 }

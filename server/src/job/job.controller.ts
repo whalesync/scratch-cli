@@ -1,4 +1,5 @@
 import {
+  Body,
   ClassSerializerInterceptor,
   Controller,
   Get,
@@ -39,8 +40,18 @@ export class JobController {
     return this.jobService.getJobProgress(jobId);
   }
 
+  @Get(':jobId/raw')
+  async getJobRaw(@Param('jobId') jobId: string): Promise<any> {
+    return await this.jobService.getJobRaw(jobId);
+  }
+
   @Post(':jobId/cancel')
   async cancelJob(@Param('jobId') jobId: string): Promise<{ success: boolean; message: string }> {
     return await this.jobService.cancelJob(jobId);
+  }
+
+  @Post('bulk-status')
+  async getBulkJobStatus(@Body() body: { jobIds: string[] }): Promise<JobEntity[]> {
+    return await this.jobService.getJobsProgress(body.jobIds);
   }
 }

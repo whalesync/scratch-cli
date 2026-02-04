@@ -7,24 +7,21 @@ interface SyncCardProps {
   sync: Sync;
   onDelete: () => void;
   onRun?: () => Promise<void> | void;
+  loading?: boolean;
 }
 
-export function SyncCard({ sync, onDelete, onRun }: SyncCardProps) {
-  const [isRunning, setIsRunning] = useState(false);
+export function SyncCard({ sync, onDelete, onRun, loading }: SyncCardProps) {
+  const [internalRunning, setInternalRunning] = useState(false);
+  const isRunning = loading !== undefined ? loading : internalRunning;
 
   const handleRun = async () => {
-    setIsRunning(true);
+    if (loading === undefined) setInternalRunning(true);
     try {
       if (onRun) {
         await onRun();
       }
-      // Demo animation for 3 seconds if onRun finishes quickly, or just relies on state
-      // If onRun is provided, assume it handles logic.
-      // But user wanted "animated... for 3 seconds".
-      // I'll add a minimum delay
-      await new Promise((resolve) => setTimeout(resolve, 3000));
     } finally {
-      setIsRunning(false);
+      if (loading === undefined) setInternalRunning(false);
     }
   };
 

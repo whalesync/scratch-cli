@@ -1,37 +1,55 @@
 import { Text13Medium } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { syncApi } from '@/lib/api/sync';
+import { useSyncStore } from '@/stores/sync-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { ActionIcon, Box, Group, LoadingOverlay, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
-import { Sync } from '@spinner/shared-types';
+import { ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { Sync, SyncId } from '@spinner/shared-types';
 import { Eye, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AddSyncDialog } from './dialogs/AddSyncDialog';
 import { SyncCard } from './SyncCard';
 
 export function SyncsPanel() {
   const { workbook } = useActiveWorkbook();
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
-  const [isAddSyncOpen, setIsAddSyncOpen] = useState(false);
-  const [syncs, setSyncs] = useState<Sync[]>([]);
-  const [loading, setLoading] = useState(false);
+  const syncs = useSyncStore((state) => state.syncs);
+  const activeJobs = useSyncStore((state) => state.activeJobs);
+  const fetchSyncs = useSyncStore((state) => state.fetchSyncs);
+  const runSync = useSyncStore((state) => state.runSync);
 
-  const fetchSyncs = useCallback(async () => {
-    if (!workbook?.id) return;
-    setLoading(true);
-    try {
-      const data = await syncApi.list(workbook.id);
-      setSyncs(data);
-    } catch (error) {
-      console.error('Failed to fetch syncs:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [workbook?.id]);
+  const [isAddSyncOpen, setIsAddSyncOpen] = useState(false);
 
   useEffect(() => {
-    fetchSyncs();
-  }, [fetchSyncs]);
+    if (workbook?.id) {
+      // We can wrap this to show loading overlay if we want, but store handles it silently usually.
+      // Let's rely on store updates.
+      fetchSyncs(workbook.id);
+    }
+  }, [workbook?.id, fetchSyncs]);
+
+  const handleRunSync = async (syncId: SyncId) => {
+    if (!workbook?.id) return;
+    try {
+      await runSync(workbook.id, syncId);
+      notifications.show({
+        title: 'Sync started',
+        message: 'Sync job queued via store',
+        color: 'green',
+      });
+      // Store handles polling and notifications for completion/failure?
+      // Actually store doesn't notify on completion yet (notifications are inside the component loop previously).
+      // If we want notifications on completion, we should probably add them to the store or subscribe to changes.
+      // For now, let's leave the completion notification implicit (spinner stops).
+    } catch (error) {
+      notifications.show({
+        title: 'Failed to start sync',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        color: 'red',
+      });
+    }
+  };
 
   const handleDelete = async (sync: Sync) => {
     if (!workbook?.id) return;
@@ -39,7 +57,7 @@ export function SyncsPanel() {
 
     try {
       await syncApi.delete(workbook.id, sync.id);
-      fetchSyncs();
+      fetchSyncs(workbook.id);
     } catch (error) {
       console.error('Failed to delete sync:', error);
     }
@@ -49,7 +67,7 @@ export function SyncsPanel() {
 
   return (
     <Stack h="100%" gap={0} bg="var(--bg-base)">
-      <LoadingOverlay visible={loading} overlayProps={{ blur: 1 }} />
+      {/* List loading could be tracked if we added isLoadingSyncs to store. For now, we assume fast load or silent update. */}
 
       {/* Header */}
       <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
@@ -78,7 +96,13 @@ export function SyncsPanel() {
         {hasSyncs ? (
           <Stack gap="xs" p="xs">
             {syncs.map((sync) => (
-              <SyncCard key={sync.id} sync={sync} onDelete={() => handleDelete(sync)} />
+              <SyncCard
+                key={sync.id}
+                sync={sync}
+                onDelete={() => handleDelete(sync)}
+                onRun={() => handleRunSync(sync.id)}
+                loading={!!activeJobs[sync.id]}
+              />
             ))}
           </Stack>
         ) : (
@@ -95,7 +119,7 @@ export function SyncsPanel() {
         onClose={() => setIsAddSyncOpen(false)}
         onSyncCreated={() => {
           setIsAddSyncOpen(false);
-          fetchSyncs();
+          if (workbook?.id) fetchSyncs(workbook.id);
         }}
       />
     </Stack>
