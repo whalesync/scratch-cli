@@ -18,9 +18,11 @@ import {
 import {
   createSubscriptionId,
   ScratchPlanType,
+  SyncId,
   UpdateDevSubscriptionDto,
   UpdateSettingsDto,
   ValidatedUpdateSettingsDto,
+  WorkbookId,
 } from '@spinner/shared-types';
 import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -37,8 +39,14 @@ import { OnboardingService } from 'src/users/onboarding.service';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
+import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
+
+interface SyncDataFoldersRequestBody {
+  workbookId: WorkbookId;
+  syncId: SyncId;
+}
 
 /**
  * Controller for special case dev tools
@@ -57,6 +65,7 @@ export class DevToolsController {
     private readonly devToolsService: DevToolsService,
     private readonly agentCredentialsService: AgentCredentialsService,
     private readonly onboardingService: OnboardingService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   @Get('users/search')
@@ -255,5 +264,34 @@ export class DevToolsController {
         lastInvoicePaid: true,
       },
     });
+  }
+
+  /* Sync data folders job trigger */
+  @Post('jobs/sync-data-folders')
+  async syncDataFoldersJob(@Body() body: SyncDataFoldersRequestBody, @Req() req: RequestWithUser) {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can trigger sync data folders jobs');
+    }
+
+    // Look up workbook to get userId and organizationId
+    const workbook = await this.dbService.client.workbook.findUnique({
+      where: { id: body.workbookId },
+      select: { userId: true, organizationId: true },
+    });
+
+    if (!workbook) {
+      throw new NotFoundException(`Workbook ${body.workbookId} not found`);
+    }
+
+    const job = await this.bullEnqueuerService.enqueueSyncDataFoldersJob(body.workbookId, body.syncId, {
+      userId: workbook.userId ?? req.user.id,
+      organizationId: workbook.organizationId,
+    });
+
+    return {
+      success: true,
+      jobId: job.id,
+      message: 'Sync data folders job queued successfully',
+    };
   }
 }

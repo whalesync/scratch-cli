@@ -6,6 +6,7 @@ import { DownloadFilesJobDefinition } from './job-definitions/download-files.job
 import { DownloadLinkedFolderFilesJobDefinition } from './job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from './job-definitions/download-record-files.job';
 import { PublishFilesJobDefinition } from './job-definitions/publish-files.job';
+import { SyncDataFoldersJobDefinition } from './job-definitions/sync-data-folders.job';
 
 export type JobDefinition =
   | AddTwoNumbersJobDefinition
@@ -13,7 +14,8 @@ export type JobDefinition =
   | DownloadFilesJobDefinition
   | DownloadRecordFilesJobDefinition
   | DownloadLinkedFolderFilesJobDefinition
-  | PublishFilesJobDefinition;
+  | PublishFilesJobDefinition
+  | SyncDataFoldersJobDefinition;
 export type JobData = JobDefinition['data'];
 export type JobTypes = JobDefinition['type'];
 export type BullMqJob<TDefinition extends JobDefinition = JobDefinition> = BullMQPlainJob<

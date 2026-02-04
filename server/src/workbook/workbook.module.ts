@@ -55,6 +55,7 @@ import { FolderService } from './folder.service';
     FolderService,
     FilesService,
     FilePublishingService,
+    FilesService,
     DataFolderService,
     WorkbookDbModule,
   ],

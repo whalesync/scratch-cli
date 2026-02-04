@@ -44,7 +44,6 @@ export class FilesService {
     private readonly db: DbService,
     private readonly workbookDbService: WorkbookDbService,
     private readonly folderService: FolderService,
-    // private readonly dataFolderService: DataFolderService,
     private readonly scratchGitService: ScratchGitService,
   ) {}
 

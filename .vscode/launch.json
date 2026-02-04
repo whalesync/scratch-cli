@@ -2,6 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to scratch server",
+      "address": "127.0.0.1",
+      "port": 9229,
+      "enableContentValidation": true,
+      "outputCapture": "std",
+      "restart": true,
+      "showAsyncStacks": true
+    },
+    {
       "name": "Debug Chat Server",
       "type": "debugpy",
       "request": "launch",

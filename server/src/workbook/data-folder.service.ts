@@ -557,15 +557,17 @@ export class DataFolderService {
   }
 
   /**
-   *  @deprecated: Created only to block out access to git files for SyncService
+   * Get all file contents for a data folder.
+   * Returns an array of objects containing the folder ID, file path, and content.
+   * @deprecated: This is a temporary method used by SyncService to grab all files in a DataFolder.
+   * It should be replaced by something more efficient once there's support in the Git service
+   * for batch read operations.
    */
   async getAllFileContentsByFolderId(
     workbookId: WorkbookId,
     folderId: DataFolderId,
     actor: Actor,
   ): Promise<{ folderId: DataFolderId; path: string; content: string }[]> {
-    await this.filesService.verifyWorkbookAccess(workbookId, actor);
-
     const folder = await this.findOne(folderId, actor);
 
     if (!folder.path) {

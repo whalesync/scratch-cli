@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
+import { SyncService } from 'src/sync/sync.service';
 import { OnboardingService } from 'src/users/onboarding.service';
 import { FilePublishingService } from 'src/workbook/file-publishing.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
@@ -15,6 +16,7 @@ import { DownloadFilesJobHandler } from './jobs/job-definitions/download-files.j
 import { DownloadLinkedFolderFilesJobHandler } from './jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobHandler } from './jobs/job-definitions/download-record-files.job';
 import { PublishFilesJobHandler } from './jobs/job-definitions/publish-files.job';
+import { SyncDataFoldersJobHandler } from './jobs/job-definitions/sync-data-folders.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
 @Injectable()
@@ -29,6 +31,7 @@ export class JobHandlerService {
     private readonly onboardingService: OnboardingService,
     private readonly filePublishingService: FilePublishingService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly syncService: SyncService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -78,6 +81,9 @@ export class JobHandlerService {
           this.filePublishingService,
           this.onboardingService,
         ) as JobHandler<JobDefinition>;
+
+      case 'sync-data-folders':
+        return new SyncDataFoldersJobHandler(prisma, this.syncService) as JobHandler<JobDefinition>;
 
       default:
         throw new Error(`Unknown job type. Data: ${JSON.stringify(data)}`);

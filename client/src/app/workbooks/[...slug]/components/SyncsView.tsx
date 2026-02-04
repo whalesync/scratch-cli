@@ -2,7 +2,8 @@ import { Text13Medium } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { syncApi } from '@/lib/api/sync';
 import { Box, Button, Card, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
-import { Sync } from '@spinner/shared-types';
+import { notifications } from '@mantine/notifications';
+import { Sync, SyncId } from '@spinner/shared-types';
 import { ArrowLeftRight, Clock, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AddSyncDialog } from './dialogs/AddSyncDialog';
@@ -35,6 +36,25 @@ export function SyncsView() {
   useEffect(() => {
     fetchSyncs();
   }, [fetchSyncs]);
+
+  const handleRunSync = async (syncId: SyncId) => {
+    if (!workbook?.id) return;
+    try {
+      const result = await syncApi.run(workbook.id, syncId);
+      console.log('Sync job ID:', result.jobId);
+      notifications.show({
+        title: 'Sync started',
+        message: result.message,
+        color: 'green',
+      });
+    } catch (error) {
+      notifications.show({
+        title: 'Failed to start sync',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        color: 'red',
+      });
+    }
+  };
 
   const hasSyncs = syncs.length > 0;
 
@@ -70,7 +90,7 @@ export function SyncsView() {
                     </Group>
                   </Stack>
                 </Group>
-                <Button variant="light" size="xs">
+                <Button variant="light" size="xs" onClick={() => handleRunSync(sync.id)}>
                   Run
                 </Button>
               </Group>

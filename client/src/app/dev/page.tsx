@@ -4,7 +4,7 @@ import { getBuildFlavor } from '@/utils/build';
 import { RouteUrls } from '@/utils/route-urls';
 import { BUILD_VERSION } from '@/version';
 import { Group, Stack } from '@mantine/core';
-import { DatabaseZap, GalleryVerticalIcon, Grid2x2Icon, PickaxeIcon, UsersIcon } from 'lucide-react';
+import { DatabaseZap, FolderSync, GalleryVerticalIcon, Grid2x2Icon, PickaxeIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { DevToolButton } from '../components/base/buttons';
 import { Text13Book } from '../components/base/text';
@@ -54,6 +54,14 @@ export default function DevListPage() {
             leftSection={<StyledLucideIcon Icon={DatabaseZap} size={16} />}
           >
             Migrations
+          </DevToolButton>
+
+          <DevToolButton
+            component={Link}
+            href={RouteUrls.devToolsSyncDataFoldersPageUrl}
+            leftSection={<StyledLucideIcon Icon={FolderSync} size={16} />}
+          >
+            Sync Data Folders
           </DevToolButton>
         </Stack>
       </MainContent.Body>

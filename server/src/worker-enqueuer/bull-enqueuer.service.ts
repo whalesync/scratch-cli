@@ -1,11 +1,12 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { createPlainId, DataFolderId, WorkbookId } from '@spinner/shared-types';
+import { createPlainId, DataFolderId, SyncId, WorkbookId } from '@spinner/shared-types';
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
 import { DownloadFilesJobDefinition } from 'src/worker/jobs/job-definitions/download-files.job';
 import { PublishFilesJobDefinition } from 'src/worker/jobs/job-definitions/publish-files.job';
+import { SyncDataFoldersJobDefinition } from 'src/worker/jobs/job-definitions/sync-data-folders.job';
 import { JobData } from 'src/worker/jobs/union-types';
 import { DownloadLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from '../worker/jobs/job-definitions/download-record-files.job';
@@ -118,6 +119,24 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       snapshotTableIds,
       type: 'publish-files',
+      initialPublicProgress,
+    };
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueueSyncDataFoldersJob(
+    workbookId: WorkbookId,
+    syncId: SyncId,
+    actor: Actor,
+    initialPublicProgress?: SyncDataFoldersJobDefinition['publicProgress'],
+  ): Promise<Job> {
+    const id = `sync-data-folders-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: SyncDataFoldersJobDefinition['data'] = {
+      workbookId,
+      syncId,
+      userId: actor.userId,
+      organizationId: actor.organizationId,
+      type: 'sync-data-folders',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

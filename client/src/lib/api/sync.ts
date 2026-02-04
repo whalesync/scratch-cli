@@ -1,6 +1,12 @@
-import { CreateSyncDto, Sync, WorkbookId } from '@spinner/shared-types';
+import { CreateSyncDto, Sync, SyncId, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
+
+interface RunSyncResponse {
+  success: boolean;
+  jobId: string;
+  message: string;
+}
 
 export const syncApi = {
   create: async (workbookId: WorkbookId, dto: CreateSyncDto): Promise<Sync> => {
@@ -21,6 +27,16 @@ export const syncApi = {
     } catch (error) {
       handleAxiosError(error, 'Failed to list syncs');
       return [];
+    }
+  },
+
+  run: async (workbookId: WorkbookId, syncId: SyncId): Promise<RunSyncResponse> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<RunSyncResponse>(`/workbooks/${workbookId}/syncs/${syncId}/run`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to run sync');
     }
   },
 };

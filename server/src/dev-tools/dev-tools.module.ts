@@ -7,6 +7,7 @@ import { PaymentModule } from 'src/payment/payment.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { UserModule } from 'src/users/users.module';
 import { WorkbookModule } from 'src/workbook/workbook.module';
+import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { DevToolsController } from './dev-tools.controller';
 import { DevToolsService } from './dev-tools.service';
 
@@ -18,6 +19,7 @@ import { DevToolsService } from './dev-tools.service';
     UserModule,
     PaymentModule,
     WorkbookModule,
+    WorkerEnqueuerModule,
     ConnectorAccountModule,
     AuditLogModule,
     AgentCredentialsModule,
