@@ -65,7 +65,7 @@ All data is stored in isolated PostgreSQL schemas.
 
 ## Technical highlights
 
-- **Modern Stack**: Next.js 15, NestJS, FastAPI with Pydantic AI
+- **Modern Stack**: Next.js 15, NestJS
 - **AI Integration**: OpenRouter for multi-LLM access (Claude, GPT, etc.)
 - **Real-Time**: WebSocket gateway + Redis pub/sub for live updates
 - **Scalable**: Microservice-ready architecture (frontend, worker, cron services)
@@ -78,7 +78,6 @@ All data is stored in isolated PostgreSQL schemas.
 
 - **Client**: https://app.scratch.md/
 - **API**: https://api.scratch.md/
-- **AI Agent**: https://agent.scratch.md/
 
 ---
 

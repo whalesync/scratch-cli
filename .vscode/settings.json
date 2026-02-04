@@ -10,20 +10,9 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    }
-  },
-  "isort.check": true,
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   },
-  "python-env.workspaceSearchPaths": ["./pydantic-ai-agent"],
-  "python-envs.defaultEnvManager": "ms-python.python:venv",
-  "python-envs.pythonProjects": [],
   "[go]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "golang.go"

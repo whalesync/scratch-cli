@@ -3,7 +3,7 @@
 Note: This is an AI-generated file to keep track of where we could improve tests.
 
 **Last Updated**: 2025-11-14
-**Overall Coverage**: ~5.1% (Server: ~9.3%, Client: ~0.4%, Python Agent: 0%)
+**Overall Coverage**: ~5.1% (Server: ~9.3%, Client: ~0.4%)
 
 ---
 
@@ -13,12 +13,11 @@ The codebase has **critical test coverage gaps**. While existing tests demonstra
 
 ### Coverage Statistics
 
-| Codebase     | Source Files | Test Files | Coverage  |
-| ------------ | ------------ | ---------- | --------- |
-| Server       | 258          | 29         | ~9.1%     |
-| Client       | 235          | 1          | ~0.4%     |
-| Python Agent | 69           | 0          | 0%        |
-| **Total**    | **562**      | **30**     | **~4.9%** |
+| Codebase  | Source Files | Test Files | Coverage  |
+| --------- | ------------ | ---------- | --------- |
+| Server    | 258          | 29         | ~9.1%     |
+| Client    | 235          | 1          | ~0.4%     |
+| **Total** | **493**      | **30**     | **~5.7%** |
 
 ---
 
@@ -624,7 +623,6 @@ Important for long-term maintainability:
 | --------------------------- | ----- | ------------ | ------------------------------------------------------------------------------------------------------- |
 | **Client React Components** | 235   | ❌ No tests  | React components and pages untested                                                                     |
 | **Client Utilities**        | ~20   | ⚠️ Partial   | Helper functions tested, hooks and API layer untested                                                   |
-| **Python AI Agent**         | 69    | ❌ No tests  | LLM integration, connector generation                                                                   |
 | **Data Connectors**         | ~100  | ⚠️ Partial   | Notion/Wix tested, but Webflow, WordPress, YouTube, Airtable, CSV untested                              |
 | **Server Utilities**        | 8     | ✅ Excellent | Duration, URL validation, asserts, encryption, HTML minification, ID utilities, enum helpers all tested |
 | **Error Handling**          | N/A   | ❌ No tests  | Exception handling, logging                                                                             |
@@ -665,19 +663,6 @@ Valuable for comprehensive quality assurance:
 - Pattern: `**/__tests__/**/*.test.ts` and `*.spec.ts`
 - Current coverage: Utilities only (~0.4%)
 
-**Python Agent**
-
-- ❌ No framework configured
-- Only manual test scripts exist
-
-### Recommended Setup
-
-**Python Agent**:
-
-```bash
-pip install pytest pytest-asyncio pytest-cov
-```
-
 ---
 
 ## Progress Tracking
@@ -710,9 +695,7 @@ pip install pytest pytest-asyncio pytest-cov
   - [ ] Add hook tests
   - [ ] Add API client tests
 
-- [ ] **Milestone 5**: Python agent at 60%+ coverage
-
-- [ ] **Milestone 6**: Server overall at 80%+ coverage
+- [ ] **Milestone 5**: Server overall at 80%+ coverage
 
 - [ ] **Milestone 7**: E2E test suite for critical workflows
 
@@ -739,10 +722,9 @@ pip install pytest pytest-asyncio pytest-cov
 
 1. ~~Set up client testing framework~~ ✅ **COMPLETED**
 2. Add tests for client React components (Mantine UI)
-3. Add pytest to Python agent
-4. Achieve 80%+ coverage on server
-5. Implement coverage gates in CI (fail below 70%)
-6. Require tests for all new PRs
+3. Achieve 80%+ coverage on server
+4. Implement coverage gates in CI (fail below 70%)
+5. Require tests for all new PRs
 
 ---
 

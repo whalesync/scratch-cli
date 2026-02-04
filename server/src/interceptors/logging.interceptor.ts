@@ -8,16 +8,13 @@ import { WSLogger } from '../logger';
 export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
-    const { method, url, headers } = request;
-
-    const agent = headers['user-agent']?.includes('scratchpad-pydantic-ai-agent') ? 'Pydantic AI Agent' : undefined;
+    const { method, url } = request;
 
     // Log the incoming request
     WSLogger.debug({
       source: 'RequestLog',
       message: url,
       method,
-      agent,
     });
 
     return next.handle().pipe(tap(() => {}));

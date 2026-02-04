@@ -399,6 +399,7 @@ model InvoiceResult {
   @@index([invoiceId])
 }
 
+// DEPRECATED. We no longer have a pydantic agent.
 model AgentSession {
   id         String   @id // The session ID used by the pydantic agent
   userId     String // User ID for the session

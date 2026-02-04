@@ -40,20 +40,11 @@ The client uses a standardized UI component library built on Mantine. **All deve
 - Always wrap Lucide icons with `StyledLucideIcon`
 - Never use inline styles or hardcoded colors
 
-## 3. Pydantic AI Agent (`/pydantic-ai-agent`)
-
-- The agent server that powers Scratch chat
-- Interfaces with the LLMs through OpenRouter and provides a set of data tools for the LLMs to invoke
-- FastAPI, Pydantic & Pydantic AI
-- Runs locally on port 8000
-
-Full [Documentation](./pydantic-ai-agent/README.md)
-
 # Devops Play Books
 
 ## Deployments
 
-The client, server and agent are all automatically deployed to GCP from the `prod` branch.
+The client and server are automatically deployed to GCP from the `prod` branch.
 
 A scheduled pipeline in Gitlab triggers the deployment by merging the current state of `master` into `prod`. The deployment happens ever day at 9:30 am PST, but can also be triggered manually.
 

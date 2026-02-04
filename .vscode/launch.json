@@ -11,21 +11,6 @@
       "outputCapture": "std",
       "restart": true,
       "showAsyncStacks": true
-    },
-    {
-      "name": "Debug Chat Server",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/pydantic-ai-agent/main.py",
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}/pydantic-ai-agent",
-      "envFile": "${workspaceFolder}/pydantic-ai-agent/.env",
-      "justMyCode": false,
-      "python": "${workspaceFolder}/pydantic-ai-agent/.venv/bin/python",
-      "gevent": false,
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/pydantic-ai-agent"
-      }
     }
   ]
 }

@@ -21,12 +21,6 @@ Tweak the following values as necessary:
 ```
 # The URL to the backend server
 NEXT_PUBLIC_API_URL=http://localhost:3010
-
-# The URL to the Pydantic agent server
-NEXT_PUBLIC_AI_AGENT_API_URL=http://localhost:8000
-
-# The Websocket URL to the Pydantic agent server
-NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL=ws://localhost:8000
 ```
 
 ## Available Yarn Commands

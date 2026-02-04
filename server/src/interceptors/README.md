@@ -19,7 +19,6 @@ Implements NestJS's `NestInterceptor` interface to capture and log incoming HTTP
 - Extracts request method (GET, POST, etc.)
 - Captures request URL
 - Logs user-agent headers
-- Identifies Pydantic AI agent requests
 - Logs at debug level using WSLogger
 
 **Registration:**

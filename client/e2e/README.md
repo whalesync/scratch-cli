@@ -90,7 +90,6 @@ Before running E2E tests locally, ensure:
 1. **Development servers are running**:
    - Client: `yarn run dev` (port 3000)
    - Server: `cd ../server && yarn run start:dev` (port 3010)
-   - Agent: `cd ../pydantic-ai-agent && source venv/bin/activate && python main.py
 1. **Environment variables are configured** (`.env.test` file)
 1. **Test user exists in Clerk** with valid credentials
 

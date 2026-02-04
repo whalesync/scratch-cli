@@ -12,10 +12,9 @@ Enable customers to whitelist a stable IP address for outbound HTTP requests fro
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Cloud Run Services (Client/API/Agent)                   │
+│ Cloud Run Services (Client/API)                         │
 │ - Next.js app (port 3000)                               │
 │ - NestJS API (port 3010)                                │
-│ - FastAPI agent (port 8000)                             │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
@@ -33,7 +32,7 @@ Enable customers to whitelist a stable IP address for outbound HTTP requests fro
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Cloud Run Services (Client/API/Agent)                   │
+│ Cloud Run Services (Client/API)                         │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐

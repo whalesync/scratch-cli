@@ -1,11 +1,10 @@
 // Common configuration and utilities for integration tests.
-// Provides environment-based service URLs (client, API, agent) and Clerk authentication helpers.
+// Provides environment-based service URLs (client, API) and Clerk authentication helpers.
 // Supports both local (http/ws) and deployed (https/wss) environments.
 
 import { createClerkClient } from '@clerk/backend';
 const clientDomain = process.env.INTEGRATION_TEST_CLIENT_DOMAIN || 'test.scratch.md';
 const apiDomain = process.env.INTEGRATION_TEST_API_DOMAIN || 'test-api.scratch.md';
-const agentDomain = process.env.INTEGRATION_TEST_AGENT_DOMAIN || 'test-agent.scratch.md';
 
 export const getProtocol = (domain: string): string => {
   if (domain.includes('://')) {
@@ -23,8 +22,6 @@ export const getProtocolWebsocket = (domain: string): string => {
 
 export const getClientUrl = () => `${getProtocol(clientDomain)}${clientDomain}`;
 export const getApiUrl = () => `${getProtocol(apiDomain)}${apiDomain}`;
-export const getAgentUrl = () => `${getProtocol(agentDomain)}${agentDomain}`;
-export const getAgentWebSocketUrl = () => `${getProtocolWebsocket(agentDomain)}${agentDomain}`;
 
 // Cache for auth token to avoid fetching it multiple times
 let cachedAuthToken: string | null = null;
