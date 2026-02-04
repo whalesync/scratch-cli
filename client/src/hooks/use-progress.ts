@@ -16,11 +16,12 @@ export const useJob = <TPublicProgress extends object>(
 ): JobResult<TPublicProgress> => {
   const { data, error, isLoading, mutate } = useSWR<JobEntity<TPublicProgress>>(
     jobId ? `progress-${jobId}` : null,
-    jobId ? () => progressApi.getJobProgress(jobId) : null,
+    jobId ? () => progressApi.getJobProgress<TPublicProgress>(jobId) : null,
     {
       refreshInterval: continuePolling ? 1000 : 0, // Poll every second if continuePolling is true
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      dedupingInterval: 0, // Always fetch fresh data, don't dedupe requests
     },
   );
 

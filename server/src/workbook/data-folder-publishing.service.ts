@@ -4,7 +4,7 @@ import { WSLogger } from '../logger';
 import type { Connector } from '../remote-service/connectors/connector';
 import type { AnyJsonTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import type { BaseJsonTableSpec } from '../remote-service/connectors/types';
-import { ScratchGitService } from '../scratch-git/scratch-git.service';
+import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 
 /**
  * Represents a file to be created (exists in dirty branch but not in main)
@@ -94,7 +94,7 @@ export class DataFolderPublishingService {
 
       if (file.status === 'added') {
         // New file - read from dirty branch
-        const fileData = await this.scratchGitService.getRepoFile(workbookId, 'dirty', file.path);
+        const fileData = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, file.path);
         if (fileData) {
           try {
             const content = JSON.parse(fileData.content) as Record<string, unknown>;
@@ -110,7 +110,7 @@ export class DataFolderPublishingService {
         }
       } else if (file.status === 'modified') {
         // Modified file - read from dirty branch, get ID from content
-        const fileData = await this.scratchGitService.getRepoFile(workbookId, 'dirty', file.path);
+        const fileData = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, file.path);
         if (fileData) {
           try {
             const content = JSON.parse(fileData.content) as Record<string, unknown>;
@@ -269,7 +269,7 @@ export class DataFolderPublishingService {
         });
         await this.scratchGitService.commitFilesToBranch(
           workbookId,
-          'dirty',
+          DIRTY_BRANCH,
           filesToCommit,
           `Published ${filesToCommit.length} new records`,
         );

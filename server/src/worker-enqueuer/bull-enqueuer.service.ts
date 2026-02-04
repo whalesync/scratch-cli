@@ -108,7 +108,7 @@ export class BullEnqueuerService implements OnModuleDestroy {
   async enqueuePublishDataFolderJob(
     workbookId: WorkbookId,
     actor: Actor,
-    dataFolderId: DataFolderId,
+    dataFolderIds: DataFolderId[],
     initialPublicProgress?: PublishDataFolderJobDefinition['publicProgress'],
   ): Promise<Job> {
     const id = `publish-data-folder-${actor.userId}-${workbookId}-${createPlainId()}`;
@@ -116,7 +116,7 @@ export class BullEnqueuerService implements OnModuleDestroy {
       workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
-      dataFolderId,
+      dataFolderIds,
       type: 'publish-data-folder',
       initialPublicProgress,
     };

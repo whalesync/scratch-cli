@@ -11,7 +11,7 @@ import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { AddTableTab } from '@/app/workbooks-md/[...slug]/components/AddTableTab';
 import { WorkbookInspector } from '@/app/workbooks-md/[...slug]/components/devtool/WorkbookInspector';
 import { ManageTablesModal } from '@/app/workbooks-md/[...slug]/components/ManageTablesModal';
-import { PublishWorkbookWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishWorkbookWorkflow';
+import { PublishDataFolderWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishDataFolderWorkflow';
 import { WorkbookHeader } from '@/app/workbooks-md/[...slug]/components/WorkbookHeader';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
@@ -214,7 +214,7 @@ export default function WorkbookNewPage() {
   return (
     <>
       <WorkbookFilesPageContent />
-      <PublishWorkbookWorkflow />
+      <PublishDataFolderWorkflow />
       <WorkbookEditorModals />
     </>
   );

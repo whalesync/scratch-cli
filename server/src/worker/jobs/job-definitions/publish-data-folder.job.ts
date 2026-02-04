@@ -11,10 +11,11 @@ import { WSLogger } from '../../../logger';
 import { DataFolderPublishingService } from '../../../workbook/data-folder-publishing.service';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 
-export type PublishDataFolderPublicProgress = {
-  totalFilesPublished: number;
-  folderId: string;
-  folderName: string;
+export type FolderPublishStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
+export type FolderPublishProgress = {
+  id: string;
+  name: string;
   connector: string;
   creates: number;
   updates: number;
@@ -22,26 +23,31 @@ export type PublishDataFolderPublicProgress = {
   expectedCreates: number;
   expectedUpdates: number;
   expectedDeletes: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: FolderPublishStatus;
+};
+
+export type PublishDataFolderPublicProgress = {
+  totalFilesPublished: number;
+  folders: FolderPublishProgress[];
 };
 
 export type PublishDataFolderJobDefinition = JobDefinitionBuilder<
   'publish-data-folder',
   {
     workbookId: WorkbookId;
-    dataFolderId: DataFolderId;
+    dataFolderIds: DataFolderId[];
     userId: string;
     organizationId: string;
     initialPublicProgress?: PublishDataFolderPublicProgress;
   },
   PublishDataFolderPublicProgress,
-  Record<string, never>,
+  { folderIndex: number },
   void
 >;
 
 /**
- * This job publishes files from a single DataFolder to an external service.
- * It replaces the deprecated publish-files job which uses SnapshotTables.
+ * This job publishes files from one or more DataFolders to external services.
+ * It processes folders sequentially and tracks progress for all folders.
  */
 export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDataFolderJobDefinition> {
   constructor(
@@ -70,29 +76,19 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
       >,
     ) => Promise<void>;
   }) {
-    const { data, checkpoint } = params;
+    const { data, checkpoint, progress } = params;
 
-    // Fetch the DataFolder with its connector account
-    const dataFolder = await this.prisma.dataFolder.findUnique({
-      where: { id: data.dataFolderId },
+    // Fetch all DataFolders with their connector accounts
+    const dataFolders = await this.prisma.dataFolder.findMany({
+      where: { id: { in: data.dataFolderIds } },
       include: {
         connectorAccount: true,
       },
     });
 
-    if (!dataFolder) {
-      throw new Error(`DataFolder with id ${data.dataFolderId} not found`);
+    if (dataFolders.length === 0) {
+      throw new Error(`No DataFolders found with the provided IDs`);
     }
-
-    if (!dataFolder.connectorAccountId) {
-      throw new Error(`DataFolder ${data.dataFolderId} does not have an associated connector account`);
-    }
-
-    if (!dataFolder.connectorService) {
-      throw new Error(`DataFolder ${data.dataFolderId} does not have a connector service`);
-    }
-
-    const tableSpec = dataFolder.schema as AnyJsonTableSpec;
 
     // Verify workbook exists
     const workbook = await this.prisma.workbook.findUnique({
@@ -103,25 +99,39 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
       throw new Error(`Workbook with id ${data.workbookId} not found`);
     }
 
-    // Initialize public progress
-    const publicProgress: PublishDataFolderPublicProgress = {
-      totalFilesPublished: 0,
-      folderId: dataFolder.id,
-      folderName: dataFolder.name,
-      connector: dataFolder.connectorService,
-      creates: 0,
-      updates: 0,
-      deletes: 0,
-      expectedCreates: data.initialPublicProgress?.expectedCreates ?? 0,
-      expectedUpdates: data.initialPublicProgress?.expectedUpdates ?? 0,
-      expectedDeletes: data.initialPublicProgress?.expectedDeletes ?? 0,
-      status: 'in_progress',
-    };
+    // Create a map for quick lookup of initial progress
+    const initialProgressMap = new Map(data.initialPublicProgress?.folders.map((f) => [f.id, f]) || []);
+
+    // Build folders progress array
+    const foldersProgress: FolderPublishProgress[] = dataFolders.map((dataFolder) => {
+      const initialFolderProgress = initialProgressMap.get(dataFolder.id);
+
+      return {
+        id: dataFolder.id,
+        name: dataFolder.name,
+        connector: dataFolder.connectorService ?? '',
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        expectedCreates: initialFolderProgress?.expectedCreates ?? 0,
+        expectedUpdates: initialFolderProgress?.expectedUpdates ?? 0,
+        expectedDeletes: initialFolderProgress?.expectedDeletes ?? 0,
+        status: 'pending' as FolderPublishStatus,
+      };
+    });
+
+    let totalFilesPublished = 0;
+
+    // Determine starting index from progress (for resumability)
+    const startIndex = progress?.jobProgress?.folderIndex ?? 0;
 
     // Checkpoint initial status
     await checkpoint({
-      publicProgress,
-      jobProgress: {},
+      publicProgress: {
+        totalFilesPublished,
+        folders: foldersProgress,
+      },
+      jobProgress: { folderIndex: startIndex },
       connectorProgress: {},
     });
 
@@ -135,84 +145,50 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
 
     WSLogger.debug({
       source: 'PublishDataFolderJob',
-      message: 'Starting publish job for data folder',
+      message: 'Starting publish job for data folders',
       workbookId: data.workbookId,
-      dataFolderId: dataFolder.id,
+      folderCount: dataFolders.length,
+      startIndex,
     });
 
-    // Get connector for this folder
-    const service = dataFolder.connectorService;
+    // Process each data folder sequentially
+    for (let i = startIndex; i < dataFolders.length; i++) {
+      const dataFolder = dataFolders[i];
+      const currentFolder = foldersProgress[i];
 
-    let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
-    if (dataFolder.connectorAccountId) {
-      decryptedConnectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, {
-        userId: data.userId,
-        organizationId: data.organizationId,
-      });
-      if (!decryptedConnectorAccount) {
-        throw new Error(`Connector account ${dataFolder.connectorAccountId} not found`);
+      if (!dataFolder.connectorAccountId) {
+        WSLogger.warn({
+          source: 'PublishDataFolderJob',
+          message: 'Skipping folder - no connector account',
+          dataFolderId: dataFolder.id,
+        });
+        currentFolder.status = 'failed';
+        continue;
       }
-    }
 
-    const connector = await this.connectorService.getConnector({
-      service: service as Service,
-      connectorAccount: decryptedConnectorAccount,
-      decryptedCredentials: decryptedConnectorAccount,
-      userId: data.userId,
-    });
+      if (!dataFolder.connectorService) {
+        WSLogger.warn({
+          source: 'PublishDataFolderJob',
+          message: 'Skipping folder - no connector service',
+          dataFolderId: dataFolder.id,
+        });
+        currentFolder.status = 'failed';
+        continue;
+      }
 
-    try {
-      // Build folder path from data folder name (no leading slash - matches git storage format)
-      const folderPath = dataFolder.name;
+      const tableSpec = dataFolder.schema as AnyJsonTableSpec;
 
-      WSLogger.debug({
-        source: 'PublishDataFolderJob',
-        message: 'Publishing data folder using scratch-git',
-        workbookId: data.workbookId,
-        dataFolderId: dataFolder.id,
-        folderPath,
-      });
+      // Mark folder as in_progress
+      currentFolder.status = 'in_progress';
 
-      // Use the new DataFolderPublishingService which reads from scratch-git
-      const results = await this.dataFolderPublishingService.publishAll(
-        data.workbookId,
-        folderPath,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        connector,
-        tableSpec,
-        async (phase: 'creates' | 'updates' | 'deletes', count: number) => {
-          if (phase === 'creates') {
-            publicProgress.creates += count;
-          } else if (phase === 'updates') {
-            publicProgress.updates += count;
-          } else if (phase === 'deletes') {
-            publicProgress.deletes += count;
-          }
-          publicProgress.totalFilesPublished += count;
-
-          this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
-            type: 'snapshot-updated',
-            data: {
-              tableId: dataFolder.id,
-              source: 'user',
-              message: `Updating publishing counts for ${phase}`,
-            },
-          });
-
-          await checkpoint({
-            publicProgress,
-            jobProgress: {},
-            connectorProgress: {},
-          });
+      // Checkpoint status for this folder
+      await checkpoint({
+        publicProgress: {
+          totalFilesPublished,
+          folders: foldersProgress,
         },
-      );
-
-      WSLogger.info({
-        source: 'PublishDataFolderJob',
-        message: 'Publish results',
-        workbookId: data.workbookId,
-        dataFolderId: dataFolder.id,
-        results,
+        jobProgress: { folderIndex: i },
+        connectorProgress: {},
       });
 
       // Enqueue pull job to sync from Webflow and update main branch
@@ -228,80 +204,172 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         message: 'Enqueued pull job to sync main branch after publish',
         workbookId: data.workbookId,
         dataFolderId: dataFolder.id,
+        folderIndex: i,
       });
 
-      // Mark as completed
-      publicProgress.status = 'completed';
+      // Get connector for this folder
+      const service = dataFolder.connectorService;
 
-      // Checkpoint final status
+      let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
+      if (dataFolder.connectorAccountId) {
+        decryptedConnectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, {
+          userId: data.userId,
+          organizationId: data.organizationId,
+        });
+        if (!decryptedConnectorAccount) {
+          throw new Error(`Connector account ${dataFolder.connectorAccountId} not found`);
+        }
+      }
+
+      const connector = await this.connectorService.getConnector({
+        service: service as Service,
+        connectorAccount: decryptedConnectorAccount,
+        decryptedCredentials: decryptedConnectorAccount,
+        userId: data.userId,
+      });
+
+      try {
+        const folderPath = dataFolder.name;
+
+        WSLogger.debug({
+          source: 'PublishDataFolderJob',
+          message: 'Publishing data folder using scratch-git',
+          workbookId: data.workbookId,
+          dataFolderId: dataFolder.id,
+          folderPath,
+        });
+
+        // Use the DataFolderPublishingService which reads from scratch-git
+        await this.dataFolderPublishingService.publishAll(
+          data.workbookId,
+          folderPath,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          connector,
+          tableSpec,
+          async (phase: 'creates' | 'updates' | 'deletes', count: number) => {
+            if (phase === 'creates') {
+              currentFolder.creates += count;
+            } else if (phase === 'updates') {
+              currentFolder.updates += count;
+            } else if (phase === 'deletes') {
+              currentFolder.deletes += count;
+            }
+            totalFilesPublished += count;
+
+            this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
+              type: 'snapshot-updated',
+              data: {
+                tableId: dataFolder.id,
+                source: 'user',
+                message: `Updating publishing counts for ${phase}`,
+              },
+            });
+
+            await checkpoint({
+              publicProgress: {
+                totalFilesPublished,
+                folders: foldersProgress,
+              },
+              jobProgress: { folderIndex: i },
+              connectorProgress: {},
+            });
+          },
+        );
+
+        // Mark folder as completed
+        currentFolder.status = 'completed';
+
+        WSLogger.info({
+          source: 'PublishDataFolderJob',
+          message: 'Folder publish completed',
+          workbookId: data.workbookId,
+          dataFolderId: dataFolder.id,
+          creates: currentFolder.creates,
+          updates: currentFolder.updates,
+          deletes: currentFolder.deletes,
+        });
+
+        // Enqueue pull job to sync from remote and update main branch
+        await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(
+          data.workbookId,
+          { userId: data.userId, organizationId: data.organizationId },
+          dataFolder.id as DataFolderId,
+        );
+
+        WSLogger.debug({
+          source: 'PublishDataFolderJob',
+          message: 'Enqueued download job to sync main branch after publish',
+          workbookId: data.workbookId,
+          dataFolderId: dataFolder.id,
+        });
+
+        // Update folder in database
+        await this.prisma.dataFolder.update({
+          where: { id: dataFolder.id },
+          data: {
+            lock: null,
+            lastSyncTime: new Date(),
+          },
+        });
+
+        this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
+          type: 'snapshot-updated',
+          data: {
+            source: 'user',
+            tableId: dataFolder.id,
+            message: 'Folder publish completed',
+          },
+        });
+      } catch (error) {
+        // Mark folder as failed but continue with other folders
+        currentFolder.status = 'failed';
+
+        // Clear lock on failure
+        await this.prisma.dataFolder.update({
+          where: { id: dataFolder.id },
+          data: { lock: null },
+        });
+
+        this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
+          type: 'sync-status-changed',
+          data: {
+            source: 'user',
+            tableId: dataFolder.id,
+            message: 'Folder publish failed',
+          },
+        });
+
+        WSLogger.error({
+          source: 'PublishDataFolderJob',
+          message: 'Failed to publish files for folder',
+          workbookId: data.workbookId,
+          dataFolderId: dataFolder.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        // Re-throw if this is the only folder, otherwise continue
+        if (dataFolders.length === 1) {
+          throw exceptionForConnectorError(error, connector);
+        }
+      }
+
+      // Checkpoint after each folder completes
       await checkpoint({
-        publicProgress,
-        jobProgress: {},
+        publicProgress: {
+          totalFilesPublished,
+          folders: foldersProgress,
+        },
+        jobProgress: { folderIndex: i + 1 },
         connectorProgress: {},
       });
-
-      // Set lock=null and update lastSyncTime on success
-      await this.prisma.dataFolder.update({
-        where: { id: dataFolder.id },
-        data: {
-          lock: null,
-          lastSyncTime: new Date(),
-        },
-      });
-
-      this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
-        type: 'snapshot-updated',
-        data: {
-          source: 'user',
-          tableId: dataFolder.id,
-          message: 'Publish data folder job completed',
-        },
-      });
-
-      WSLogger.debug({
-        source: 'PublishDataFolderJob',
-        message: 'Publish completed for data folder',
-        workbookId: data.workbookId,
-        dataFolderId: dataFolder.id,
-        creates: publicProgress.creates,
-        updates: publicProgress.updates,
-        deletes: publicProgress.deletes,
-      });
-    } catch (error) {
-      // Mark as failed
-      publicProgress.status = 'failed';
-
-      // Checkpoint failed status
-      await checkpoint({
-        publicProgress,
-        jobProgress: {},
-        connectorProgress: {},
-      });
-
-      // Set lock=null on failure
-      await this.prisma.dataFolder.update({
-        where: { id: dataFolder.id },
-        data: { lock: null },
-      });
-
-      this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
-        type: 'sync-status-changed',
-        data: {
-          source: 'user',
-          tableId: dataFolder.id,
-          message: 'Publish data folder job failed',
-        },
-      });
-
-      WSLogger.error({
-        source: 'PublishDataFolderJob',
-        message: 'Failed to publish files for data folder',
-        workbookId: data.workbookId,
-        dataFolderId: dataFolder.id,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw exceptionForConnectorError(error, connector);
     }
+
+    WSLogger.debug({
+      source: 'PublishDataFolderJob',
+      message: 'Publish job completed for all folders',
+      workbookId: data.workbookId,
+      totalFilesPublished,
+      folderCount: dataFolders.length,
+    });
   }
 }

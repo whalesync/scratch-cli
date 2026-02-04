@@ -114,13 +114,14 @@ export class JobService {
     }
 
     const state = await job.getState();
+    const progress = job.progress as Progress;
 
     return {
       bullJobId: job.id as string,
       dbJobId: job.id as string,
       type: job.name,
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
-      publicProgress: (job.progress as Progress).publicProgress || (job.data as any).initialPublicProgress || undefined,
+      publicProgress: progress?.publicProgress || (job.data as any).initialPublicProgress || undefined,
       state: state,
       processedOn: job.processedOn ? new Date(job.processedOn) : null,
       finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,

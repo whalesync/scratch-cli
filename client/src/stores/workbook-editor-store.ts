@@ -77,9 +77,13 @@ export interface WorkbookEditorUIState {
   // UI state for the chat panel.
   chatOpen: boolean;
 
-  // UI state for the publish confirmation modal.
+  // UI state for the publish confirmation modal (tables).
   publishConfirmationOpen: boolean;
   preselectedPublishTableIds: SnapshotTableId[] | null;
+
+  // UI state for the data folder publish confirmation modal.
+  dataFolderPublishConfirmationOpen: boolean;
+  preselectedPublishDataFolderIds: DataFolderId[] | null;
 
   activeModal: WorkbookModalParams | null;
 
@@ -119,6 +123,9 @@ type Actions = {
   openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) => void;
   closePublishConfirmation: () => void;
 
+  openDataFolderPublishConfirmation: (preselectedFolderIds?: DataFolderId[]) => void;
+  closeDataFolderPublishConfirmation: () => void;
+
   showModal: (modal: WorkbookModalParams) => void;
   dismissModal: (modalType: WorkbookModalParams['type']) => void;
 };
@@ -138,6 +145,8 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   chatOpen: true,
   publishConfirmationOpen: false,
   preselectedPublishTableIds: null,
+  dataFolderPublishConfirmationOpen: false,
+  preselectedPublishDataFolderIds: null,
   activeModal: null,
   workbookMode: 'tables',
 };
@@ -268,6 +277,11 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) =>
     set({ publishConfirmationOpen: true, preselectedPublishTableIds: preselectedTableIds ?? null }),
   closePublishConfirmation: () => set({ publishConfirmationOpen: false, preselectedPublishTableIds: null }),
+
+  openDataFolderPublishConfirmation: (preselectedFolderIds?: DataFolderId[]) =>
+    set({ dataFolderPublishConfirmationOpen: true, preselectedPublishDataFolderIds: preselectedFolderIds ?? null }),
+  closeDataFolderPublishConfirmation: () =>
+    set({ dataFolderPublishConfirmationOpen: false, preselectedPublishDataFolderIds: null }),
 
   showModal: (modal: WorkbookModalParams) => set({ activeModal: modal }),
   dismissModal: (modalType: WorkbookModalParams['type'] | null) => {

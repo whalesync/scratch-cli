@@ -1,6 +1,5 @@
 import { ButtonSecondaryInline, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
-import { DeletedConnectionIcon } from '@/app/components/Icons/DeletedConnectionIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
 import { OnboardingFlowButton } from '@/app/components/onboarding/OnboardingFlowButton';
@@ -9,7 +8,6 @@ import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { hasAllConnectionsDeleted } from '@/types/server-entities/workbook';
 import { Group } from '@mantine/core';
 import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
@@ -19,16 +17,15 @@ export const WorkbookHeader = () => {
   const toggleNavDrawer = useLayoutManagerStore((state) => state.toggleNavDrawer);
   const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   const openChat = useWorkbookEditorUIStore((state) => state.openChat);
-  const openPublishConfirmation = useWorkbookEditorUIStore((state) => state.openPublishConfirmation);
-  const allConnectionsDeleted = hasAllConnectionsDeleted(workbook);
-  // const { shouldShowStep } = useOnboarding();
+  const openDataFolderPublishConfirmation = useWorkbookEditorUIStore(
+    (state) => state.openDataFolderPublishConfirmation,
+  );
 
   const publishButton = (
     <ButtonSecondaryOutline
-      disabled={allConnectionsDeleted}
       size="compact-xs"
-      leftSection={allConnectionsDeleted ? <DeletedConnectionIcon decorative={false} /> : <CloudUploadIcon size={14} />}
-      onClick={() => openPublishConfirmation()}
+      leftSection={<CloudUploadIcon size={14} />}
+      onClick={() => openDataFolderPublishConfirmation()}
     >
       Publish
     </ButtonSecondaryOutline>

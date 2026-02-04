@@ -16,6 +16,7 @@ import {
 import type {
   DataFolder,
   DataFolderId,
+  Service,
   ValidatedCreateDataFolderDto,
   ValidatedMoveDataFolderDto,
   ValidatedRenameDataFolderDto,
@@ -24,8 +25,14 @@ import type {
 import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
+import { DbService } from '../db/db.service';
+import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { userToActor } from '../users/types';
 import { BullEnqueuerService } from '../worker-enqueuer/bull-enqueuer.service';
+import {
+  FolderPublishProgress,
+  PublishDataFolderPublicProgress,
+} from '../worker/jobs/job-definitions/publish-data-folder.job';
 import { DataFolderService } from './data-folder.service';
 import { WorkbookService } from './workbook.service';
 
@@ -37,6 +44,8 @@ export class DataFolderController {
     private readonly dataFolderService: DataFolderService,
     private readonly workbookService: WorkbookService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly scratchGitService: ScratchGitService,
+    private readonly db: DbService,
   ) {}
 
   @Post('/create')
@@ -51,6 +60,99 @@ export class DataFolderController {
     }
 
     return await this.dataFolderService.createFolder(dto, actor);
+  }
+
+  /**
+   * Publish multiple data folders in a single job.
+   * POST /data-folder/publish
+   */
+  @Post('/publish')
+  async publish(
+    @Body() body: { workbookId: string; dataFolderIds: string[] },
+    @Req() req: RequestWithUser,
+  ): Promise<{ jobId: string }> {
+    const actor = userToActor(req.user);
+    const workbookId = body.workbookId as WorkbookId;
+    const dataFolderIds = body.dataFolderIds as DataFolderId[];
+
+    if (!dataFolderIds || dataFolderIds.length === 0) {
+      throw new BadRequestException('At least one data folder ID is required');
+    }
+
+    // Verify the user has access to the workbook
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Verify all data folders exist and belong to this workbook
+    const dataFolders: DataFolder[] = [];
+    for (const folderId of dataFolderIds) {
+      const dataFolder = await this.dataFolderService.findOne(folderId, actor);
+      if (!dataFolder) {
+        throw new NotFoundException(`Data folder ${folderId} not found`);
+      }
+      if (dataFolder.workbookId !== workbookId) {
+        throw new BadRequestException(`Data folder ${folderId} does not belong to this workbook`);
+      }
+      dataFolders.push(dataFolder);
+    }
+
+    // Calculate expected counts for all folders
+    const foldersProgress: FolderPublishProgress[] = [];
+
+    for (const dataFolder of dataFolders) {
+      let expectedCreates = 0;
+      let expectedUpdates = 0;
+      let expectedDeletes = 0;
+
+      try {
+        const diff = await this.scratchGitService.getFolderDiff(workbookId, dataFolder.name);
+        for (const file of diff) {
+          // Only count JSON files
+          if (!file.path.endsWith('.json')) continue;
+
+          if (file.status === 'added') {
+            expectedCreates++;
+          } else if (file.status === 'modified') {
+            expectedUpdates++;
+          } else if (file.status === 'deleted') {
+            expectedDeletes++;
+          }
+        }
+      } catch {
+        // If git operations fail, continue with zero expected counts
+      }
+
+      foldersProgress.push({
+        id: dataFolder.id,
+        name: dataFolder.name,
+        connector: (dataFolder.connectorService as Service) ?? '',
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        expectedCreates,
+        expectedUpdates,
+        expectedDeletes,
+        status: 'pending',
+      });
+    }
+
+    // Build initial public progress with all folders
+    const initialPublicProgress: PublishDataFolderPublicProgress = {
+      totalFilesPublished: 0,
+      folders: foldersProgress,
+    };
+
+    // Enqueue the publish job with all folder IDs
+    const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(
+      workbookId,
+      actor,
+      dataFolderIds,
+      initialPublicProgress,
+    );
+
+    return { jobId: job.id ?? '' };
   }
 
   @Get(':id')
@@ -98,7 +200,7 @@ export class DataFolderController {
   }
 
   @Post(':id/publish')
-  async publish(
+  async publishSingleFolder(
     @Param('id') id: DataFolderId,
     @Body() body: { workbookId: string },
     @Req() req: RequestWithUser,
@@ -121,11 +223,12 @@ export class DataFolderController {
       throw new BadRequestException('Data folder does not belong to this workbook');
     }
 
-    // Enqueue the publish job
-    const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(workbookId, actor, id);
+    // Enqueue the publish job with single folder as array
+    const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(workbookId, actor, [id]);
 
     return { jobId: job.id ?? '' };
   }
+
   @Get(':id/schema-paths')
   async getSchemaPaths(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<string[]> {
     return await this.dataFolderService.getSchemaPaths(id, userToActor(req.user));

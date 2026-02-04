@@ -9,6 +9,7 @@ import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { WorkbookInspector } from '@/app/workbooks-md/[...slug]/components/devtool/WorkbookInspector';
+import { PublishDataFolderWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishDataFolderWorkflow';
 import { PublishWorkbookWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishWorkbookWorkflow';
 import { WorkbookHeader } from '@/app/workbooks-md/[...slug]/components/WorkbookHeader';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
@@ -216,6 +217,7 @@ export default function WorkbookNewPage() {
     <>
       <WorkbookFilesPageContent />
       <PublishWorkbookWorkflow />
+      <PublishDataFolderWorkflow />
       <WorkbookEditorModals />
     </>
   );

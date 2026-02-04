@@ -32,7 +32,7 @@ import {
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { WSLogger } from '../logger';
-import { ScratchGitService } from '../scratch-git/scratch-git.service';
+import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { userToActor } from '../users/types';
 import { FilesService } from './files.service';
 
@@ -348,7 +348,7 @@ export class FilesController {
 
     try {
       // Fetch current content from dirty branch directly from git
-      const fileContent = await this.scratchGitService.getRepoFile(workbookId, 'dirty', path);
+      const fileContent = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, path);
 
       if (!fileContent) {
         throw new Error('File not found in git dirty branch');

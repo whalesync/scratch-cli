@@ -4,7 +4,6 @@ import { TextMono12Regular } from '@/app/components/base/text';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
-import { dataFolderApi } from '@/lib/api/data-folder';
 import { filesApi } from '@/lib/api/files';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Box, Button, Center, Group, LoadingOverlay, Menu, Modal, Stack, Text } from '@mantine/core';
@@ -17,7 +16,6 @@ import {
   FilePlusIcon,
   RefreshCw,
   Trash2Icon,
-  UploadIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useDataFolder } from '../../../../hooks/use-data-folder';
@@ -118,22 +116,6 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
     },
     [workbook, refreshFiles],
   );
-
-  const handlePublishFolder = useCallback(async () => {
-    if (!workbook?.id || !dataFolder?.id) return;
-    try {
-      await dataFolderApi.publish(dataFolder.id, workbook.id);
-      ScratchpadNotifications.success({
-        message: 'Publish started',
-      });
-      refreshFolder();
-    } catch {
-      ScratchpadNotifications.error({
-        title: 'Error',
-        message: 'Failed to start publish',
-      });
-    }
-  }, [workbook, dataFolder, refreshFolder]);
 
   // Track previous lock state to detect transitions
   const prevLockRef = useRef(dataFolder?.lock);
@@ -242,17 +224,6 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
           <ActionIcon variant="subtle" size="sm" onClick={() => refreshFiles()}>
             <RefreshCw size={14} />
           </ActionIcon>
-          {dataFolder?.connectorAccountId && (
-            <Button
-              variant="subtle"
-              size="compact-xs"
-              leftSection={<UploadIcon size={12} />}
-              onClick={handlePublishFolder}
-              disabled={!!dataFolder?.lock}
-            >
-              Publish
-            </Button>
-          )}
         </Group>
 
         <TextMono12Regular c="var(--fg-secondary)">

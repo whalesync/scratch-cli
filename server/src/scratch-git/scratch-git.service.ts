@@ -76,7 +76,11 @@ export class ScratchGitService {
   }
 
   async deleteFile(workbookId: WorkbookId, paths: string[], message: string): Promise<void> {
-    await this.scratchGitClient.deleteFiles(workbookId, 'dirty', paths, message);
+    await this.deleteFilesFromBranch(workbookId, DIRTY_BRANCH, paths, message);
+  }
+
+  async deleteFilesFromBranch(workbookId: WorkbookId, branch: string, paths: string[], message: string): Promise<void> {
+    await this.scratchGitClient.deleteFiles(workbookId, branch, paths, message);
   }
 
   async deleteFolder(workbookId: WorkbookId, folderPath: string, message: string): Promise<void> {

@@ -8,7 +8,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
-import { ScratchGitService } from 'src/scratch-git/scratch-git.service';
+import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { WorkbookDb } from 'src/workbook/workbook-db';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
@@ -138,6 +138,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       userId: data.userId,
     });
 
+    let gitFiles: { path: string; content: string }[] = [];
     const callback = async (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => {
       const { files, connectorProgress } = params;
 
@@ -161,7 +162,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
 
       // Sync to Git (Commit to main + Rebase dirty)
       if (upsertedFiles.length > 0) {
-        const gitFiles = upsertedFiles.map((f) => ({
+        gitFiles = upsertedFiles.map((f) => ({
           path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
           content: f.content,
         }));
@@ -204,6 +205,46 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
 
     try {
       await connector.pullRecordFiles(tableSpec, callback, progress);
+
+      // After download, remove files from main that no longer exist in remote
+      // This ensures deleted items don't keep showing up in future diffs
+      const folderPath = dataFolder.name;
+      try {
+        const mainFiles = (await this.scratchGitService.listRepoFiles(
+          dataFolder.workbookId as WorkbookId,
+          MAIN_BRANCH,
+          folderPath,
+        )) as RepoFileRef[];
+        const downloadedFilePaths = gitFiles.map((f) => f.path);
+        const filesToDelete = mainFiles.filter((f) => !downloadedFilePaths.includes(f.path)).map((f) => f.path);
+
+        if (filesToDelete.length > 0) {
+          WSLogger.debug({
+            source: 'DownloadLinkedFolderFilesJob',
+            message: 'Removing deleted files from main branch',
+            workbookId: dataFolder.workbookId,
+            dataFolderId: dataFolder.id,
+            filesToDelete,
+          });
+
+          await this.scratchGitService.deleteFilesFromBranch(
+            dataFolder.workbookId as WorkbookId,
+            MAIN_BRANCH,
+            filesToDelete,
+            `Remove ${filesToDelete.length} deleted files from ${folderPath}`,
+          );
+
+          await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);
+        }
+      } catch (err) {
+        WSLogger.error({
+          source: 'DownloadLinkedFolderFilesJob',
+          message: 'Failed to clean up deleted files from main',
+          workbookId: dataFolder.workbookId,
+          error: err,
+        });
+        // Don't fail the job for cleanup errors
+      }
 
       // Mark as completed
       publicProgress.status = 'completed';
