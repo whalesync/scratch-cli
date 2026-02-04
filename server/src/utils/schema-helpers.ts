@@ -37,3 +37,49 @@ export function extractSchemaPaths(schema: TSchema, parentPath = ''): string[] {
 
   return Array.from(paths);
 }
+
+export interface SchemaField {
+  path: string;
+  type: string;
+}
+
+/**
+ * Extracts all possible dot-notation paths from a JSON Schema with their types.
+ */
+export function extractSchemaFields(schema: TSchema, parentPath = ''): SchemaField[] {
+  const fields = new Map<string, string>();
+
+  // Base Path (if meaningful)
+  if (parentPath) {
+    fields.set(parentPath, (schema.type as string) || 'unknown');
+  }
+
+  // Handle Unions (anyOf/oneOf/Optional)
+  if (schema.anyOf || schema.oneOf) {
+    const variants = (schema.anyOf || schema.oneOf) as TSchema[];
+    for (const variant of variants) {
+      if (variant.type === 'null') continue;
+      const subFields = extractSchemaFields(variant, parentPath);
+      subFields.forEach((f) => {
+        if (!fields.has(f.path)) {
+          fields.set(f.path, f.type);
+        }
+      });
+    }
+  }
+
+  // Object Traverse
+  if (schema.type === 'object' && schema.properties) {
+    for (const [key, propSchema] of Object.entries(schema.properties as Record<string, TSchema>)) {
+      const currentPath = parentPath ? `${parentPath}.${key}` : key;
+      const subFields = extractSchemaFields(propSchema, currentPath);
+      subFields.forEach((f) => {
+        if (!fields.has(f.path)) {
+          fields.set(f.path, f.type);
+        }
+      });
+    }
+  }
+
+  return Array.from(fields.entries()).map(([path, type]) => ({ path, type }));
+}

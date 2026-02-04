@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataFolder } from '@prisma/client';
 import { TSchema } from '@sinclair/typebox';
 import {
@@ -9,6 +9,7 @@ import {
   DataFolderId,
   SyncId,
   TableMapping,
+  UpdateSyncDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import at from 'lodash/at';
@@ -16,6 +17,7 @@ import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
 import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
+import { validateSchemaMapping } from 'src/sync/schema-validator';
 import { Actor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -57,6 +59,27 @@ export class SyncService {
       throw new NotFoundException('Workbook not found');
     }
 
+    // Validate mappings
+    for (const mapping of dto.folderMappings) {
+      const sourceId = mapping.sourceId as DataFolderId;
+      const destId = mapping.destId as DataFolderId;
+
+      const sourceFolder = await this.dataFolderService.fetchSchemaSpec(sourceId, actor);
+      const destFolder = await this.dataFolderService.fetchSchemaSpec(destId, actor);
+
+      if (!sourceFolder?.schema) {
+        throw new NotFoundException(`Source folder schema not found for ${mapping.sourceId}`);
+      }
+      if (!destFolder?.schema) {
+        throw new NotFoundException(`Destination folder schema not found for ${mapping.destId}`);
+      }
+
+      const errors = validateSchemaMapping(sourceFolder.schema, destFolder.schema, mapping.fieldMap);
+      if (errors.length > 0) {
+        throw new BadRequestException(`Validation failed for folder mapping: ${errors.join('; ')}`);
+      }
+    }
+
     const syncId = createSyncId();
 
     // Create the sync and its table pairs in a transaction
@@ -64,8 +87,36 @@ export class SyncService {
       data: {
         id: syncId,
         displayName: dto.name,
-        // Using an empty object for now as SyncMapping structure is complex and we're using table pairs
-        mappings: {},
+        // Create SyncMapping structure
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        mappings: {
+          version: 1,
+          tableMappings: dto.folderMappings.map((mapping) => {
+            const columnMappings: AnyColumnMapping[] = Object.entries(mapping.fieldMap).map(
+              ([sourceField, destField]) => ({
+                type: 'local',
+                sourceColumnId: sourceField,
+                destinationColumnId: destField,
+              }),
+            );
+
+            const tableMapping: TableMapping = {
+              sourceDataFolderId: mapping.sourceId as DataFolderId,
+              destinationDataFolderId: mapping.destId as DataFolderId,
+              columnMappings,
+            };
+
+            if (mapping.matchingField) {
+              tableMapping.recordMatching = {
+                sourceColumnId: 'id', // Assuming source ID is always 'id' for now, or we need to look it up?
+                // Actually `matchingField` in DTO is "Field on destination that stores the source record ID".
+                // So we match Source.id == Destination[matchingField].
+                destinationColumnId: mapping.matchingField,
+              };
+            }
+            return tableMapping;
+          }),
+        } as any,
         syncTablePairs: {
           create: dto.folderMappings.map((mapping) => ({
             id: createSyncId(), // Using sync ID generator for pair ID as well
@@ -83,6 +134,102 @@ export class SyncService {
     });
 
     return sync;
+  }
+
+  /**
+   * Updates an existing sync.
+   * Replaces mapped folders and settings.
+   */
+  async updateSync(workbookId: WorkbookId, syncId: SyncId, dto: UpdateSyncDto, actor: Actor): Promise<unknown> {
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    const sync = await this.db.client.sync.findFirst({
+      where: { id: syncId },
+    });
+    if (!sync) {
+      throw new NotFoundException('Sync not found');
+    }
+
+    // Validate mappings if validation is enabled (default true)
+    if (dto.enableValidation !== false) {
+      for (const mapping of dto.folderMappings) {
+        const sourceId = mapping.sourceId as DataFolderId;
+        const destId = mapping.destId as DataFolderId;
+
+        const sourceFolder = await this.dataFolderService.fetchSchemaSpec(sourceId, actor);
+        const destFolder = await this.dataFolderService.fetchSchemaSpec(destId, actor);
+
+        if (!sourceFolder?.schema) {
+          throw new NotFoundException(`Source folder schema not found for ${mapping.sourceId}`);
+        }
+        if (!destFolder?.schema) {
+          throw new NotFoundException(`Destination folder schema not found for ${mapping.destId}`);
+        }
+
+        const errors = validateSchemaMapping(sourceFolder.schema, destFolder.schema, mapping.fieldMap);
+        if (errors.length > 0) {
+          throw new BadRequestException(`Validation failed for folder mapping: ${errors.join('; ')}`);
+        }
+      }
+    }
+
+    // Transaction to update sync details and replace mappings
+    const updated = await this.db.client.$transaction(async (tx) => {
+      // 1. Delete existing table pairs
+      await tx.syncTablePair.deleteMany({
+        where: { syncId },
+      });
+
+      // 2. Update sync and create new pairs
+      return tx.sync.update({
+        where: { id: syncId },
+        data: {
+          displayName: dto.name,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          mappings: {
+            version: 1,
+            tableMappings: dto.folderMappings.map((mapping) => {
+              const columnMappings: AnyColumnMapping[] = Object.entries(mapping.fieldMap).map(
+                ([sourceField, destField]) => ({
+                  type: 'local',
+                  sourceColumnId: sourceField,
+                  destinationColumnId: destField,
+                }),
+              );
+
+              const tableMapping: TableMapping = {
+                sourceDataFolderId: mapping.sourceId as DataFolderId,
+                destinationDataFolderId: mapping.destId as DataFolderId,
+                columnMappings,
+              };
+
+              if (mapping.matchingField) {
+                tableMapping.recordMatching = {
+                  sourceColumnId: 'id',
+                  destinationColumnId: mapping.matchingField,
+                };
+              }
+              return tableMapping;
+            }),
+          } as any,
+          syncTablePairs: {
+            create: dto.folderMappings.map((mapping) => ({
+              id: createSyncId(),
+              sourceDataFolderId: mapping.sourceId,
+              destinationDataFolderId: mapping.destId,
+            })),
+          },
+        },
+        include: {
+          syncTablePairs: true,
+        },
+      });
+    });
+
+    return updated;
   }
 
   /**

@@ -6,19 +6,19 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import type { DataFolderId, SyncId, WorkbookId } from '@spinner/shared-types';
+import { CreateSyncDto, UpdateSyncDto, ValidateMappingDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { userToActor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
-import { CreateSyncDto } from './dtos/create-sync.dto';
-import { ValidateMappingDto } from './dtos/validate-mapping.dto';
 import { SyncService } from './sync.service';
 
 @Controller('workbooks/:workbookId/syncs')
@@ -38,6 +38,16 @@ export class SyncController {
     @Req() req: RequestWithUser,
   ): Promise<unknown> {
     return await this.syncService.createSync(workbookId, dto, userToActor(req.user));
+  }
+
+  @Patch(':syncId')
+  async updateSync(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('syncId') syncId: SyncId,
+    @Body() dto: UpdateSyncDto,
+    @Req() req: RequestWithUser,
+  ): Promise<unknown> {
+    return await this.syncService.updateSync(workbookId, syncId, dto, userToActor(req.user));
   }
   @Get()
   async listSyncs(@Param('workbookId') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<unknown> {

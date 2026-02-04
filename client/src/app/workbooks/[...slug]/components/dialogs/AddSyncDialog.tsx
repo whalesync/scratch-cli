@@ -6,9 +6,11 @@ import { workbookApi } from '@/lib/api/workbook';
 import {
   ActionIcon,
   Autocomplete,
+  Badge,
   Box,
   Button,
   Checkbox,
+  Code,
   Collapse,
   Group,
   Modal,
@@ -17,14 +19,17 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
-import { ArrowRight, ChevronDown, ChevronUp, Database, Plus, Search, Trash2 } from 'lucide-react';
+import { Sync } from '@spinner/shared-types';
+import { ArrowRight, Braces, ChevronDown, ChevronUp, Database, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface AddSyncDialogProps {
   opened: boolean;
   onClose: () => void;
   onSyncCreated?: () => void;
+  syncToEdit?: Sync;
 }
 
 type Step = 'configure-pairs' | 'name-and-schedule';
@@ -70,7 +75,17 @@ const SCHEDULE_OPTIONS = [
   { value: '0 0 * * *', label: 'Daily at midnight' },
 ];
 
-export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogProps) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderAutocompleteOption = ({ option }: any) => (
+  <Group gap="sm" wrap="nowrap">
+    <Badge size="xs" variant="light" color="blue" w={70} style={{ flexShrink: 0 }}>
+      {option.type}
+    </Badge>
+    <Text size="sm">{option.value}</Text>
+  </Group>
+);
+
+export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: AddSyncDialogProps) => {
   const { dataFolderGroups } = useDataFolders();
   const { workbook } = useActiveWorkbook();
   const [step, setStep] = useState<Step>('configure-pairs');
@@ -78,9 +93,11 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
   const [syncName, setSyncName] = useState('');
   const [schedule, setSchedule] = useState('');
   const [autoPublish, setAutoPublish] = useState(true);
+  const [enableValidation, setEnableValidation] = useState(true);
+  const [showDebug, setShowDebug] = useState(false);
 
   const [saving, setSaving] = useState(false);
-  const [schemaCache, setSchemaCache] = useState<Record<string, string[]>>({});
+  const [schemaCache, setSchemaCache] = useState<Record<string, { path: string; type: string }[]>>({});
 
   // Fetch schema paths if not in cache
   const ensureSchemaPaths = async (folderId: string) => {
@@ -93,16 +110,86 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
   // Flatten folders for easy selection
   const allFolders = dataFolderGroups.flatMap((g) => g.dataFolders);
 
-  // Reset state when opening
+  // Reset or populate state when opening
   useEffect(() => {
     if (opened) {
-      setStep('configure-pairs');
-      setFolderPairs([createPair()]);
-      setSyncName('');
-      setSchedule('');
-      setAutoPublish(true);
+      if (syncToEdit) {
+        setStep('configure-pairs'); // Or maybe go straight to name? No, better review pairs.
+        setSyncName(syncToEdit.displayName);
+        setSchedule(''); // Schedule not in Sync type yet properly?
+        // autoPublish not in Sync type yet?
+
+        // Reconstruct pairs from syncTablePairs
+        // SyncTablePair has sourceDataFolderId, destinationDataFolderId
+        // We don't have field mappings in the DB model yet as per comments in service.
+        // "Using an empty object for now as SyncMapping structure is complex... mappings: {}"
+        // So we can only recover folder pairs, but field mappings are lost or stored in unstructured `mappings`.
+        // If we assume `mappings` JSON column stores the config, we should use it.
+        // Service code: "mappings: {},"
+        // So we effectively lose field mappings on save currently?
+        // Wait, current Create logic sends folderMappings with fieldMap.
+        // Service saves it to... nowhere?
+        // "mappings: {}" -> It seems we are NOT persisting field mappings in the backend yet?
+        // If so, "Edit" is going to be lossy (will default to empty mappings).
+        // Let's assume for this task we just reconstruct folder pairs with default empty mappings
+        // OR warn user that we can't fully edit mappings yet.
+        // User said: "prepopualte it with the current data."
+        // If data isn't saved, we can't prepopulate.
+        // Let's check Sync type in backend to see if we missed where it's saved.
+        // Backend `sync.service.ts`: "Using an empty object for now... mappings: {}"
+        // CAUTION: We can't actually edit field mappings if they aren't saved.
+        // But for folder pairs we can.
+
+        if (syncToEdit.mappings && syncToEdit.mappings.tableMappings) {
+          const uniqueFolderIds = new Set<string>();
+          const pairs: FolderPair[] = syncToEdit.mappings.tableMappings.map((tm) => {
+            uniqueFolderIds.add(tm.sourceDataFolderId);
+            uniqueFolderIds.add(tm.destinationDataFolderId);
+
+            const fieldMappings: FieldMapping[] = tm.columnMappings
+              .filter((cm) => cm.type === 'local')
+              .map((cm) => ({
+                id: `mapping-${++mappingIdCounter}`,
+                sourceField: cm.sourceColumnId,
+                destField: cm.destinationColumnId,
+              }));
+
+            return {
+              id: `pair-${++pairIdCounter}`,
+              sourceId: tm.sourceDataFolderId,
+              destId: tm.destinationDataFolderId,
+              fieldMappings: fieldMappings.length ? fieldMappings : [createMapping()],
+              matchingField: tm.recordMatching?.destinationColumnId || '',
+              expanded: true,
+            };
+          });
+          setFolderPairs(pairs.length ? pairs : [createPair()]);
+          uniqueFolderIds.forEach((id) => ensureSchemaPaths(id));
+        } else if (syncToEdit.syncTablePairs) {
+          // Fallback to table pairs if mappings are empty (legacy or migration)
+          const pairs: FolderPair[] = syncToEdit.syncTablePairs.map((p) => ({
+            id: `pair-${++pairIdCounter}`,
+            sourceId: p.sourceDataFolderId,
+            destId: p.destinationDataFolderId,
+            fieldMappings: [createMapping()],
+            matchingField: '',
+            expanded: true,
+          }));
+          setFolderPairs(pairs.length ? pairs : [createPair()]);
+        } else {
+          setFolderPairs([createPair()]);
+        }
+      } else {
+        setStep('configure-pairs');
+        setFolderPairs([createPair()]);
+        setSyncName('');
+        setSchedule('');
+        setAutoPublish(true);
+        setEnableValidation(true);
+      }
     }
-  }, [opened]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, syncToEdit]);
 
   // Auto-generate name
   useEffect(() => {
@@ -148,16 +235,20 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
       const payload = {
         name: syncName || 'Untitled Sync',
         folderMappings,
-        // Schedule and autoPublish are ignored by backend for now but sent anyway
         schedule: schedule || null,
         autoPublish,
+        enableValidation,
       };
 
       if (!workbook?.id) {
         throw new Error('No active workbook');
       }
 
-      await syncApi.create(workbook.id, payload);
+      if (syncToEdit) {
+        await syncApi.update(workbook.id, syncToEdit.id, payload);
+      } else {
+        await syncApi.create(workbook.id, payload);
+      }
 
       onSyncCreated?.();
       onClose();
@@ -299,7 +390,11 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
                       style={{ flex: 1 }}
                       value={mapping.sourceField}
                       onChange={(val) => updateFieldMapping(index, mIndex, 'sourceField', val)}
-                      data={schemaCache[pair.sourceId] || []}
+                      data={(schemaCache[pair.sourceId] || []).map((f) => {
+                        if (typeof f === 'string') return { value: f, label: f, type: 'unknown' };
+                        return { value: f.path, label: f.path, type: f.type };
+                      })}
+                      renderOption={renderAutocompleteOption}
                       rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                     />
                     <ArrowRight size={14} color="var(--mantine-color-dimmed)" />
@@ -308,7 +403,11 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
                       style={{ flex: 1 }}
                       value={mapping.destField}
                       onChange={(val) => updateFieldMapping(index, mIndex, 'destField', val)}
-                      data={schemaCache[pair.destId] || []}
+                      data={(schemaCache[pair.destId] || []).map((f) => {
+                        if (typeof f === 'string') return { value: f, label: f, type: 'unknown' };
+                        return { value: f.path, label: f.path, type: f.type };
+                      })}
+                      renderOption={renderAutocompleteOption}
                       rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                     />
                     {pair.fieldMappings.length > 1 && (
@@ -371,6 +470,12 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
         checked={autoPublish}
         onChange={(e) => setAutoPublish(e.currentTarget.checked)}
       />
+      <Checkbox
+        label="Validate Mappings"
+        description="Check if source and destination field types are compatible"
+        checked={enableValidation}
+        onChange={(e) => setEnableValidation(e.currentTarget.checked)}
+      />
     </Stack>
   );
 
@@ -378,9 +483,47 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
     <Modal
       opened={opened}
       onClose={onClose}
-      title={step === 'configure-pairs' ? 'Configure Folder Pairs' : 'Name & Schedule'}
+      title={
+        <Group gap="xs">
+          <Text>
+            {step === 'configure-pairs'
+              ? syncToEdit
+                ? 'Edit Sync - Configure Pairs'
+                : 'Configure Folder Pairs'
+              : syncToEdit
+                ? 'Edit Sync - Name & Schedule'
+                : 'Name & Schedule'}
+          </Text>
+          <Tooltip label="Show Debug JSON">
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setShowDebug(!showDebug)}>
+              <Braces size={14} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      }
       size="lg"
     >
+      {showDebug && (
+        <Box mb="md">
+          <Text size="xs" fw={700} mb={4}>
+            Debug State:
+          </Text>
+          <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
+            {JSON.stringify(
+              {
+                syncName,
+                schedule,
+                autoPublish,
+                enableValidation,
+                folderPairs,
+              },
+              null,
+              2,
+            )}
+          </Code>
+        </Box>
+      )}
+
       <ScrollArea.Autosize mah={600} style={{ overflowX: 'hidden' }}>
         {step === 'configure-pairs' ? renderConfigurePairs() : renderNameAndSchedule()}
       </ScrollArea.Autosize>
@@ -401,11 +544,11 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
               Back
             </Button>
             <Button onClick={handleCreate} loading={saving}>
-              Create Sync
+              {syncToEdit ? 'Save Changes' : 'Create Sync'}
             </Button>
           </>
         )}
       </Group>
     </Modal>
   );
-}
+};

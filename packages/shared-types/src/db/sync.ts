@@ -1,6 +1,15 @@
 import { SyncState } from '../enums/enums';
-import { SyncId } from '../ids';
+import { DataFolderId, SyncId, SyncTablePairId } from '../ids';
 import { SyncMapping } from '../sync-mapping';
+
+export interface SyncTablePair {
+  id: SyncTablePairId;
+  syncId: SyncId;
+  sourceDataFolderId: DataFolderId;
+  destinationDataFolderId: DataFolderId;
+  createdAt: string;
+  updatedAt: string;
+}
 
 ///
 /// NOTE: Keep this in sync with server/prisma/schema.prisma Sync model
@@ -17,6 +26,7 @@ export interface Sync {
   syncState: SyncState;
   syncStateLastChanged: string | null;
   lastSyncTime: string | null;
+  syncTablePairs: SyncTablePair[];
 }
 
 ///

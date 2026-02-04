@@ -46,14 +46,16 @@ export * from './dto/wix/publish-draft-posts.dto';
 export * from './dto/workbook/add-table-to-workbook.dto';
 export * from './dto/workbook/create-workbook.dto';
 export * from './dto/workbook/download-files.dto';
-export * from './dto/workbook/pull-files.dto';
 export * from './dto/workbook/file-details.dto';
 export * from './dto/workbook/folder.dto';
 export * from './dto/workbook/list-files.dto';
 export * from './dto/workbook/publish-tables.dto';
+export * from './dto/workbook/pull-files.dto';
 export * from './dto/workbook/set-content-column.dto';
 export * from './dto/workbook/set-title-column.dto';
 export * from './dto/workbook/update-column-settings.dto';
 export * from './dto/workbook/update-workbook.dto';
 
 export * from './dto/sync/create-sync.dto';
+export * from './dto/sync/update-sync.dto';
+export * from './dto/sync/validate-mapping.dto';

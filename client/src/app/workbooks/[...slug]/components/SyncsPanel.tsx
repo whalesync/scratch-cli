@@ -20,6 +20,7 @@ export function SyncsPanel() {
   const runSync = useSyncStore((state) => state.runSync);
 
   const [isAddSyncOpen, setIsAddSyncOpen] = useState(false);
+  const [editingSync, setEditingSync] = useState<Sync | null>(null);
 
   useEffect(() => {
     if (workbook?.id) {
@@ -101,6 +102,10 @@ export function SyncsPanel() {
                 sync={sync}
                 onDelete={() => handleDelete(sync)}
                 onRun={() => handleRunSync(sync.id)}
+                onEdit={() => {
+                  setEditingSync(sync);
+                  setIsAddSyncOpen(true);
+                }}
                 loading={!!activeJobs[sync.id]}
               />
             ))}
@@ -116,9 +121,14 @@ export function SyncsPanel() {
 
       <AddSyncDialog
         opened={isAddSyncOpen}
-        onClose={() => setIsAddSyncOpen(false)}
+        onClose={() => {
+          setIsAddSyncOpen(false);
+          setEditingSync(null);
+        }}
+        syncToEdit={editingSync || undefined}
         onSyncCreated={() => {
           setIsAddSyncOpen(false);
+          setEditingSync(null);
           if (workbook?.id) fetchSyncs(workbook.id);
         }}
       />

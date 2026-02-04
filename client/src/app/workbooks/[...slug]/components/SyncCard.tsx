@@ -1,16 +1,17 @@
 import { ActionIcon, Card, Group, Menu, Stack, Text, Tooltip } from '@mantine/core';
 import { Sync } from '@spinner/shared-types';
-import { Clock, MoreHorizontal, Play, RefreshCw, Trash2 } from 'lucide-react';
+import { Clock, Edit, MoreHorizontal, Play, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface SyncCardProps {
   sync: Sync;
   onDelete: () => void;
   onRun?: () => Promise<void> | void;
+  onEdit?: () => void;
   loading?: boolean;
 }
 
-export function SyncCard({ sync, onDelete, onRun, loading }: SyncCardProps) {
+export function SyncCard({ sync, onDelete, onRun, onEdit, loading }: SyncCardProps) {
   const [internalRunning, setInternalRunning] = useState(false);
   const isRunning = loading !== undefined ? loading : internalRunning;
 
@@ -66,6 +67,9 @@ export function SyncCard({ sync, onDelete, onRun, loading }: SyncCardProps) {
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item leftSection={<Edit size={14} />} onClick={onEdit}>
+              Edit Sync
+            </Menu.Item>
             <Menu.Item leftSection={<Trash2 size={14} />} color="red" onClick={onDelete}>
               Delete Sync
             </Menu.Item>

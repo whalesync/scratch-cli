@@ -18,7 +18,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { Actor } from 'src/users/types';
-import { extractSchemaPaths } from 'src/utils/schema-helpers';
+import { extractSchemaFields } from 'src/utils/schema-helpers';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
@@ -717,11 +717,11 @@ export class DataFolderService {
    * Returns schema paths (dot notation) for a data folder.
    * Fetches fresh schema from the connector.
    */
-  async getSchemaPaths(id: DataFolderId, actor: Actor): Promise<string[]> {
+  async getSchemaPaths(id: DataFolderId, actor: Actor): Promise<{ path: string; type: string }[]> {
     const spec = await this.fetchSchemaSpec(id, actor);
     if (!spec || !spec.schema) {
       return [];
     }
-    return extractSchemaPaths(spec.schema);
+    return extractSchemaFields(spec.schema);
   }
 }

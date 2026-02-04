@@ -230,7 +230,10 @@ export class DataFolderController {
   }
 
   @Get(':id/schema-paths')
-  async getSchemaPaths(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<string[]> {
+  async getSchemaPaths(
+    @Param('id') id: DataFolderId,
+    @Req() req: RequestWithUser,
+  ): Promise<{ path: string; type: string }[]> {
     return await this.dataFolderService.getSchemaPaths(id, userToActor(req.user));
   }
 }

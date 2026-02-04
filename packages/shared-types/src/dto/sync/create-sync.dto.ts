@@ -35,4 +35,8 @@ export class CreateSyncDto {
   @IsBoolean()
   @IsOptional()
   autoPublish!: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  enableValidation?: boolean;
 }

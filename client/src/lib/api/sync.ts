@@ -1,4 +1,4 @@
-import { CreateSyncDto, Sync, SyncId, WorkbookId } from '@spinner/shared-types';
+import { CreateSyncDto, Sync, SyncId, UpdateSyncDto, WorkbookId } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -16,6 +16,16 @@ export const syncApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to create sync');
+    }
+  },
+
+  update: async (workbookId: WorkbookId, syncId: SyncId, dto: UpdateSyncDto): Promise<unknown> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.patch(`/workbooks/${workbookId}/syncs/${syncId}`, dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update sync');
     }
   },
 
