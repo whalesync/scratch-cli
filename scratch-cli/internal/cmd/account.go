@@ -94,8 +94,8 @@ Required flags:
 Provider-specific flags:
   --account.domain string        Domain/subdomain (for Moco: e.g., 'yourcompany')
   --account.endpoint string      WordPress site URL (for WordPress)
-  --account.username string      Username/Email (for WordPress)
-  --account.password string      Password (for WordPress application password)
+  --account.username string      Username (for WordPress)
+  --account.password string      Application password (for WordPress)
 
 Examples:
   # Webflow (uses api-key)
@@ -193,8 +193,8 @@ func init() {
 	accountAddCmd.Flags().String("account.api-key", "", "API key for the provider")
 	accountAddCmd.Flags().String("account.domain", "", "Domain/subdomain (for Moco)")
 	accountAddCmd.Flags().String("account.endpoint", "", "WordPress site URL")
-	accountAddCmd.Flags().String("account.username", "", "Username/Email (for WordPress)")
-	accountAddCmd.Flags().String("account.password", "", "Password (for WordPress)")
+	accountAddCmd.Flags().String("account.username", "", "Username (for WordPress)")
+	accountAddCmd.Flags().String("account.password", "", "Application password (for WordPress)")
 	// Not required anymore, can come from defaults
 	// accountAddCmd.MarkFlagRequired("account.provider")
 	// accountAddCmd.MarkFlagRequired("account.api-key")

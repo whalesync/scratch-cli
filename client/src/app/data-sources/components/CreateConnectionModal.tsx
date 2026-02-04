@@ -369,8 +369,8 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
             <Stack>
               <Group grow>
                 <TextInput
-                  label="User email"
-                  placeholder="Enter your user email here"
+                  label="Username"
+                  placeholder="Enter your WordPress username"
                   value={username}
                   onChange={(e) => setUsername(e.currentTarget.value)}
                 />
