@@ -5,7 +5,7 @@ import { AddTwoNumbersJobDefinition } from './job-definitions/add-two-numbers.jo
 import { DownloadFilesJobDefinition } from './job-definitions/download-files.job';
 import { DownloadLinkedFolderFilesJobDefinition } from './job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from './job-definitions/download-record-files.job';
-import { PublishFilesJobDefinition } from './job-definitions/publish-files.job';
+import { PublishDataFolderJobDefinition } from './job-definitions/publish-data-folder.job';
 import { SyncDataFoldersJobDefinition } from './job-definitions/sync-data-folders.job';
 
 export type JobDefinition =
@@ -14,7 +14,7 @@ export type JobDefinition =
   | DownloadFilesJobDefinition
   | DownloadRecordFilesJobDefinition
   | DownloadLinkedFolderFilesJobDefinition
-  | PublishFilesJobDefinition
+  | PublishDataFolderJobDefinition
   | SyncDataFoldersJobDefinition;
 export type JobData = JobDefinition['data'];
 export type JobTypes = JobDefinition['type'];

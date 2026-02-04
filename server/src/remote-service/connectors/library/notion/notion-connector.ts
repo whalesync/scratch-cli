@@ -636,102 +636,64 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     return 1;
   }
 
+  /**
+   * Create pages in Notion from raw JSON files.
+   * Files should contain Notion properties in the raw API format.
+   * Returns the created pages.
+   */
   async createRecords(
-    tableSpec: NotionTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
-    const results: { wsId: string; remoteId: string }[] = [];
-    let hasPageContentUpdate = false;
-    let pageContentValue: string | undefined;
+    tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
+    const results: ConnectorFile[] = [];
+    const databaseId = tableSpec.id.remoteId[0];
 
-    for (const record of records) {
-      const notionProperties: CreatePageParameters['properties'] = {};
-      for (const [wsId, value] of Object.entries(record.fields)) {
-        const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
-        if (column && !column.readonly) {
-          if (wsId === PAGE_CONTENT_COLUMN_ID) {
-            hasPageContentUpdate = true;
-            pageContentValue = value as string;
-          } else {
-            const propertyId = column.id.remoteId[0];
-            const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
-            if (propertyValue) {
-              notionProperties[propertyId] = propertyValue;
-            }
-          }
-        }
-      }
+    for (const file of files) {
+      const properties = (file.properties as CreatePageParameters['properties']) || {};
 
       const newPage = await this.client.pages.create({
-        parent: { database_id: tableSpec.id.remoteId[0] },
-        properties: notionProperties,
+        parent: { database_id: databaseId },
+        properties,
       });
 
-      // Update page content if needed
-      if (hasPageContentUpdate && pageContentValue) {
-        // Check if the data converter for this column is markdown
-        const dataConverter = columnSettingsMap[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
-        // default to markdown if no data converter is set
-        const isMarkdown = !dataConverter || dataConverter === 'markdown';
-        await this.updatePageContent(newPage.id, pageContentValue, isMarkdown);
-      }
-
-      results.push({ wsId: record.wsId, remoteId: newPage.id });
+      results.push(newPage as unknown as ConnectorFile);
     }
 
     return results;
   }
 
+  /**
+   * Update pages in Notion from raw JSON files.
+   * Files should have an 'id' field and the properties to update.
+   */
   async updateRecords(
-    tableSpec: NotionTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
+    _tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
   ): Promise<void> {
-    for (const record of records) {
-      const notionProperties: CreatePageParameters['properties'] = {};
-      let hasPageContentUpdate = false;
-      let pageContentValue: string | undefined;
+    for (const file of files) {
+      const pageId = file.id as string;
+      const properties = (file.properties as CreatePageParameters['properties']) || {};
 
-      for (const [wsId, value] of Object.entries(record.partialFields)) {
-        const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
-        if (column && !column.readonly) {
-          if (wsId === PAGE_CONTENT_COLUMN_ID) {
-            hasPageContentUpdate = true;
-            pageContentValue = value as string;
-          } else {
-            const propertyId = column.id.remoteId[0];
-            const propertyValue = this.buildNotionPropertyValue(column.notionDataType, value);
-            if (propertyValue) {
-              notionProperties[propertyId] = propertyValue;
-            }
-          }
-        }
-      }
-
-      // Update regular properties first
-      if (Object.keys(notionProperties).length > 0) {
+      if (Object.keys(properties).length > 0) {
         await this.client.pages.update({
-          page_id: record.id.remoteId,
-          properties: notionProperties,
+          page_id: pageId,
+          properties,
         });
-      }
-
-      // Update page content if needed
-      if (hasPageContentUpdate && pageContentValue) {
-        // Check if the data converter for this column is markdown
-        const dataConverter = columnSettingsMap[PAGE_CONTENT_COLUMN_ID]?.dataConverter;
-        // default to markdown if no data converter is set
-        const isMarkdown = !dataConverter || dataConverter === 'markdown';
-        await this.updatePageContent(record.id.remoteId, pageContentValue, isMarkdown);
       }
     }
   }
 
-  async deleteRecords(tableSpec: NotionTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
-    for (const recordId of recordIds) {
+  /**
+   * Delete (archive) pages in Notion.
+   * Files should have an 'id' field with the page ID to archive.
+   */
+  async deleteRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    for (const file of files) {
+      const pageId = file.id as string;
       await this.client.pages.update({
-        page_id: recordId.remoteId,
+        page_id: pageId,
         archived: true,
       });
     }

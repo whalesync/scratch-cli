@@ -5,11 +5,11 @@ import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
 import { DownloadFilesJobDefinition } from 'src/worker/jobs/job-definitions/download-files.job';
-import { PublishFilesJobDefinition } from 'src/worker/jobs/job-definitions/publish-files.job';
-import { SyncDataFoldersJobDefinition } from 'src/worker/jobs/job-definitions/sync-data-folders.job';
 import { JobData } from 'src/worker/jobs/union-types';
 import { DownloadLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobDefinition } from '../worker/jobs/job-definitions/download-record-files.job';
+import { PublishDataFolderJobDefinition } from '../worker/jobs/job-definitions/publish-data-folder.job';
+import { SyncDataFoldersJobDefinition } from '../worker/jobs/job-definitions/sync-data-folders.job';
 
 @Injectable()
 export class BullEnqueuerService implements OnModuleDestroy {
@@ -105,20 +105,19 @@ export class BullEnqueuerService implements OnModuleDestroy {
     return await this.enqueueJobWithId(data, id);
   }
 
-  async enqueuePublishFilesJob(
+  async enqueuePublishDataFolderJob(
     workbookId: WorkbookId,
     actor: Actor,
-    snapshotTableIds?: string[],
-    initialPublicProgress?: PublishFilesJobDefinition['publicProgress'],
+    dataFolderId: DataFolderId,
+    initialPublicProgress?: PublishDataFolderJobDefinition['publicProgress'],
   ): Promise<Job> {
-    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `publish-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: PublishFilesJobDefinition['data'] = {
+    const id = `publish-data-folder-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PublishDataFolderJobDefinition['data'] = {
       workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
-      snapshotTableIds,
-      type: 'publish-files',
+      dataFolderId,
+      type: 'publish-data-folder',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

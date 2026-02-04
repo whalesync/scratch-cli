@@ -457,50 +457,50 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     return WEBFLOW_DEFAULT_BATCH_SIZE;
   }
 
+  /**
+   * Create items in Webflow from raw JSON files.
+   * Files should contain Webflow fieldData.
+   * Returns the created items.
+   */
   async createRecords(
-    tableSpec: WebflowTableSpec,
+    tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
     const [, collectionId] = tableSpec.id.remoteId;
 
-    const fieldData: Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData[] = [];
-    for (const record of records) {
-      const fields = await this.wsFieldsToWebflowFields(record.fields, tableSpec);
-      fieldData.push({
-        ...fields,
-      } as Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData);
+    const fieldDataArray: Record<string, unknown>[] = [];
+    for (const file of files) {
+      const fields = await this.extractFieldDataForApi(file, tableSpec);
+      fieldDataArray.push(fields);
     }
 
     const created = await this.client.collections.items.createItems(collectionId, {
       isArchived: false,
       isDraft: false,
-      fieldData: fieldData as Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData,
+      fieldData: fieldDataArray as Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData,
     });
 
-    const results = _.get(created, 'items', []).map((item: Webflow.CollectionItem, index: number) => ({
-      wsId: records[index].wsId,
-      remoteId: item.id || '',
-    }));
-
-    return results;
+    const createdItems = _.get(created, 'items', []) as Webflow.CollectionItem[];
+    return createdItems as unknown as ConnectorFile[];
   }
 
+  /**
+   * Update items in Webflow from raw JSON files.
+   * Files should have an 'id' field and fieldData to update.
+   */
   async updateRecords(
-    tableSpec: WebflowTableSpec,
+    tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: {
-      id: { wsId: string; remoteId: string };
-      partialFields: Record<string, unknown>;
-    }[],
+    files: ConnectorFile[],
   ): Promise<void> {
     const [, collectionId] = tableSpec.id.remoteId;
 
     const items: { id: string; fieldData: Webflow.CollectionItemFieldData }[] = [];
-    for (const record of records) {
-      const fieldData = await this.wsFieldsToWebflowFields(record.partialFields, tableSpec);
+    for (const file of files) {
+      const fieldData = await this.extractFieldDataForApi(file, tableSpec);
       items.push({
-        id: record.id.remoteId,
+        id: file.id as string,
         fieldData: fieldData as Webflow.CollectionItemFieldData,
       });
     }
@@ -508,49 +508,69 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     await this.client.collections.items.updateItems(collectionId, { items });
   }
 
-  async deleteRecords(tableSpec: WebflowTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  /**
+   * Delete items from Webflow.
+   * Files should have an 'id' field with the item ID to delete.
+   */
+  async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [, collectionId] = tableSpec.id.remoteId;
 
-    const items = recordIds.map((recordId) => ({ id: recordId.remoteId }));
+    const items = files.map((file) => ({ id: file.id as string }));
     await this.client.collections.items.deleteItems(collectionId, { items });
   }
 
-  // Record fields need to be keyed by the remoteId, not the wsId.
-  // Handles both flat fields and Webflow's native fieldData wrapper format.
-  private async wsFieldsToWebflowFields(
-    wsFields: Record<string, unknown>,
-    tableSpec: WebflowTableSpec,
+  /**
+   * Extracts and processes fieldData for sending to Webflow API.
+   * Extracts fieldData from the file and minifies RichText fields.
+   */
+  private async extractFieldDataForApi(
+    file: ConnectorFile,
+    tableSpec: BaseJsonTableSpec,
   ): Promise<Record<string, unknown>> {
-    const webflowFields: Record<string, unknown> = {};
+    // Extract fieldData wrapper - this is the Webflow native JSON format
+    const fieldData = (file.fieldData as Record<string, unknown>) || {};
+    return this.processFieldDataWithSchema(fieldData, tableSpec);
+  }
 
-    // Extract fieldData if present (Webflow native JSON format)
-    const fieldData = (wsFields.fieldData as Record<string, unknown>) || {};
+  /**
+   * Process fieldData using JSON schema to identify and minify RichText fields.
+   * RichText fields are identified by contentMediaType: 'text/html' in the schema.
+   * Only fields that exist in the schema are included - unknown fields are filtered out.
+   */
+  private async processFieldDataWithSchema(
+    fieldData: Record<string, unknown>,
+    tableSpec: BaseJsonTableSpec,
+  ): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {};
 
-    for (const column of tableSpec.columns) {
-      // We don't need to set the metadata columns as they are read only.
-      // we shouldn't get to this point but just in case for safety.
-      // (Question: how does this if check make sense?)
-      if (WEBFLOW_METADATA_COLUMNS.includes(column.id.wsId as keyof WebflowItemMetadata)) {
+    // Get the fieldData schema properties
+    const schema = tableSpec.schema as TObject;
+    const fieldDataSchema = schema.properties?.['fieldData'] as TObject | undefined;
+    const fieldProperties = fieldDataSchema?.properties as Record<string, TSchema> | undefined;
+
+    for (const [key, value] of Object.entries(fieldData)) {
+      if (value === undefined) {
         continue;
       }
 
-      // Look for the field value in fieldData first (by slug), then at the top level (by wsId)
-      let wsValue = column.slug ? fieldData[column.slug] : undefined;
-      if (wsValue === undefined) {
-        wsValue = wsFields[column.id.wsId];
+      // Only include fields that are defined in the schema
+      const fieldSchema = fieldProperties?.[key];
+      if (!fieldSchema) {
+        // Skip unknown fields - they would cause Webflow API validation errors
+        continue;
       }
 
-      if (wsValue !== undefined && column.slug) {
-        if (column.webflowFieldType === Webflow.FieldType.RichText) {
-          const html: string = wsValue as string;
-          webflowFields[column.slug] = await minifyHtml(html);
-        } else {
-          webflowFields[column.slug] = wsValue;
-        }
+      // Check if this field is a RichText field (has contentMediaType: 'text/html')
+      const isRichText = (fieldSchema as { contentMediaType?: string }).contentMediaType === 'text/html';
+
+      if (isRichText && typeof value === 'string') {
+        result[key] = await minifyHtml(value);
+      } else {
+        result[key] = value;
       }
     }
 
-    return webflowFields;
+    return result;
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

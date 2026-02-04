@@ -19,7 +19,6 @@ import {
 } from '@nestjs/common';
 import type {
   DataFolderGroup,
-  PublishTablesDto,
   ValidatedAddTableToWorkbookDto,
   ValidatedSetContentColumnDto,
   ValidatedSetTitleColumnDto,
@@ -135,24 +134,6 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
     return new Workbook(await this.service.deleteTable(workbookId, tableId, userToActor(req.user)));
-  }
-
-  @Post(':id/publish-files')
-  async publishFiles(
-    @Param('id') id: WorkbookId,
-    @Body() publishDto: PublishTablesDto,
-    @Req() req: RequestWithUser,
-  ): Promise<{ jobId: string }> {
-    const dto = publishDto;
-    return await this.service.publishFiles(id, userToActor(req.user), dto.snapshotTableIds);
-  }
-
-  @Get(':id/operation-counts-files')
-  async getOperationCountsFiles(
-    @Param('id') id: WorkbookId,
-    @Req() req: RequestWithUser,
-  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
-    return this.service.getOperationCountsFiles(id, userToActor(req.user));
   }
 
   @Post(':id/download-files')

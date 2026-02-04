@@ -21,7 +21,6 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { SnapshotTableCluster, WorkbookCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
-import { getPlan } from 'src/payment/plans';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
@@ -30,7 +29,6 @@ import { OnboardingService } from 'src/users/onboarding.service';
 import { SubscriptionService } from 'src/users/subscription.service';
 import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
-import { PublishFilesPublicProgress } from 'src/worker/jobs/job-definitions/publish-files.job';
 import { ConnectorAccountService } from '../remote-service/connector-account/connector-account.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
@@ -534,31 +532,6 @@ export class WorkbookService {
     return updatedWorkbook;
   }
 
-  async getOperationCountsFiles(
-    workbookId: WorkbookId,
-    actor: Actor,
-  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
-    const workbook = await this.findOneOrThrow(workbookId, actor);
-    if (!workbook.snapshotTables) {
-      return [];
-    }
-
-    const results = await Promise.all(
-      workbook.snapshotTables.map(async (table) => {
-        const counts = await this.workbookDbService.workbookDb.countExpectedOperations(
-          workbookId,
-          table.folderId as FolderId,
-        );
-        return {
-          tableId: table.id,
-          ...counts,
-        };
-      }),
-    );
-
-    return results;
-  }
-
   async updateColumnSettings(
     workbookId: WorkbookId,
     tableId: string,
@@ -647,92 +620,6 @@ export class WorkbookService {
       data: {
         lock: 'download',
       },
-    });
-
-    return {
-      jobId: job.id as string,
-    };
-  }
-
-  /**
-   * New publish function that uses the new file data model
-   */
-  async publishFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
-    // Check publish limit for the organization
-    if (actor.subscriptionStatus) {
-      const plan = getPlan(actor.subscriptionStatus.planType);
-      if (plan && plan.features.publishingLimit > 0) {
-        const monthlyPublishCount = await this.subscriptionService.countMonthlyPublishActions(actor.organizationId);
-        if (monthlyPublishCount >= plan.features.publishingLimit) {
-          throw new BadRequestException(
-            `Publishing limit reached. Your plan allows ${plan.features.publishingLimit} publishes per month.`,
-          );
-        }
-      }
-    }
-
-    // Construct initial public progress
-    const workbook = await this.findOneOrThrow(id, actor);
-    let snapshotTablesToProcess = workbook.snapshotTables || [];
-    if (snapshotTableIds && snapshotTableIds.length > 0) {
-      snapshotTablesToProcess = snapshotTablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
-    }
-
-    const initialPublicProgressTables: PublishFilesPublicProgress['tables'] = [];
-    for (const st of snapshotTablesToProcess) {
-      if (st.folderId === null) {
-        WSLogger.warn({
-          source: 'WorkbookService',
-          message: 'Skipping table because it has no folder ID',
-          tableId: st.id,
-          workbookId: id,
-        });
-        continue;
-      }
-
-      const counts = await this.workbookDbService.workbookDb.countExpectedOperations(id, st.folderId as FolderId);
-      initialPublicProgressTables.push({
-        id: (st.tableSpec as AnyTableSpec).id.wsId,
-        name: (st.tableSpec as AnyTableSpec).name,
-        connector: st.connectorService,
-        creates: 0,
-        updates: 0,
-        deletes: 0,
-        expectedCreates: counts.creates,
-        expectedUpdates: counts.updates,
-        expectedDeletes: counts.deletes,
-        status: 'pending' as const,
-      });
-    }
-
-    const initialPublicProgress: PublishFilesPublicProgress = {
-      totalFilesPublished: 0,
-      tables: initialPublicProgressTables,
-    };
-    const job = await this.bullEnqueuerService.enqueuePublishFilesJob(
-      id,
-      actor,
-      snapshotTablesToProcess.map((t) => t.id),
-      initialPublicProgress,
-    );
-
-    // Set lock='publish' for all tables immediately after enqueuing
-    await this.db.client.snapshotTable.updateMany({
-      where: {
-        id: { in: snapshotTablesToProcess.map((t) => t.id) },
-      },
-      data: {
-        lock: 'publish',
-      },
-    });
-
-    // Track analytics and audit log when job is enqueued
-    this.posthogService.trackPublishWorkbook(actor.userId, workbook);
-    await this.auditLogService.logEvent({
-      actor,
-      eventType: 'publish',
-      message: `Publishing workbook ${workbook.name}`,
-      entityId: workbook.id as WorkbookId,
     });
 
     return {

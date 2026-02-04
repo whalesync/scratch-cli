@@ -1,7 +1,6 @@
 import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
-import MarkdownIt from 'markdown-it';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
@@ -286,11 +285,16 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     return 1;
   }
 
+  /**
+   * Create records in WordPress from raw JSON files.
+   * Files should contain the fields to create (title, content, etc.).
+   * Returns the created records with their new IDs.
+   */
   async createRecords(
-    tableSpec: WordPressTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
+    tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
     const [tableId] = tableSpec.id.remoteId;
 
     // Check if this table supports create
@@ -298,50 +302,71 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       throw new Error(`Table "${tableId}" does not support record creation`);
     }
 
-    const results: { wsId: string; remoteId: string }[] = [];
+    const results: ConnectorFile[] = [];
 
-    for (const record of records) {
-      const wpRecord = this.connectorFieldsToWordPressRecord(
-        record.fields,
-        tableSpec,
-        columnSettingsMap,
-        Object.keys(record.fields),
-      );
+    for (const file of files) {
+      // WordPress expects fields directly at the top level
+      const wpRecord = this.fileToWordPressRecord(file);
       const created = await this.client.createRecord(tableId, wpRecord);
-      results.push({ wsId: record.wsId, remoteId: String(created.id) });
+      results.push(created as unknown as ConnectorFile);
     }
 
     return results;
   }
 
+  /**
+   * Update records in WordPress from raw JSON files.
+   * Files should have an 'id' field and the fields to update.
+   */
   async updateRecords(
-    tableSpec: WordPressTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: {
-      id: { wsId: string; remoteId: string };
-      partialFields: Record<string, unknown>;
-    }[],
+    tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
   ): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
 
-    for (const record of records) {
-      const modifiedColumns = Object.keys(record.partialFields);
-      const wpRecord = this.connectorFieldsToWordPressRecord(
-        record.partialFields,
-        tableSpec,
-        columnSettingsMap,
-        modifiedColumns,
-      );
-      await this.client.updateRecord(tableId, record.id.remoteId, wpRecord);
+    for (const file of files) {
+      const recordId = String(file.id);
+      const wpRecord = this.fileToWordPressRecord(file);
+      await this.client.updateRecord(tableId, recordId, wpRecord);
     }
   }
 
-  async deleteRecords(tableSpec: WordPressTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  /**
+   * Delete records from WordPress.
+   * Files should have an 'id' field with the record ID to delete.
+   */
+  async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
 
-    for (const recordId of recordIds) {
-      await this.client.deleteRecord(tableId, recordId.remoteId);
+    for (const file of files) {
+      const recordId = String(file.id);
+      await this.client.deleteRecord(tableId, recordId);
     }
+  }
+
+  /**
+   * Convert a ConnectorFile to a WordPress record for API calls.
+   * Extracts writable fields and handles rendered content objects.
+   */
+  private fileToWordPressRecord(file: ConnectorFile): WordPressRecord {
+    const wpRecord: WordPressRecord = {};
+
+    for (const [key, value] of Object.entries(file)) {
+      // Skip id and metadata fields
+      if (key === 'id' || key === 'createdTime') {
+        continue;
+      }
+
+      // Handle rendered objects - WordPress expects just the value, not the rendered wrapper
+      if (value && typeof value === 'object' && 'rendered' in value) {
+        wpRecord[key] = (value as { rendered: unknown }).rendered;
+      } else {
+        wpRecord[key] = value;
+      }
+    }
+
+    return wpRecord;
   }
 
   /**
@@ -412,51 +437,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
 
     return record;
-  }
-
-  /**
-   * Convert ConnectorRecord fields to a WordPress record
-   */
-  private connectorFieldsToWordPressRecord(
-    fields: Record<string, unknown>,
-    tableSpec: WordPressTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    modifiedColumns: string[],
-  ): WordPressRecord {
-    const wpRecord: WordPressRecord = {};
-
-    for (const wsId of modifiedColumns) {
-      const column = tableSpec.columns.find((c) => c.id.wsId === wsId);
-      if (!column || column.readonly) {
-        continue;
-      }
-      const value = fields[wsId];
-      const remoteId = column.id.remoteId[0];
-      if (
-        column.wordpressDataType === WordPressDataType.RENDERED ||
-        column.wordpressDataType === WordPressDataType.RENDERED_INLINE
-      ) {
-        const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-        switch (dataConverter) {
-          case WORDPRESS_RICH_TEXT_TARGET.MARKDOWN: {
-            const converter = MarkdownIt({});
-            const inline = column.wordpressDataType === WordPressDataType.RENDERED_INLINE;
-            const markdownContent = inline ? converter.renderInline(String(value)) : converter.render(String(value));
-            wpRecord[remoteId] = markdownContent;
-            break;
-          }
-          case WORDPRESS_RICH_TEXT_TARGET.HTML:
-          default: {
-            wpRecord[remoteId] = value;
-            break;
-          }
-        }
-      } else {
-        wpRecord[remoteId] = value;
-      }
-    }
-
-    return wpRecord;
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

@@ -308,58 +308,58 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     }
   }
 
+  /**
+   * YouTube doesn't support creating videos through the API.
+   * Videos must be uploaded through the YouTube interface.
+   */
   createRecords(
-    _tableSpec: YouTubeTableSpec,
+    _tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    _records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
-    // YouTube doesn't support creating videos through the API
-    // Videos must be uploaded through the YouTube interface
+    _files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
     throw new Error(
       'YouTube does not support creating videos through the API. Videos must be uploaded through the YouTube interface.',
     );
   }
 
+  /**
+   * Update videos in YouTube from raw JSON files.
+   * Files should have an 'id' field and snippet fields to update.
+   */
   async updateRecords(
-    _tableSpec: YouTubeTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: SnapshotRecordSanitizedForUpdate[],
+    _tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
   ): Promise<void> {
-    // YouTube allows updating snippet fields including title, description, defaultLanguage, and tags
-    for (const record of records) {
-      const videoId = record.id.remoteId;
-      const updateData: any = {
-        title: record.partialFields.title,
-        description: record.partialFields.description,
-        categoryId: record.partialFields.categoryId,
-        defaultLanguage: record.partialFields.defaultLanguage,
-        tags: record.partialFields.tags,
+    for (const file of files) {
+      const videoId = file.id as string;
+      const updateData: Record<string, unknown> = {
+        title: file.title,
+        description: file.description,
+        categoryId: file.categoryId,
+        defaultLanguage: file.defaultLanguage,
+        tags: file.tags,
       };
 
-      if (Object.keys(updateData).length > 0) {
+      if (Object.values(updateData).some((value) => value !== undefined)) {
         await this.apiClient.updateVideo(videoId, updateData);
       }
 
-      if (record.partialFields.transcript && record.partialFields.transcriptId) {
+      if (file.transcript && file.transcriptId) {
         try {
-          await this.apiClient.updateTranscript(
-            videoId,
-            record.partialFields.transcriptId as string,
-            record.partialFields.transcript as string,
-          );
+          await this.apiClient.updateTranscript(videoId, file.transcriptId as string, file.transcript as string);
         } catch (error) {
           console.warn(`Failed to update transcript for video ${videoId}:`, error);
-          // Don't throw here as transcript update is optional and may fail due to API limitations
         }
       }
-
-      // TODO: update visibility
     }
   }
 
-  deleteRecords(_tableSpec: YouTubeTableSpec, _recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
-    // YouTube doesn't support deleting videos through the API
-    // Videos must be deleted through the YouTube interface
+  /**
+   * YouTube doesn't support deleting videos through the API.
+   * Videos must be deleted through the YouTube interface.
+   */
+  deleteRecords(_tableSpec: BaseJsonTableSpec, _files: ConnectorFile[]): Promise<void> {
     return Promise.reject(
       new Error(
         'YouTube does not support deleting videos through the API. Videos must be deleted through the YouTube interface.',

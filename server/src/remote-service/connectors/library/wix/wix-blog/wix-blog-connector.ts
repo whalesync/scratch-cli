@@ -271,70 +271,66 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
     return 1;
   }
 
+  /**
+   * Create draft posts in Wix from raw JSON files.
+   * Files should contain Wix draft post data in the raw API format.
+   * Returns the created posts.
+   */
   async createRecords(
-    tableSpec: WixBlogTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
-    const results: { wsId: string; remoteId: string }[] = [];
+    _tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
+    const results: ConnectorFile[] = [];
 
     // Wix doesn't support bulk create for posts, so we create one at a time
-    for (const record of records) {
-      const draftPostData = this.wsFieldsToWixPost(record.fields, tableSpec, columnSettingsMap);
+    for (const file of files) {
+      const draftPostData = file as unknown as DraftPost;
 
-      // Create draft post with default author using SDK
-      const response = await this.wixClient.draftPosts.createDraftPost(
-        {
-          ...draftPostData,
-          // TODO: we can add a table setting so the user can select the default author, or maybe add an extra column with options?
-          // for now just defaulting to the first author should be fine for most cases.
-          memberId: tableSpec.wixAuthors?.[0].id, // Set default author
-        } as DraftPost,
-        {
-          fieldsets: ['RICH_CONTENT'],
-        },
-      );
+      const response = await this.wixClient.draftPosts.createDraftPost(draftPostData, {
+        fieldsets: ['RICH_CONTENT'],
+      });
 
-      const draftPostId = response.draftPost?._id;
-
-      if (!draftPostId) {
+      if (!response.draftPost?._id) {
         throw new Error('Failed to create draft post: no ID returned');
       }
 
-      results.push({
-        wsId: record.wsId,
-        remoteId: draftPostId,
-      });
+      results.push(response.draftPost as unknown as ConnectorFile);
     }
 
     return results;
   }
 
+  /**
+   * Update draft posts in Wix from raw JSON files.
+   * Files should have an '_id' field and the post data to update.
+   */
   async updateRecords(
-    tableSpec: WixBlogTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: {
-      id: { wsId: string; remoteId: string };
-      partialFields: Record<string, unknown>;
-    }[],
+    _tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
   ): Promise<void> {
     // Wix doesn't support bulk update, so we update one at a time
-    for (const record of records) {
-      const postData = this.wsFieldsToWixPost(record.partialFields, tableSpec, columnSettingsMap);
+    for (const file of files) {
+      const postId = (file._id || file.id) as string;
+      const postData = file as unknown as DraftPost;
 
-      // Update the draft post using SDK
-      await this.wixClient.draftPosts.updateDraftPost(record.id.remoteId, postData as DraftPost, {
+      await this.wixClient.draftPosts.updateDraftPost(postId, postData, {
         fieldsets: ['RICH_CONTENT'],
       });
     }
   }
 
-  async deleteRecords(tableSpec: WixBlogTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  /**
+   * Delete draft posts from Wix.
+   * Files should have an '_id' or 'id' field with the post ID to delete.
+   */
+  async deleteRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     // Wix doesn't support bulk delete, so we delete one at a time
-    for (const recordId of recordIds) {
-      // Delete the draft post permanently using SDK
-      await this.wixClient.draftPosts.deleteDraftPost(recordId.remoteId, {
-        permanent: true, // Permanently delete instead of moving to trash
+    for (const file of files) {
+      const postId = (file._id || file.id) as string;
+      await this.wixClient.draftPosts.deleteDraftPost(postId, {
+        permanent: true,
       });
     }
   }

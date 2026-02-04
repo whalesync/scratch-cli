@@ -4,7 +4,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SyncService } from 'src/sync/sync.service';
 import { OnboardingService } from 'src/users/onboarding.service';
-import { FilePublishingService } from 'src/workbook/file-publishing.service';
+import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -15,7 +15,7 @@ import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.
 import { DownloadFilesJobHandler } from './jobs/job-definitions/download-files.job';
 import { DownloadLinkedFolderFilesJobHandler } from './jobs/job-definitions/download-linked-folder-files.job';
 import { DownloadRecordFilesJobHandler } from './jobs/job-definitions/download-record-files.job';
-import { PublishFilesJobHandler } from './jobs/job-definitions/publish-files.job';
+import { PublishDataFolderJobHandler } from './jobs/job-definitions/publish-data-folder.job';
 import { SyncDataFoldersJobHandler } from './jobs/job-definitions/sync-data-folders.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
@@ -29,8 +29,8 @@ export class JobHandlerService {
     private readonly snapshotEventService: SnapshotEventService,
     private readonly workbookService: WorkbookService,
     private readonly onboardingService: OnboardingService,
-    private readonly filePublishingService: FilePublishingService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,
   ) {}
 
@@ -72,14 +72,13 @@ export class JobHandlerService {
           this.scratchGitService,
         ) as JobHandler<JobDefinition>;
 
-      case 'publish-files':
-        return new PublishFilesJobHandler(
+      case 'publish-data-folder':
+        return new PublishDataFolderJobHandler(
           prisma,
           this.connectorService,
           this.connectorAccountService,
           this.snapshotEventService,
-          this.filePublishingService,
-          this.onboardingService,
+          this.dataFolderPublishingService,
         ) as JobHandler<JobDefinition>;
 
       case 'sync-data-folders':

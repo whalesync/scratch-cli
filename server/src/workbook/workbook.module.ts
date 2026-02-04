@@ -10,7 +10,6 @@ import { UserModule } from 'src/users/users.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { ScratchGitModule } from '../scratch-git/scratch-git.module';
-import { FilePublishingService } from './file-publishing.service';
 import { FilesPublicController } from './files-public.controller';
 import { FilesController, FoldersController } from './files.controller';
 import { FilesService } from './files.service';
@@ -20,6 +19,7 @@ import { WorkbookDbModule } from './workbook-db.module';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
 
+import { DataFolderPublishingService } from './data-folder-publishing.service';
 import { DataFolderController } from './data-folder.controller';
 import { DataFolderService } from './data-folder.service';
 import { FolderService } from './folder.service';
@@ -46,17 +46,16 @@ import { FolderService } from './folder.service';
     SnapshotDataGateway,
     FilesService,
     FolderService,
-    FilePublishingService,
     DataFolderService,
+    DataFolderPublishingService,
   ],
   exports: [
     WorkbookService,
     SnapshotEventService,
     FolderService,
     FilesService,
-    FilePublishingService,
-    FilesService,
     DataFolderService,
+    DataFolderPublishingService,
     WorkbookDbModule,
   ],
 })

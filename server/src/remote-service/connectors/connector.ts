@@ -118,7 +118,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
     existingRecord: ExistingSnapshotRecord,
     /** Null indicates all possible fields */
     fields: string[] | null,
-    callback: (records: ConnectorRecord[]) => Promise<void>,
+    callback: (files: ConnectorFile[]) => Promise<void>,
     account: ConnectorAccount,
   ): Promise<void>;
 
@@ -173,34 +173,34 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   /**
    * Attempts to push creates to the data source.
    * @param tableSpec - The table spec to create records for.
-   * @param records - The records to create.
+   * @param files - The files to create.
    * @throws Error if there is a problem creating the records.
    */
   abstract createRecords(
-    tableSpec: TableSpecs[T],
+    tableSpec: BaseJsonTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]>;
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]>;
 
   /**
    * Attempts to push updates to the data source.
    * @param tableSpec - The table spec to update records for.
-   * @param records - The records to update.
+   * @param files - The files to update.
    * @throws Error if there is a problem updating the records.
    */
   abstract updateRecords(
-    tableSpec: TableSpecs[T],
+    tableSpec: BaseJsonTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
-    records: SnapshotRecordSanitizedForUpdate[],
+    files: ConnectorFile[],
   ): Promise<void>;
 
   /**
    * Delete records from the data source
    * @param tableSpec - The table spec to delete records from.
-   * @param recordIds - The record ids to delete.
+   * @param files - The files to delete.
    * @throws Error if there is a problem deleting the records.
    */
-  abstract deleteRecords(tableSpec: TableSpecs[T], recordIds: { wsId: string; remoteId: string }[]): Promise<void>;
+  abstract deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void>;
 
   /**
    * Evaluate the error object in the context of the connector and return some standardised error details that can be return to a user or logged.

@@ -1,7 +1,6 @@
 import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
-import _ from 'lodash';
 import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
@@ -279,87 +278,58 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     return 10;
   }
 
+  /**
+   * Create records in Airtable from raw JSON files.
+   * Files should be in Airtable's native format: { fields: { "Field Name": value } }
+   * Returns the created records with their new IDs.
+   */
   async createRecords(
-    tableSpec: AirtableTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
+    tableSpec: BaseJsonTableSpec,
+    _columnSettingsMap: SnapshotColumnSettingsMap,
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
-    const airtableRecords = records.map((r) => this.wsFieldsToAirtableFields(r.fields, tableSpec));
+    // Extract the fields from each file (Airtable expects { fields: {...} })
+    const airtableRecords = files.map((file) => {
+      const fields = (file.fields as Record<string, unknown>) || file;
+      return { fields };
+    });
 
-    const created = await this.client.createRecords(
-      baseId,
-      tableId,
-      airtableRecords.map((fields) => ({ fields })),
-    );
+    const created = await this.client.createRecords(baseId, tableId, airtableRecords);
 
-    // Airtable returns records in the same order as the request, zip them to get the IDs.
-    return records.map(({ wsId }, i) => ({ wsId, remoteId: created[i].id }));
+    // Return the created records as ConnectorFiles
+    return created.map((record) => record as unknown as ConnectorFile);
   }
 
+  /**
+   * Update records in Airtable from raw JSON files.
+   * Files should have an 'id' field and the fields to update.
+   */
   async updateRecords(
-    tableSpec: AirtableTableSpec,
+    tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: {
-      id: { wsId: string; remoteId: string };
-      partialFields: Record<string, unknown>;
-    }[],
+    files: ConnectorFile[],
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
-    const airtableRecords = records.map((r) => {
-      return {
-        id: r.id.remoteId,
-        fields: this.wsFieldsToAirtableFields(r.partialFields, tableSpec),
-      };
+
+    const airtableRecords = files.map((file) => {
+      const id = file.id as string;
+      const fields = (file.fields as Record<string, unknown>) || {};
+      return { id, fields };
     });
+
     await this.client.updateRecords(baseId, tableId, airtableRecords);
   }
 
-  async deleteRecords(tableSpec: AirtableTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  /**
+   * Delete records from Airtable.
+   * Files should have an 'id' field with the record ID to delete.
+   */
+  async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
-    await this.client.deleteRecords(
-      baseId,
-      tableId,
-      recordIds.map((r) => r.remoteId),
-    );
-  }
-
-  // Record fields need to be keyed by field name (slug), not the wsId.
-  // Airtable accepts field names as keys when writing.
-  // Handles both flat fields and Airtable's native `fields` wrapper format.
-  private wsFieldsToAirtableFields(
-    wsFields: Record<string, unknown>,
-    tableSpec: AirtableTableSpec,
-  ): Record<string, unknown> {
-    const airtableFields: Record<string, unknown> = {};
-
-    // Extract fields from `fields` wrapper if present (Airtable native JSON format)
-    const fieldsData = (wsFields.fields as Record<string, unknown>) || {};
-
-    for (const column of tableSpec.columns) {
-      if (column.id.wsId === 'id' || !column.slug) {
-        continue;
-      }
-
-      // Look for the field value in fieldsData first (by slug), then at the top level (by wsId)
-      let val = column.slug ? fieldsData[column.slug] : undefined;
-      if (val === undefined) {
-        val = wsFields[column.id.wsId];
-      }
-
-      if (val !== undefined) {
-        if (column.pgType === PostgresColumnType.NUMERIC) {
-          airtableFields[column.slug] = parseFloat(val as string);
-        } else if (column.pgType === PostgresColumnType.TIMESTAMP) {
-          // Airtable expects dates to be in ISO 8601 format in UTC
-          airtableFields[column.slug] = val instanceof Date ? val.toISOString() : _.isString(val) ? val : undefined;
-        } else {
-          airtableFields[column.slug] = val;
-        }
-      }
-    }
-    return airtableFields;
+    const recordIds = files.map((file) => file.id as string);
+    await this.client.deleteRecords(baseId, tableId, recordIds);
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

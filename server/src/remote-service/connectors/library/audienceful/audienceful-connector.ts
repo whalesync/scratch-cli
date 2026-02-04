@@ -480,47 +480,57 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
   /**
    * Create new people records.
    */
+  /**
+   * Create people in Audienceful from raw JSON files.
+   * Files should contain Audienceful person data.
+   * Returns the created people.
+   */
   async createRecords(
-    _tableSpec: AudiencefulTableSpec,
+    _tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
-    const results: { wsId: string; remoteId: string }[] = [];
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
+    const results: ConnectorFile[] = [];
 
-    for (const record of records) {
-      const createData = this.transformToCreateRequest(record.fields);
+    for (const file of files) {
+      const createData = this.transformToCreateRequest(file);
       const created = await this.client.createPerson(createData);
-      results.push({ wsId: record.wsId, remoteId: created.uid });
+      results.push(created as unknown as ConnectorFile);
     }
 
     return results;
   }
 
   /**
-   * Update existing people records.
+   * Update people in Audienceful from raw JSON files.
+   * Files should contain the person data to update (including email).
    */
   async updateRecords(
-    _tableSpec: AudiencefulTableSpec,
+    _tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
+    files: ConnectorFile[],
   ): Promise<void> {
-    for (const record of records) {
-      const updateData = this.transformToUpdateRequest(record.partialFields);
+    for (const file of files) {
+      const updateData = this.transformToUpdateRequest(file);
       await this.client.updatePerson(updateData);
     }
   }
 
   /**
-   * Delete people records.
-   * Audienceful requires email to delete a person, so we fetch the person first to get the email.
+   * Delete people from Audienceful.
+   * Files should contain at least an 'email' field or 'uid' to identify the person.
    */
-  async deleteRecords(
-    _tableSpec: AudiencefulTableSpec,
-    recordIds: { wsId: string; remoteId: string }[],
-  ): Promise<void> {
-    for (const record of recordIds) {
-      // Audienceful requires email to delete - fetch the person first to get the email
-      const person = await this.client.getPerson(record.remoteId);
+  async deleteRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    for (const file of files) {
+      // If email is provided, use it directly
+      if (file.email) {
+        await this.client.deletePerson({ email: file.email as string });
+        continue;
+      }
+
+      // Otherwise fetch the person by uid to get the email
+      const uid = (file.uid || file.id) as string;
+      const person = await this.client.getPerson(uid);
       if (!person) {
         // Person already deleted, skip
         continue;

@@ -939,48 +939,57 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
   /**
    * Create new records.
    */
+  /**
+   * Create entities in Moco from raw JSON files.
+   * Files should contain Moco entity data.
+   * Returns the created entities.
+   */
   async createRecords(
-    tableSpec: MocoTableSpec,
+    tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { wsId: string; fields: Record<string, unknown> }[],
-  ): Promise<{ wsId: string; remoteId: string }[]> {
+    files: ConnectorFile[],
+  ): Promise<ConnectorFile[]> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
-    const results: { wsId: string; remoteId: string }[] = [];
+    const results: ConnectorFile[] = [];
 
-    for (const record of records) {
-      const createData = this.transformToCreateRequest(entityType, record.fields);
+    for (const file of files) {
+      const createData = this.transformToCreateRequest(entityType, file);
       const created = await this.client.createEntity(entityType, createData);
-      results.push({ wsId: record.wsId, remoteId: String(created.id) });
+      results.push(created as unknown as ConnectorFile);
     }
 
     return results;
   }
 
   /**
-   * Update existing records.
+   * Update entities in Moco from raw JSON files.
+   * Files should have an 'id' field and the data to update.
    */
   async updateRecords(
-    tableSpec: MocoTableSpec,
+    tableSpec: BaseJsonTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
-    records: { id: { wsId: string; remoteId: string }; partialFields: Record<string, unknown> }[],
+    files: ConnectorFile[],
   ): Promise<void> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 
-    for (const record of records) {
-      const updateData = this.transformToUpdateRequest(entityType, record.partialFields);
-      await this.client.updateEntity(entityType, parseInt(record.id.remoteId, 10), updateData);
+    for (const file of files) {
+      const entityId = parseInt(String(file.id), 10);
+      const updateData = this.transformToUpdateRequest(entityType, file);
+      await this.client.updateEntity(entityType, entityId, updateData);
     }
   }
 
   /**
-   * Delete records.
+   * Delete entities from Moco.
+   * Files should have an 'id' field with the entity ID to delete.
    */
-  async deleteRecords(tableSpec: MocoTableSpec, recordIds: { wsId: string; remoteId: string }[]): Promise<void> {
+  async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 
-    for (const record of recordIds) {
+    for (const file of files) {
       try {
-        await this.client.deleteEntity(entityType, parseInt(record.remoteId, 10));
+        const entityId = parseInt(String(file.id), 10);
+        await this.client.deleteEntity(entityType, entityId);
       } catch (error) {
         // Ignore 404 errors - the record may already be deleted
         if (isAxiosError(error) && error.response?.status === 404) {
