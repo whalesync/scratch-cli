@@ -21,6 +21,7 @@ resource "google_cloud_run_v2_service" "client_service" {
     }
     service_account = module.iam-sa.service_accounts["cloudrun-service-account"].email
     vpc_access {
+      egress = "ALL_TRAFFIC"
       network_interfaces {
         network    = module.vpc.network_id
         subnetwork = module.vpc.subnets_id[0]
@@ -148,6 +149,7 @@ resource "google_cloud_run_v2_service" "api_service" {
     }
     service_account = module.iam-sa.service_accounts["cloudrun-service-account"].email
     vpc_access {
+      egress = "ALL_TRAFFIC"
       network_interfaces {
         network    = module.vpc.network_id
         subnetwork = module.vpc.subnets_id[0]
@@ -315,6 +317,7 @@ resource "google_cloud_run_v2_service" "agent_service" {
     }
     service_account = module.iam-sa.service_accounts["cloudrun-service-account"].email
     vpc_access {
+      egress = "ALL_TRAFFIC"
       network_interfaces {
         network    = module.vpc.network_id
         subnetwork = module.vpc.subnets_id[0]
