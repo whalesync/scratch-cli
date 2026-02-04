@@ -326,3 +326,4 @@ dummy job:
         - .vscode/**/*
         - experimental/**/*
         - "*"
+        - docs/**/*
