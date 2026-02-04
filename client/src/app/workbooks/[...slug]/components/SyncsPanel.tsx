@@ -3,7 +3,7 @@ import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { syncApi } from '@/lib/api/sync';
 import { useSyncStore } from '@/stores/sync-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
-import { ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
+import { Accordion, ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Sync, SyncId } from '@spinner/shared-types';
 import { Eye, Plus } from 'lucide-react';
@@ -67,71 +67,102 @@ export function SyncsPanel() {
   const hasSyncs = syncs.length > 0;
 
   return (
-    <Stack h="100%" gap={0} bg="var(--bg-base)">
-      {/* List loading could be tracked if we added isLoadingSyncs to store. For now, we assume fast load or silent update. */}
-
+    <Accordion.Item value="syncs">
       {/* Header */}
-      <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
-        <Text13Medium>Syncs</Text13Medium>
-        <Group gap={4}>
-          <Tooltip label="View All Syncs" openDelay={500}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={() => openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' })}
-            >
-              <Eye size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Create Sync" openDelay={500}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setIsAddSyncOpen(true)}>
-              <Plus size={14} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </Group>
-
-      {/* List */}
-      <ScrollArea style={{ flex: 1 }}>
-        {hasSyncs ? (
-          <Stack gap="xs" p="xs">
-            {syncs.map((sync) => (
-              <SyncCard
-                key={sync.id}
-                sync={sync}
-                onDelete={() => handleDelete(sync)}
-                onRun={() => handleRunSync(sync.id)}
-                onEdit={() => {
-                  setEditingSync(sync);
+      <Accordion.Control>
+        <Box h={20} style={{ position: 'relative' }}>
+          <Text13Medium truncate w="100%" pr={60}>
+            Syncs
+          </Text13Medium>
+          <Group
+            gap={4}
+            wrap="nowrap"
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              backgroundColor: 'var(--bg-base)',
+            }}
+            pl={8}
+          >
+            <Tooltip label="View All Syncs" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' });
+                }}
+              >
+                <Eye size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Create Sync" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsAddSyncOpen(true);
                 }}
-                loading={!!activeJobs[sync.id]}
-              />
-            ))}
-          </Stack>
-        ) : (
-          <Box p="lg">
-            <Text c="dimmed" size="xs" ta="center">
-              No syncs configured.
-            </Text>
-          </Box>
-        )}
-      </ScrollArea>
+              >
+                <Plus size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Box>
+      </Accordion.Control>
 
-      <AddSyncDialog
-        opened={isAddSyncOpen}
-        onClose={() => {
-          setIsAddSyncOpen(false);
-          setEditingSync(null);
-        }}
-        syncToEdit={editingSync || undefined}
-        onSyncCreated={() => {
-          setIsAddSyncOpen(false);
-          setEditingSync(null);
-          if (workbook?.id) fetchSyncs(workbook.id);
-        }}
-      />
-    </Stack>
+      <Accordion.Panel>
+        {/* Fill available height */}
+        <Stack h="100%" gap={0} bg="var(--bg-base)">
+          {/* List loading could be tracked if we added isLoadingSyncs to store. For now, we assume fast load or silent update. */}
+
+          {/* List */}
+          <ScrollArea style={{ flex: 1, overflowX: 'hidden' }}>
+            {hasSyncs ? (
+              <Stack gap="xs" p="xs" w="100%">
+                {syncs.map((sync) => (
+                  <SyncCard
+                    key={sync.id}
+                    sync={sync}
+                    onDelete={() => handleDelete(sync)}
+                    onRun={() => handleRunSync(sync.id)}
+                    onEdit={() => {
+                      setEditingSync(sync);
+                      setIsAddSyncOpen(true);
+                    }}
+                    loading={!!activeJobs[sync.id]}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Box p="lg">
+                <Text c="dimmed" size="xs" ta="center">
+                  No syncs configured.
+                </Text>
+              </Box>
+            )}
+          </ScrollArea>
+
+          <AddSyncDialog
+            opened={isAddSyncOpen}
+            onClose={() => {
+              setIsAddSyncOpen(false);
+              setEditingSync(null);
+            }}
+            syncToEdit={editingSync || undefined}
+            onSyncCreated={() => {
+              setIsAddSyncOpen(false);
+              setEditingSync(null);
+              if (workbook?.id) fetchSyncs(workbook.id);
+            }}
+          />
+        </Stack>
+      </Accordion.Panel>
+    </Accordion.Item>
   );
 }

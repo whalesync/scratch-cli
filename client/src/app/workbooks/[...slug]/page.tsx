@@ -21,7 +21,7 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { Split } from '@gfazioli/mantine-split-pane';
-import { Box, Stack } from '@mantine/core';
+import { Accordion, Box, Stack } from '@mantine/core';
 import type { DataFolder, DataFolderId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect } from 'react';
@@ -34,9 +34,10 @@ import { FileEditorNew } from './components/FileEditorNew';
 import { SyncsPanel } from './components/SyncsPanel';
 import { SyncsView } from './components/SyncsView';
 import { TabBar } from './components/TabBar';
+import { UnpublishedChangesPanel } from './components/UnpublishedChangesPanel';
 
 const DEFAULT_LIST_WIDTH = '300px';
-const MIN_LIST_WIDTH = 200;
+const MIN_LIST_WIDTH = 300;
 const MAX_LIST_WIDTH = 600;
 
 function WorkbookFilesPageContent() {
@@ -102,12 +103,57 @@ function WorkbookFilesPageContent() {
               {/* Left Pane: Tree View */}
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
                 <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
-                  <Box flex={1} style={{ overflow: 'hidden' }}>
+                  <Accordion
+                    chevronPosition="left"
+                    chevronSize={14}
+                    multiple={false}
+                    defaultValue="apps"
+                    transitionDuration={0}
+                    styles={{
+                      root: { display: 'flex', flexDirection: 'column', height: '100%' },
+                      item: {
+                        borderBottom: '1px solid var(--fg-divider)',
+                        overflow: 'hidden',
+                        // Remove transition to avoid state issues
+                        transition: 'flex 0.3s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        backgroundColor: 'var(--bg-base)',
+                        '&[data-active]': { flex: 1 },
+                      },
+                      control: {
+                        padding: '0 12px 0 3px',
+                        height: '36px',
+                        flexShrink: 0,
+                        backgroundColor: 'var(--bg-base)',
+                        '&:hover': { backgroundColor: 'var(--bg-base) !important' },
+                      },
+                      chevron: {
+                        marginRight: 3,
+                        marginLeft: 4,
+                        color: 'var(--mantine-color-gray-7)',
+                      },
+                      // Ensure content/panel take full height provided by flex item
+                      content: {
+                        padding: 0,
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderTop: '1px solid var(--mantine-color-gray-2)',
+                      },
+                      panel: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+                      label: { fontWeight: 500, fontSize: '14px' },
+                    }}
+                  >
                     <DataFolderBrowser />
-                  </Box>
-                  <Box h="300px" style={{ borderTop: '0.5px solid var(--fg-divider)' }}>
                     <SyncsPanel />
-                  </Box>
+                    <UnpublishedChangesPanel
+                      onPublishAll={() => console.log('Publish All')}
+                      onDiscardAll={() => console.log('Discard All')}
+                      onPublishItem={(path) => console.log('Publish', path)}
+                      onDiscardItem={(path) => console.log('Discard', path)}
+                    />
+                  </Accordion>
                 </Stack>
               </Split.Pane>
 

@@ -10,6 +10,7 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
+  Accordion,
   ActionIcon,
   Box,
   Button,
@@ -37,7 +38,6 @@ import {
   FileDiffIcon,
   FilePlusIcon,
   FolderIcon,
-  FolderPlusIcon,
   FolderSearchIcon,
   FolderSyncIcon,
   GitBranchIcon,
@@ -203,184 +203,219 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
     [dataFolderGroups],
   );
 
-  if (isLoading) {
-    return (
-      <Box p="md" className={styles.container}>
-        <Group justify="center" p="lg">
-          <Loader size="sm" />
-        </Group>
-      </Box>
-    );
-  }
-
   return (
-    <Stack h="100%" gap={0} bg="var(--bg-base)">
+    <Accordion.Item value="apps">
       {/* Tree Header */}
-      <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
-        <Text fw={500} size="sm">
-          Apps
-        </Text>
-        <Group gap={4}>
-          <Tooltip label="New File" openDelay={500}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={() => {
-                if (selectedFolderId) {
-                  // Find the folder object from groups
-                  const folder = dataFolderGroups.flatMap((g) => g.dataFolders).find((f) => f.id === selectedFolderId);
-                  if (folder) {
-                    handleOpenNewFileModal(folder);
-                  }
-                }
-              }}
-              disabled={!selectedFolderId}
-            >
-              <FilePlusIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="New Scratch Folder" openDelay={500}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={() => {
-                console.log('TODO - implement scratch folders');
-              }}
-              disabled
-            >
-              <FolderPlusIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="New Linked Folder" openDelay={500}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Linked Folder', path: '' })}
-            >
-              <FolderSyncIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
-
-          <Tooltip label="Collapse All" openDelay={500}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={collapseAllGroups}>
-              <CopyMinusIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Expand All" openDelay={500}>
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={expandAllGroups}>
-              <CopyPlusIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
-
-          {isAdmin && (
-            <Menu shadow="md" width={200} position="bottom-end">
-              <Menu.Target>
-                <ActionIcon variant="subtle" color="violet" size="sm">
-                  <GitBranchIcon size={14} />
-                </ActionIcon>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<FileDiffIcon size={14} />} onClick={handleGitStatus} color="violet">
-                  main vs dirty
-                </Menu.Item>
-                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
-                  Git Graph
-                </Menu.Item>
-                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleVersions} color="violet">
-                  Version History
-                </Menu.Item>
-                <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
-                  Browse Files
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          )}
-        </Group>
-      </Group>
-      <ScrollArea className={styles.container}>
-        <Stack gap={0}>
-          {sortedGroups.map((group) => (
-            <DataFolderGroupItem
-              key={group.name}
-              group={group}
-              isExpanded={expandedGroups.has(group.name)}
-              onToggle={() => toggleGroup(group.name)}
-              selectedFolderId={selectedFolderId}
-              onFolderClick={handleFolderClick}
-              onFolderDelete={handleFolderDelete}
-              onNewFile={handleOpenNewFileModal}
-            />
-          ))}
-        </Stack>
-      </ScrollArea>
-
-      <Modal opened={!!confirmModal} onClose={() => setConfirmModal(null)} title="Delete Folder" size="sm" centered>
-        <Stack gap="md">
-          <Text size="sm">
-            Are you sure you want to delete &quot;{confirmModal?.folder.name}&quot;? This action cannot be undone.
+      <Accordion.Control>
+        <Box h={20} style={{ position: 'relative' }}>
+          <Text fw={500} size="sm" truncate w="100%" pr={140}>
+            Apps
           </Text>
-          <Group justify="flex-end" gap="sm">
-            <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={confirmModal?.onConfirm}>
-              Delete
-            </Button>
+
+          <Group
+            gap={4}
+            wrap="nowrap"
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              backgroundColor: 'var(--bg-base)',
+            }}
+            pl={8}
+          >
+            <Tooltip label="New File" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (selectedFolderId) {
+                    // Find the folder object from groups
+                    const folder = dataFolderGroups
+                      .flatMap((g) => g.dataFolders)
+                      .find((f) => f.id === selectedFolderId);
+                    if (folder) {
+                      handleOpenNewFileModal(folder);
+                    }
+                  }
+                }}
+                disabled={!selectedFolderId}
+              >
+                <FilePlusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            {/* ... other actions ... */}
+            <Tooltip label="New Linked Folder" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFileTab({ id: 'add-table', type: 'add-table', title: 'New Linked Folder', path: '' });
+                }}
+              >
+                <FolderSyncIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+
+            <Tooltip label="Collapse All" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  collapseAllGroups();
+                }}
+              >
+                <CopyMinusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Expand All" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  expandAllGroups();
+                }}
+              >
+                <CopyPlusIcon size={14} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+
+            {isAdmin && (
+              <Menu shadow="md" width={200} position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon
+                    variant="subtle"
+                    color="violet"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <GitBranchIcon size={14} />
+                  </ActionIcon>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                  <Menu.Item leftSection={<FileDiffIcon size={14} />} onClick={handleGitStatus} color="violet">
+                    main vs dirty
+                  </Menu.Item>
+                  <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
+                    Git Graph
+                  </Menu.Item>
+                  <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleVersions} color="violet">
+                    Version History
+                  </Menu.Item>
+                  <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
+                    Browse Files
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
           </Group>
+        </Box>
+      </Accordion.Control>
+
+      <Accordion.Panel>
+        {/* Fill available height */}
+        <Stack h="100%" gap={0} bg="var(--bg-base)">
+          {isLoading ? (
+            <Box p="md" className={styles.container}>
+              <Group justify="center" p="lg">
+                <Loader size="sm" />
+              </Group>
+            </Box>
+          ) : (
+            <ScrollArea className={styles.container} style={{ flex: 1, overflowX: 'hidden' }}>
+              <Stack gap={0} w="100%">
+                {sortedGroups.map((group) => (
+                  <DataFolderGroupItem
+                    key={group.name}
+                    group={group}
+                    isExpanded={expandedGroups.has(group.name)}
+                    onToggle={() => toggleGroup(group.name)}
+                    selectedFolderId={selectedFolderId}
+                    onFolderClick={handleFolderClick}
+                    onFolderDelete={handleFolderDelete}
+                    onNewFile={handleOpenNewFileModal}
+                  />
+                ))}
+              </Stack>
+            </ScrollArea>
+          )}
         </Stack>
-      </Modal>
+        {/* Modals ... */}
+        <Modal opened={!!confirmModal} onClose={() => setConfirmModal(null)} title="Delete Folder" size="sm" centered>
+          <Stack gap="md">
+            <Text size="sm">
+              Are you sure you want to delete &quot;{confirmModal?.folder.name}&quot;? This action cannot be undone.
+            </Text>
+            <Group justify="flex-end" gap="sm">
+              <Button variant="subtle" color="gray" onClick={() => setConfirmModal(null)}>
+                Cancel
+              </Button>
+              <Button color="red" onClick={confirmModal?.onConfirm}>
+                Delete
+              </Button>
+            </Group>
+          </Stack>
+        </Modal>
 
-      {workbook && (
-        <GitBrowserModal workbookId={workbook.id} isOpen={gitBrowserOpen} onClose={() => setGitBrowserOpen(false)} />
-      )}
-      {workbook && (
-        <GitGraphModal workbookId={workbook.id} isOpen={gitGraphOpen} onClose={() => setGitGraphOpen(false)} />
-      )}
-      {workbook && (
-        <VersionsModal
-          workbookId={workbook.id}
-          isOpen={versionsOpen}
-          onClose={() => setVersionsOpen(false)}
-          onSuccess={() => {
-            // Maybe refresh data folders or something if needed?
-            // Since versions affect the FS, we might assume live queries handle it
-            setVersionsOpen(false);
-          }}
-        />
-      )}
-
-      <Modal opened={gitStatusOpen} onClose={() => setGitStatusOpen(false)} title="Git Status" size="lg">
-        {loadingStatus ? (
-          <Group justify="center" p="xl">
-            <Loader size="sm" />
-          </Group>
-        ) : (
-          <ScrollArea.Autosize style={{ maxHeight: 500 }}>
-            <Code block>{gitStatus ? JSON.stringify(gitStatus, null, 2) : 'No status data'}</Code>
-          </ScrollArea.Autosize>
+        {workbook && (
+          <GitBrowserModal workbookId={workbook.id} isOpen={gitBrowserOpen} onClose={() => setGitBrowserOpen(false)} />
         )}
-      </Modal>
+        {workbook && (
+          <GitGraphModal workbookId={workbook.id} isOpen={gitGraphOpen} onClose={() => setGitGraphOpen(false)} />
+        )}
+        {workbook && (
+          <VersionsModal
+            workbookId={workbook.id}
+            isOpen={versionsOpen}
+            onClose={() => setVersionsOpen(false)}
+            onSuccess={() => {
+              // Maybe refresh data folders or something if needed?
+              // Since versions affect the FS, we might assume live queries handle it
+              setVersionsOpen(false);
+            }}
+          />
+        )}
 
-      {workbook && (
-        <NewFileModal
-          isOpen={newFileModalState.isOpen}
-          onClose={() => setNewFileModalState((prev) => ({ ...prev, isOpen: false }))}
-          folder={newFileModalState.folder}
-          workbookId={workbook.id}
-          onSuccess={() => {
-            // maybe refresh?
-          }}
-        />
-      )}
-    </Stack>
+        <Modal opened={gitStatusOpen} onClose={() => setGitStatusOpen(false)} title="Git Status" size="lg">
+          {loadingStatus ? (
+            <Group justify="center" p="xl">
+              <Loader size="sm" />
+            </Group>
+          ) : (
+            <ScrollArea.Autosize style={{ maxHeight: 500 }}>
+              <Code block>{gitStatus ? JSON.stringify(gitStatus, null, 2) : 'No status data'}</Code>
+            </ScrollArea.Autosize>
+          )}
+        </Modal>
+
+        {workbook && (
+          <NewFileModal
+            isOpen={newFileModalState.isOpen}
+            onClose={() => setNewFileModalState((prev) => ({ ...prev, isOpen: false }))}
+            folder={newFileModalState.folder}
+            workbookId={workbook.id}
+            onSuccess={() => {
+              // maybe refresh?
+            }}
+          />
+        )}
+      </Accordion.Panel>
+    </Accordion.Item>
   );
 }
 
