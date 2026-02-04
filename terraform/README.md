@@ -106,6 +106,23 @@ You can confirm whether a deploy is possible to run with the service account Git
 terraform plan -var as_gitlab=true
 ```
 
+## Static Outbound IP
+
+All outbound HTTP requests from Cloud Run services use a single static IP address via Cloud NAT. This IP can be provided to customers for firewall whitelisting (e.g., when their services are behind Cloudflare bot protection).
+
+To retrieve the current IP:
+
+```bash
+# Via gcloud
+gcloud compute addresses describe nat-egress-ip \
+  --region=us-central1 \
+  --format='get(address)'
+
+# Via Terraform output
+cd terraform/envs/production
+terraform output nat_egress_ip
+```
+
 ## DNS Management
 
 Scratch uses the `scratch.md` domain which is managed on GoDaddy using thier DNS Management service.

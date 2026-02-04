@@ -32,3 +32,8 @@ output "redis_password" {
   value     = module.redis.password
   sensitive = true
 }
+
+output "nat_egress_ip" {
+  description = "Static outbound IP for customer whitelisting"
+  value       = module.cloudnat.nat_egress_ip
+}

@@ -20,3 +20,8 @@ output "redis_password" {
   sensitive = true
 }
 
+output "nat_egress_ip" {
+  description = "Static outbound IP for customer whitelisting"
+  value       = module.production.nat_egress_ip
+}
+

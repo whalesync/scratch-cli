@@ -44,9 +44,9 @@ resource "google_compute_backend_service" "default" {
       signed_url_cache_max_age_sec = 0
 
       cache_key_policy {
-        include_host           = true
-        include_protocol       = true
-        include_query_string   = true
+        include_host         = true
+        include_protocol     = true
+        include_query_string = true
       }
     }
   }
