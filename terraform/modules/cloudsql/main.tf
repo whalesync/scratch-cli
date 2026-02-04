@@ -21,6 +21,7 @@ resource "google_sql_database_instance" "primary" {
   settings {
     availability_type = var.high_availability ? "REGIONAL" : "ZONAL"
     tier              = var.tier
+    edition           = "ENTERPRISE"
     disk_size         = var.disk_size
     user_labels       = var.labels
 

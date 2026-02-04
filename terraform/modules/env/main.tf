@@ -144,11 +144,11 @@ locals {
   vpc_network_name = "${var.env_name}-vpc"
   custom_subnetworks = [
     {
-      region        = "us-central1"
+      region        = var.gcp_region
       ip_cidr_range = "192.168.0.0/20" # 192.168.0.0 - 192.168.15.255
     },
     {
-      region        = "us-central1"
+      region        = var.gcp_region
       ip_cidr_range = "192.168.16.0/20" # 192.168.16.0 - 192.168.31.255
     }
   ]

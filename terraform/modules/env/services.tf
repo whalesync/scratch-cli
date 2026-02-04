@@ -7,7 +7,7 @@ locals {
 
 resource "google_cloud_run_v2_service" "client_service" {
   name     = "client-service"
-  location = "us-central1"
+  location = var.gcp_region
 
   deletion_protection = false
 
@@ -135,7 +135,7 @@ module "client_lb" {
 
 resource "google_cloud_run_v2_service" "api_service" {
   name     = "api-service"
-  location = "us-central1"
+  location = var.gcp_region
 
   deletion_protection = false
 
@@ -300,7 +300,7 @@ module "api_lb" {
 
 resource "google_cloud_run_v2_service" "agent_service" {
   name     = "agent-service"
-  location = "us-central1"
+  location = var.gcp_region
 
   deletion_protection = false
 
