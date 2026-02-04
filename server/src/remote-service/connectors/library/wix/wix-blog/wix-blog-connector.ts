@@ -24,7 +24,6 @@ import { createMarkdownParser, createTurndownService } from '../rich-content/mar
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
 import { WixDocument } from '../rich-content/types';
 import { WixBlogSchemaParser } from './wix-blog-schema-parser';
-import { WixAuthor } from './wix-blog-spec-types';
 
 export const WIX_DEFAULT_BATCH_SIZE = 100; // Wix API supports up to 100
 
@@ -74,31 +73,8 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
     });
   }
 
-  /**
-   * Fetch the default blog author member ID
-   */
-  private async fetchDefaultBlogAuthorMemberId(): Promise<WixAuthor[]> {
-    // TODO: we can add pagination if we need to at some point. for now it's an overkill i don't expect people to have 100+ authors.
-    const members = await this.wixClient.members.queryMembers({}).find();
-
-    // Convert Member[] to JSON-safe format (only include serializable fields)
-    return members.items.map((member) => ({
-      id: member._id,
-      email: member.loginEmail,
-    }));
-  }
-
   async listTables(): Promise<TablePreview[]> {
     return Promise.resolve([this.schemaParser.parseTablePreview()]);
-  }
-
-  async fetchTableSpec(): Promise<WixBlogTableSpec> {
-    const authors = await this.fetchDefaultBlogAuthorMemberId();
-    const defaultSchema = this.schemaParser.parseTableSpec();
-    return {
-      ...defaultSchema,
-      wixAuthors: authors,
-    };
   }
 
   /**

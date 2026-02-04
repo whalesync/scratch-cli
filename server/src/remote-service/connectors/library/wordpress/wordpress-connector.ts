@@ -26,11 +26,7 @@ import {
   WORDPRESS_REMOTE_CUSTOM_FIELDS_ID,
 } from './wordpress-constants';
 import { WordPressHttpClient } from './wordpress-http-client';
-import {
-  parseColumnsFromTableId,
-  parseTableInfoFromTypes,
-  WORDPRESS_RICH_TEXT_TARGET,
-} from './wordpress-schema-parser';
+import { parseTableInfoFromTypes, WORDPRESS_RICH_TEXT_TARGET } from './wordpress-schema-parser';
 import { WordPressArgument, WordPressDataType, WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
@@ -66,19 +62,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }));
 
     return [...tables, ...defaultTables];
-  }
-
-  async fetchTableSpec(id: EntityId): Promise<WordPressTableSpec> {
-    const [tableId] = id.remoteId;
-    const optionsResponse = await this.client.getEndpointOptions(tableId);
-    const columns = parseColumnsFromTableId(tableId, optionsResponse);
-
-    return {
-      id,
-      slug: id.wsId,
-      name: sanitizeForTableWsId(tableId),
-      columns,
-    };
   }
 
   /**

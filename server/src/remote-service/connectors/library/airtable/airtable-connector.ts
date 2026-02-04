@@ -47,34 +47,6 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     return tables;
   }
 
-  async fetchTableSpec(id: EntityId): Promise<AirtableTableSpec> {
-    const [baseId, tableId] = id.remoteId;
-    const baseSchema = await this.client.getBaseSchema(baseId);
-    const table = baseSchema.tables.find((t) => t.id === tableId);
-    if (!table) {
-      throw new Error(`Table ${tableId} not found in base ${baseId}`);
-    }
-
-    const columns = table.fields.map((field) => this.schemaParser.parseColumn(field));
-
-    // Find title column using Airtable's primaryFieldId
-    const titleColumn = columns.find((col) => col.id.remoteId[1] === table.primaryFieldId);
-    const titleColumnRemoteId = titleColumn?.id.remoteId;
-    const titleColumnSlug = titleColumn?.slug;
-
-    // Discover main content column
-    const mainContentColumnRemoteId = this.schemaParser.discoverMainContentColumn(columns, titleColumnSlug);
-
-    return {
-      id,
-      slug: id.wsId,
-      name: table.name,
-      columns,
-      titleColumnRemoteId,
-      mainContentColumnRemoteId,
-    };
-  }
-
   /**
    * Fetch JSON Table Spec directly from the Airtable API for a table.
    * Returns a schema that describes the raw Airtable record format:

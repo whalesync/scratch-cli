@@ -23,10 +23,9 @@ import {
   ConnectorFile,
   ConnectorRecord,
   EntityId,
-  PostgresColumnType,
   TablePreview,
 } from '../../types';
-import { NotionColumnSpec, NotionTableSpec } from '../custom-spec-registry';
+import { NotionTableSpec } from '../custom-spec-registry';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
 import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
 import { NotionMarkdownConverter } from './conversion/notion-markdown-converter';
@@ -109,51 +108,6 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     const databases = response.results.filter((r): r is DatabaseObjectResponse => r.object === 'database');
     const databaseTables = databases.map((db) => this.schemaParser.parseDatabaseTablePreview(db));
     return databaseTables;
-  }
-
-  async fetchTableSpec(id: EntityId): Promise<NotionTableSpec> {
-    const [databaseId] = id.remoteId;
-    const database = (await this.client.databases.retrieve({ database_id: databaseId })) as DatabaseObjectResponse;
-    const columns: NotionColumnSpec[] = [];
-    for (const property of Object.values(database.properties)) {
-      columns.push(this.schemaParser.parseColumn(property));
-    }
-    //manually add a column to store page content in Markdown format
-    columns.push({
-      id: {
-        wsId: PAGE_CONTENT_COLUMN_ID,
-        remoteId: [PAGE_CONTENT_COLUMN_ID],
-      },
-      name: 'Page Content',
-      pgType: PostgresColumnType.TEXT,
-      dataConverterTypes: ['html'],
-      notionDataType: 'rich_text',
-      metadata: {
-        textFormat: 'rich_text',
-      },
-    });
-
-    let titleColumnRemoteId: string[] | undefined = undefined;
-
-    const titleColumn = columns.find((c) => c.notionDataType === 'title');
-    if (titleColumn) {
-      titleColumnRemoteId = titleColumn.id.remoteId;
-    } else {
-      // look for the first column named title or name
-      titleColumnRemoteId = columns.find((c) => c.name.toLowerCase() === 'title' || c.name.toLowerCase() === 'name')?.id
-        .remoteId;
-    }
-
-    const tableTitle = database.title.map((t) => t.plain_text).join('');
-    return {
-      id,
-      slug: id.wsId,
-      name: sanitizeForTableWsId(tableTitle),
-      columns,
-      // Auto-set the page content column as the main content column for Notion tables
-      mainContentColumnRemoteId: [PAGE_CONTENT_COLUMN_ID],
-      titleColumnRemoteId: titleColumnRemoteId ? titleColumnRemoteId : undefined,
-    };
   }
 
   /**

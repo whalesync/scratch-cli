@@ -76,7 +76,7 @@ List available tables from a connected data source.
 Defines common interface for all connectors:
 
 - **listTables()**: Get available tables/entities
-- **fetchTableSpec()**: Retrieve table schema
+- **fetchJsonTableSpec()**: Retrieve table schema as JSON Schema
 - **downloadRecords()**: Fetch data from source
 - **pushCreate()**: Create records in remote service
 - **pushUpdate()**: Update existing records

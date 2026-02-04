@@ -69,18 +69,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     return tables;
   }
 
-  async fetchTableSpec(id: EntityId): Promise<WebflowTableSpec> {
-    const [siteId, collectionId] = id.remoteId;
-
-    // Get site details
-    const site = await this.client.sites.get(siteId);
-
-    // Get collection details (which includes the schema)
-    const collection = await this.client.collections.get(collectionId);
-
-    return this.schemaParser.parseTableSpec(site, collection);
-  }
-
   public downloadRecordDeep = undefined;
 
   // eslint-disable-next-line @typescript-eslint/require-await

@@ -82,24 +82,6 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
   }
 
   /**
-   * Fetch the column-based table spec for a Moco entity type.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async fetchTableSpec(id: EntityId): Promise<MocoTableSpec> {
-    const entityType = id.wsId as MocoEntityType;
-    const columns = this.buildColumns(entityType);
-
-    return {
-      id,
-      slug: id.wsId,
-      name: ENTITY_DISPLAY_NAMES[entityType],
-      columns,
-      titleColumnRemoteId: this.getTitleColumnRemoteId(entityType),
-      mainContentColumnRemoteId: this.getMainContentColumnRemoteId(entityType),
-    };
-  }
-
-  /**
    * Get the title column remote ID for an entity type.
    */
   private getTitleColumnRemoteId(entityType: MocoEntityType): string[] {

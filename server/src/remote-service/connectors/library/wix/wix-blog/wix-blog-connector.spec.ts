@@ -561,49 +561,6 @@ describe('WixBlogConnector', () => {
     });
   });
 
-  describe('fetchTableSpec', () => {
-    it('should fetch table spec with authors', async () => {
-      const mockMembers = [
-        {
-          _id: 'member1',
-          loginEmail: 'author1@example.com',
-        },
-        {
-          _id: 'member2',
-          loginEmail: 'author2@example.com',
-        },
-      ];
-
-      mockClient.members.queryMembers.mockReturnValue({
-        find: jest.fn().mockResolvedValue({
-          items: mockMembers,
-        }),
-      });
-
-      const tableSpec = await connector.fetchTableSpec();
-
-      expect(tableSpec.name).toBe('Blog Posts');
-      expect(tableSpec.columns).toBeDefined();
-      expect(tableSpec.columns.length).toBeGreaterThan(0);
-      expect(tableSpec.wixAuthors).toEqual([
-        { id: 'member1', email: 'author1@example.com' },
-        { id: 'member2', email: 'author2@example.com' },
-      ]);
-    });
-
-    it('should handle no authors', async () => {
-      mockClient.members.queryMembers.mockReturnValue({
-        find: jest.fn().mockResolvedValue({
-          items: [],
-        }),
-      });
-
-      const tableSpec = await connector.fetchTableSpec();
-
-      expect(tableSpec.wixAuthors).toEqual([]);
-    });
-  });
-
   describe('testConnection', () => {
     it('should successfully test connection', async () => {
       mockClient.draftPosts.listDraftPosts.mockResolvedValue({

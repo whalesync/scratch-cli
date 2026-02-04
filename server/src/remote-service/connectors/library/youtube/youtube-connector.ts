@@ -16,7 +16,6 @@ import {
   ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
-  PostgresColumnType,
   SnapshotRecordSanitizedForUpdate,
   TablePreview,
 } from '../../types';
@@ -109,112 +108,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     }
 
     return [...ownChannels, ...additionalChannels];
-  }
-
-  async fetchTableSpec(id: EntityId): Promise<YouTubeTableSpec> {
-    const channelId = id.remoteId[0];
-
-    // Get channel info to get the channel title
-    const channelsResponse = await this.apiClient.getChannels();
-    const channel = channelsResponse.items?.find((c) => c.id === channelId);
-
-    return {
-      id,
-      name: channel?.snippet?.title || `Channel ${channelId}`,
-      columns: [
-        {
-          id: { wsId: 'title', remoteId: ['title'] },
-          name: 'Title',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.title',
-        },
-        {
-          id: { wsId: 'description', remoteId: ['description'] },
-          name: 'Description',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.description',
-          metadata: {},
-        },
-        {
-          id: { wsId: 'transcript', remoteId: ['transcript'] },
-          name: 'Transcript',
-          // readonly: true,
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'transcript',
-          metadata: {},
-        },
-        {
-          id: { wsId: 'transcriptId', remoteId: ['transcriptId'] },
-          name: 'Transcript Id',
-          readonly: true,
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'transcriptId',
-        },
-        {
-          id: { wsId: 'captionListItems', remoteId: ['captionListItems'] },
-          name: 'Available Transcripts',
-          readonly: true,
-          pgType: PostgresColumnType.JSONB,
-          youtubeField: 'captionListItems',
-        },
-        {
-          id: { wsId: 'categoryId', remoteId: ['categoryId'] },
-          name: 'Category ID',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.categoryId',
-        },
-        {
-          id: { wsId: 'defaultLanguage', remoteId: ['defaultLanguage'] },
-          name: 'Default Language',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'snippet.defaultLanguage',
-        },
-        {
-          id: { wsId: 'tags', remoteId: ['tags'] },
-          name: 'Tags',
-          pgType: PostgresColumnType.TEXT_ARRAY,
-          readonly: true,
-          youtubeField: 'snippet.tags',
-        },
-        {
-          id: { wsId: 'visibility', remoteId: ['visibility'] },
-          name: 'Visibility',
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'status.privacyStatus',
-          readonly: true,
-          limitedToValues: ['public', 'unlisted', 'private'],
-        },
-        {
-          id: { wsId: 'url', remoteId: ['url'] },
-          name: 'URL',
-          readonly: true,
-          pgType: PostgresColumnType.TEXT,
-          youtubeField: 'url',
-          metadata: {
-            textFormat: 'url',
-          },
-        },
-        {
-          id: { wsId: 'studioUrl', remoteId: ['studioUrl'] },
-          name: 'Studio URL',
-          readonly: true,
-          pgType: PostgresColumnType.TEXT,
-          metadata: {
-            textFormat: 'url',
-          },
-        },
-        {
-          id: { wsId: 'publishedAt', remoteId: ['publishedAt'] },
-          name: 'Published At',
-          readonly: true,
-          pgType: PostgresColumnType.TIMESTAMP,
-          youtubeField: 'snippet.publishedAt',
-          metadata: {
-            dateFormat: 'datetime',
-          },
-        },
-      ],
-    } as YouTubeTableSpec;
   }
 
   /**

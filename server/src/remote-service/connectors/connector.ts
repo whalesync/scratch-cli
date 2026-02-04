@@ -58,14 +58,6 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   abstract listTables(): Promise<TablePreview[]>;
 
   /**
-   * Fetch the detailed table spec for a given table id.
-   * @param id The id of the table to fetch the spec for.
-   * @returns The table spec.
-   * @throws Error if the table spec cannot be fetched.
-   */
-  abstract fetchTableSpec(id: EntityId): Promise<TableSpecs[T]>;
-
-  /**
    * Fetch the JSON Table Spec for a table directly from the remote API.
    * Returns a spec that includes metadata and a TSchema describing valid field values.
    * Uses field slugs/names as property keys in the schema.

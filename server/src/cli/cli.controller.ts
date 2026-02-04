@@ -28,8 +28,6 @@ import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { TriggerDownloadDto, TriggerDownloadResponseDto } from './dtos/trigger-download.dto';
-import { UploadChangesDto, UploadChangesResponseDto } from './dtos/upload-changes.dto';
-import { ValidateFilesRequestDto, ValidateFilesResponseDto } from './dtos/validate-files.dto';
 
 @Controller('cli/v1')
 @UseGuards(CliAuthGuard)
@@ -145,25 +143,6 @@ export class CliController {
     const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
     return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto, actor);
-  }
-
-  @Post('upload')
-  async upload(@Req() req: CliRequestWithUser, @Body() dto: UploadChangesDto): Promise<UploadChangesResponseDto> {
-    this.validateCredentials(req.connectorCredentials);
-    const actor = this.getActorFromRequest(req);
-    // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return await this.cliService.upload(req.connectorCredentials as CliConnectorCredentials, dto, actor);
-  }
-
-  @Post('validate-files')
-  async validateFiles(
-    @Req() req: CliRequestWithUser,
-    @Body() dto: ValidateFilesRequestDto,
-  ): Promise<ValidateFilesResponseDto> {
-    this.validateCredentials(req.connectorCredentials);
-    const actor = this.getActorFromRequest(req);
-    // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.validateFiles(req.connectorCredentials as CliConnectorCredentials, dto, actor);
   }
 
   @Post('workbooks/:workbookId/download')

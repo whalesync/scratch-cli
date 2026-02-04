@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Service } from '@spinner/shared-types';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { ConnectorRecord, PostgresColumnType } from '../../types';
 import { WordPressTableSpec } from '../custom-spec-registry';
 import { WordPressConnector } from './wordpress-connector';
 import { WORDPRESS_POLLING_PAGE_SIZE } from './wordpress-constants';
-import { WordPressDataType, WordPressEndpointOptionsResponse, WordPressRecord } from './wordpress-types';
+import { WordPressDataType, WordPressRecord } from './wordpress-types';
 
 // Mock the WordPressHttpClient
 jest.mock('./wordpress-http-client', () => {
@@ -55,10 +53,6 @@ const MOCK_CONTENT_COLUMN = {
   pgType: PostgresColumnType.TEXT,
   wordpressDataType: WordPressDataType.RENDERED,
 };
-
-const postsSchemaResponse = JSON.parse(
-  readFileSync(join(__dirname, '__fixtures__', 'posts-schema-response.json'), 'utf8'),
-) as WordPressEndpointOptionsResponse;
 
 describe('WordPressConnector', () => {
   let connector: WordPressConnector;
@@ -391,38 +385,6 @@ describe('WordPressConnector', () => {
   describe('getBatchSize', () => {
     it('should return batch size of 1', () => {
       expect(connector.getBatchSize()).toBe(1);
-    });
-  });
-
-  describe('fetchTableSpec', () => {
-    it('should fetch and parse the table spec for a post type', async () => {
-      // Mock endpoint options response with a real response
-      mockClient.getEndpointOptions.mockResolvedValue(postsSchemaResponse);
-
-      const tableSpec = await connector.fetchTableSpec(MOCK_ENTITY_ID);
-
-      expect(mockClient.getEndpointOptions).toHaveBeenCalledWith(TEST_ENDPOINT);
-      expect(tableSpec).toMatchSnapshot();
-    });
-
-    it('should sanitize table name from table ID', async () => {
-      const entityId = {
-        wsId: 'custom_post_type',
-        remoteId: ['custom-post-type'],
-      };
-
-      mockClient.getEndpointOptions.mockResolvedValue({
-        schema: {
-          properties: {
-            id: { type: 'integer', context: ['view'] },
-          },
-        },
-      });
-
-      const tableSpec = await connector.fetchTableSpec(entityId);
-
-      expect(tableSpec.name).toBeDefined();
-      expect(tableSpec.id.remoteId[0]).toBe('custom-post-type');
     });
   });
 

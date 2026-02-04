@@ -26,7 +26,7 @@ import { AudiencefulField } from './audienceful-types';
  * - fetchJsonTableSpec() for schema discovery
  * - downloadRecordFiles() for fetching records
  *
- * The old column-based methods (fetchTableSpec, downloadTableRecords) throw errors.
+ * Note: downloadTableRecords throws an error as this connector only supports JSON files.
  */
 export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> {
   readonly service = Service.AUDIENCEFUL;
@@ -64,26 +64,6 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
         },
       },
     ];
-  }
-
-  /**
-   * Fetch the column-based table spec for the People table.
-   */
-  async fetchTableSpec(id: EntityId): Promise<AudiencefulTableSpec> {
-    // Fetch custom fields from the API
-    const customFields = await this.client.listFields();
-
-    // Build columns array
-    const columns = this.buildPeopleColumns(customFields);
-
-    return {
-      id,
-      slug: id.wsId,
-      name: 'People',
-      columns,
-      titleColumnRemoteId: ['people', 'email'],
-      mainContentColumnRemoteId: ['people', 'notes'],
-    };
   }
 
   /**
