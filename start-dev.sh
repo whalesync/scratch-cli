@@ -80,9 +80,22 @@ echo -e "${YELLOW}Installing client dependencies...${NC}"
 echo -e "${GREEN}Client dependencies installed${NC}"
 echo ""
 
+# Install scratch-git dependencies
+echo -e "${YELLOW}Installing scratch-git dependencies...${NC}"
+(
+    cd "$SCRIPT_DIR/scratch-git"
+    yarn install --silent
+) || {
+    echo -e "${RED}Failed to install scratch-git dependencies${NC}"
+    exit 1
+}
+echo -e "${GREEN}scratch-git dependencies installed${NC}"
+echo ""
+
 # PIDs for cleanup
 CLIENT_PID=""
 SERVER_PID=""
+SCRATCH_GIT_PID=""
 
 cleanup() {
     echo -e "\n${YELLOW}Shutting down all services...${NC}"
@@ -97,12 +110,18 @@ cleanup() {
         kill "$SERVER_PID" 2>/dev/null || true
     fi
 
+    if [ -n "$SCRATCH_GIT_PID" ] && kill -0 "$SCRATCH_GIT_PID" 2>/dev/null; then
+        echo -e "${YELLOW}Stopping scratch-git...${NC}"
+        kill "$SCRATCH_GIT_PID" 2>/dev/null || true
+    fi
+
     # Wait a moment for graceful shutdown
     sleep 1
 
     # Force kill if still running
     [ -n "$CLIENT_PID" ] && kill -9 "$CLIENT_PID" 2>/dev/null || true
     [ -n "$SERVER_PID" ] && kill -9 "$SERVER_PID" 2>/dev/null || true
+    [ -n "$SCRATCH_GIT_PID" ] && kill -9 "$SCRATCH_GIT_PID" 2>/dev/null || true
 
     echo -e "${GREEN}All services stopped.${NC}"
     exit 0
@@ -140,10 +159,19 @@ echo -e "${GREEN}[SERVER]${NC} Starting NestJS dev server on port 3010..."
 ) &
 SERVER_PID=$!
 
+# Start scratch-git (Git microservice on port 3100)
+echo -e "${YELLOW}[SCRATCH-GIT]${NC} Starting Git microservice on port 3100..."
+(
+    cd "$SCRIPT_DIR/scratch-git"
+    yarn run dev:api 2>&1 | while IFS= read -r line; do echo -e "${YELLOW}[SCRATCH-GIT]${NC} $line"; done
+) &
+SCRATCH_GIT_PID=$!
+
 echo ""
 echo -e "${YELLOW}========================================${NC}"
-echo -e "  ${BLUE}Client${NC}:  http://localhost:3000"
-echo -e "  ${GREEN}Server${NC}:  http://localhost:3010"
+echo -e "  ${BLUE}Client${NC}:       http://localhost:3000"
+echo -e "  ${GREEN}Server${NC}:       http://localhost:3010"
+echo -e "  ${YELLOW}scratch-git${NC}:  http://localhost:3100"
 echo -e "${YELLOW}========================================${NC}"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
