@@ -1,4 +1,4 @@
-import { DataFolderId, SnapshotTableId, StyleGuideId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
 import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
@@ -35,10 +35,6 @@ export const SWR_KEYS = {
   },
   users: {
     activeUser: () => ['users', 'activeUser'],
-  },
-  styleGuides: {
-    list: () => ['style-guides', 'list'],
-    detail: (id: StyleGuideId) => ['style-guides', 'detail', id],
   },
   billing: {
     plans: () => ['billing', 'plans'],

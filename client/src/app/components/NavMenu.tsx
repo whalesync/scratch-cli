@@ -3,7 +3,6 @@
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
-import { DocsUrls } from '@/utils/docs-urls';
 import { RouteUrls } from '@/utils/route-urls';
 import { UserButton } from '@clerk/nextjs';
 import { Box, Center, Stack, useMantineColorScheme } from '@mantine/core';
@@ -11,10 +10,8 @@ import {
   BlocksIcon,
   BugIcon,
   ChevronDown,
-  CircleQuestionMarkIcon,
   CpuIcon,
   CreditCardIcon,
-  FileTextIcon,
   LucideIcon,
   MoonIcon,
   SettingsIcon,
@@ -58,13 +55,14 @@ const lowerMenuItems: MenuItem[] = [
 
     isDevTool: true,
   },
-  {
-    type: 'link',
-    href: DocsUrls.root,
-    newTab: true,
-    label: 'Docs',
-    icon: CircleQuestionMarkIcon,
-  },
+  // Disabled until we have some content on the docs site.
+  // {
+  //   type: 'link',
+  //   href: DocsUrls.root,
+  //   newTab: true,
+  //   label: 'Docs',
+  //   icon: CircleQuestionMarkIcon,
+  // },
   {
     type: 'link',
     href: RouteUrls.billingPageUrl,
@@ -96,19 +94,7 @@ export function NavMenu() {
     icon: colorScheme === 'light' ? MoonIcon : SunIcon,
   };
 
-  const upperSectionMenuItems: MenuItem[] =
-    user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE === 'files'
-      ? upperMenuItems
-      : [
-          ...upperMenuItems,
-
-          {
-            type: 'link',
-            href: RouteUrls.promptAssetsPageUrl,
-            label: 'Prompt assets',
-            icon: FileTextIcon,
-          },
-        ];
+  const upperSectionMenuItems: MenuItem[] = upperMenuItems;
 
   const lowerSectionMenuItems: MenuItem[] = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT
     ? [

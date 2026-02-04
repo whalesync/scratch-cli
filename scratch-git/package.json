@@ -2,6 +2,8 @@
     "name": "scratch-git",
     "version": "1.0.0",
     "description": "Git microservice for Scratch",
+    "private": true,
+    "license": "UNLICENSED",
     "main": "main.ts",
     "scripts": {
         "start:api": "ts-node git-scratch-api.ts",

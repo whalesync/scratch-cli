@@ -29,13 +29,13 @@ The service consists of two distinct HTTP servers running as separate processes:
 
 ### Prerequisites
 
-- npm
+- yarn
 - Node.js
 - Git installed and in PATH
 
 ### Environment Variables
 
-Create a `.env` file in the root:
+Copy `sample.env` to `.env` file in the root:
 
 ```env
 PORT=3100                 # Port for RPC API

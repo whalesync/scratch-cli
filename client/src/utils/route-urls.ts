@@ -23,7 +23,6 @@ export class RouteUrls {
   static workbookColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
     `/workbooks/${id}/${tableId}/${recordId}/${columnId}`;
   static workbooksPageUrl = '/workbooks';
-  static promptAssetsPageUrl = '/prompt-assets';
   static settingsPageUrl = '/settings';
   static billingPageUrl = '/billing';
   static productCheckoutPage = (planType: string, returnPath?: string) =>
@@ -55,7 +54,6 @@ export class RouteUrls {
     RouteUrls.dataSourcesPageUrl,
     RouteUrls.workbooksPageUrl,
     '/workbooks-md',
-    RouteUrls.promptAssetsPageUrl,
   ];
 
   /** Routes that require an active subscription or free trial to access*/
