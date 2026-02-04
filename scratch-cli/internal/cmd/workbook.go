@@ -37,43 +37,43 @@ Requires authentication. Run 'scratchmd auth login' first.`,
 	RunE: runWorkbookList,
 }
 
-// workbookSyncCmd represents the workbook sync command
-var workbookSyncCmd = &cobra.Command{
-	Use:   "sync <workbook-id>",
-	Short: "[NON-INTERACTIVE] Sync (download) records from a data folder",
+// workbookPullCmd represents the workbook pull command
+var workbookPullCmd = &cobra.Command{
+	Use:   "pull <workbook-id>",
+	Short: "[NON-INTERACTIVE] Pull records from a data folder's remote service",
 	Long: `[NON-INTERACTIVE - safe for LLM use]
 
-Triggers a download job that syncs records from a data folder's connector
+Triggers a pull job that fetches records from a data folder's connector
 into the workbook's database and Git repository.
 
 This command:
-1. Starts a background download job on the server
+1. Starts a background pull job on the server
 2. Polls for job progress every 2 seconds
 3. Displays progress until the job completes or fails
 
 Requires authentication. Run 'scratchmd auth login' first.
 
 Example:
-  scratchmd workbook sync wb_abc123 --folder dfd_xyz789
-  scratchmd workbook sync wb_abc123 --folder dfd_xyz789 --json`,
+  scratchmd workbook pull wb_abc123 --folder dfd_xyz789
+  scratchmd workbook pull wb_abc123 --folder dfd_xyz789 --json`,
 	Args: cobra.ExactArgs(1),
-	RunE: runWorkbookSync,
+	RunE: runWorkbookPull,
 }
 
 func init() {
 	rootCmd.AddCommand(workbookCmd)
 	workbookCmd.AddCommand(workbookListCmd)
-	workbookCmd.AddCommand(workbookSyncCmd)
+	workbookCmd.AddCommand(workbookPullCmd)
 
 	// Flags for workbook list
 	workbookListCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
 	workbookListCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
 
-	// Flags for workbook sync
-	workbookSyncCmd.Flags().String("folder", "", "Data folder ID to sync (required)")
-	workbookSyncCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
-	workbookSyncCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
-	_ = workbookSyncCmd.MarkFlagRequired("folder")
+	// Flags for workbook pull
+	workbookPullCmd.Flags().String("folder", "", "Data folder ID to pull (required)")
+	workbookPullCmd.Flags().Bool("json", false, "Output as JSON (for automation/LLM use)")
+	workbookPullCmd.Flags().String("server", "", "Scratch.md server URL (defaults to configured server)")
+	_ = workbookPullCmd.MarkFlagRequired("folder")
 }
 
 func runWorkbookList(cmd *cobra.Command, args []string) error {
@@ -178,8 +178,8 @@ func runWorkbookList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// SyncResult represents the result of a workbook sync operation for JSON output.
-type SyncResult struct {
+// PullResult represents the result of a workbook pull operation for JSON output.
+type PullResult struct {
 	Success    bool                   `json:"success"`
 	WorkbookID string                 `json:"workbookId"`
 	FolderID   string                 `json:"folderId"`
@@ -190,7 +190,7 @@ type SyncResult struct {
 	Error      string                 `json:"error,omitempty"`
 }
 
-func runWorkbookSync(cmd *cobra.Command, args []string) error {
+func runWorkbookPull(cmd *cobra.Command, args []string) error {
 	workbookID := args[0]
 	folderID, _ := cmd.Flags().GetString("folder")
 	jsonOutput, _ := cmd.Flags().GetBool("json")
@@ -199,7 +199,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 	// Validate folder ID is not empty
 	if folderID == "" {
 		if jsonOutput {
-			result := SyncResult{
+			result := PullResult{
 				Success:    false,
 				WorkbookID: workbookID,
 				Error:      "Folder ID cannot be empty",
@@ -223,7 +223,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 	// Helper to output errors
 	outputError := func(err string) error {
 		if jsonOutput {
-			result := SyncResult{
+			result := PullResult{
 				Success:    false,
 				WorkbookID: workbookID,
 				FolderID:   folderID,
@@ -252,16 +252,16 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 		api.WithAPIToken(creds.APIToken),
 	)
 
-	// Trigger the download
+	// Trigger the pull
 	if !jsonOutput {
-		fmt.Printf("Starting sync for folder %s in workbook %s...\n", folderID, workbookID)
+		fmt.Printf("Starting pull for folder %s in workbook %s...\n", folderID, workbookID)
 	}
 
-	triggerResp, err := client.TriggerWorkbookDownload(workbookID, &api.TriggerDownloadRequest{
+	triggerResp, err := client.TriggerWorkbookPull(workbookID, &api.TriggerPullRequest{
 		DataFolderID: folderID,
 	})
 	if err != nil {
-		return outputError(fmt.Sprintf("Failed to trigger download: %s", err.Error()))
+		return outputError(fmt.Sprintf("Failed to trigger pull: %s", err.Error()))
 	}
 
 	if triggerResp.Error != "" {
@@ -324,7 +324,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 		// Check for terminal states
 		if state == "completed" {
 			if jsonOutput {
-				result := SyncResult{
+				result := PullResult{
 					Success:    true,
 					WorkbookID: workbookID,
 					FolderID:   folderID,
@@ -337,7 +337,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 				fmt.Println(string(data))
 			} else {
 				fmt.Println()
-				fmt.Printf("Sync completed! Downloaded %d files.\n", totalFiles)
+				fmt.Printf("Pull completed! Fetched %d files.\n", totalFiles)
 			}
 			return nil
 		}
@@ -348,7 +348,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 				errMsg = statusResp.FailedReason
 			}
 			if jsonOutput {
-				result := SyncResult{
+				result := PullResult{
 					Success:    false,
 					WorkbookID: workbookID,
 					FolderID:   folderID,
@@ -361,7 +361,7 @@ func runWorkbookSync(cmd *cobra.Command, args []string) error {
 				data, _ := json.MarshalIndent(result, "", "  ")
 				fmt.Println(string(data))
 			}
-			return fmt.Errorf("sync failed: %s", errMsg)
+			return fmt.Errorf("pull failed: %s", errMsg)
 		}
 
 		time.Sleep(pollInterval)

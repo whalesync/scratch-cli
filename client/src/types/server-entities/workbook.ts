@@ -51,7 +51,7 @@ export type RecordErrorsMetadata = {
   byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
 };
 
-export interface DownloadWorkbookResult {
+export interface PullWorkbookResult {
   jobId: string;
 }
 

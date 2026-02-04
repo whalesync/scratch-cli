@@ -215,9 +215,9 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         results,
       });
 
-      // Enqueue download job to sync from Webflow and update main branch
+      // Enqueue pull job to sync from Webflow and update main branch
       // This ensures future deletes can be detected (they need to exist in main)
-      await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(
+      await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(
         data.workbookId,
         { userId: data.userId, organizationId: data.organizationId },
         dataFolder.id as DataFolderId,
@@ -225,7 +225,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
 
       WSLogger.debug({
         source: 'PublishDataFolderJob',
-        message: 'Enqueued download job to sync main branch after publish',
+        message: 'Enqueued pull job to sync main branch after publish',
         workbookId: data.workbookId,
         dataFolderId: dataFolder.id,
       });

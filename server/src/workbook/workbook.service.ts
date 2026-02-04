@@ -35,7 +35,7 @@ import { ConnectorsService } from '../remote-service/connectors/connectors.servi
 import { AnySpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { BaseJsonTableSpec, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
-import { DownloadFilesPublicProgress } from '../worker/jobs/job-definitions/download-files.job';
+import { PullFilesPublicProgress } from '../worker/jobs/job-definitions/pull-files.job';
 import { FolderService } from './folder.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
@@ -114,7 +114,7 @@ export class WorkbookService {
             columnSettings: {},
             tableName,
             version: 'v1',
-            lock: 'download',
+            lock: 'pull',
             path: tablePath,
             folderId,
           });
@@ -155,7 +155,7 @@ export class WorkbookService {
     // New version that creates the single files table for the workbook.
     await this.workbookDbService.workbookDb.createForWorkbook(newWorkbook.id as WorkbookId);
 
-    await this.bullEnqueuerService.enqueueDownloadFilesJob(newWorkbook.id as WorkbookId, actor);
+    await this.bullEnqueuerService.enqueuePullFilesJob(newWorkbook.id as WorkbookId, actor);
 
     this.posthogService.trackCreateWorkbook(actor.userId, newWorkbook);
     await this.auditLogService.logEvent({
@@ -256,7 +256,7 @@ export class WorkbookService {
         tableSpec: tableSpec,
         columnSettings: {},
         version: 'v1',
-        lock: 'download',
+        lock: 'pull',
         path: folderPath,
         folderId,
       },
@@ -265,27 +265,27 @@ export class WorkbookService {
       },
     });
 
-    // 7. Start downloading records in background for this specific table only (unless skipDownload is true)
+    // 7. Start pulling records in background for this specific table only (unless skipDownload is true)
     if (!options?.skipDownload) {
       try {
         if (this.configService.getUseJobs()) {
-          await this.bullEnqueuerService.enqueueDownloadRecordFilesJob(workbookId, actor, snapshotTableId);
+          await this.bullEnqueuerService.enqueuePullRecordFilesJob(workbookId, actor, snapshotTableId);
         }
         WSLogger.info({
           source: 'WorkbookService.addTableToWorkbook',
-          message: 'Started downloading records for newly added table',
+          message: 'Started pulling records for newly added table',
           workbookId,
           snapshotTableId,
         });
       } catch (error) {
         WSLogger.error({
           source: 'WorkbookService.addTableToWorkbook',
-          message: 'Failed to start download job for newly added table',
+          message: 'Failed to start pull job for newly added table',
           error,
           workbookId,
           snapshotTableId,
         });
-        // Don't fail the addTable operation if download fails - table was still added successfully
+        // Don't fail the addTable operation if pull fails - table was still added successfully
       }
     }
 
@@ -558,7 +558,7 @@ export class WorkbookService {
     });
   }
 
-  async downloadFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+  async pullFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
     // Verify the workbook exists and the user has access
     await this.findOneOrThrow(id, actor);
 
@@ -586,10 +586,10 @@ export class WorkbookService {
     }
 
     if (tablesToProcess.length === 0) {
-      throw new BadRequestException('No tables with folders found to download files from');
+      throw new BadRequestException('No tables with folders found to pull files from');
     }
 
-    const initialPublicProgressFolders: DownloadFilesPublicProgress['folders'] = [];
+    const initialPublicProgressFolders: PullFilesPublicProgress['folders'] = [];
     for (const st of tablesToProcess) {
       initialPublicProgressFolders.push({
         id: st.folderId!,
@@ -600,25 +600,25 @@ export class WorkbookService {
       });
     }
 
-    const initialPublicProgress: DownloadFilesPublicProgress = {
+    const initialPublicProgress: PullFilesPublicProgress = {
       totalFiles: 0,
       folders: initialPublicProgressFolders,
     };
 
-    const job = await this.bullEnqueuerService.enqueueDownloadFilesJob(
+    const job = await this.bullEnqueuerService.enqueuePullFilesJob(
       id,
       actor,
       tablesToProcess.map((t) => t.id),
       initialPublicProgress,
     );
 
-    // Set lock='download' for all tables immediately after enqueuing
+    // Set lock='pull' for all tables immediately after enqueuing
     await this.db.client.snapshotTable.updateMany({
       where: {
         id: { in: tablesToProcess.map((t) => t.id) },
       },
       data: {
-        lock: 'download',
+        lock: 'pull',
       },
     });
 

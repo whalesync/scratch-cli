@@ -69,7 +69,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     return tables;
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getNewFile(tableSpec: BaseJsonTableSpec): Promise<Record<string, unknown>> {
@@ -145,13 +145,13 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     return null;
   }
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
   ): Promise<void> {
-    WSLogger.info({ source: 'WebflowConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    WSLogger.info({ source: 'WebflowConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     const [, collectionId] = tableSpec.id.remoteId;
 
     let offset = 0;
@@ -375,7 +375,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     }
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: WebflowTableSpec,
     _columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,

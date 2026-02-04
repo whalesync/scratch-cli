@@ -827,9 +827,9 @@ export function WorkbookFileBrowser() {
     }
   }, [isLoading, files, openFileTabs.length, openFileTab]);
 
-  // Handle downloading files from remote source (sync) - opens the folder selection modal
-  const handleDownloadFilesFromRemote = useCallback(() => {
-    showModal({ type: WorkbookModals.CONFIRM_REFRESH_SOURCE });
+  // Handle pulling files from remote source - opens the folder selection modal
+  const handlePullFilesFromRemote = useCallback(() => {
+    showModal({ type: WorkbookModals.CONFIRM_PULL_SOURCE });
   }, [showModal]);
 
   // Get path for a node from its stored data (provided by server)
@@ -1491,12 +1491,12 @@ export function WorkbookFileBrowser() {
                 <CopyMinusIcon size={14} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label="Sync from remote" openDelay={500}>
+            <Tooltip label="Pull from remote" openDelay={500}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
-                onClick={handleDownloadFilesFromRemote}
+                onClick={handlePullFilesFromRemote}
                 loading={isLoading}
               >
                 <RefreshCwIcon size={14} />

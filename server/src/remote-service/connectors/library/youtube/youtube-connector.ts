@@ -202,7 +202,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     };
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: YouTubeTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
@@ -227,16 +227,16 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     } while (nextPageToken);
   }
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     progress: JsonSafeObject,
   ): Promise<void> {
-    WSLogger.info({ source: 'YouTubeConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    WSLogger.info({ source: 'YouTubeConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });
   }
 
-  async downloadRecordDeep(
+  async pullRecordDeep(
     tableSpec: YouTubeTableSpec,
     existingRecord: ExistingSnapshotRecord,
     fields: string[] | null,
@@ -381,7 +381,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
         url: this.getWatchVideoUrl(videoId),
         // dates should be coming in as ISO 8601 format in UTC
         publishedAt: youtubeRecord.snippet?.publishedAt ? new Date(youtubeRecord.snippet.publishedAt) : null,
-        transcript: '', // Empty transcript - will be fetched via downloadRecordDeep
+        transcript: '', // Empty transcript - will be fetched via pullRecordDeep
         visibility: youtubeRecord.status?.privacyStatus || '',
         categoryId: youtubeRecord.snippet?.categoryId || '',
         defaultLanguage: youtubeRecord.snippet?.defaultLanguage || '',

@@ -214,7 +214,7 @@ export class DataFolderService {
           connectorService: service,
           parentId: parentFolderId ?? null,
           path: folderPath,
-          lock: 'download',
+          lock: 'pull',
           schema: tableSpec,
           lastSchemaRefreshAt: new Date(),
           version: 1,
@@ -223,20 +223,20 @@ export class DataFolderService {
         include: DataFolderCluster._validator.include,
       });
 
-      // Trigger download job
+      // Trigger pull job
       if (this.configService.getUseJobs()) {
         try {
-          await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(workbookId, actor, dataFolderId);
+          await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(workbookId, actor, dataFolderId);
           WSLogger.info({
             source: 'DataFolderService.createFolder',
-            message: 'Started downloading files for newly created data folder',
+            message: 'Started pulling files for newly created data folder',
             workbookId,
             dataFolderId,
           });
         } catch (error) {
           WSLogger.error({
             source: 'DataFolderService.createFolder',
-            message: 'Failed to start download job for newly created data folder',
+            message: 'Failed to start pull job for newly created data folder',
             error,
             workbookId,
             dataFolderId,

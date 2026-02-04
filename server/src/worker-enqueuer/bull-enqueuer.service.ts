@@ -4,11 +4,11 @@ import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
-import { DownloadFilesJobDefinition } from 'src/worker/jobs/job-definitions/download-files.job';
+import { PullFilesJobDefinition } from 'src/worker/jobs/job-definitions/pull-files.job';
 import { JobData } from 'src/worker/jobs/union-types';
-import { DownloadLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/download-linked-folder-files.job';
-import { DownloadRecordFilesJobDefinition } from '../worker/jobs/job-definitions/download-record-files.job';
 import { PublishDataFolderJobDefinition } from '../worker/jobs/job-definitions/publish-data-folder.job';
+import { PullLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/pull-linked-folder-files.job';
+import { PullRecordFilesJobDefinition } from '../worker/jobs/job-definitions/pull-record-files.job';
 import { SyncDataFoldersJobDefinition } from '../worker/jobs/job-definitions/sync-data-folders.job';
 
 @Injectable()
@@ -49,57 +49,57 @@ export class BullEnqueuerService implements OnModuleDestroy {
     return await this.getQueue().add(data.type, data);
   }
 
-  async enqueueDownloadFilesJob(
+  async enqueuePullFilesJob(
     workbookId: WorkbookId,
     actor: Actor,
     snapshotTableIds?: string[],
-    initialPublicProgress?: DownloadFilesJobDefinition['publicProgress'],
+    initialPublicProgress?: PullFilesJobDefinition['publicProgress'],
   ): Promise<Job> {
     // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `download-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: DownloadFilesJobDefinition['data'] = {
+    const id = `pull-files-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PullFilesJobDefinition['data'] = {
       workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
       snapshotTableIds,
-      type: 'download-files',
+      type: 'pull-files',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);
   }
 
-  async enqueueDownloadRecordFilesJob(
+  async enqueuePullRecordFilesJob(
     workbookId: WorkbookId,
     actor: Actor,
     snapshotTableId: string,
-    initialPublicProgress?: DownloadRecordFilesJobDefinition['publicProgress'],
+    initialPublicProgress?: PullRecordFilesJobDefinition['publicProgress'],
   ): Promise<Job> {
     // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `download-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: DownloadRecordFilesJobDefinition['data'] = {
+    const id = `pull-files-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PullRecordFilesJobDefinition['data'] = {
       workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
       snapshotTableId,
-      type: 'download-record-files',
+      type: 'pull-record-files',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);
   }
 
-  async enqueueDownloadLinkedFolderFilesJob(
+  async enqueuePullLinkedFolderFilesJob(
     workbookId: WorkbookId,
     actor: Actor,
     dataFolderId: DataFolderId,
-    initialPublicProgress?: DownloadLinkedFolderFilesJobDefinition['publicProgress'],
+    initialPublicProgress?: PullLinkedFolderFilesJobDefinition['publicProgress'],
   ): Promise<Job> {
-    const id = `download-linked-folder-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: DownloadLinkedFolderFilesJobDefinition['data'] = {
+    const id = `pull-linked-folder-files-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PullLinkedFolderFilesJobDefinition['data'] = {
       workbookId,
       userId: actor.userId,
       organizationId: actor.organizationId,
       dataFolderId,
-      type: 'download-linked-folder-files',
+      type: 'pull-linked-folder-files',
       initialPublicProgress,
     };
     return await this.enqueueJobWithId(data, id);

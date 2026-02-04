@@ -1,4 +1,4 @@
-import { DownloadProgress, isDownloadFilesProgress } from '@/app/components/jobs/download/DownloadJobProgress';
+import { PullProgress, isPullFilesProgress } from '@/app/components/jobs/pull/PullJobProgress';
 import { getTerminalTableStatus } from '@/app/components/jobs/job-utils';
 import { TableStatus } from '@/app/components/jobs/publish/PublishJobProgress';
 import { SyncStatus } from '@/app/components/jobs/SyncStatus/sync-status';
@@ -10,10 +10,10 @@ import { AlertCircle } from 'lucide-react';
 import { FC } from 'react';
 
 type Props = {
-  job?: JobEntity<DownloadProgress>;
+  job?: JobEntity<PullProgress>;
 };
 
-export const DownloadJobProgressDisplay: FC<Props> = (props) => {
+export const PullJobProgressDisplay: FC<Props> = (props) => {
   const { job } = props;
 
   if (!job || !job.publicProgress) {
@@ -22,8 +22,8 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
 
   const { publicProgress, state, failedReason } = job;
 
-  // Handle download files progress (folders)
-  if (isDownloadFilesProgress(publicProgress)) {
+  // Handle pull files progress (folders)
+  if (isPullFilesProgress(publicProgress)) {
     return (
       <Stack gap="xl">
         {publicProgress.folders.map((folder) => (
@@ -44,7 +44,7 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
           </Stack>
         ))}
         {failedReason && (
-          <Alert icon={<AlertCircle size={16} />} title="Download Failed" color="red" mt="md">
+          <Alert icon={<AlertCircle size={16} />} title="Pull Failed" color="red" mt="md">
             {failedReason}
           </Alert>
         )}
@@ -52,7 +52,7 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
     );
   }
 
-  // Handle download records progress (tables) - original behavior
+  // Handle pull records progress (tables) - original behavior
   return (
     <Stack gap="xl">
       {publicProgress.tables.map((table) => (
@@ -73,7 +73,7 @@ export const DownloadJobProgressDisplay: FC<Props> = (props) => {
         </Stack>
       ))}
       {failedReason && (
-        <Alert icon={<AlertCircle size={16} />} title="Download Failed" color="red" mt="md">
+        <Alert icon={<AlertCircle size={16} />} title="Pull Failed" color="red" mt="md">
           {failedReason}
         </Alert>
       )}

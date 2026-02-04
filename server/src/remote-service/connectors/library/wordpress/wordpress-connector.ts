@@ -197,7 +197,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: WordPressTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
@@ -229,9 +229,9 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
     progress?: WordPressDownloadProgress,

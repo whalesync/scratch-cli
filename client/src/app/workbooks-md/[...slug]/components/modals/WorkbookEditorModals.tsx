@@ -1,5 +1,5 @@
 import { DeleteWorkbookModal } from './DeleteWorkbookModal';
-import { RefreshTableDataModal } from './RefreshTableDataModal';
+import { PullTableDataModal } from './PullTableDataModal';
 import { RenameWorkbookModal } from './RenameWorkbookModal';
 
 /**
@@ -12,7 +12,7 @@ export const WorkbookEditorModals = () => {
     <>
       <RenameWorkbookModal />
       <DeleteWorkbookModal />
-      <RefreshTableDataModal />
+      <PullTableDataModal />
     </>
   );
 };

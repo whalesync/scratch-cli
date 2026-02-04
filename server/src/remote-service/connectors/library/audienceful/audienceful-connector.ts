@@ -24,9 +24,9 @@ import { AudiencefulField } from './audienceful-types';
  *
  * This is a JSON-only connector that implements:
  * - fetchJsonTableSpec() for schema discovery
- * - downloadRecordFiles() for fetching records
+ * - pullRecordFiles() for fetching records
  *
- * Note: downloadTableRecords throws an error as this connector only supports JSON files.
+ * Note: pullTableRecords throws an error as this connector only supports JSON files.
  */
 export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> {
   readonly service = Service.AUDIENCEFUL;
@@ -440,7 +440,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
    * @throws Error - This connector only supports JSON schema methods for downloading.
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  async downloadTableRecords(
+  async pullTableRecords(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _tableSpec: AudiencefulTableSpec,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -450,13 +450,13 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
   ): Promise<void> {
-    throw new Error('Audienceful connector does not support downloadTableRecords. Use downloadRecordFiles instead.');
+    throw new Error('Audienceful connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**
    * Download all people as JSON files.
    */
-  async downloadRecordFiles(
+  async pullRecordFiles(
     _tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -467,7 +467,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
     }
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
   /**
    * Get the batch size for CRUD operations.

@@ -401,7 +401,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: NotionTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
@@ -484,14 +484,14 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
   ): Promise<void> {
-    WSLogger.info({ source: 'NotionConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    WSLogger.info({ source: 'NotionConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
 
     const [databaseId] = tableSpec.id.remoteId;
     let hasMore = true;

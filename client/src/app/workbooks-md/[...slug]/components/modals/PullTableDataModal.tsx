@@ -6,35 +6,35 @@ import { Alert, Box, Text as MantineText, Stack } from '@mantine/core';
 import { SnapshotTable, Workbook } from '@spinner/shared-types';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { DownloadProgressModal } from '@/app/components/jobs/download/DownloadJobProgressModal';
+import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { TableSelection } from '@/app/components/TableSelectionComponent';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
 import { useWorkbookEditorUIStore, WorkbookModals } from '@/stores/workbook-editor-store';
-import { DownloadWorkbookResult, hasDeletedConnection } from '@/types/server-entities/workbook';
+import { PullWorkbookResult, hasDeletedConnection } from '@/types/server-entities/workbook';
 
-export const RefreshTableDataModal = () => {
+export const PullTableDataModal = () => {
   const activeModal = useWorkbookEditorUIStore((state) => state.activeModal);
   const dismissModal = useWorkbookEditorUIStore((state) => state.dismissModal);
-  const isOpen = activeModal?.type === WorkbookModals.CONFIRM_REFRESH_SOURCE;
+  const isOpen = activeModal?.type === WorkbookModals.CONFIRM_PULL_SOURCE;
 
   const { workbook, activeTable } = useActiveWorkbook();
-  const [refreshInProgress, setRefreshInProgress] = useState<DownloadWorkbookResult | null>(null);
+  const [pullInProgress, setPullInProgress] = useState<PullWorkbookResult | null>(null);
 
-  const startRefresh = async (tableSelection: TableSelection) => {
+  const startPull = async (tableSelection: TableSelection) => {
     if (!workbook) return;
     try {
-      // Use downloadFiles API when in files mode, download API otherwise
-      const result = await workbookApi.downloadFiles(workbook.id, tableSelection.tableIds);
+      // Use pullFiles API when in files mode
+      const result = await workbookApi.pullFiles(workbook.id, tableSelection.tableIds);
 
-      setRefreshInProgress(result);
-      dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE);
+      setPullInProgress(result);
+      dismissModal(WorkbookModals.CONFIRM_PULL_SOURCE);
     } catch (e) {
       console.error(e);
       ScratchpadNotifications.error({
-        title: 'Refresh failed',
-        message: 'There was an error starting the refresh.',
+        title: 'Pull failed',
+        message: 'There was an error starting the pull.',
       });
     }
   };
@@ -42,10 +42,10 @@ export const RefreshTableDataModal = () => {
   return (
     <>
       {workbook && (
-        <ConfirmRefreshModal
+        <ConfirmPullModal
           isOpen={isOpen}
-          onClose={() => dismissModal(WorkbookModals.CONFIRM_REFRESH_SOURCE)}
-          onConfirm={startRefresh}
+          onClose={() => dismissModal(WorkbookModals.CONFIRM_PULL_SOURCE)}
+          onConfirm={startPull}
           workbook={workbook}
           activeTable={(activeTable as SnapshotTable) ?? null}
           isFilesMode={true}
@@ -53,15 +53,15 @@ export const RefreshTableDataModal = () => {
       )}
 
       {/* Only include a standard progress modal when the job is active */}
-      {refreshInProgress && workbook?.id && (
-        <DownloadProgressModal jobId={refreshInProgress.jobId} onClose={() => setRefreshInProgress(null)} />
+      {pullInProgress && workbook?.id && (
+        <PullProgressModal jobId={pullInProgress.jobId} onClose={() => setPullInProgress(null)} />
       )}
     </>
   );
 };
 
-/** Ask the user to confirm that they want to refresh the table data */
-const ConfirmRefreshModal = ({
+/** Ask the user to confirm that they want to pull the table data */
+const ConfirmPullModal = ({
   isOpen,
   onClose,
   onConfirm,
@@ -122,7 +122,7 @@ const ConfirmRefreshModal = ({
     (table: SnapshotTable) => selectedTableIds.includes(table.id) && table.dirty,
   );
 
-  const title = isFilesMode ? 'Select folders to refresh' : 'Select tables to refresh';
+  const title = isFilesMode ? 'Select folders to pull' : 'Select tables to pull';
   const itemLabel = isFilesMode ? 'folders' : 'tables';
 
   return (
@@ -132,7 +132,7 @@ const ConfirmRefreshModal = ({
           <>
             <ButtonSecondaryOutline onClick={onClose}>Cancel</ButtonSecondaryOutline>
             <ButtonPrimaryLight onClick={handleConfirm} disabled={selectedTableIds.length === 0}>
-              Refresh data
+              Pull data
             </ButtonPrimaryLight>
           </>
         ),
@@ -144,7 +144,7 @@ const ConfirmRefreshModal = ({
       <Stack gap="md">
         {availableTables.length === 0 ? (
           <MantineText size="sm" c="dimmed">
-            No {itemLabel} with remote connections available to refresh.
+            No {itemLabel} with remote connections available to pull.
           </MantineText>
         ) : (
           <Stack gap="xs">

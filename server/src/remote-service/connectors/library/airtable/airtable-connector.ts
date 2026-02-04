@@ -218,9 +218,9 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     }
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -233,7 +233,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     }
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: AirtableTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,

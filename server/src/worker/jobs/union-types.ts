@@ -2,18 +2,18 @@ import { Job as BullMQPlainJob } from 'bullmq';
 import { Progress } from './base-types';
 import { AddThreeNumbersJobDefinition } from './job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobDefinition } from './job-definitions/add-two-numbers.job';
-import { DownloadFilesJobDefinition } from './job-definitions/download-files.job';
-import { DownloadLinkedFolderFilesJobDefinition } from './job-definitions/download-linked-folder-files.job';
-import { DownloadRecordFilesJobDefinition } from './job-definitions/download-record-files.job';
 import { PublishDataFolderJobDefinition } from './job-definitions/publish-data-folder.job';
+import { PullFilesJobDefinition } from './job-definitions/pull-files.job';
+import { PullLinkedFolderFilesJobDefinition } from './job-definitions/pull-linked-folder-files.job';
+import { PullRecordFilesJobDefinition } from './job-definitions/pull-record-files.job';
 import { SyncDataFoldersJobDefinition } from './job-definitions/sync-data-folders.job';
 
 export type JobDefinition =
   | AddTwoNumbersJobDefinition
   | AddThreeNumbersJobDefinition
-  | DownloadFilesJobDefinition
-  | DownloadRecordFilesJobDefinition
-  | DownloadLinkedFolderFilesJobDefinition
+  | PullFilesJobDefinition
+  | PullRecordFilesJobDefinition
+  | PullLinkedFolderFilesJobDefinition
   | PublishDataFolderJobDefinition
   | SyncDataFoldersJobDefinition;
 export type JobData = JobDefinition['data'];

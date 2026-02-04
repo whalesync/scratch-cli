@@ -27,7 +27,7 @@ import type {
 } from '@spinner/shared-types';
 import {
   CreateWorkbookDto,
-  DownloadFilesDto,
+  PullFilesDto,
   SetContentColumnDto,
   SetTitleColumnDto,
   UpdateColumnSettingsDto,
@@ -136,14 +136,14 @@ export class WorkbookController {
     return new Workbook(await this.service.deleteTable(workbookId, tableId, userToActor(req.user)));
   }
 
-  @Post(':id/download-files')
-  async downloadFiles(
+  @Post(':id/pull-files')
+  async pullFiles(
     @Param('id') id: WorkbookId,
-    @Body() downloadDto: DownloadFilesDto,
+    @Body() pullDto: PullFilesDto,
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
-    const dto = downloadDto;
-    return this.service.downloadFiles(id, userToActor(req.user), dto.snapshotTableIds);
+    const dto = pullDto;
+    return this.service.pullFiles(id, userToActor(req.user), dto.snapshotTableIds);
   }
 
   @Delete(':id')

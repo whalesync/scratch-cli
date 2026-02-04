@@ -78,13 +78,13 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   }
 
   /**
-   * Download all available records for a given table.
-   * @param tableSpec The table spec to download records for.
-   * @param callback The callback that will process batches of records as they are downloaded.
-   * @param progress The progress object to update with the download progress.
-   * @throws Error if there is a problem downloading the records.
+   * Pull all available records for a given table.
+   * @param tableSpec The table spec to pull records for.
+   * @param callback The callback that will process batches of records as they are pulled.
+   * @param progress The progress object to update with the pull progress.
+   * @throws Error if there is a problem pulling the records.
    */
-  abstract downloadTableRecords(
+  abstract pullTableRecords(
     tableSpec: TableSpecs[T],
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
@@ -92,28 +92,28 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<void>;
 
   /**
-   * Does a full poll of target remote table and downloads all of the available records as JSON files.
+   * Does a full poll of target remote table and pulls all of the available records as JSON files.
    * This is the new method that uses JSON schema instead of column-based specs.
-   * @param tableSpec The JSON table spec to download records for.
-   * @param callback The callback that will process batches of files as they are downloaded.
-   * @param progress The progress object to update with the download progress.
+   * @param tableSpec The JSON table spec to pull records for.
+   * @param callback The callback that will process batches of files as they are pulled.
+   * @param progress The progress object to update with the pull progress.
    */
-  abstract downloadRecordFiles(
+  abstract pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
   ): Promise<void>;
 
   /**
-   * Sometimes accessing curtain record fields requires a more expensive api call that usually cannot be batched.
+   * Sometimes accessing certain record fields requires a more expensive api call that usually cannot be batched.
    * For example:
    * - Notion's pageContent field
    * - Youtube's caption field (for us defined as the video's first english caption)
-   * We should be able to download these fields on demand to save on api calls.
+   * We should be able to pull these fields on demand to save on api calls.
    * Youtube, for example can list videos in batches of 100 for 1 api credit per batch,
    * while fetching the captions for a video consumes 50 credits per video.
    */
-  abstract downloadRecordDeep?(
+  abstract pullRecordDeep?(
     tableSpec: TableSpecs[T],
     existingRecord: ExistingSnapshotRecord,
     /** Null indicates all possible fields */

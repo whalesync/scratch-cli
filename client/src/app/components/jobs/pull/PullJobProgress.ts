@@ -16,22 +16,22 @@ export type FolderProgress = {
   hasDirtyDiscoveredDeletes?: boolean;
 };
 
-// Download records progress (existing)
-export type DownloadRecordsProgress = {
+// Pull records progress (existing)
+export type PullRecordsProgress = {
   totalRecords: number;
   tables: TableProgress[];
 };
 
-// Download files progress (new)
-export type DownloadFilesProgress = {
+// Pull files progress (new)
+export type PullFilesProgress = {
   totalFiles: number;
   folders: FolderProgress[];
 };
 
 // Combined type that can be either
-export type DownloadProgress = DownloadRecordsProgress | DownloadFilesProgress;
+export type PullProgress = PullRecordsProgress | PullFilesProgress;
 
 // Type guard to check which type of progress we have
-export function isDownloadFilesProgress(progress: DownloadProgress): progress is DownloadFilesProgress {
+export function isPullFilesProgress(progress: PullProgress): progress is PullFilesProgress {
   return 'folders' in progress;
 }

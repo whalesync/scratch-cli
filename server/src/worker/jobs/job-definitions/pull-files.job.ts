@@ -14,34 +14,34 @@ import { ScratchGitService } from '../../../scratch-git/scratch-git.service';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from '../../../workbook/types';
 
-export type DownloadFilesPublicProgress = {
+export type PullFilesPublicProgress = {
   totalFiles: number;
   folders: {
     id: string; // folderId
     name: string; // folder name
     connector: string; // connector service name
-    files: number; // files downloaded count
+    files: number; // files pulled count
     status: 'pending' | 'active' | 'completed' | 'failed';
     hasDirtyDiscoveredDeletes?: boolean;
   }[];
 };
 
-export type DownloadFilesJobDefinition = JobDefinitionBuilder<
-  'download-files',
+export type PullFilesJobDefinition = JobDefinitionBuilder<
+  'pull-files',
   {
     workbookId: WorkbookId;
-    snapshotTableIds?: string[]; // Optional: if provided, only download these tables
+    snapshotTableIds?: string[]; // Optional: if provided, only pull these tables
     userId: string;
     organizationId: string;
     progress?: JsonSafeObject;
-    initialPublicProgress?: DownloadFilesPublicProgress;
+    initialPublicProgress?: PullFilesPublicProgress;
   },
-  DownloadFilesPublicProgress,
+  PullFilesPublicProgress,
   { index: number },
   void
 >;
 
-export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJobDefinition> {
+export class PullFilesJobHandler implements JobHandlerBuilder<PullFilesJobDefinition> {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
@@ -52,7 +52,7 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
   ) {}
 
   /**
-   * Resets the 'seen' flag to false for all records in a table and files in folder before starting a download
+   * Resets the 'seen' flag to false for all records in a table and files in folder before starting a pull
    * Excludes records with __old_remote_id set (discovered deletes that shouldn't be reprocessed)
    */
   private async resetSeenFlags(workbookId: WorkbookId, { folderId }: { tableName: string; folderId: FolderId }) {
@@ -61,12 +61,12 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
   }
 
   async run(params: {
-    data: DownloadFilesJobDefinition['data'];
-    progress: Progress<DownloadFilesJobDefinition['publicProgress'], DownloadFilesJobDefinition['initialJobProgress']>;
+    data: PullFilesJobDefinition['data'];
+    progress: Progress<PullFilesJobDefinition['publicProgress'], PullFilesJobDefinition['initialJobProgress']>;
     abortSignal: AbortSignal;
     checkpoint: (
       progress: Omit<
-        Progress<DownloadFilesJobDefinition['publicProgress'], DownloadFilesJobDefinition['initialJobProgress']>,
+        Progress<PullFilesJobDefinition['publicProgress'], PullFilesJobDefinition['initialJobProgress']>,
         'timestamp'
       >,
     ) => Promise<void>;
@@ -100,8 +100,8 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
     // Lock is already set when enqueuing the job
 
     WSLogger.debug({
-      source: 'DownloadFilesJob',
-      message: 'Set lock=download for tables with folders',
+      source: 'PullFilesJob',
+      message: 'Set lock=pull for tables with folders',
       workbookId: workbook.id,
       tableCount: snapshotTablesToProcess.length,
     });
@@ -148,14 +148,14 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
       });
 
       WSLogger.debug({
-        source: 'DownloadFilesJob',
-        message: 'Downloading files for folder',
+        source: 'PullFilesJob',
+        message: 'Pulling files for folder',
         workbookId: workbook.id,
         snapshotTableId: snapshotTable.id,
         folderId: snapshotTable.folderId,
       });
 
-      // Reset the 'seen' flag to false for all records/files before starting the download
+      // Reset the 'seen' flag to false for all records/files before starting the pull
       await this.resetSeenFlags(workbook.id as WorkbookId, {
         folderId: snapshotTable.folderId as FolderId,
         tableName: snapshotTable.tableName,
@@ -186,7 +186,7 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
         const { records, connectorProgress } = params;
 
         WSLogger.debug({
-          source: 'DownloadFilesJob',
+          source: 'PullFilesJob',
           message: 'Received records from connector',
           workbookId: workbook.id,
           folderId: snapshotTable.folderId,
@@ -222,7 +222,7 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
             await this.scratchGitService.rebaseDirty(workbook.id as WorkbookId);
           } catch (err) {
             WSLogger.error({
-              source: 'DownloadFilesJob',
+              source: 'PullFilesJob',
               message: 'Failed to sync batch to git',
               workbookId: workbook.id,
               error: err,
@@ -260,7 +260,7 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
       };
 
       try {
-        await connector.downloadTableRecords(
+        await connector.pullTableRecords(
           tableSpec,
           (snapshotTable.columnSettings as SnapshotColumnSettingsMap) ?? {},
           callback,
@@ -322,8 +322,8 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
         });
 
         WSLogger.debug({
-          source: 'DownloadFilesJob',
-          message: 'Download completed for folder',
+          source: 'PullFilesJob',
+          message: 'Pull completed for folder',
           workbookId: workbook.id,
           snapshotTableId: snapshotTable.id,
           folderId: snapshotTable.folderId,
@@ -359,8 +359,8 @@ export class DownloadFilesJobHandler implements JobHandlerBuilder<DownloadFilesJ
         });
 
         WSLogger.error({
-          source: 'DownloadFilesJob',
-          message: 'Failed to download files for folder',
+          source: 'PullFilesJob',
+          message: 'Failed to pull files for folder',
           workbookId: workbook.id,
           snapshotTableId: snapshotTable.id,
           folderId: snapshotTable.folderId,

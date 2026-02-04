@@ -45,6 +45,7 @@ export * from './dto/wix/publish-draft-posts.dto';
 export * from './dto/workbook/add-table-to-workbook.dto';
 export * from './dto/workbook/create-workbook.dto';
 export * from './dto/workbook/download-files.dto';
+export * from './dto/workbook/pull-files.dto';
 export * from './dto/workbook/file-details.dto';
 export * from './dto/workbook/folder.dto';
 export * from './dto/workbook/list-files.dto';

@@ -242,10 +242,10 @@ model SnapshotTable {
   // Whether this table is hidden from the UI
   hidden Boolean @default(false)
 
-  // Lock indicating an operation in progress: "download", "publish", or null
+  // Lock indicating an operation in progress: "pull", "publish", or null
   lock String?
 
-  // Timestamp of the last successful sync (download or publish)
+  // Timestamp of the last successful sync (pull or publish)
   lastSyncTime DateTime?
 
   // Columns that are hidden from the UI and agent, list of column wsIds
@@ -492,10 +492,10 @@ model DataFolder {
   // Path of this folder in the File Store that contains the actual files
   path String?
 
-  // Lock indicating an operation in progress: "download", "publish", or null
+  // Lock indicating an operation in progress: "pull", "publish", or null
   lock String?
 
-  // Timestamp of the last successful sync (download or publish)
+  // Timestamp of the last successful sync (pull or publish)
   lastSyncTime DateTime?
 
   // Version number of the folder structure, to help with future migrations

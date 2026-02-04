@@ -27,7 +27,7 @@ import { GetFolderFilesResponseDto, PutFolderFilesResponseDto } from './dtos/fol
 import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
-import { TriggerDownloadDto, TriggerDownloadResponseDto } from './dtos/trigger-download.dto';
+import { TriggerPullDto, TriggerPullResponseDto } from './dtos/trigger-pull.dto';
 
 @Controller('cli/v1')
 @UseGuards(CliAuthGuard)
@@ -145,12 +145,12 @@ export class CliController {
     return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto, actor);
   }
 
-  @Post('workbooks/:workbookId/download')
-  async triggerDownload(
+  @Post('workbooks/:workbookId/pull')
+  async triggerPull(
     @Param('workbookId') workbookId: WorkbookId,
-    @Body() dto: TriggerDownloadDto,
+    @Body() dto: TriggerPullDto,
     @Req() req: CliRequestWithUser,
-  ): Promise<TriggerDownloadResponseDto> {
+  ): Promise<TriggerPullResponseDto> {
     const actor = this.getActorFromRequest(req);
     if (!actor) {
       throw new ForbiddenException('Authentication required');
@@ -158,7 +158,7 @@ export class CliController {
     if (!dto.dataFolderId) {
       throw new BadRequestException('dataFolderId is required');
     }
-    return this.cliService.triggerDownload(workbookId, dto.dataFolderId, actor);
+    return this.cliService.triggerPull(workbookId, dto.dataFolderId, actor);
   }
 
   @Get('jobs/:jobId/status')

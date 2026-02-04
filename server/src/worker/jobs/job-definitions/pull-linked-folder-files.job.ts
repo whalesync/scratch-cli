@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { FolderId, Service, type WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, FolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorFile } from '../../../remote-service/connectors/types';
@@ -13,7 +13,7 @@ import { WorkbookDb } from 'src/workbook/workbook-db';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 
-export type DownloadRecordFilesPublicProgress = {
+export type PullLinkedFolderFilesPublicProgress = {
   totalFiles: number;
   folderId: string;
   folderName: string;
@@ -21,25 +21,25 @@ export type DownloadRecordFilesPublicProgress = {
   status: 'pending' | 'active' | 'completed' | 'failed';
 };
 
-export type DownloadRecordFilesJobDefinition = JobDefinitionBuilder<
-  'download-record-files',
+export type PullLinkedFolderFilesJobDefinition = JobDefinitionBuilder<
+  'pull-linked-folder-files',
   {
     workbookId: WorkbookId;
-    snapshotTableId: string;
+    dataFolderId: DataFolderId;
     userId: string;
     organizationId: string;
     progress?: JsonSafeObject;
-    initialPublicProgress?: DownloadRecordFilesPublicProgress;
+    initialPublicProgress?: PullLinkedFolderFilesPublicProgress;
   },
-  DownloadRecordFilesPublicProgress,
+  PullLinkedFolderFilesPublicProgress,
   Record<string, never>,
   void
 >;
 
 /**
- * This is the new job that will download records as ConnectorFiles for a single Linked Table
+ * This job pulls records as ConnectorFiles for a single DataFolder (linked folder)
  */
-export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<DownloadRecordFilesJobDefinition> {
+export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLinkedFolderFilesJobDefinition> {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
@@ -50,17 +50,17 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
   ) {}
 
   async run(params: {
-    data: DownloadRecordFilesJobDefinition['data'];
+    data: PullLinkedFolderFilesJobDefinition['data'];
     progress: Progress<
-      DownloadRecordFilesJobDefinition['publicProgress'],
-      DownloadRecordFilesJobDefinition['initialJobProgress']
+      PullLinkedFolderFilesJobDefinition['publicProgress'],
+      PullLinkedFolderFilesJobDefinition['initialJobProgress']
     >;
     abortSignal: AbortSignal;
     checkpoint: (
       progress: Omit<
         Progress<
-          DownloadRecordFilesJobDefinition['publicProgress'],
-          DownloadRecordFilesJobDefinition['initialJobProgress']
+          PullLinkedFolderFilesJobDefinition['publicProgress'],
+          PullLinkedFolderFilesJobDefinition['initialJobProgress']
         >,
         'timestamp'
       >,
@@ -68,30 +68,32 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
   }) {
     const { data, checkpoint, progress } = params;
 
-    const snapshotTable = await this.prisma.snapshotTable.findUnique({
-      where: { id: data.snapshotTableId },
+    const dataFolder = await this.prisma.dataFolder.findUnique({
+      where: { id: data.dataFolderId },
       include: {
         connectorAccount: true,
-        folder: true,
-        workbook: true,
       },
     });
 
-    if (!snapshotTable) {
-      throw new Error(`SnapshotTable with id ${data.snapshotTableId} not found`);
+    if (!dataFolder) {
+      throw new Error(`DataFolder with id ${data.dataFolderId} not found`);
     }
 
-    if (!snapshotTable.folderId) {
-      throw new Error(`SnapshotTable ${data.snapshotTableId} does not have an associated folder`);
+    if (!dataFolder.connectorAccountId) {
+      throw new Error(`DataFolder ${data.dataFolderId} does not have an associated connector account`);
     }
 
-    const tableSpec = snapshotTable.tableSpec as AnyJsonTableSpec;
+    if (!dataFolder.connectorService) {
+      throw new Error(`DataFolder ${data.dataFolderId} does not have a connector service`);
+    }
 
-    const publicProgress: DownloadRecordFilesPublicProgress = {
+    const tableSpec = dataFolder.schema as AnyJsonTableSpec;
+
+    const publicProgress: PullLinkedFolderFilesPublicProgress = {
       totalFiles: 0,
-      folderId: snapshotTable.folderId,
-      folderName: snapshotTable.folder?.name ?? tableSpec.name,
-      connector: snapshotTable.connectorService,
+      folderId: dataFolder.id,
+      folderName: dataFolder.name,
+      connector: dataFolder.connectorService,
       status: 'active',
     };
 
@@ -103,30 +105,29 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
     });
 
     WSLogger.debug({
-      source: 'DownloadRecordFilesJob',
-      message: 'Downloading record files for folder',
-      workbookId: snapshotTable.workbookId,
-      snapshotTableId: snapshotTable.id,
-      folderId: snapshotTable.folderId,
+      source: 'PullLinkedFolderFilesJob',
+      message: 'Pulling files for data folder',
+      workbookId: dataFolder.workbookId,
+      dataFolderId: dataFolder.id,
     });
 
     // Reset seen flags for files in the folder
     await this.workbookDb.resetSeenFlagForFolder(
-      snapshotTable.workbookId as WorkbookId,
-      snapshotTable.folderId as FolderId,
+      dataFolder.workbookId as WorkbookId,
+      dataFolder.id as unknown as FolderId,
     );
 
-    // Get connector for this table
-    const service = snapshotTable.connectorService;
+    // Get connector for this folder
+    const service = dataFolder.connectorService;
 
     let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
-    if (snapshotTable.connectorAccountId) {
-      decryptedConnectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, {
+    if (dataFolder.connectorAccountId) {
+      decryptedConnectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, {
         userId: data.userId,
         organizationId: data.organizationId,
       });
       if (!decryptedConnectorAccount) {
-        throw new Error(`Connector account ${snapshotTable.connectorAccountId} not found`);
+        throw new Error(`Connector account ${dataFolder.connectorAccountId} not found`);
       }
     }
 
@@ -141,19 +142,19 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
       const { files, connectorProgress } = params;
 
       WSLogger.debug({
-        source: 'DownloadRecordFilesJob',
+        source: 'PullLinkedFolderFilesJob',
         message: 'Received files from connector',
-        workbookId: snapshotTable.workbookId,
-        folderId: snapshotTable.folderId,
+        workbookId: dataFolder.workbookId,
+        dataFolderId: dataFolder.id,
         fileCount: files.length,
-        folderPath: snapshotTable.folder?.path,
+        folderPath: dataFolder.path,
       });
 
       // Upsert files from connector files
       const upsertedFiles = await this.workbookDb.upsertFilesFromConnectorFiles(
-        snapshotTable.workbookId as WorkbookId,
-        snapshotTable.folderId!,
-        snapshotTable.folder?.path ?? '',
+        dataFolder.workbookId as WorkbookId,
+        dataFolder.id,
+        dataFolder.path ?? '',
         files,
         tableSpec,
       );
@@ -167,18 +168,18 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
 
         try {
           await this.scratchGitService.commitFilesToBranch(
-            snapshotTable.workbookId as WorkbookId,
+            dataFolder.workbookId as WorkbookId,
             'main',
             gitFiles,
             `Sync batch of ${upsertedFiles.length} files`,
           );
 
-          await this.scratchGitService.rebaseDirty(snapshotTable.workbookId as WorkbookId);
+          await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);
         } catch (err) {
           WSLogger.error({
-            source: 'DownloadRecordFilesJob',
+            source: 'PullLinkedFolderFilesJob',
             message: 'Failed to sync batch to git',
-            workbookId: snapshotTable.workbookId,
+            workbookId: dataFolder.workbookId,
             error: err,
           });
         }
@@ -186,10 +187,10 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
 
       publicProgress.totalFiles += files.length;
 
-      this.snapshotEventService.sendSnapshotEvent(snapshotTable.workbookId as WorkbookId, {
+      this.snapshotEventService.sendSnapshotEvent(dataFolder.workbookId as WorkbookId, {
         type: 'snapshot-updated',
         data: {
-          tableId: snapshotTable.id,
+          tableId: dataFolder.id,
           source: 'user',
         },
       });
@@ -202,7 +203,7 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
     };
 
     try {
-      await connector.downloadRecordFiles(tableSpec, callback, progress);
+      await connector.pullRecordFiles(tableSpec, callback, progress);
 
       // Mark as completed
       publicProgress.status = 'completed';
@@ -215,8 +216,8 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
       });
 
       // Set lock=null and update lastSyncTime on success
-      await this.prisma.snapshotTable.update({
-        where: { id: snapshotTable.id },
+      await this.prisma.dataFolder.update({
+        where: { id: dataFolder.id },
         data: {
           lock: null,
           lastSyncTime: new Date(),
@@ -224,17 +225,16 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
       });
 
       WSLogger.debug({
-        source: 'DownloadRecordFilesJob',
-        message: 'Download completed for folder',
-        workbookId: snapshotTable.workbookId,
-        snapshotTableId: snapshotTable.id,
-        folderId: snapshotTable.folderId,
+        source: 'PullLinkedFolderFilesJob',
+        message: 'Pull completed for data folder',
+        workbookId: dataFolder.workbookId,
+        dataFolderId: dataFolder.id,
       });
 
-      this.snapshotEventService.sendSnapshotEvent(snapshotTable.workbookId as WorkbookId, {
+      this.snapshotEventService.sendSnapshotEvent(dataFolder.workbookId as WorkbookId, {
         type: 'snapshot-updated',
         data: {
-          tableId: snapshotTable.id,
+          tableId: dataFolder.id,
           source: 'agent',
         },
       });
@@ -250,17 +250,16 @@ export class DownloadRecordFilesJobHandler implements JobHandlerBuilder<Download
       });
 
       // Set lock=null on failure
-      await this.prisma.snapshotTable.update({
-        where: { id: snapshotTable.id },
+      await this.prisma.dataFolder.update({
+        where: { id: dataFolder.id },
         data: { lock: null },
       });
 
       WSLogger.error({
-        source: 'DownloadRecordFilesJob',
-        message: 'Failed to download record files for folder',
-        workbookId: snapshotTable.workbookId,
-        snapshotTableId: snapshotTable.id,
-        folderId: snapshotTable.folderId,
+        source: 'PullLinkedFolderFilesJob',
+        message: 'Failed to pull files for data folder',
+        workbookId: dataFolder.workbookId,
+        dataFolderId: dataFolder.id,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw exceptionForConnectorError(error, connector);

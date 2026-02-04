@@ -41,7 +41,7 @@ export enum WorkbookModals {
   KEYBOARD_SHORTCUT_HELP = 'keyboard_shortcut_help',
   RENAME_WORKBOOK = 'rename_workbook',
   CONFIRM_DELETE = 'confirm-delete',
-  CONFIRM_REFRESH_SOURCE = 'confirm-refresh-source',
+  CONFIRM_PULL_SOURCE = 'confirm-pull-source',
 }
 
 export type WorkbookMode = 'tables' | 'files' | 'scratchsync';
@@ -55,7 +55,7 @@ export type WorkbookModalParams =
       workbookId: WorkbookId /** Provide explicitly to be safe from race conditions */;
     }
   | {
-      type: WorkbookModals.CONFIRM_REFRESH_SOURCE;
+      type: WorkbookModals.CONFIRM_PULL_SOURCE;
     };
 
 export interface WorkbookEditorUIState {

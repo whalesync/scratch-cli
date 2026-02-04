@@ -677,13 +677,13 @@ func (c *Client) PutFolderFiles(folderId string, req *PutFolderFilesRequest) (*P
 	return &result, nil
 }
 
-// TriggerDownloadRequest represents the request body for triggering a download job.
-type TriggerDownloadRequest struct {
+// TriggerPullRequest represents the request body for triggering a pull job.
+type TriggerPullRequest struct {
 	DataFolderID string `json:"dataFolderId"`
 }
 
-// TriggerDownloadResponse represents the response from the trigger download endpoint.
-type TriggerDownloadResponse struct {
+// TriggerPullResponse represents the response from the trigger pull endpoint.
+type TriggerPullResponse struct {
 	JobID string `json:"jobId,omitempty"`
 	Error string `json:"error,omitempty"`
 }
@@ -712,10 +712,10 @@ type JobStatusResponse struct {
 	FailedReason string             `json:"failedReason,omitempty"`
 }
 
-// TriggerWorkbookDownload starts a download job for a data folder in a workbook.
-func (c *Client) TriggerWorkbookDownload(workbookID string, req *TriggerDownloadRequest) (*TriggerDownloadResponse, error) {
-	var result TriggerDownloadResponse
-	path := fmt.Sprintf("workbooks/%s/download", workbookID)
+// TriggerWorkbookPull starts a pull job for a data folder in a workbook.
+func (c *Client) TriggerWorkbookPull(workbookID string, req *TriggerPullRequest) (*TriggerPullResponse, error) {
+	var result TriggerPullResponse
+	path := fmt.Sprintf("workbooks/%s/pull", workbookID)
 	if err := c.doRequest(http.MethodPost, path, nil, req, &result); err != nil {
 		return nil, err
 	}

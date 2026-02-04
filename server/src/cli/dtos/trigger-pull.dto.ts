@@ -1,12 +1,12 @@
 import { IsOptional, IsString } from 'class-validator';
 
-export class TriggerDownloadDto {
+export class TriggerPullDto {
   @IsOptional()
   @IsString()
   dataFolderId?: string;
 }
 
-export class TriggerDownloadResponseDto {
+export class TriggerPullResponseDto {
   readonly jobId?: string;
   readonly error?: string;
 }

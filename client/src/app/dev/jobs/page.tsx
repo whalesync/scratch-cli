@@ -1,6 +1,6 @@
 'use client';
 
-import { DownloadProgressModal } from '@/app/components/jobs/download/DownloadJobProgressModal';
+import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import { Badge, Button, Center, Group, Loader, Stack, Table, Text, ThemeIcon, Tooltip } from '@mantine/core';
 import { Check, Circle, Dot, Eye, X } from 'lucide-react';
 import { useState } from 'react';
@@ -204,7 +204,7 @@ export default function JobsPage() {
         )}
       </MainContent.Body>
 
-      {/* Download Progress Modal */}
+      {/* Pull Progress Modal */}
       {/* Job Progress Modals */}
 
       {selectedJob && selectedJob.bullJobId && (
@@ -212,7 +212,7 @@ export default function JobsPage() {
           {selectedJob.type === 'publish-records' ? (
             <PublishJobProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
           ) : (
-            <DownloadProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
+            <PullProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
           )}
         </>
       )}

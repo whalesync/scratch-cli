@@ -167,18 +167,18 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
     };
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     progress: JsonSafeObject,
   ): Promise<void> {
-    WSLogger.info({ source: 'WixBlogConnector', message: 'downloadRecordFiles called', tableId: tableSpec.id.wsId });
+    WSLogger.info({ source: 'WixBlogConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });
   }
 
-  async downloadTableRecords(
+  async pullTableRecords(
     tableSpec: WixBlogTableSpec,
     columnSettingsMap: SnapshotColumnSettingsMap,
     callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,

@@ -1,7 +1,7 @@
 /**
  * Spec types for the Audienceful connector.
  *
- * Since Audienceful is a JSON-only connector (uses fetchJsonTableSpec and downloadRecordFiles),
+ * Since Audienceful is a JSON-only connector (uses fetchJsonTableSpec and pullRecordFiles),
  * these types are minimal and use the base types.
  */
 

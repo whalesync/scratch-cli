@@ -134,13 +134,13 @@ export const workbookApi = {
     }
   },
 
-  async downloadFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+  async pullFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/download-files`, { snapshotTableIds });
+      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/pull-files`, { snapshotTableIds });
       return res.data;
     } catch (error) {
-      handleAxiosError(error, 'Failed to start files download');
+      handleAxiosError(error, 'Failed to start files pull');
     }
   },
 

@@ -43,7 +43,7 @@ const ENTITY_TYPES: MocoEntityType[] = ['companies', 'contacts', 'projects'];
  *
  * This is a JSON-only connector that implements:
  * - fetchJsonTableSpec() for schema discovery
- * - downloadRecordFiles() for fetching records
+ * - pullRecordFiles() for fetching records
  */
 export class MocoConnector extends Connector<typeof Service.MOCO> {
   readonly service = Service.MOCO;
@@ -898,7 +898,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
    * @throws Error - This connector only supports JSON schema methods for downloading.
    */
   // eslint-disable-next-line @typescript-eslint/require-await
-  async downloadTableRecords(
+  async pullTableRecords(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _tableSpec: MocoTableSpec,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -908,13 +908,13 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
   ): Promise<void> {
-    throw new Error('Moco connector does not support downloadTableRecords. Use downloadRecordFiles instead.');
+    throw new Error('Moco connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**
    * Download all entities as JSON files.
    */
-  async downloadRecordFiles(
+  async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -927,7 +927,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     }
   }
 
-  public downloadRecordDeep = undefined;
+  public pullRecordDeep = undefined;
 
   /**
    * Get the batch size for CRUD operations.

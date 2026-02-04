@@ -13,10 +13,10 @@ import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
-import { DownloadFilesJobHandler } from './jobs/job-definitions/download-files.job';
-import { DownloadLinkedFolderFilesJobHandler } from './jobs/job-definitions/download-linked-folder-files.job';
-import { DownloadRecordFilesJobHandler } from './jobs/job-definitions/download-record-files.job';
 import { PublishDataFolderJobHandler } from './jobs/job-definitions/publish-data-folder.job';
+import { PullFilesJobHandler } from './jobs/job-definitions/pull-files.job';
+import { PullLinkedFolderFilesJobHandler } from './jobs/job-definitions/pull-linked-folder-files.job';
+import { PullRecordFilesJobHandler } from './jobs/job-definitions/pull-record-files.job';
 import { SyncDataFoldersJobHandler } from './jobs/job-definitions/sync-data-folders.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
@@ -46,8 +46,8 @@ export class JobHandlerService {
         return AddTwoNumbersJobHandler as JobHandler<JobDefinition>;
       case 'add-three-numbers':
         return new AddThreeNumbersJobHandler(prisma) as JobHandler<JobDefinition>;
-      case 'download-files':
-        return new DownloadFilesJobHandler(
+      case 'pull-files':
+        return new PullFilesJobHandler(
           prisma,
           this.connectorService,
           this.workbookDbService.workbookDb,
@@ -55,8 +55,8 @@ export class JobHandlerService {
           this.snapshotEventService,
           this.scratchGitService,
         ) as JobHandler<JobDefinition>;
-      case 'download-record-files':
-        return new DownloadRecordFilesJobHandler(
+      case 'pull-record-files':
+        return new PullRecordFilesJobHandler(
           prisma,
           this.connectorService,
           this.workbookDbService.workbookDb,
@@ -64,8 +64,8 @@ export class JobHandlerService {
           this.snapshotEventService,
           this.scratchGitService,
         ) as JobHandler<JobDefinition>;
-      case 'download-linked-folder-files':
-        return new DownloadLinkedFolderFilesJobHandler(
+      case 'pull-linked-folder-files':
+        return new PullLinkedFolderFilesJobHandler(
           prisma,
           this.connectorService,
           this.workbookDbService.workbookDb,

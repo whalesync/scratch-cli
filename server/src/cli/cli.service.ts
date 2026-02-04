@@ -21,7 +21,7 @@ import { normalizeFileName } from 'src/workbook/util';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
-import { DownloadLinkedFolderFilesPublicProgress } from 'src/worker/jobs/job-definitions/download-linked-folder-files.job';
+import { PullLinkedFolderFilesPublicProgress } from 'src/worker/jobs/job-definitions/pull-linked-folder-files.job';
 import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ValidatedFolderMetadataDto } from './dtos/download-folder.dto';
 import {
@@ -32,7 +32,7 @@ import {
 import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
 import { TestConnectionResponseDto } from './dtos/test-connection.dto';
-import { TriggerDownloadResponseDto } from './dtos/trigger-download.dto';
+import { TriggerPullResponseDto } from './dtos/trigger-pull.dto';
 
 /**
  * Represents a file from the dirty branch (server state)
@@ -259,8 +259,8 @@ export class CliService {
     try {
       const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
 
-      // Check if the connector supports JSON-based download
-      if (!connector.downloadRecordFiles) {
+      // Check if the connector supports JSON-based pull
+      if (!connector.pullRecordFiles) {
         return {
           error: `The ${credentials.service} connector does not support JSON file downloads`,
         };
@@ -275,7 +275,7 @@ export class CliService {
       // Collect all files using the JSON-based method
       const allFiles: ConnectorFile[] = [];
 
-      await connector.downloadRecordFiles(
+      await connector.pullRecordFiles(
         tableSpec,
         ({ files }) => {
           allFiles.push(...files);
@@ -508,14 +508,10 @@ export class CliService {
   }
 
   /**
-   * Triggers a download job for a data folder in a workbook.
-   * Uses enqueueDownloadLinkedFolderFilesJob to download from the connector.
+   * Triggers a pull job for a data folder in a workbook.
+   * Uses enqueuePullLinkedFolderFilesJob to pull from the connector.
    */
-  async triggerDownload(
-    workbookId: WorkbookId,
-    dataFolderId: string,
-    actor: Actor,
-  ): Promise<TriggerDownloadResponseDto> {
+  async triggerPull(workbookId: WorkbookId, dataFolderId: string, actor: Actor): Promise<TriggerPullResponseDto> {
     try {
       // Verify user has access to workbook
       const workbook = await this.workbookService.findOne(workbookId, actor);
@@ -538,11 +534,11 @@ export class CliService {
       // Set lock on the folder
       await this.db.client.dataFolder.update({
         where: { id: dataFolderId as DataFolderId },
-        data: { lock: 'download' },
+        data: { lock: 'pull' },
       });
 
       // Build initial public progress
-      const initialPublicProgress: DownloadLinkedFolderFilesPublicProgress = {
+      const initialPublicProgress: PullLinkedFolderFilesPublicProgress = {
         totalFiles: 0,
         status: 'pending',
         folderId: dataFolder.id,
@@ -550,15 +546,15 @@ export class CliService {
         connector: dataFolder.connectorService ?? '',
       };
 
-      // Enqueue the download job
-      const job = await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(
+      // Enqueue the pull job
+      const job = await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(
         workbookId,
         actor,
         dataFolderId as DataFolderId,
         initialPublicProgress,
       );
 
-      this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD, actor.userId, {
+      this.posthogService.captureEvent(PostHogEventName.CLI_PULL, actor.userId, {
         workbookId,
         dataFolderId,
         source: 'cli-trigger',
@@ -568,7 +564,7 @@ export class CliService {
     } catch (error) {
       WSLogger.error({
         source: 'CliService',
-        message: 'Error triggering download',
+        message: 'Error triggering pull',
         error: error instanceof Error ? error.message : 'Unknown error',
         workbookId,
         dataFolderId,
@@ -581,15 +577,15 @@ export class CliService {
   /**
    * Gets the status of a job by its BullMQ job ID.
    * Returns real-time progress information from the job queue.
-   * Handles DownloadLinkedFolderFilesPublicProgress shape.
+   * Handles PullLinkedFolderFilesPublicProgress shape.
    */
   async getJobStatus(jobId: string): Promise<JobStatusResponseDto> {
     try {
       const jobEntity = await this.jobService.getJobProgress(jobId);
 
-      const rawProgress = jobEntity.publicProgress as DownloadLinkedFolderFilesPublicProgress | undefined;
+      const rawProgress = jobEntity.publicProgress as PullLinkedFolderFilesPublicProgress | undefined;
 
-      // DownloadLinkedFolderFilesPublicProgress has: { totalFiles, folderId, folderName, connector, status }
+      // PullLinkedFolderFilesPublicProgress has: { totalFiles, folderId, folderName, connector, status }
       const progress = rawProgress
         ? {
             totalFiles: rawProgress.totalFiles,

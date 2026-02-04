@@ -3,17 +3,17 @@ import { FC } from 'react';
 import { useJobWithCancellation } from '../../../../hooks/use-progress';
 import { ButtonSecondaryOutline } from '../../base/buttons';
 import { ModalWrapper } from '../../ModalWrapper';
-import { DownloadProgress } from './DownloadJobProgress';
-import { DownloadJobProgressDisplay } from './DownloadJobProgressDisplay';
+import { PullProgress } from './PullJobProgress';
+import { PullJobProgressDisplay } from './PullJobProgressDisplay';
 
 type Props = {
   jobId: string;
   onClose: () => void;
 };
 
-export const DownloadProgressModal: FC<Props> = (props) => {
+export const PullProgressModal: FC<Props> = (props) => {
   const { jobId, onClose } = props;
-  const { jobResult, cancellationRequested, isCancelling, cancelJob } = useJobWithCancellation<DownloadProgress>(jobId);
+  const { jobResult, cancellationRequested, isCancelling, cancelJob } = useJobWithCancellation<PullProgress>(jobId);
   const { job, error, isLoading } = jobResult;
 
   const getStatusText = () => {
@@ -32,9 +32,9 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       case 'active':
         return 'Fetching data...';
       case 'completed':
-        return 'Refresh completed successfully!';
+        return 'Pull completed successfully!';
       case 'failed':
-        return `Refresh failed: ${job.failedReason || 'Unknown error'}`;
+        return `Pull failed: ${job.failedReason || 'Unknown error'}`;
       case 'delayed':
         return 'Job is delayed...';
       case 'paused':
@@ -49,7 +49,7 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       {/* Cancel button - show when job is active and not already cancelled */}
       {job?.state === 'active' && !cancellationRequested && (
         <ButtonSecondaryOutline onClick={cancelJob} loading={isCancelling} color="red" variant="outline">
-          {isCancelling ? 'Cancelling...' : 'Cancel Download'}
+          {isCancelling ? 'Cancelling...' : 'Cancel Pull'}
         </ButtonSecondaryOutline>
       )}
 
@@ -70,7 +70,7 @@ export const DownloadProgressModal: FC<Props> = (props) => {
       closeOnEscape={job?.state === 'completed' || job?.state === 'failed'}
     >
       <Stack>
-        <DownloadJobProgressDisplay job={job} />
+        <PullJobProgressDisplay job={job} />
       </Stack>
     </ModalWrapper>
   );
