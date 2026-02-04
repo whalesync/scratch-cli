@@ -2,8 +2,10 @@ import { Text13Medium } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { syncApi } from '@/lib/api/sync';
+import { workbookApi } from '@/lib/api/workbook';
 import {
   ActionIcon,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -16,7 +18,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { ArrowRight, ChevronDown, ChevronUp, Database, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronUp, Database, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface AddSyncDialogProps {
@@ -76,7 +78,17 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
   const [syncName, setSyncName] = useState('');
   const [schedule, setSchedule] = useState('');
   const [autoPublish, setAutoPublish] = useState(true);
+
   const [saving, setSaving] = useState(false);
+  const [schemaCache, setSchemaCache] = useState<Record<string, string[]>>({});
+
+  // Fetch schema paths if not in cache
+  const ensureSchemaPaths = async (folderId: string) => {
+    if (!folderId || schemaCache[folderId]) return;
+
+    const paths = await workbookApi.getSchemaPaths(folderId);
+    setSchemaCache((prev) => ({ ...prev, [folderId]: paths }));
+  };
 
   // Flatten folders for easy selection
   const allFolders = dataFolderGroups.flatMap((g) => g.dataFolders);
@@ -255,7 +267,10 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
                   placeholder="Select source"
                   data={allFolders.filter((f) => f.id !== pair.destId).map((f) => ({ value: f.id, label: f.name }))}
                   value={pair.sourceId}
-                  onChange={(val) => updatePair(index, { sourceId: val || '' })}
+                  onChange={(val) => {
+                    updatePair(index, { sourceId: val || '' });
+                    if (val) ensureSchemaPaths(val);
+                  }}
                   searchable
                 />
                 <Select
@@ -263,7 +278,10 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
                   placeholder="Select destination"
                   data={allFolders.filter((f) => f.id !== pair.sourceId).map((f) => ({ value: f.id, label: f.name }))}
                   value={pair.destId}
-                  onChange={(val) => updatePair(index, { destId: val || '' })}
+                  onChange={(val) => {
+                    updatePair(index, { destId: val || '' });
+                    if (val) ensureSchemaPaths(val);
+                  }}
                   searchable
                 />
               </Group>
@@ -276,18 +294,22 @@ export function AddSyncDialog({ opened, onClose, onSyncCreated }: AddSyncDialogP
 
                 {pair.fieldMappings.map((mapping, mIndex) => (
                   <Group key={mapping.id} gap="xs">
-                    <TextInput
+                    <Autocomplete
                       placeholder="Source field"
                       style={{ flex: 1 }}
                       value={mapping.sourceField}
-                      onChange={(e) => updateFieldMapping(index, mIndex, 'sourceField', e.currentTarget.value)}
+                      onChange={(val) => updateFieldMapping(index, mIndex, 'sourceField', val)}
+                      data={schemaCache[pair.sourceId] || []}
+                      rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                     />
                     <ArrowRight size={14} color="var(--mantine-color-dimmed)" />
-                    <TextInput
+                    <Autocomplete
                       placeholder="Dest field"
                       style={{ flex: 1 }}
                       value={mapping.destField}
-                      onChange={(e) => updateFieldMapping(index, mIndex, 'destField', e.currentTarget.value)}
+                      onChange={(val) => updateFieldMapping(index, mIndex, 'destField', val)}
+                      data={schemaCache[pair.destId] || []}
+                      rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                     />
                     {pair.fieldMappings.length > 1 && (
                       <ActionIcon variant="subtle" color="gray" onClick={() => removeFieldMapping(index, mIndex)}>

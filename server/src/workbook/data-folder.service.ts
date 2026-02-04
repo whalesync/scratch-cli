@@ -17,6 +17,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { Actor } from 'src/users/types';
+import { extractSchemaPaths } from 'src/utils/schema-helpers';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
@@ -594,5 +595,58 @@ export class DataFolderService {
         };
       }),
     );
+  }
+
+  /**
+   * Returns schema paths (dot notation) for a data folder.
+   * Fetches fresh schema from the connector.
+   */
+  /**
+   * Fetches the full JSON Table Spec from the connector for a data folder.
+   */
+  async fetchSchemaSpec(id: DataFolderId, actor: Actor): Promise<BaseJsonTableSpec | null> {
+    const folder = await this.findOne(id, actor);
+
+    if (!folder.connectorAccountId || !folder.tableId || folder.tableId.length === 0) {
+      return null;
+    }
+
+    const connectorAccount = await this.connectorAccountService.findOne(folder.connectorAccountId, actor);
+    if (!connectorAccount) {
+      return null;
+    }
+
+    const connector = await this.connectorService.getConnector({
+      service: folder.connectorService!,
+      connectorAccount: connectorAccount as ConnectorAccount,
+      decryptedCredentials: connectorAccount as unknown as DecryptedCredentials,
+    });
+
+    try {
+      return await connector.fetchJsonTableSpec({
+        wsId: folder.tableId[0],
+        remoteId: folder.tableId,
+      });
+    } catch (error) {
+      WSLogger.error({
+        source: 'DataFolderService.fetchSchemaSpec',
+        message: 'Failed to fetch schema from connector',
+        error,
+        dataFolderId: id,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Returns schema paths (dot notation) for a data folder.
+   * Fetches fresh schema from the connector.
+   */
+  async getSchemaPaths(id: DataFolderId, actor: Actor): Promise<string[]> {
+    const spec = await this.fetchSchemaSpec(id, actor);
+    if (!spec || !spec.schema) {
+      return [];
+    }
+    return extractSchemaPaths(spec.schema);
   }
 }

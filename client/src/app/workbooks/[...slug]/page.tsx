@@ -30,6 +30,7 @@ import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditorNew } from './components/FileEditorNew';
+import { SyncsPanel } from './components/SyncsPanel';
 import { SyncsView } from './components/SyncsView';
 import { TabBar } from './components/TabBar';
 
@@ -99,7 +100,14 @@ function WorkbookFilesPageContent() {
             <Split h="100%">
               {/* Left Pane: Tree View */}
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
-                <DataFolderBrowser />
+                <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
+                  <Box flex={1} style={{ overflow: 'hidden' }}>
+                    <DataFolderBrowser />
+                  </Box>
+                  <Box h="300px" style={{ borderTop: '0.5px solid var(--fg-divider)' }}>
+                    <SyncsPanel />
+                  </Box>
+                </Stack>
               </Split.Pane>
 
               <Split.Resizer w="6px" m={0} hoverColor="transparent" />

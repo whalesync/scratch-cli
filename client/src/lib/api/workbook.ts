@@ -238,6 +238,17 @@ export const workbookApi = {
     }
   },
 
+  getSchemaPaths: async (folderId: string): Promise<string[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<string[]>(`/data-folder/${folderId}/schema-paths`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch schema paths');
+      return [];
+    }
+  },
+
   backupWorkbookToRepo: async (workbookId: WorkbookId): Promise<{ success: boolean; message: string }> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();

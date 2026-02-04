@@ -214,7 +214,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   }
 
   return (
-    <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
+    <Stack h="100%" gap={0} bg="var(--bg-base)">
       {/* Tree Header */}
       <Group h={36} px="xs" justify="space-between" style={{ borderBottom: '0.5px solid var(--fg-divider)' }}>
         <Text fw={500} size="sm">
@@ -259,17 +259,6 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               color="gray"
               size="sm"
               onClick={() => openFileTab({ id: 'add-table', type: 'add-table', title: 'New Linked Folder', path: '' })}
-            >
-              <FolderSyncIcon size={14} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Tooltip label="Syncs" openDelay={500}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={() => openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' })}
             >
               <FolderSyncIcon size={14} />
             </ActionIcon>

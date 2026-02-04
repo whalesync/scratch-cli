@@ -1,12 +1,13 @@
 import { Text13Medium } from '@/app/components/base/text';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { syncApi } from '@/lib/api/sync';
-import { Box, Button, Card, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Sync, SyncId } from '@spinner/shared-types';
-import { ArrowLeftRight, Clock, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AddSyncDialog } from './dialogs/AddSyncDialog';
+import { SyncCard } from './SyncCard';
 
 export function SyncsView() {
   const { workbook } = useActiveWorkbook();
@@ -15,16 +16,10 @@ export function SyncsView() {
   const [loading, setLoading] = useState(false);
 
   const fetchSyncs = useCallback(async () => {
-    console.log('fetchSyncs called', { workbookId: workbook?.id });
-    if (!workbook?.id) {
-      console.log('No workbook ID, skipping fetch');
-      return;
-    }
+    if (!workbook?.id) return;
     setLoading(true);
     try {
-      console.log('Calling syncApi.list...');
       const data = await syncApi.list(workbook.id);
-      console.log('syncApi.list result:', data);
       setSyncs(data);
     } catch (error) {
       console.error('Failed to fetch syncs:', error);
@@ -56,6 +51,19 @@ export function SyncsView() {
     }
   };
 
+  const handleDelete = async (sync: Sync) => {
+    if (!workbook?.id) return;
+    if (!window.confirm(`Are you sure you want to delete "${sync.displayName}"?`)) return;
+
+    try {
+      await syncApi.delete(workbook.id, sync.id);
+      console.log('Deleted sync', sync.id);
+      fetchSyncs();
+    } catch (error) {
+      console.error('Failed to delete sync:', error);
+    }
+  };
+
   const hasSyncs = syncs.length > 0;
 
   return (
@@ -72,29 +80,12 @@ export function SyncsView() {
       {hasSyncs ? (
         <Stack gap="sm">
           {syncs.map((sync) => (
-            <Card key={sync.id} withBorder padding="sm" radius="md">
-              <Group justify="space-between">
-                <Group gap="sm">
-                  <Box c="blue">
-                    <ArrowLeftRight size={20} />
-                  </Box>
-                  <Stack gap={0}>
-                    <Text size="sm" fw={500}>
-                      {sync.displayName}
-                    </Text>
-                    <Group gap={4}>
-                      <Clock size={12} className="text-gray-500" />
-                      <Text size="xs" c="dimmed">
-                        Last run: {sync.lastSyncTime ? new Date(sync.lastSyncTime).toLocaleString() : 'Never'}
-                      </Text>
-                    </Group>
-                  </Stack>
-                </Group>
-                <Button variant="light" size="xs" onClick={() => handleRunSync(sync.id)}>
-                  Run
-                </Button>
-              </Group>
-            </Card>
+            <SyncCard
+              key={sync.id}
+              sync={sync}
+              onDelete={() => handleDelete(sync)}
+              onRun={() => handleRunSync(sync.id)}
+            />
           ))}
         </Stack>
       ) : (

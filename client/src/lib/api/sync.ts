@@ -39,4 +39,13 @@ export const syncApi = {
       handleAxiosError(error, 'Failed to run sync');
     }
   },
+  delete: async (workbookId: WorkbookId, syncId: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/workbooks/${workbookId}/syncs/${syncId}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete sync');
+      throw error;
+    }
+  },
 };

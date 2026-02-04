@@ -2,6 +2,7 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -10,13 +11,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { SyncId, WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, SyncId, WorkbookId } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { userToActor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { CreateSyncDto } from './dtos/create-sync.dto';
+import { ValidateMappingDto } from './dtos/validate-mapping.dto';
 import { SyncService } from './sync.service';
 
 @Controller('workbooks/:workbookId/syncs')
@@ -67,5 +69,29 @@ export class SyncController {
       jobId: job.id,
       message: 'Sync job queued successfully',
     };
+  }
+  @Delete(':syncId')
+  async deleteSync(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Param('syncId') syncId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    return await this.syncService.deleteSync(workbookId, syncId as SyncId, userToActor(req.user));
+  }
+
+  @Post('validate-mapping')
+  async validateMapping(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() dto: ValidateMappingDto,
+    @Req() req: RequestWithUser,
+  ): Promise<{ valid: boolean }> {
+    const valid = await this.syncService.validateFolderMapping(
+      workbookId,
+      dto.sourceId as DataFolderId,
+      dto.destId as DataFolderId,
+      dto.mapping,
+      userToActor(req.user),
+    );
+    return { valid };
   }
 }
