@@ -2,6 +2,7 @@ module "eu_test" {
   source = "../../modules/env"
 
   env_name           = "eu-test"
+  app_env            = "test"
   gcp_project_id     = "spv1eu-test"
   gcp_project_number = 491293505063
   gcp_region         = "europe-west1"

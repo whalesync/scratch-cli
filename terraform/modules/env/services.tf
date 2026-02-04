@@ -171,7 +171,7 @@ resource "google_cloud_run_v2_service" "api_service" {
       dynamic "env" {
         for_each = merge(
           {
-            "APP_ENV" : var.env_name,
+            "APP_ENV" : var.app_env != null ? var.app_env : var.env_name,
             "AUTO_CREATE_TRIAL_SUBSCRIPTION" : "true",
             "GCP_PROJECT_NUMBER" : var.gcp_project_number,
             "GENERATE_OPENROUTER_KEY_FOR_NEW_USERS" : "true",
@@ -342,7 +342,7 @@ resource "google_cloud_run_v2_service" "agent_service" {
 
       dynamic "env" {
         for_each = {
-          "APP_ENV" : var.env_name,
+          "APP_ENV" : var.app_env != null ? var.app_env : var.env_name,
           "GCP_PROJECT_NUMBER" : var.gcp_project_number,
           "LOGFIRE_ENABLE_FULL_INSTRUMENTATION" : var.agent_enable_full_logfire_instrumentation ? "true" : "false",
           "LOGFIRE_ENVIRONMENT" : var.env_name,

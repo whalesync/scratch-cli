@@ -3,6 +3,12 @@ variable "env_name" {
   description = "Name of the environment: test | staging | production"
 }
 
+variable "app_env" {
+  type        = string
+  default     = null
+  description = "Override for APP_ENV. If not set, defaults to env_name. Must be one of: development, test, staging, production, automated_test"
+}
+
 variable "gcp_project_id" {
   type        = string
   description = "GCP Project ID where resources are to be deployed"
