@@ -95,8 +95,20 @@ export class DataFolderController {
       if (dataFolder.workbookId !== workbookId) {
         throw new BadRequestException(`Data folder ${folderId} does not belong to this workbook`);
       }
+      // Check if folder is already locked by another operation
+      if (dataFolder.lock) {
+        throw new BadRequestException(
+          `Data folder "${dataFolder.name}" is currently locked by another ${dataFolder.lock} operation`,
+        );
+      }
       dataFolders.push(dataFolder);
     }
+
+    // Acquire locks on all folders before enqueueing the job
+    await this.db.client.dataFolder.updateMany({
+      where: { id: { in: dataFolderIds } },
+      data: { lock: 'publish' },
+    });
 
     // Calculate expected counts for all folders
     const foldersProgress: FolderPublishProgress[] = [];
@@ -222,6 +234,19 @@ export class DataFolderController {
     if (dataFolder.workbookId !== workbookId) {
       throw new BadRequestException('Data folder does not belong to this workbook');
     }
+
+    // Check if folder is already locked by another operation
+    if (dataFolder.lock) {
+      throw new BadRequestException(
+        `Data folder "${dataFolder.name}" is currently locked by another ${dataFolder.lock} operation`,
+      );
+    }
+
+    // Acquire lock before enqueueing the job
+    await this.db.client.dataFolder.update({
+      where: { id },
+      data: { lock: 'publish' },
+    });
 
     // Enqueue the publish job with single folder as array
     const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(workbookId, actor, [id]);
