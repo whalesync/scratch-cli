@@ -88,7 +88,7 @@ Docker images are built automatically by the GitLab CI/CD pipeline and pushed to
 
 The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to both **Test** (`spv1-test`) and **Production** (`spv1-production`) environments.
 
-### Deploy via gcloud (without Terraform)
+### Deploy via gcloud
 
 To update the running container without a full Terraform apply, SSH into the instance and re-run the startup script. This pulls the latest image and restarts the container.
 
@@ -112,26 +112,54 @@ gcloud compute ssh scratch-git \
   -- 'sudo google_metadata_script_runner startup'
 ```
 
-Alternatively, SSH in and manually pull and restart:
+Alternatively, SSH in and interact with the instance directly
 
 ```bash
 gcloud compute ssh scratch-git \
   --project spv1-test \
   --zone us-central1-c \
   --tunnel-through-iap
+```
 
-# On the instance:
-export HOME=/var/lib/docker-home
-docker pull us-central1-docker.pkg.dev/spv1-test/test-registry/spinner-scratch-git:latest
-docker stop scratch-git && docker rm scratch-git
-docker run -d \
-  --name scratch-git \
-  --restart unless-stopped \
-  --log-driver=gcplogs \
-  -p 3100:3100 \
-  -p 3101:3101 \
-  -v /mnt/disks/data:/data \
-  us-central1-docker.pkg.dev/spv1-test/test-registry/spinner-scratch-git:latest
+#### Docker commands
+
+When you SSH in via `gcloud` it will login as your service account which is unable to use `docker` commands directly,
+so you need to sudo any docker command.
+
+# View running containers
+
+```bash
+sudo docker ps
+```
+
+# View logs
+
+```bash
+sudo docker logs scratch-git
+```
+
+# Follow logs in real-time
+
+```bash
+sudo docker logs -f scratch-git
+```
+
+# Open a shell inside the container
+
+```bash
+sudo docker exec -it scratch-git /bin/sh
+```
+
+# Restart the container
+
+```bash
+sudo docker restart scratch-git
+```
+
+# Check container resource usage
+
+```bash
+sudo docker stats scratch-git
 ```
 
 ### Accessing the service locally

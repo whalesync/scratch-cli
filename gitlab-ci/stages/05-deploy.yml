@@ -116,12 +116,26 @@ deploy client service to Cloud Run production environment:
   rules:
     - !reference [.rules, on_merge_to_prod]
 
+deploy scratch-git to production environment:
+  stage: deploy
+  extends:
+    - .gcp_production_env
+  script:
+    - gcloud compute ssh scratch-git
+      --project spv1-production
+      --zone us-central1-c
+      --tunnel-through-iap
+      -- 'sudo google_metadata_script_runner startup'
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
 notify slack on failure production environment:
   stage: deployment notifications
   needs:
     [
       "deploy api service to Cloud Run production environment",
       "deploy client service to Cloud Run production environment",
+      "deploy scratch-git to production environment",
     ]
   script:
     - |
@@ -139,6 +153,7 @@ notify slack on success production environment:
     [
       "deploy api service to Cloud Run production environment",
       "deploy client service to Cloud Run production environment",
+      "deploy scratch-git to production environment",
     ]
   script:
     - |
