@@ -24,7 +24,6 @@ import {
   ValidatedUpdateSettingsDto,
   WorkbookId,
 } from '@spinner/shared-types';
-import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
@@ -32,7 +31,7 @@ import type { RequestWithUser } from 'src/auth/types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { DbService } from 'src/db/db.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
-import { getPlan, getPlanTypeFromString } from 'src/payment/plans';
+import { getPlanTypeFromString } from 'src/payment/plans';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { User } from 'src/users/entities/user.entity';
 import { OnboardingService } from 'src/users/onboarding.service';
@@ -63,7 +62,6 @@ export class DevToolsController {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,
-    private readonly agentCredentialsService: AgentCredentialsService,
     private readonly onboardingService: OnboardingService,
     private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
@@ -149,10 +147,6 @@ export class DevToolsController {
     if (!planType) {
       throw new BadRequestException(`Invalid plan type: ${dto.planType}`);
     }
-    const plan = getPlan(planType);
-    if (!plan) {
-      throw new BadRequestException(`Invalid plan: ${dto.planType}`);
-    }
 
     if (planType === ScratchPlanType.FREE_PLAN && !currentSubscription) {
       throw new BadRequestException('You cannot downgrade to the free plan if you do not have an active subscription');
@@ -182,12 +176,6 @@ export class DevToolsController {
           },
         });
       }
-      const existingCredential = await this.agentCredentialsService.findSystemOpenRouterCredential(req.user.id);
-      if (existingCredential) {
-        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
-      } else {
-        await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(req.user.id, plan);
-      }
     } else if (planType !== ScratchPlanType.FREE_PLAN) {
       // create a fake new subscription
       await this.dbService.client.subscription.create({
@@ -203,13 +191,6 @@ export class DevToolsController {
           stripeStatus: 'active',
         },
       });
-
-      const existingCredential = await this.agentCredentialsService.findSystemOpenRouterCredential(req.user.id);
-      if (existingCredential) {
-        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(req.user.id, plan);
-      } else {
-        await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(req.user.id, plan);
-      }
     }
   }
 

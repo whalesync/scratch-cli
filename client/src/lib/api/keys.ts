@@ -2,13 +2,6 @@ import { DataFolderId, SnapshotTableId, StyleGuideId, WorkbookId } from '@spinne
 import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
-  agentCredentials: {
-    list: (includeUsageStats: boolean = false) => [
-      'agent-credentials',
-      includeUsageStats ? 'with-usage' : 'without-usage',
-    ],
-    detail: (id: string) => ['agent-credentials', 'detail', id],
-  },
   connectorAccounts: {
     list: () => ['connector-accounts'],
     detail: (id: string) => ['connector-accounts', 'detail', id],
@@ -43,30 +36,12 @@ export const SWR_KEYS = {
   users: {
     activeUser: () => ['users', 'activeUser'],
   },
-  agentUsage: {
-    list: (cursor?: string, take?: number, credentialId?: string, month?: string) => [
-      'agent-usage',
-      'list',
-      cursor,
-      take,
-      credentialId,
-      month,
-    ],
-    summary: (credentialId?: string, month?: string) => ['agent-usage', 'summary', credentialId, month],
-  },
-  agentSessions: {
-    list: (workbookId: WorkbookId) => ['agent-sessions', 'list', workbookId],
-    detail: (id: string) => ['agent-sessions', 'detail', id],
-  },
   styleGuides: {
     list: () => ['style-guides', 'list'],
     detail: (id: StyleGuideId) => ['style-guides', 'detail', id],
   },
   billing: {
     plans: () => ['billing', 'plans'],
-  },
-  agentPricing: {
-    list: () => ['agent-pricing', 'list'],
   },
   files: {
     list: (workbookId: WorkbookId) => ['files', 'list', workbookId] as const,

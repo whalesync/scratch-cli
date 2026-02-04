@@ -3,37 +3,16 @@
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { Button, Divider, Stack, Tooltip } from '@mantine/core';
 import { SettingsIcon } from 'lucide-react';
-import { useScratchPadUser } from '../../hooks/useScratchpadUser';
-import { useWorkbookEditorUIStore } from '../../stores/workbook-editor-store';
 import MainContent from '../components/layouts/MainContent';
-import { AgentCredentialsSection } from './components/AgentCredentialsSection';
-import { DefaultModelSection } from './components/DefaultModelSection';
-import { TokenUsageSection } from './components/TokenUsageSection';
 import { CurrentUserSection, UserDevToolsSection } from './components/UserDevToolsSection';
 
 const SettingsPage = () => {
   const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
-  const user = useScratchPadUser();
-  const workbookModeActiveFlag = user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   return (
     <MainContent>
       <MainContent.BasicHeader title="Settings" Icon={SettingsIcon} />
       <MainContent.Body>
         <Stack gap="20px" maw={800}>
-          {workbookModeActiveFlag === 'files' || workbookMode === 'files' ? (
-            <></>
-          ) : (
-            <>
-              <DefaultModelSection />
-              <Divider />
-              <AgentCredentialsSection />
-              <Divider />
-              <TokenUsageSection />
-              <Divider />
-            </>
-          )}
-
           <CurrentUserSection />
 
           {isDevToolsEnabled && (

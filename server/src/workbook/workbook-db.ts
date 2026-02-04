@@ -160,6 +160,9 @@ export class WorkbookDb {
 
   async listFilesAndFolders(workbookId: WorkbookId, parentFolderPath: string): Promise<FileDbRecord[]> {
     assertFolderPathIsValid(parentFolderPath);
+    // Ensure the schema and files table exist (handles workbooks created before files feature)
+    await this.createForWorkbook(workbookId);
+
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(PATH_COLUMN, 'like', `${parentFolderPath}%`)
@@ -177,6 +180,9 @@ export class WorkbookDb {
    * Lists all files in a workbook (not filtered by path)
    */
   async listAllFiles(workbookId: WorkbookId): Promise<FileDbRecord[]> {
+    // Ensure the schema and files table exist (handles workbooks created before files feature)
+    await this.createForWorkbook(workbookId);
+
     const result = await this.getKnex()<FileDbRecord>(FILES_TABLE)
       .withSchema(workbookId)
       .where(DELETED_COLUMN, false)

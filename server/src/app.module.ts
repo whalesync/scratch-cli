@@ -1,9 +1,4 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { AgentCredentialsModule } from './agent-credentials/agent-credentials.module';
-import { AgentJwtModule } from './agent-jwt/agent-jwt.module';
-import { AgentPricingModule } from './agent-pricing/agent-pricing.module';
-import { AgentSessionModule } from './agent-session/agent-session.module';
-import { AgentTokenUsageModule } from './agent-token-usage/agent-token-usage.module';
 import { AuditLogModule } from './audit/audit-log.module';
 import { AuthModule } from './auth/auth.module';
 import { BugReportModule } from './bug-report/bug-report.module';
@@ -22,7 +17,6 @@ import { HealthModule } from './health/health.module';
 import { JobModule } from './job/job.module';
 import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
-import { OpenRouterModule } from './openrouter/openrouter.module';
 import { PaymentModule } from './payment/payment.module';
 import { PosthogModule } from './posthog/posthog.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
@@ -43,10 +37,6 @@ import { WorkerModule } from './worker/workers.module';
     AuditLogModule,
     ExperimentsModule,
     HealthModule,
-    AgentJwtModule,
-    AgentSessionModule,
-    AgentCredentialsModule,
-    AgentPricingModule,
     DbModule,
     UserModule,
     ClerkModule,
@@ -61,9 +51,7 @@ import { WorkerModule } from './worker/workers.module';
     ScratchGitModule,
     SyncModule,
     StyleGuideModule,
-    AgentTokenUsageModule,
     PaymentModule,
-    OpenRouterModule,
     SlackNotificationModule,
     WorkerEnqueuerModule,
     CodeMigrationsModule,

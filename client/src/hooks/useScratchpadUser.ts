@@ -30,14 +30,11 @@ export const useScratchPadUser = (): ScratchPadUser => {
     isLoading,
     mutate,
   } = useSWR(SWR_KEYS.users.activeUser(), usersApi.activeUser, {
-    refreshInterval: 1000 * 60 * 5, // 5 minutes - want to get updated agent JWT tokens
+    refreshInterval: 1000 * 60 * 5, // 5 minutes
     onSuccess: (data) => {
       /// update our static config when the values change
       if (data.websocketToken !== API_CONFIG.getSnapshotWebsocketToken()) {
         API_CONFIG.setSnapshotWebsocketToken(data.websocketToken || '');
-      }
-      if (data.agentJwt !== API_CONFIG.getAgentJwt()) {
-        API_CONFIG.setAgentJwt(data.agentJwt || '');
       }
     },
   });

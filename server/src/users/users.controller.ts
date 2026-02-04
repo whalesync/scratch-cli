@@ -19,11 +19,9 @@ import {
   ValidatedCollapseOnboardingStepDto,
   ValidatedUpdateSettingsDto,
 } from '@spinner/shared-types';
-import { JwtGeneratorService } from 'src/agent-jwt/jwt-generator.service';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
-import { getAvailableModelsForUser } from 'src/users/subscription-utils';
 import { User } from './entities/user.entity';
 import { OnboardingService } from './onboarding.service';
 import { SubscriptionService } from './subscription.service';
@@ -36,7 +34,6 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtGeneratorService: JwtGeneratorService,
     private readonly experimentsService: ExperimentsService,
     private readonly subscriptionService: SubscriptionService,
     private readonly onboardingService: OnboardingService,
@@ -48,15 +45,6 @@ export class UsersController {
       throw new UnauthorizedException();
     }
 
-    // Generate a JWT for the client to pass to the agent
-    // Include availableModels so the agent can validate model selection
-    const availableModels = getAvailableModelsForUser(req.user);
-    const agentJwt = this.jwtGeneratorService.generateToken({
-      userId: req.user.id,
-      role: req.user.role,
-      availableModels,
-    });
-
     const flagValues = await this.experimentsService.resolveClientFeatureFlagsForUser(req.user);
 
     // Get monthly publish count for the organization
@@ -66,7 +54,7 @@ export class UsersController {
         : 0,
     };
 
-    return new User(req.user, agentJwt, flagValues, billableActions);
+    return new User(req.user, flagValues, billableActions);
   }
 
   @Patch('current/settings')

@@ -8,7 +8,6 @@ import {
   SubscriptionId,
 } from '@spinner/shared-types';
 import _ from 'lodash';
-import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
@@ -32,7 +31,7 @@ import {
 import { userToActor } from 'src/users/types';
 import Stripe from 'stripe';
 import { getActiveSubscriptions, getLastestExpiringSubscription, isActiveSubscriptionOwnedByUser } from './helpers';
-import { getFreePlan, getPlan, getPlans } from './plans';
+import { getPlan, getPlans } from './plans';
 
 /**
  * The version of the API we are expecting, from: https://stripe.com/docs/api/versioning
@@ -64,7 +63,6 @@ export class StripePaymentService {
     private readonly dbService: DbService,
     private readonly postHogService: PostHogService,
     private readonly slackNotificationService: SlackNotificationService,
-    private readonly agentCredentialsService: AgentCredentialsService,
     private readonly auditLogService: AuditLogService,
   ) {
     this.stripe = new Stripe(this.configService.getStripeApiKey(), {
@@ -781,10 +779,8 @@ export class StripePaymentService {
       });
 
       if (subscription.status === 'active' || subscription.status === 'trialing') {
-        // update the system open router credential limit based on the new plan
         // only update if the subscription is new or the plan has changed
         if (!existingSubscription || existingSubscription.planType !== planType) {
-          await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, plan);
           const previousPlanType = existingSubscription ? existingSubscription.planType : ScratchPlanType.FREE_PLAN;
           await this.slackNotificationService.sendMessage(
             `${SlackFormatters.userIdentifier(user, '💳')} has switch plans: ${previousPlanType} -> ${plan.planType}!`,
@@ -796,9 +792,6 @@ export class StripePaymentService {
             entityId: updatedDbSubscription.id as SubscriptionId,
           });
         }
-      } else if (subscription.status === 'canceled') {
-        // downgrade the user's system open router credential limit to the free plan
-        await this.agentCredentialsService.updateSystemOpenRouterCredentialLimit(user.id, getFreePlan());
       }
 
       if (cancelAt) {

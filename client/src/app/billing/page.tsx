@@ -10,7 +10,6 @@ import MainContent from '../components/layouts/MainContent';
 import { ActiveSubscriptionSection } from './components/ActiveSubscriptionSection';
 import { BillingDevTools } from './components/BillingDevTools';
 import { PlanCard } from './components/PlanCard';
-import { TokenUsageSection } from './components/TokenUsageSection';
 
 const BillingPage = () => {
   const { plans, isLoading, error } = usePayments();
@@ -28,8 +27,6 @@ const BillingPage = () => {
           {error && <Alert color="red">{error}</Alert>}
           {planError && <Alert color="red">{planError}</Alert>}
           <ActiveSubscriptionSection />
-          <Divider c="var(--mantine-color-gray-3)" />
-          <TokenUsageSection />
           <Divider c="var(--mantine-color-gray-3)" />
           <ConfigSection title="Plans" description="Upgrade or change your plan" hasBorder={false} p="0">
             <SimpleGrid cols={3} spacing="xs">

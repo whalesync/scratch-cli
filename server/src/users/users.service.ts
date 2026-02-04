@@ -7,10 +7,8 @@ import {
   createWorkbookId,
   UpdateSettingsDto,
 } from '@spinner/shared-types';
-import { AgentCredentialsService } from 'src/agent-credentials/agent-credentials.service';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
-import { getFreePlan } from 'src/payment/plans';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
@@ -24,7 +22,6 @@ export class UsersService {
     private readonly db: DbService,
     private readonly postHogService: PostHogService,
     private readonly scratchpadConfigService: ScratchpadConfigService,
-    private readonly agentCredentialsService: AgentCredentialsService,
     private readonly slackNotificationService: SlackNotificationService,
   ) {}
 
@@ -162,9 +159,6 @@ export class UsersService {
     });
 
     this.postHogService.identifyNewUser(newUser);
-
-    // add the Free Plan OpenRouter credentials to the new user
-    await this.agentCredentialsService.createSystemOpenRouterCredentialsForUser(newUser.id, getFreePlan());
 
     await this.slackNotificationService.sendMessage(SlackFormatters.newUserSignup(newUser));
 

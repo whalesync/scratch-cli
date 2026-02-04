@@ -9,27 +9,18 @@ export * from './enums';
 // Database entity types
 export * from './db';
 
-export * from './agent-chat';
-export * from './agent-credentials';
-export * from './agent-usage-events';
 export * from './connector-account-types';
 export * from './connector-types';
 export * from './file-types';
 export * from './ids';
 export * from './meta-columns';
 export * from './onboarding';
-export * from './openrouter';
 export * from './subscription';
 export * from './sync-mapping';
 export * from './upload-types';
 export * from './workbook-types';
 
 // DTOs
-export * from './dto/agent-credentials/create-agent-credential.dto';
-export * from './dto/agent-credentials/update-agent-credential.dto';
-export * from './dto/agent-session/create-agent-session.dto';
-export * from './dto/agent-session/update-agent-session.dto';
-export * from './dto/agent-token-usage/create-agent-token-usage-event.dto';
 export * from './dto/bug-report/create-bug-report.dto';
 export * from './dto/code-migrations/code-migrations.dto';
 export * from './dto/connector-account/create-connector-account.dto';

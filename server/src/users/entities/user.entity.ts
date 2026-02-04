@@ -24,9 +24,6 @@ export class User {
   // The token for the client to use for websockets when connecting to the Scratch API
   websocketToken?: string;
 
-  // The JWT for the AI agent to use when talking to the Scratch API
-  agentJwt?: string;
-
   subscription?: SubscriptionInfo;
 
   experimentalFlags?: UserFlagValues;
@@ -39,12 +36,7 @@ export class User {
 
   onboardingWorkbookId?: string | null;
 
-  constructor(
-    user: UserCluster.User,
-    agentJwt?: string,
-    experiments?: UserFlagValues,
-    billableActions?: BillableActions,
-  ) {
+  constructor(user: UserCluster.User, experiments?: UserFlagValues, billableActions?: BillableActions) {
     this.id = user.id;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
@@ -58,7 +50,6 @@ export class User {
       this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
     }
 
-    this.agentJwt = agentJwt;
     this.experimentalFlags = experiments;
     this.subscription = toSubscriptionInfo(
       user.id,

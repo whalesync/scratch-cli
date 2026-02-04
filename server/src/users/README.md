@@ -2,11 +2,11 @@
 
 ## Overview
 
-The Users module is a NestJS-based authentication and credential management system that handles user identity, authentication tokens, AI service credentials, and organizational context.
+The Users module is a NestJS-based authentication and credential management system that handles user identity, authentication tokens, and organizational context.
 
 ## Purpose
 
-This module serves as a core component for managing user accounts and their associated resources within the Whalesync application, including session management, API tokens, and AI service credentials.
+This module serves as a core component for managing user accounts and their associated resources within the Whalesync application, including session management and API tokens.
 
 ## Controllers
 
@@ -28,26 +28,6 @@ Returns authenticated user with:
 
 Resource provisioning for development/testing.
 
-### AgentCredentialsController
-
-Manages AI service credentials:
-
-#### `GET /user/credentials`
-
-Lists all AI service credentials for the user.
-
-#### `POST /user/credentials`
-
-Creates new AI service credential (OpenRouter key).
-
-#### `GET /user/credentials/:credentialId`
-
-Retrieves specific credential details.
-
-#### `DELETE /user/credentials/:credentialId`
-
-Removes AI service credential.
-
 ## Core Services
 
 ### UsersService
@@ -59,7 +39,6 @@ Handles user lifecycle management:
 - Via Clerk authentication
 - Automatic API token provisioning
 - Trial subscription creation
-- AI service credential setup
 - Slack notifications for new users
 
 #### User Lookups
@@ -75,17 +54,6 @@ Handles user lifecycle management:
 - Token expiration handling
 - Secure token generation
 
-### AgentCredentialsService
-
-Manages AI service credentials:
-
-- CRUD operations
-- Default credential management
-- Usage statistics
-- Audit logging
-- Authorization checks
-- System credential protection
-
 ### Supporting Services
 
 - **SubscriptionService**: Track user subscriptions
@@ -97,9 +65,8 @@ Manages AI service credentials:
 2. Clerk strategy creates user in database
 3. API tokens generated
 4. Trial subscription created
-5. OpenRouter credentials provisioned
-6. Slack notification sent
-7. PostHog event captured
+5. Slack notification sent
+6. PostHog event captured
 
 ## Token Types
 
@@ -115,28 +82,6 @@ Manages AI service credentials:
 - Used for programmatic access
 - Multiple tokens per user
 - Can be revoked
-
-### Agent Tokens
-
-- Special format for AI agents
-- Include user ID and role
-- Used by custom connectors
-
-## AI Credentials
-
-### OpenRouter Integration
-
-- Automatic key provisioning
-- Credit limit management
-- Usage tracking
-- Enable/disable functionality
-- Default credential selection
-
-### Credential Types
-
-- User-created credentials
-- System-generated credentials (protected)
-- Organization-scoped access
 
 ## Authorization
 
@@ -164,16 +109,9 @@ The module imports and integrates with:
 - **PosthogModule**: Analytics tracking
 - **SlackModule**: Notification sending
 - **AuditLogModule**: Activity logging
-- **OpenRouterModule**: AI credential provisioning
 - **ExperimentsModule**: Feature flags
 
 ## Security Features
-
-### Credential Protection
-
-- System-generated credentials cannot be modified by users
-- Only credential owners can delete
-- Audit trail for all operations
 
 ### Token Security
 
@@ -212,7 +150,6 @@ Users receive personalized feature flags:
 User events tracked:
 
 - User creation
-- Credential creation/deletion
 - Login events
 - Feature usage
 
@@ -220,7 +157,6 @@ User events tracked:
 
 - User authentication and authorization
 - API access management
-- AI service credential provisioning
 - Session management
 - Organization membership
 - Subscription tracking
@@ -231,7 +167,7 @@ User events tracked:
 
 - **Comprehensive**: Full user lifecycle management
 - **Secure**: Multi-layer authentication and authorization
-- **Integrated**: Works with external services (Clerk, Stripe, OpenRouter)
+- **Integrated**: Works with external services (Clerk, Stripe)
 - **Auditable**: Complete activity tracking
 - **Flexible**: Multiple authentication methods
 - **Scalable**: Organization-based multi-tenancy

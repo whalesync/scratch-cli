@@ -11,11 +11,10 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Export colors so subshells can use them
-export RED GREEN YELLOW BLUE MAGENTA NC
+export RED GREEN YELLOW BLUE NC
 
 # Setup nvm and node
 export NVM_DIR="$HOME/.nvm"
@@ -84,7 +83,6 @@ echo ""
 # PIDs for cleanup
 CLIENT_PID=""
 SERVER_PID=""
-AGENT_PID=""
 
 cleanup() {
     echo -e "\n${YELLOW}Shutting down all services...${NC}"
@@ -99,18 +97,12 @@ cleanup() {
         kill "$SERVER_PID" 2>/dev/null || true
     fi
 
-    if [ -n "$AGENT_PID" ] && kill -0 "$AGENT_PID" 2>/dev/null; then
-        echo -e "${MAGENTA}Stopping agent...${NC}"
-        kill "$AGENT_PID" 2>/dev/null || true
-    fi
-
     # Wait a moment for graceful shutdown
     sleep 1
 
     # Force kill if still running
     [ -n "$CLIENT_PID" ] && kill -9 "$CLIENT_PID" 2>/dev/null || true
     [ -n "$SERVER_PID" ] && kill -9 "$SERVER_PID" 2>/dev/null || true
-    [ -n "$AGENT_PID" ] && kill -9 "$AGENT_PID" 2>/dev/null || true
 
     echo -e "${GREEN}All services stopped.${NC}"
     exit 0
@@ -148,20 +140,10 @@ echo -e "${GREEN}[SERVER]${NC} Starting NestJS dev server on port 3010..."
 ) &
 SERVER_PID=$!
 
-# Start Python Agent (FastAPI on port 8000)
-echo -e "${MAGENTA}[AGENT]${NC} Starting Python AI agent on port 8000..."
-(
-    cd "$SCRIPT_DIR/pydantic-ai-agent"
-    source venv/bin/activate 2>/dev/null || true
-    python main.py 2>&1 | while IFS= read -r line; do echo -e "${MAGENTA}[AGENT]${NC} $line"; done
-) &
-AGENT_PID=$!
-
 echo ""
 echo -e "${YELLOW}========================================${NC}"
 echo -e "  ${BLUE}Client${NC}:  http://localhost:3000"
 echo -e "  ${GREEN}Server${NC}:  http://localhost:3010"
-echo -e "  ${MAGENTA}Agent${NC}:   http://localhost:8000"
 echo -e "${YELLOW}========================================${NC}"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"

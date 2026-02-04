@@ -9,7 +9,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { ToolbarIconButton } from '@/app/components/ToolbarIconButton';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { getConnectorsWithStatus } from '@/types/server-entities/workbook';
-import { Group, Menu, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
+import { Group, Menu, Portal, Stack, Table, Text, TextInput, useModalsStack } from '@mantine/core';
 import { Workbook } from '@spinner/shared-types';
 import { Edit3Icon, Table2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -75,69 +75,71 @@ export const WorkbookRow = ({ workbook }: { workbook: Workbook }) => {
 
   return (
     <>
-      <ModalWrapper
-        title="Delete workbook"
-        customProps={{
-          footer: (
-            <>
-              <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
-              <ButtonPrimaryLight onClick={handleDelete} loading={saving}>
-                Delete
-              </ButtonPrimaryLight>
-            </>
-          ),
-        }}
-        {...modalStack.register('confirm-delete')}
-      >
-        <Stack>
-          <Text>Are you sure you want to abandon this workbook? All data will be deleted.</Text>
-        </Stack>
-      </ModalWrapper>
-      <ModalWrapper
-        title="Rename workbook"
-        customProps={{
-          footer: (
-            <>
-              <ButtonSecondaryOutline onClick={() => modalStack.close('rename')}>Cancel</ButtonSecondaryOutline>
-              <ButtonPrimaryLight onClick={handleRename} loading={saving}>
-                Save
-              </ButtonPrimaryLight>
-            </>
-          ),
-        }}
-        {...modalStack.register('rename')}
-      >
-        <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
-      </ModalWrapper>
+      <Portal>
+        <ModalWrapper
+          title="Delete workbook"
+          customProps={{
+            footer: (
+              <>
+                <ButtonSecondaryOutline onClick={() => modalStack.close('confirm-delete')}>Cancel</ButtonSecondaryOutline>
+                <ButtonPrimaryLight onClick={handleDelete} loading={saving}>
+                  Delete
+                </ButtonPrimaryLight>
+              </>
+            ),
+          }}
+          {...modalStack.register('confirm-delete')}
+        >
+          <Stack>
+            <Text>Are you sure you want to abandon this workbook? All data will be deleted.</Text>
+          </Stack>
+        </ModalWrapper>
+        <ModalWrapper
+          title="Rename workbook"
+          customProps={{
+            footer: (
+              <>
+                <ButtonSecondaryOutline onClick={() => modalStack.close('rename')}>Cancel</ButtonSecondaryOutline>
+                <ButtonPrimaryLight onClick={handleRename} loading={saving}>
+                  Save
+                </ButtonPrimaryLight>
+              </>
+            ),
+          }}
+          {...modalStack.register('rename')}
+        >
+          <TextInput label="Name" value={workbookName} onChange={(e) => setWorkbookName(e.target.value)} />
+        </ModalWrapper>
 
-      <Menu opened={contextMenuOpened} onChange={setContextMenuOpened} withinPortal shadow="md">
-        <Menu.Target>
-          <div
-            style={{
-              position: 'fixed',
-              top: contextMenuPosition.y,
-              left: contextMenuPosition.x,
-              width: 0,
-              height: 0,
-              visibility: 'hidden',
-            }}
-          />
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item leftSection={<Edit3Icon size={16} />} onClick={() => modalStack.open('rename')}>
-            Rename workbook
-          </Menu.Item>
-          <Menu.Divider />
-          <Menu.Item
-            color="red"
-            leftSection={<Trash2 size={16} />}
-            onClick={() => modalStack.open('confirm-delete')}
-            disabled={saving}
-          >
-            Delete workbook
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+        <Menu opened={contextMenuOpened} onChange={setContextMenuOpened} withinPortal shadow="md">
+          <Menu.Target>
+            <div
+              style={{
+                position: 'fixed',
+                top: contextMenuPosition.y,
+                left: contextMenuPosition.x,
+                width: 0,
+                height: 0,
+                visibility: 'hidden',
+              }}
+            />
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item leftSection={<Edit3Icon size={16} />} onClick={() => modalStack.open('rename')}>
+              Rename workbook
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              color="red"
+              leftSection={<Trash2 size={16} />}
+              onClick={() => modalStack.open('confirm-delete')}
+              disabled={saving}
+            >
+              Delete workbook
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Portal>
 
       <Table.Tr
         key={workbook.id}

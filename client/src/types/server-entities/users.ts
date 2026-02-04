@@ -7,7 +7,6 @@ export interface User {
   updatedAt: Date;
   websocketToken?: string;
   isAdmin: boolean;
-  agentJwt?: string;
   subscription?: SubscriptionInfo;
   experimentalFlags?: UserExperimentFlags;
   name?: string;

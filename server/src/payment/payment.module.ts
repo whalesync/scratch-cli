@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AgentCredentialsModule } from 'src/agent-credentials/agent-credentials.module';
 import { AuditLogModule } from 'src/audit/audit-log.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
@@ -12,14 +11,7 @@ import { StripePaymentService } from './stripe-payment.service';
 
 @Module({
   providers: [StripePaymentService],
-  imports: [
-    ScratchpadConfigModule,
-    DbModule,
-    PosthogModule,
-    SlackNotificationModule,
-    AgentCredentialsModule,
-    AuditLogModule,
-  ],
+  imports: [ScratchpadConfigModule, DbModule, PosthogModule, SlackNotificationModule, AuditLogModule],
   exports: [StripePaymentService], //export this service to use in other modules
   controllers: [StripePaymentController, StripePaymentWebhookController, PaymentsPublicController],
 })

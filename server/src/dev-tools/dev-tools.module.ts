@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AgentCredentialsModule } from 'src/agent-credentials/agent-credentials.module';
 import { AuditLogModule } from 'src/audit/audit-log.module';
 import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
 import { DbModule } from 'src/db/db.module';
@@ -22,7 +21,6 @@ import { DevToolsService } from './dev-tools.service';
     WorkerEnqueuerModule,
     ConnectorAccountModule,
     AuditLogModule,
-    AgentCredentialsModule,
   ],
   exports: [], //export this service to use in other modules
   controllers: [DevToolsController],

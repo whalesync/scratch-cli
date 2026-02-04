@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { StringValue } from 'ms';
 import { LogLevel, WSLogger } from 'src/logger';
 import { stringToEnum } from 'src/utils/helpers';
 
@@ -82,41 +81,6 @@ export class ScratchpadConfigService {
     return this.getOptionalFlagVariable('DB_DEBUG', false);
   }
 
-  /**
-   * @returns The Scratch Agent Auth token. Used for special bearer token auth for the agent to make API calls
-   */
-  getScratchpadAgentAuthToken(): string {
-    return this.getEnvVariable('SCRATCHPAD_AGENT_AUTH_TOKEN');
-  }
-
-  /**
-   * @returns The Scratch Agent JWT secret. Used to sign expiring JWT tokens allowing the client to make API calls to the agent.
-   */
-  getScratchpadAgentJWTSecret(): string {
-    return this.getEnvVariable('SCRATCHPAD_AGENT_JWT_SECRET');
-  }
-
-  /**
-   * @returns The Scratch Agent JWT expires in. Used to set the expiration time for the generated tokens.
-   */
-  getScratchpadAgentJWTExpiresIn(): StringValue {
-    const expiresIn = this.getEnvVariable<string>('SCRATCHPAD_AGENT_JWT_EXPIRES_IN');
-
-    // Validate that expiresIn matches the StringValue format (e.g., "2h", "30m", "7d", "100")
-    // Pattern: optional number, optional space, optional time unit (case insensitive)
-    // Take a look at ms.StringValue.
-    const stringValuePattern =
-      /^\d+(\s?(?:years?|yrs?|y|weeks?|w|days?|d|hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s|milliseconds?|msecs?|ms))?$/i;
-
-    if (!stringValuePattern.test(expiresIn)) {
-      throw new Error(
-        `SCRATCHPAD_AGENT_JWT_EXPIRES_IN must be a valid time string (e.g., "2h", "30m", "7d", "100"), but got: ${expiresIn}`,
-      );
-    }
-
-    return expiresIn as StringValue;
-  }
-
   isPosthogAnaltyicsEnabled(): boolean {
     // default to true for deployed environments
     return this.getOptionalFlagVariable('POSTHOG_ANALYTICS_ENABLED', this.getScratchpadEnvironment() !== 'development');
@@ -140,18 +104,6 @@ export class ScratchpadConfigService {
 
   getStripeWebhookSecret(): string {
     return this.getEnvVariable('STRIPE_WEBHOOK_SECRET');
-  }
-
-  getGenerateOpenRouterKeyForNewUsers(): boolean {
-    return this.getOptionalFlagVariable('GENERATE_OPENROUTER_KEY_FOR_NEW_USERS', false);
-  }
-
-  getOpenRouterProvisioningKey(): string | undefined {
-    return this.getOptionalEnvVariable('OPENROUTER_PROVISIONING_KEY');
-  }
-
-  getNewUserOpenRouterCreditLimit(): number {
-    return this.getOptionalNumberVariable('NEW_USER_OPENROUTER_CREDIT_LIMIT', 10);
   }
 
   getSlackNotificationWebhookUrl(): string | undefined {

@@ -30,26 +30,6 @@ export const UserDevToolsSection = () => {
         </Group>
 
         <Group wrap="nowrap" gap="xs">
-          <Text13Regular miw={150}>Agent Token</Text13Regular>
-          <PasswordInput
-            variant="unstyled"
-            value={user?.agentJwt}
-            placeholder="No API key found"
-            readOnly
-            inputWrapperOrder={['input', 'label', 'description', 'error']}
-            flex={1}
-          />
-          <CopyButton value={user?.agentJwt || ''} timeout={2000}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : `Copy Agent auth token`} withArrow position="right">
-                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-        </Group>
-        <Group wrap="nowrap" gap="xs">
           <Text13Regular miw={150}>UI Websocket Key</Text13Regular>
           <PasswordInput
             variant="unstyled"

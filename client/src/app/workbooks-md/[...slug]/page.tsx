@@ -9,13 +9,10 @@ import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { AddTableTab } from '@/app/workbooks-md/[...slug]/components/AddTableTab';
-import AIChatPanel from '@/app/workbooks-md/[...slug]/components/AIChatPanel/AIChatPanel';
-import { AgentChatContextProvider } from '@/app/workbooks-md/[...slug]/components/contexts/agent-chat-context';
 import { WorkbookInspector } from '@/app/workbooks-md/[...slug]/components/devtool/WorkbookInspector';
 import { ManageTablesModal } from '@/app/workbooks-md/[...slug]/components/ManageTablesModal';
 import { PublishWorkbookWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishWorkbookWorkflow';
 import { WorkbookHeader } from '@/app/workbooks-md/[...slug]/components/WorkbookHeader';
-import { AIAgentSessionManagerProvider } from '@/contexts/ai-agent-session-manager-context';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbook } from '@/hooks/use-workbook';
@@ -39,10 +36,6 @@ const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 600;
 
-const DEFAULT_CHAT_WIDTH = '360px';
-const MIN_CHAT_WIDTH = 300;
-const MAX_CHAT_WIDTH = 800;
-
 function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId: pathTableId } = useWorkbookParams();
@@ -50,7 +43,6 @@ function WorkbookFilesPageContent() {
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
-  const chatOpen = useWorkbookEditorUIStore((state) => state.chatOpen);
   // File tab state is now managed in the store
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
@@ -151,13 +143,6 @@ function WorkbookFilesPageContent() {
                 </Stack>
               </Split.Pane>
 
-              {/* Optional Right Pane: Agent Chat*/}
-              {chatOpen && <Split.Resizer w="6px" m={0} hoverColor="transparent" />}
-              {chatOpen && (
-                <Split.Pane initialWidth={DEFAULT_CHAT_WIDTH} minWidth={MIN_CHAT_WIDTH} maxWidth={MAX_CHAT_WIDTH}>
-                  <AIChatPanel />
-                </Split.Pane>
-              )}
             </Split>
           </Box>
 
@@ -227,12 +212,10 @@ export default function WorkbookNewPage() {
   }, [workbook, reconcileWithWorkbook]);
 
   return (
-    <AgentChatContextProvider workbookId={params.workbookId} agentType="file">
-      <AIAgentSessionManagerProvider workbookId={params.workbookId}>
-        <WorkbookFilesPageContent />
-        <PublishWorkbookWorkflow />
-        <WorkbookEditorModals />
-      </AIAgentSessionManagerProvider>
-    </AgentChatContextProvider>
+    <>
+      <WorkbookFilesPageContent />
+      <PublishWorkbookWorkflow />
+      <WorkbookEditorModals />
+    </>
   );
 }

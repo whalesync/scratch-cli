@@ -36,22 +36,6 @@ deploy client service to Cloud Run test environment:
       allow_failure: true
     - !reference [.rules, on_merge_to_master]
 
-deploy agent service to Cloud Run test environment:
-  stage: deploy
-  extends:
-    - .gcp_test_env # sets before_script and variables
-  script:
-    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
-    - gcloud run services update agent-service --image="${IMAGE_URL}"
-    - gcloud run services update-traffic agent-service --to-latest
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - gitlab-ci/stages/05-deploy.yml
-      when: manual
-      allow_failure: true
-    - !reference [.rules, on_merge_to_master]
-
 deploy scratch-git to test environment:
   stage: deploy
   extends:
@@ -76,7 +60,6 @@ notify slack on failure test environment:
     [
       "deploy api service to Cloud Run test environment",
       "deploy client service to Cloud Run test environment",
-      "deploy agent service to Cloud Run test environment",
       "deploy scratch-git to test environment",
     ]
   script:
@@ -95,7 +78,6 @@ notify slack on success test environment:
     [
       "deploy api service to Cloud Run test environment",
       "deploy client service to Cloud Run test environment",
-      "deploy agent service to Cloud Run test environment",
       "deploy scratch-git to test environment",
     ]
   script:
@@ -134,24 +116,12 @@ deploy client service to Cloud Run production environment:
   rules:
     - !reference [.rules, on_merge_to_prod]
 
-deploy agent service to Cloud Run production environment:
-  stage: deploy
-  extends:
-    - .gcp_production_env # sets before_script and variables
-  script:
-    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-agent:$CI_COMMIT_SHORT_SHA
-    - gcloud run services update agent-service --image="${IMAGE_URL}"
-    - gcloud run services update-traffic agent-service --to-latest
-  rules:
-    - !reference [.rules, on_merge_to_prod]
-
 notify slack on failure production environment:
   stage: deployment notifications
   needs:
     [
       "deploy api service to Cloud Run production environment",
       "deploy client service to Cloud Run production environment",
-      "deploy agent service to Cloud Run production environment",
     ]
   script:
     - |
@@ -169,7 +139,6 @@ notify slack on success production environment:
     [
       "deploy api service to Cloud Run production environment",
       "deploy client service to Cloud Run production environment",
-      "deploy agent service to Cloud Run production environment",
     ]
   script:
     - |

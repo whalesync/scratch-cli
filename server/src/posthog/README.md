@@ -36,11 +36,6 @@ Injectable NestJS service that:
 - **captureStyleGuideCreated**: Style guide creation
 - **captureStyleGuideDeleted**: Style guide deletion
 
-### AI Credentials
-
-- **captureAgentCredentialCreated**: AI service credential creation
-- **captureAgentCredentialDeleted**: AI credential deletion
-
 ### Subscription Events
 
 - **captureTrialStarted**: Track trial subscription commencement
@@ -75,7 +70,6 @@ Integrated into application via AppModule, making it available for dependency in
 - **SnapshotService**: Snapshot operations
 - **PaymentService**: Subscription events
 - **StyleGuideService**: Resource management
-- **AgentCredentialsService**: Credential tracking
 
 ## Configuration
 
