@@ -511,12 +511,23 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   /**
    * Delete items from Webflow.
    * Files should have an 'id' field with the item ID to delete.
+   * Returns successfully if items are already deleted (404).
    */
   async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [, collectionId] = tableSpec.id.remoteId;
 
     const items = files.map((file) => ({ id: file.id as string }));
-    await this.client.collections.items.deleteItems(collectionId, { items });
+    try {
+      await this.client.collections.items.deleteItems(collectionId, { items });
+    } catch (e) {
+      // If item not found (404), that's fine - it's already deleted
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      if (errorMessage.includes('404') || errorMessage.includes('not_found') || errorMessage.includes('not found')) {
+        // Item already deleted on remote, return success
+        return;
+      }
+      throw e;
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -24,6 +25,7 @@ import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@sp
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
+import { BullEnqueuerService } from '../worker-enqueuer/bull-enqueuer.service';
 import { DataFolderService } from './data-folder.service';
 import { WorkbookService } from './workbook.service';
 
@@ -34,6 +36,7 @@ export class DataFolderController {
   constructor(
     private readonly dataFolderService: DataFolderService,
     private readonly workbookService: WorkbookService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   @Post('/create')
@@ -92,5 +95,35 @@ export class DataFolderController {
       { name: body.name, useTemplate: body.useTemplate },
       userToActor(req.user),
     );
+  }
+
+  @Post(':id/publish')
+  async publish(
+    @Param('id') id: DataFolderId,
+    @Body() body: { workbookId: string },
+    @Req() req: RequestWithUser,
+  ): Promise<{ jobId: string }> {
+    const actor = userToActor(req.user);
+    const workbookId = body.workbookId as WorkbookId;
+
+    // Verify the user has access to the workbook
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Verify the data folder exists and belongs to this workbook
+    const dataFolder = await this.dataFolderService.findOne(id, actor);
+    if (!dataFolder) {
+      throw new NotFoundException('Data folder not found');
+    }
+    if (dataFolder.workbookId !== workbookId) {
+      throw new BadRequestException('Data folder does not belong to this workbook');
+    }
+
+    // Enqueue the publish job
+    const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(workbookId, actor, id);
+
+    return { jobId: job.id ?? '' };
   }
 }

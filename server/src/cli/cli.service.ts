@@ -438,7 +438,7 @@ export class CliService {
     if (request.deletedFiles && request.deletedFiles.length > 0) {
       for (const fileName of request.deletedFiles) {
         const validatedName = this.validateFileName(fileName);
-        await this.scratchGitService.deleteFile(workbookId, `${folderPath}/${validatedName}`, 'CLI delete');
+        await this.scratchGitService.deleteFile(workbookId, [`${folderPath}/${validatedName}`], 'CLI delete');
       }
     }
 

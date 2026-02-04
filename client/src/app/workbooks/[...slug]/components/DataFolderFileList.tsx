@@ -4,6 +4,7 @@ import { TextMono12Regular } from '@/app/components/base/text';
 import { ErrorInfo } from '@/app/components/InfoPanel';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { dataFolderApi } from '@/lib/api/data-folder';
 import { filesApi } from '@/lib/api/files';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Box, Button, Center, Group, LoadingOverlay, Menu, Modal, Stack, Text } from '@mantine/core';
@@ -16,6 +17,7 @@ import {
   FilePlusIcon,
   RefreshCw,
   Trash2Icon,
+  UploadIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useDataFolder } from '../../../../hooks/use-data-folder';
@@ -117,20 +119,36 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
     [workbook, refreshFiles],
   );
 
+  const handlePublishFolder = useCallback(async () => {
+    if (!workbook?.id || !dataFolder?.id) return;
+    try {
+      await dataFolderApi.publish(dataFolder.id, workbook.id);
+      ScratchpadNotifications.success({
+        message: 'Publish started',
+      });
+      refreshFolder();
+    } catch {
+      ScratchpadNotifications.error({
+        title: 'Error',
+        message: 'Failed to start publish',
+      });
+    }
+  }, [workbook, dataFolder, refreshFolder]);
+
   // Track previous lock state to detect transitions
   const prevLockRef = useRef(dataFolder?.lock);
 
-  // Poll for folder updates while download is in progress
+  // Poll for folder updates while download or publish is in progress
   useEffect(() => {
-    // Check if lock transitioned from 'download' to null
-    if (prevLockRef.current === 'download' && dataFolder?.lock === null) {
+    // Check if lock transitioned from 'download' or 'publish' to null
+    if ((prevLockRef.current === 'download' || prevLockRef.current === 'publish') && dataFolder?.lock === null) {
       refreshFiles();
     }
     prevLockRef.current = dataFolder?.lock;
   }, [dataFolder?.lock, refreshFiles]);
 
   useEffect(() => {
-    if (dataFolder?.lock !== 'download') {
+    if (dataFolder?.lock !== 'download' && dataFolder?.lock !== 'publish') {
       return;
     }
 
@@ -199,10 +217,12 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
   return (
     <Stack h="100%" w="100%" gap={0} style={{ position: 'relative' }}>
       <LoadingOverlay
-        visible={dataFolder?.lock === 'download'}
+        visible={dataFolder?.lock === 'download' || dataFolder?.lock === 'publish'}
         zIndex={1000}
         overlayProps={{ radius: 'sm', blur: 2 }}
-        loaderProps={{ children: 'Download in progress...' }}
+        loaderProps={{
+          children: dataFolder?.lock === 'publish' ? 'Publishing...' : 'Download in progress...',
+        }}
       />
 
       {/* Scrollable file list */}
@@ -222,6 +242,17 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
           <ActionIcon variant="subtle" size="sm" onClick={() => refreshFiles()}>
             <RefreshCw size={14} />
           </ActionIcon>
+          {dataFolder?.connectorAccountId && (
+            <Button
+              variant="subtle"
+              size="compact-xs"
+              leftSection={<UploadIcon size={12} />}
+              onClick={handlePublishFolder}
+              disabled={!!dataFolder?.lock}
+            >
+              Publish
+            </Button>
+          )}
         </Group>
 
         <TextMono12Regular c="var(--fg-secondary)">

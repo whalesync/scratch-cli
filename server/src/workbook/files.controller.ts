@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -201,17 +202,20 @@ export class FilesController {
     @Query('path') path: string,
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.filesService.deleteFileByPath(workbookId, path, userToActor(req.user));
+    // Verify user has access to this workbook
+    await this.filesService.verifyWorkbookAccess(workbookId, userToActor(req.user));
 
     try {
-      await this.scratchGitService.deleteFile(workbookId, path, `Delete ${path}`);
+      await this.scratchGitService.deleteFile(workbookId, [path], `Delete ${path}`);
     } catch (e) {
       WSLogger.error({
         source: 'FilesController.deleteFileByPath',
-        message: 'Failed to auto-commit file deletion',
-        error: e,
+        message: 'Failed to delete file from git',
+        path,
         workbookId,
+        error: e instanceof Error ? e.message : String(e),
       });
+      throw new NotFoundException(`Failed to delete file: ${path}`);
     }
   }
 
@@ -306,7 +310,7 @@ export class FilesController {
 
     if (file && file.file && file.file.ref && file.file.ref.path) {
       try {
-        await this.scratchGitService.deleteFile(workbookId, file.file.ref.path, `Delete ${file.file.ref.path}`);
+        await this.scratchGitService.deleteFile(workbookId, [file.file.ref.path], `Delete ${file.file.ref.path}`);
       } catch (e) {
         WSLogger.error({
           source: 'FilesController.deleteFile',

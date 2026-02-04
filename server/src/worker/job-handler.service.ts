@@ -8,6 +8,7 @@ import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
+import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
@@ -32,6 +33,7 @@ export class JobHandlerService {
     private readonly scratchGitService: ScratchGitService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -79,6 +81,7 @@ export class JobHandlerService {
           this.connectorAccountService,
           this.snapshotEventService,
           this.dataFolderPublishingService,
+          this.bullEnqueuerService,
         ) as JobHandler<JobDefinition>;
 
       case 'sync-data-folders':

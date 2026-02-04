@@ -177,7 +177,8 @@ export class DataFolderPublishingService {
 
   /**
    * Publish new files (creates) to the connector.
-   * After successful creation, updates the JSON files with the new remote IDs.
+   * After successful creation, updates the JSON files with the new remote IDs
+   * and renames them to use the remote ID as the filename.
    */
   async publishCreates<S extends Service>(
     workbookId: WorkbookId,
@@ -204,6 +205,7 @@ export class DataFolderPublishingService {
 
       // Update files with the new remote IDs
       const filesToCommit: Array<{ path: string; content: string }> = [];
+      const filesToDelete: string[] = [];
 
       for (let j = 0; j < returnedFiles.length; j++) {
         const returned = returnedFiles[j];
@@ -216,22 +218,55 @@ export class DataFolderPublishingService {
           // Update the content with the new ID
           const updatedContent = { ...originalFile.content, ...returned };
 
+          // Calculate new path based on remoteId
+          const remoteIdStr = typeof remoteId === 'string' ? remoteId : JSON.stringify(remoteId);
+          const folder = originalFile.path.substring(0, originalFile.path.lastIndexOf('/'));
+          const newPath = `${folder}/${remoteIdStr}.json`;
+
+          // Track if we need to delete the old file (rename scenario)
+          if (originalFile.path !== newPath) {
+            filesToDelete.push(originalFile.path);
+          }
+
           filesToCommit.push({
-            path: originalFile.path,
+            path: newPath,
             content: JSON.stringify(updatedContent, null, 2),
           });
 
           WSLogger.debug({
             source: 'DataFolderPublishingService',
-            message: 'Created record, updating file with new ID',
-            path: originalFile.path,
-            remoteId: typeof remoteId === 'string' ? remoteId : JSON.stringify(remoteId),
+            message: 'Created record, updating file',
+            originalPath: originalFile.path,
+            newPath,
+            remoteId: remoteIdStr,
+            renamed: originalFile.path !== newPath,
           });
         }
       }
 
-      // Commit updated files to dirty branch
+      // Delete old files first (if any need renaming)
+      if (filesToDelete.length > 0) {
+        WSLogger.info({
+          source: 'DataFolderPublishingService',
+          message: 'Deleting old files before rename',
+          workbookId,
+          filesToDelete,
+        });
+        await this.scratchGitService.deleteFile(
+          workbookId,
+          filesToDelete,
+          `Renamed ${filesToDelete.length} files after publish`,
+        );
+      }
+
+      // Commit new/updated files
       if (filesToCommit.length > 0) {
+        WSLogger.info({
+          source: 'DataFolderPublishingService',
+          message: 'Committing new/renamed files',
+          workbookId,
+          filesToCommit: filesToCommit.map((f) => f.path),
+        });
         await this.scratchGitService.commitFilesToBranch(
           workbookId,
           'dirty',

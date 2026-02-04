@@ -5,6 +5,7 @@ import {
   FileId,
   MoveDataFolderDto,
   RenameDataFolderDto,
+  WorkbookId,
 } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
@@ -65,6 +66,16 @@ export const dataFolderApi = {
       await axios.delete(`/data-folder/${dataFolderId}/files/${fileId}`);
     } catch (error) {
       handleAxiosError(error, 'Failed to delete file');
+    }
+  },
+
+  publish: async (dataFolderId: DataFolderId, workbookId: WorkbookId): Promise<{ jobId: string }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ jobId: string }>(`/data-folder/${dataFolderId}/publish`, { workbookId });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to publish data folder');
     }
   },
 };

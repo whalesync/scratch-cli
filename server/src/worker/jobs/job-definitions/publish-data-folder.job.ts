@@ -6,6 +6,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { WSLogger } from '../../../logger';
 import { DataFolderPublishingService } from '../../../workbook/data-folder-publishing.service';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
@@ -49,6 +50,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
   async run(params: {
@@ -160,8 +162,8 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
     });
 
     try {
-      // Build folder path from data folder name
-      const folderPath = `/${dataFolder.name}`;
+      // Build folder path from data folder name (no leading slash - matches git storage format)
+      const folderPath = dataFolder.name;
 
       WSLogger.debug({
         source: 'PublishDataFolderJob',
@@ -211,6 +213,21 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         workbookId: data.workbookId,
         dataFolderId: dataFolder.id,
         results,
+      });
+
+      // Enqueue download job to sync from Webflow and update main branch
+      // This ensures future deletes can be detected (they need to exist in main)
+      await this.bullEnqueuerService.enqueueDownloadLinkedFolderFilesJob(
+        data.workbookId,
+        { userId: data.userId, organizationId: data.organizationId },
+        dataFolder.id as DataFolderId,
+      );
+
+      WSLogger.debug({
+        source: 'PublishDataFolderJob',
+        message: 'Enqueued download job to sync main branch after publish',
+        workbookId: data.workbookId,
+        dataFolderId: dataFolder.id,
       });
 
       // Mark as completed

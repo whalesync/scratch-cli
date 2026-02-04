@@ -298,27 +298,6 @@ export class FilesService {
   }
 
   /**
-   * Delete a file by path.
-   * Used by the file agent's `rm` command.
-   */
-  async deleteFileByPath(workbookId: WorkbookId, path: string, actor: Actor): Promise<void> {
-    await this.verifyWorkbookAccess(workbookId, actor);
-
-    // Normalize path
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
-    // Find file by path
-    const file = await this.workbookDbService.workbookDb.getFileByPath(workbookId, normalizedPath);
-
-    if (!file) {
-      throw new NotFoundException(`File not found: ${normalizedPath}`);
-    }
-
-    // Delete the file
-    await this.workbookDbService.workbookDb.deleteFileById(workbookId, file.id as FileId, false);
-  }
-
-  /**
    * Find files matching a name pattern.
    * Used by the file agent's `find` command.
    * @param namePattern - Glob pattern (e.g., "*.md", "test*")
@@ -1109,7 +1088,7 @@ export class FilesService {
     if (!existingFile) {
       throw new NotFoundException(`Unable to find ${path}`);
     }
-    await this.scratchGitService.deleteFile(workbookId, path, `Delete ${path}`);
+    await this.scratchGitService.deleteFile(workbookId, [path], `Delete ${path}`);
   }
 
   /**
