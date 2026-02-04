@@ -11,6 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Client** (`/client`): Next.js web app on port 3000
 - **Server** (`/server`): NestJS API server on port 3010
 
+**NOTE**: The Next.js web app does **not** run in a serverless environment. It runs in Google Cloud Run.
+
 ### Subdirectory-Specific Rules
 
 Each component has its own CLAUDE.md with instructions specific to the project.

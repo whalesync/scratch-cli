@@ -338,7 +338,7 @@ These can be cleaned up in a future migration if desired.
 
 ### Environment Variables to Clean Up (Manual)
 
-Production environments (Vercel, GCP) may have these variables set:
+Production environments (GCP) may have these variables set:
 
 - `NEXT_PUBLIC_AI_AGENT_API_URL`
 - `NEXT_PUBLIC_AI_AGENT_WEBSOCKET_URL`
