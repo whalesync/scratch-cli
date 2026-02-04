@@ -58,6 +58,39 @@ export class HealthController {
     };
   }
 
+  /**
+   * Returns the external IP address of this server as seen by external services.
+   * Useful for verifying Cloud NAT static IP configuration.
+   */
+  @Get('egress-ip')
+  async getEgressIp() {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json', {
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!response.ok) {
+        return {
+          error: `ipify returned ${response.status}`,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      const data = (await response.json()) as { ip: string };
+
+      return {
+        egress_ip: data.ip,
+        timestamp: new Date().toISOString(),
+        service: 'api',
+      };
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   private async testRedis(): Promise<ConnectionTestResult> {
     let client: IORedis | undefined;
     try {
