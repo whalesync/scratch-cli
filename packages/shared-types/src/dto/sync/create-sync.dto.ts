@@ -15,7 +15,11 @@ export class FolderMappingDto {
 
   @IsString()
   @IsOptional()
-  matchingField!: string | null;
+  matchingDestinationField!: string | null;
+
+  @IsString()
+  @IsOptional()
+  matchingSourceField?: string | null;
 }
 
 export class CreateSyncDto {

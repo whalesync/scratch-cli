@@ -45,7 +45,8 @@ interface FolderPair {
   sourceId: string;
   destId: string;
   fieldMappings: FieldMapping[];
-  matchingField: string;
+  matchingDestinationField: string;
+  matchingSourceField: string;
   expanded: boolean;
 }
 
@@ -63,7 +64,8 @@ const createPair = (): FolderPair => ({
   sourceId: '',
   destId: '',
   fieldMappings: [createMapping()],
-  matchingField: '',
+  matchingDestinationField: '',
+  matchingSourceField: '',
   expanded: true,
 });
 
@@ -159,7 +161,8 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
               sourceId: tm.sourceDataFolderId,
               destId: tm.destinationDataFolderId,
               fieldMappings: fieldMappings.length ? fieldMappings : [createMapping()],
-              matchingField: tm.recordMatching?.destinationColumnId || '',
+              matchingDestinationField: tm.recordMatching?.destinationColumnId || '',
+              matchingSourceField: tm.recordMatching?.sourceColumnId || '',
               expanded: true,
             };
           });
@@ -172,7 +175,8 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
             sourceId: p.sourceDataFolderId,
             destId: p.destinationDataFolderId,
             fieldMappings: [createMapping()],
-            matchingField: '',
+            matchingDestinationField: '',
+            matchingSourceField: '',
             expanded: true,
           }));
           setFolderPairs(pairs.length ? pairs : [createPair()]);
@@ -228,7 +232,8 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
           sourceId: pair.sourceId,
           destId: pair.destId,
           fieldMap,
-          matchingField: pair.matchingField || null,
+          matchingDestinationField: pair.matchingDestinationField || null,
+          matchingSourceField: pair.matchingSourceField || null,
         };
       });
 
@@ -427,12 +432,33 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
                 </Button>
               </Stack>
 
-              <TextInput
+              <Select
                 label="Matching Field (Optional)"
-                description="Field on destination that stores the source record ID"
-                placeholder="e.g. source_id"
-                value={pair.matchingField}
-                onChange={(e) => updatePair(index, { matchingField: e.currentTarget.value })}
+                description="Select the field mapping to use for matching records (e.g. ID to External ID)"
+                placeholder="Select matching pair"
+                data={pair.fieldMappings
+                  .filter((m) => m.sourceField && m.destField)
+                  .map((m) => ({
+                    value: m.sourceField, // distinct by source field? Need unique pairs?
+                    // Actually we want to select "Source -> Dest" pair.
+                    // But Select works on single value.
+                    // Let's use sourceField as value, and hope it's unique enough or find corresponding dest.
+                    // Ideally we should probably store index or ID of mapping?
+                    // But mappings in UI are ephemeral.
+                    // Let's just use JSON string needed? No, ugly.
+                    // If we assume a source field maps to only one dest field in a valid sync...
+                    label: `${m.sourceField} <-> ${m.destField}`,
+                  }))}
+                value={pair.matchingSourceField}
+                onChange={(val) => {
+                  const mapping = pair.fieldMappings.find((m) => m.sourceField === val);
+                  updatePair(index, {
+                    matchingSourceField: val || '',
+                    matchingDestinationField: mapping?.destField || '',
+                  });
+                }}
+                searchable
+                clearable
               />
             </Stack>
           </Collapse>

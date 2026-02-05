@@ -1412,7 +1412,8 @@ Returns all syncs for a workbook.
           "title": "Title",
           "body": "Content"
         },
-        "matchingField": "airtable-id"
+        "matchingDestinationField": "airtable-id",
+        "matchingSourceField": "id"
       }
     ],
     "schedule": "0 */15 * * * *",
@@ -1444,7 +1445,8 @@ Creates a new sync between folders.
         "body": "Content",
         "slug": "Slug"
       },
-      "matchingField": "airtable-id"
+      "matchingDestinationField": "airtable-id",
+      "matchingSourceField": "id"
     }
   ],
   "schedule": null,
@@ -1452,16 +1454,17 @@ Creates a new sync between folders.
 }
 ```
 
-| Field                            | Type    | Required | Description                                |
-| -------------------------------- | ------- | -------- | ------------------------------------------ |
-| `name`                           | string  | Yes      | Sync name                                  |
-| `folderMappings`                 | array   | Yes      | Array of folder mappings                   |
-| `folderMappings[].sourceId`      | string  | Yes      | Source folder ID                           |
-| `folderMappings[].destId`        | string  | Yes      | Destination folder ID                      |
-| `folderMappings[].fieldMap`      | object  | Yes      | Field mapping (dest field -> source field) |
-| `folderMappings[].matchingField` | string  | No       | Field used to match records                |
-| `schedule`                       | string  | No       | Cron schedule for automatic runs           |
-| `autoPublish`                    | boolean | No       | Auto-publish after sync (default: true)    |
+| Field                                       | Type    | Required | Description                                |
+| ------------------------------------------- | ------- | -------- | ------------------------------------------ |
+| `name`                                      | string  | Yes      | Sync name                                  |
+| `folderMappings`                            | array   | Yes      | Array of folder mappings                   |
+| `folderMappings[].sourceId`                 | string  | Yes      | Source folder ID                           |
+| `folderMappings[].destId`                   | string  | Yes      | Destination folder ID                      |
+| `folderMappings[].fieldMap`                 | object  | Yes      | Field mapping (dest field -> source field) |
+| `folderMappings[].matchingDestinationField` | string  | No       | Field used to match records (destination)  |
+| `folderMappings[].matchingSourceField`      | string  | No       | Field used to match records (source)       |
+| `schedule`                                  | string  | No       | Cron schedule for automatic runs           |
+| `autoPublish`                               | boolean | No       | Auto-publish after sync (default: true)    |
 
 **Response (201):** Returns created sync.
 

@@ -108,12 +108,10 @@ export class SyncService {
               columnMappings,
             };
 
-            if (mapping.matchingField) {
+            if (mapping.matchingDestinationField && mapping.matchingSourceField) {
               tableMapping.recordMatching = {
-                sourceColumnId: 'id', // Assuming source ID is always 'id' for now, or we need to look it up?
-                // Actually `matchingField` in DTO is "Field on destination that stores the source record ID".
-                // So we match Source.id == Destination[matchingField].
-                destinationColumnId: mapping.matchingField,
+                sourceColumnId: mapping.matchingSourceField,
+                destinationColumnId: mapping.matchingDestinationField,
               };
             }
             return tableMapping;
@@ -208,10 +206,10 @@ export class SyncService {
                 columnMappings,
               };
 
-              if (mapping.matchingField) {
+              if (mapping.matchingDestinationField) {
                 tableMapping.recordMatching = {
-                  sourceColumnId: 'id',
-                  destinationColumnId: mapping.matchingField,
+                  sourceColumnId: mapping.matchingSourceField || 'id',
+                  destinationColumnId: mapping.matchingDestinationField,
                 };
               }
               return tableMapping;
