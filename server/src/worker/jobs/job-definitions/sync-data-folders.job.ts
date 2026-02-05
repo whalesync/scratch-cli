@@ -192,6 +192,15 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       });
     }
 
+    // Update lastSyncTime on the Sync record
+    const allTablesSucceeded = tablesProgress.every((t) => t.status === 'completed');
+    if (allTablesSucceeded) {
+      await this.prisma.sync.update({
+        where: { id: data.syncId },
+        data: { lastSyncTime: new Date() },
+      });
+    }
+
     WSLogger.info({
       source: 'SyncDataFoldersJob',
       message: 'Completed sync data folders job',
@@ -199,6 +208,7 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       workbookId: data.workbookId,
       totalFilesSynced,
       tablesProcessed: tableMappings.length,
+      allTablesSucceeded,
     });
   }
 }
