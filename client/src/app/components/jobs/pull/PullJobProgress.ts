@@ -22,16 +22,31 @@ export type PullRecordsProgress = {
   tables: TableProgress[];
 };
 
-// Pull files progress (new)
+// Pull files progress (array of folders)
 export type PullFilesProgress = {
   totalFiles: number;
   folders: FolderProgress[];
 };
 
-// Combined type that can be either
-export type PullProgress = PullRecordsProgress | PullFilesProgress;
+// Pull linked folder files progress (single folder from pull-linked-folder-files job)
+export type PullLinkedFolderFilesProgress = {
+  totalFiles: number;
+  folderId: string;
+  folderName: string;
+  connector: string;
+  status: 'pending' | 'active' | 'completed' | 'failed';
+  hasDirtyDiscoveredDeletes?: boolean;
+};
 
-// Type guard to check which type of progress we have
+// Combined type that can be any of these
+export type PullProgress = PullRecordsProgress | PullFilesProgress | PullLinkedFolderFilesProgress;
+
+// Type guard for pull files progress (array of folders)
 export function isPullFilesProgress(progress: PullProgress): progress is PullFilesProgress {
   return 'folders' in progress;
+}
+
+// Type guard for pull linked folder files progress (single folder)
+export function isPullLinkedFolderFilesProgress(progress: PullProgress): progress is PullLinkedFolderFilesProgress {
+  return 'folderId' in progress && 'folderName' in progress;
 }

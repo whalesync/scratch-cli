@@ -144,7 +144,9 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
     const dto = pullDto;
-    return this.service.pullFiles(id, userToActor(req.user), dto.snapshotTableIds);
+    // Support both old field name (snapshotTableIds) and new field name (dataFolderIds) for backward compatibility
+    const folderIds = dto.dataFolderIds ?? dto.snapshotTableIds;
+    return this.service.pullFiles(id, userToActor(req.user), folderIds);
   }
 
   @Delete(':id')

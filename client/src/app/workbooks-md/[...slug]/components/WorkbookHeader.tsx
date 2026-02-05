@@ -1,12 +1,16 @@
 import { ButtonSecondaryInline, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { workbookApi } from '@/lib/api/workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Group } from '@mantine/core';
-import { CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
+import { CloudDownloadIcon, CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
+import { useState } from 'react';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 
 export const WorkbookHeader = () => {
@@ -16,6 +20,37 @@ export const WorkbookHeader = () => {
   const openChat = useWorkbookEditorUIStore((state) => state.openChat);
   const openDataFolderPublishConfirmation = useWorkbookEditorUIStore(
     (state) => state.openDataFolderPublishConfirmation,
+  );
+
+  const [pullJobId, setPullJobId] = useState<string | null>(null);
+  const [isPulling, setIsPulling] = useState(false);
+
+  const handlePullAll = async () => {
+    if (!workbook) return;
+    setIsPulling(true);
+    try {
+      const result = await workbookApi.pullFiles(workbook.id);
+      setPullJobId(result.jobId);
+    } catch (e) {
+      console.debug('Pull failed', e);
+      ScratchpadNotifications.error({
+        title: 'Pull failed',
+        message: 'There was an error starting the pull.',
+      });
+    } finally {
+      setIsPulling(false);
+    }
+  };
+
+  const pullButton = (
+    <ButtonSecondaryOutline
+      size="compact-xs"
+      leftSection={<CloudDownloadIcon size={14} />}
+      onClick={handlePullAll}
+      loading={isPulling}
+    >
+      Pull All
+    </ButtonSecondaryOutline>
   );
 
   const publishButton = (
@@ -48,9 +83,12 @@ export const WorkbookHeader = () => {
             Chat
           </ButtonSecondaryInline>
         )}
+        {pullButton}
         {publishButton}
         <WorkbookActionsMenu />
       </Group>
+
+      {pullJobId && <PullProgressModal jobId={pullJobId} onClose={() => setPullJobId(null)} />}
     </Group>
   );
 };

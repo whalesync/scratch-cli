@@ -7,6 +7,7 @@ import {
   createFolderId,
   createSnapshotTableId,
   createWorkbookId,
+  DataFolderId,
   FolderId,
   Service,
   SnapshotTableId,
@@ -34,7 +35,6 @@ import { ConnectorsService } from '../remote-service/connectors/connectors.servi
 import { AnySpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { BaseJsonTableSpec, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
-import { PullFilesPublicProgress } from '../worker/jobs/job-definitions/pull-files.job';
 import { FolderService } from './folder.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
@@ -569,72 +569,57 @@ export class WorkbookService {
     });
   }
 
-  async pullFiles(id: WorkbookId, actor: Actor, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
+  async pullFiles(id: WorkbookId, actor: Actor, dataFolderIds?: string[]): Promise<{ jobId: string }> {
     // Verify the workbook exists and the user has access
     await this.findOneOrThrow(id, actor);
 
-    // Fetch workbook with folder relation included for initial progress
-    const workbook = await this.db.client.workbook.findUnique({
-      where: { id },
+    // Fetch data folders that have connectors (linked folders)
+    let foldersToProcess = await this.db.client.dataFolder.findMany({
+      where: {
+        workbookId: id,
+        connectorAccountId: { not: null },
+      },
       include: {
-        snapshotTables: {
-          include: {
-            connectorAccount: true,
-            folder: true,
-          },
-        },
+        connectorAccount: true,
       },
     });
 
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
+    // Filter to specific folders if IDs provided
+    if (dataFolderIds && dataFolderIds.length > 0) {
+      foldersToProcess = foldersToProcess.filter((f) => dataFolderIds.includes(f.id));
     }
 
-    // Filter to tables that have folders
-    let tablesToProcess = (workbook.snapshotTables || []).filter((st) => st.folderId);
-    if (snapshotTableIds && snapshotTableIds.length > 0) {
-      tablesToProcess = tablesToProcess.filter((st) => snapshotTableIds.includes(st.id));
+    if (foldersToProcess.length === 0) {
+      throw new BadRequestException('No linked data folders found to pull files from');
     }
 
-    if (tablesToProcess.length === 0) {
-      throw new BadRequestException('No tables with folders found to pull files from');
-    }
-
-    const initialPublicProgressFolders: PullFilesPublicProgress['folders'] = [];
-    for (const st of tablesToProcess) {
-      initialPublicProgressFolders.push({
-        id: st.folderId!,
-        name: st.folder?.name ?? (st.tableSpec as AnyTableSpec).name,
-        connector: st.connectorService,
-        files: 0,
-        status: 'pending' as const,
-      });
-    }
-
-    const initialPublicProgress: PullFilesPublicProgress = {
-      totalFiles: 0,
-      folders: initialPublicProgressFolders,
-    };
-
-    const job = await this.bullEnqueuerService.enqueuePullFilesJob(
-      id,
-      actor,
-      tablesToProcess.map((t) => t.id),
-      initialPublicProgress,
-    );
-
-    // Set lock='pull' for all tables immediately after enqueuing
-    await this.db.client.snapshotTable.updateMany({
+    // Set lock='pull' for all folders before enqueuing jobs
+    await this.db.client.dataFolder.updateMany({
       where: {
-        id: { in: tablesToProcess.map((t) => t.id) },
+        id: { in: foldersToProcess.map((f) => f.id) },
       },
       data: {
         lock: 'pull',
       },
     });
 
+    // Enqueue a pull job for each data folder
+    const jobs: { id: string }[] = [];
+    for (const folder of foldersToProcess) {
+      const job = await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(id, actor, folder.id as DataFolderId, {
+        totalFiles: 0,
+        folderId: folder.id,
+        folderName: folder.name,
+        connector: folder.connectorService ?? 'unknown',
+        status: 'pending',
+      });
+      jobs.push({ id: job.id as string });
+    }
+
+    // Return the first job ID for backward compatibility
+    // TODO: Consider returning all job IDs in the future
     return {
-      jobId: job.id as string,
+      jobId: jobs[0].id,
     };
   }
 

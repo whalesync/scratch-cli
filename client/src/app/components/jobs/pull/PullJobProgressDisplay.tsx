@@ -1,4 +1,8 @@
-import { PullProgress, isPullFilesProgress } from '@/app/components/jobs/pull/PullJobProgress';
+import {
+  PullProgress,
+  isPullFilesProgress,
+  isPullLinkedFolderFilesProgress,
+} from '@/app/components/jobs/pull/PullJobProgress';
 import { getTerminalTableStatus } from '@/app/components/jobs/job-utils';
 import { TableStatus } from '@/app/components/jobs/publish/PublishJobProgress';
 import { SyncStatus } from '@/app/components/jobs/SyncStatus/sync-status';
@@ -21,6 +25,35 @@ export const PullJobProgressDisplay: FC<Props> = (props) => {
   }
 
   const { publicProgress, state, failedReason } = job;
+
+  // Handle pull linked folder files progress (single folder)
+  if (isPullLinkedFolderFilesProgress(publicProgress)) {
+    return (
+      <Stack gap="xl">
+        <Stack gap="md">
+          <SyncStatus
+            tableName={publicProgress.folderName}
+            connector={publicProgress.connector}
+            doneCount={publicProgress.totalFiles}
+            status={getTerminalTableStatus(publicProgress.status as TableStatus, state)}
+            direction="left"
+          />
+
+          {publicProgress.hasDirtyDiscoveredDeletes && (
+            <Alert icon={<AlertCircle size={16} />} color="yellow" p="xs">
+              Files with unpublished scratch changes were deleted from{' '}
+              {getServiceName(publicProgress.connector as Service)}
+            </Alert>
+          )}
+        </Stack>
+        {failedReason && (
+          <Alert icon={<AlertCircle size={16} />} title="Pull Failed" color="red" mt="md">
+            {failedReason}
+          </Alert>
+        )}
+      </Stack>
+    );
+  }
 
   // Handle pull files progress (folders)
   if (isPullFilesProgress(publicProgress)) {
