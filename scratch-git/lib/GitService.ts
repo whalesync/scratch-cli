@@ -108,7 +108,7 @@ export class GitService implements IGitService {
 
   async rebaseDirty(
     repoId: string,
-    strategy: 'ours' | 'diff3' = 'ours',
+    strategy: 'ours' | 'diff3' = 'diff3',
   ): Promise<{ rebased: boolean; conflicts: string[] }> {
     const dir = this.getRepoPath(repoId);
     const mainRef = 'main';
@@ -497,7 +497,8 @@ export class GitService implements IGitService {
       },
     });
 
-    archive.finalize();
+    // added void since linter was complaining, assuming the non-awaited behavior is expected
+    void archive.finalize();
     return archive;
   }
 
