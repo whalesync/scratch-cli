@@ -22,11 +22,9 @@ import { BUILD_VERSION } from 'src/version';
 import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
 import { Workbook } from 'src/workbook/entities/workbook.entity';
 import { CliService } from './cli.service';
-import { DownloadedFilesResponseDto, DownloadRequestDto } from './dtos/download-files.dto';
 import { GetFolderFilesResponseDto, PutFolderFilesResponseDto } from './dtos/folder-files.dto';
 import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto } from './dtos/list-tables.dto';
-import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { TriggerPullDto, TriggerPullResponseDto } from './dtos/trigger-pull.dto';
 
 @Controller('cli/v1')
@@ -121,28 +119,12 @@ export class CliController {
     );
   }
 
-  @Get('test-connection')
-  async testConnection(@Req() req: CliRequestWithUser): Promise<TestConnectionResponseDto> {
-    this.validateCredentials(req.connectorCredentials);
-    const actor = this.getActorFromRequest(req);
-    // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.testConnection(req.connectorCredentials as CliConnectorCredentials, actor);
-  }
-
   @Get('list-tables')
   async listTables(@Req() req: CliRequestWithUser): Promise<ListTablesResponseDto> {
     this.validateCredentials(req.connectorCredentials);
     const actor = this.getActorFromRequest(req);
     // req.connectorCredentials is guaranteed to be defined after validateCredentials
     return this.cliService.listTables(req.connectorCredentials as CliConnectorCredentials, actor);
-  }
-
-  @Post('download')
-  async download(@Req() req: CliRequestWithUser, @Body() dto: DownloadRequestDto): Promise<DownloadedFilesResponseDto> {
-    this.validateCredentials(req.connectorCredentials);
-    const actor = this.getActorFromRequest(req);
-    // req.connectorCredentials is guaranteed to be defined after validateCredentials
-    return this.cliService.download(req.connectorCredentials as CliConnectorCredentials, dto, actor);
   }
 
   @Post('workbooks/:workbookId/pull')

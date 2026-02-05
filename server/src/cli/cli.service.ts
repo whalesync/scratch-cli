@@ -11,18 +11,16 @@ import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
-import { ConnectorFile, TablePreview } from 'src/remote-service/connectors/types';
+import { TablePreview } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { Actor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { DataFolderEntity } from 'src/workbook/entities/data-folder.entity';
 import { Workbook } from 'src/workbook/entities/workbook.entity';
-import { normalizeFileName } from 'src/workbook/util';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { PullLinkedFolderFilesPublicProgress } from 'src/worker/jobs/job-definitions/pull-linked-folder-files.job';
-import { DownloadedFilesResponseDto, DownloadRequestDto, FileContent } from './dtos/download-files.dto';
 import { ValidatedFolderMetadataDto } from './dtos/download-folder.dto';
 import {
   GetFolderFilesResponseDto,
@@ -31,7 +29,6 @@ import {
 } from './dtos/folder-files.dto';
 import { JobStatusResponseDto } from './dtos/job-status.dto';
 import { ListTablesResponseDto, TableInfo } from './dtos/list-tables.dto';
-import { TestConnectionResponseDto } from './dtos/test-connection.dto';
 import { TriggerPullResponseDto } from './dtos/trigger-pull.dto';
 
 /**
@@ -123,35 +120,6 @@ export class CliService {
     });
   }
 
-  async testConnection(credentials: CliConnectorCredentials, actor?: Actor): Promise<TestConnectionResponseDto> {
-    try {
-      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
-      await connector.testConnection();
-
-      const result = {
-        success: true,
-        service: credentials.service,
-      };
-
-      return result;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const result = {
-        success: false,
-        error: errorMessage,
-        service: credentials.service,
-      };
-
-      return result;
-    } finally {
-      if (actor) {
-        this.posthogService.captureEvent(PostHogEventName.CLI_TEST_CONNECTION, actor.userId, {
-          service: credentials.service,
-        });
-      }
-    }
-  }
-
   /**
    * Lists all workbooks for the authenticated user.
    */
@@ -241,98 +209,6 @@ export class CliService {
         message: 'Error listing tables',
         error: errorMessage,
       });
-      return {
-        error: errorMessage,
-      };
-    }
-  }
-
-  async download(
-    credentials: CliConnectorCredentials,
-    downloadRequest: DownloadRequestDto,
-    actor?: Actor,
-  ): Promise<DownloadedFilesResponseDto> {
-    if (!downloadRequest.tableId || downloadRequest.tableId.length === 0) {
-      throw new BadRequestException('Table ID is missing from request');
-    }
-
-    try {
-      const connector = await this.getConnectorFromCredentials(credentials, credentials.service);
-
-      // Check if the connector supports JSON-based pull
-      if (!connector.pullRecordFiles) {
-        return {
-          error: `The ${credentials.service} connector does not support JSON file downloads`,
-        };
-      }
-
-      // Fetch the JSON table spec
-      const tableSpec = await connector.fetchJsonTableSpec({
-        wsId: downloadRequest.tableId.join('-'),
-        remoteId: downloadRequest.tableId,
-      });
-
-      // Collect all files using the JSON-based method
-      const allFiles: ConnectorFile[] = [];
-
-      await connector.pullRecordFiles(
-        tableSpec,
-        ({ files }) => {
-          allFiles.push(...files);
-          return Promise.resolve();
-        },
-        {}, // Empty progress object for CLI usage
-      );
-
-      // Determine the ID field from the table spec (e.g., 'uid' for Audienceful, 'id' for others)
-      const idField = tableSpec.idColumnRemoteId || 'id';
-      // Determine the filename field from request or use the ID field
-      const filenameField = downloadRequest.filenameFieldId || idField;
-
-      // Convert to response format
-      const files: FileContent[] = allFiles.map((file) => {
-        // Get the ID from the file using the schema-defined ID field
-        const rawId = file[idField];
-        const id = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : '';
-
-        // Get filename from the specified field or fall back to ID
-        let fileName = id;
-        if (filenameField && file[filenameField]) {
-          const fieldValue = file[filenameField];
-          if (typeof fieldValue === 'string') {
-            fileName = fieldValue;
-          } else if (typeof fieldValue === 'number') {
-            fileName = String(fieldValue);
-          }
-        }
-
-        return {
-          slug: normalizeFileName(fileName),
-          id,
-          content: JSON.stringify(file, null, 2),
-        };
-      });
-
-      const result = {
-        files,
-      };
-
-      if (actor) {
-        this.posthogService.captureEvent(PostHogEventName.CLI_DOWNLOAD, actor.userId, {
-          service: credentials.service,
-          fileCount: result.files?.length || 0,
-          tableCount: downloadRequest.tableId?.length || 0,
-        });
-      }
-
-      return result;
-    } catch (error: unknown) {
-      WSLogger.error({
-        source: 'CliService',
-        message: 'Error downloading files',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         error: errorMessage,
       };

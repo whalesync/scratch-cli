@@ -46,13 +46,6 @@ type ConnectorCredentials struct {
 	Params  map[string]string `json:"params,omitempty"`
 }
 
-// TestConnectionResponse represents the response from the test-credentials endpoint.
-type TestConnectionResponse struct {
-	Success bool   `json:"success"`
-	Service string `json:"service,omitempty"`
-	Error   string `json:"error,omitempty"`
-}
-
 // TableInfo represents a table with its JSON Schema.
 type TableInfo struct {
 	ID       string                 `json:"id,omitempty"`
@@ -68,66 +61,6 @@ type TableInfo struct {
 type ListTablesResponse struct {
 	Error  string      `json:"error,omitempty"`
 	Tables []TableInfo `json:"tables,omitempty"`
-}
-
-// DownloadRequest represents the request body for the download endpoint.
-type DownloadRequest struct {
-	TableID         []string `json:"tableId"`
-	FilenameFieldID string   `json:"filenameFieldId,omitempty"`
-	ContentFieldID  string   `json:"contentFieldId,omitempty"`
-	Offset          int      `json:"offset,omitempty"`
-	Limit           int      `json:"limit,omitempty"`
-}
-
-// FileContent represents a downloaded file with its metadata.
-type FileContent struct {
-	Slug    string `json:"slug"`    // A file name slug, should be URL-friendly and unique
-	ID      string `json:"id"`      // The remote ID of remote record that this file was generated from
-	Content string `json:"content"` // The content of the file in Frontmatter YAML format
-}
-
-// DownloadResponse represents the response from the download endpoint.
-type DownloadResponse struct {
-	Error string        `json:"error,omitempty"`
-	Files []FileContent `json:"files,omitempty"`
-}
-
-// UploadOpType represents the type of upload operation.
-type UploadOpType string
-
-const (
-	OpCreate UploadOpType = "create"
-	OpUpdate UploadOpType = "update"
-	OpDelete UploadOpType = "delete"
-)
-
-// UploadOperation represents a single file operation (create, update, or delete) for upload.
-type UploadOperation struct {
-	Op       UploadOpType           `json:"op"`       // OpCreate, OpUpdate, or OpDelete
-	ID       string                 `json:"id"`       // Required for update and delete operations
-	Filename string                 `json:"filename"` // The filename this operation originated from
-	Data     map[string]interface{} `json:"data"`     // The content as key-value pairs (not used for delete)
-}
-
-// uploadRequest represents the request body for the upload endpoint (internal use).
-type uploadRequest struct {
-	TableID []string                 `json:"tableId,omitempty"`
-	Creates []map[string]interface{} `json:"creates,omitempty"`
-	Updates []map[string]interface{} `json:"updates,omitempty"`
-	Deletes []map[string]interface{} `json:"deletes,omitempty"`
-}
-
-// UploadResult represents the result of a single upload operation.
-type UploadResult struct {
-	Op       string `json:"op"`
-	ID       string `json:"id"`
-	Filename string `json:"filename"`
-	Error    string `json:"error,omitempty"`
-}
-
-// UploadResponse represents the response from the upload endpoint.
-type UploadResponse struct {
-	Results []UploadResult `json:"results"`
 }
 
 // AuthInitiateResponse represents the response from the auth initiate endpoint.
@@ -147,34 +80,6 @@ type AuthPollResponse struct {
 	UserEmail      string `json:"userEmail,omitempty"`      // Only set when status is "approved"
 	TokenExpiresAt string `json:"tokenExpiresAt,omitempty"` // Only set when status is "approved"
 	Error          string `json:"error,omitempty"`
-}
-
-// FileToValidate represents a file to be validated against the table schema.
-type FileToValidate struct {
-	ID       string                 `json:"id,omitempty"` // The remote ID of the record (optional for new files)
-	Filename string                 `json:"filename"`     // The filename of the file
-	Data     map[string]interface{} `json:"data"`         // The content as key-value pairs (parsed frontmatter)
-}
-
-// ValidateFilesRequest represents the request body for the validate-files endpoint.
-type ValidateFilesRequest struct {
-	TableID []string         `json:"tableId"`
-	Files   []FileToValidate `json:"files"`
-}
-
-// ValidatedFileResult represents the validation result for a single file.
-type ValidatedFileResult struct {
-	ID          string                 `json:"id,omitempty"` // The remote ID of the record (if provided)
-	Filename    string                 `json:"filename"`     // The filename of the file
-	Data        map[string]interface{} `json:"data"`         // The content as key-value pairs
-	Publishable bool                   `json:"publishable"`  // Whether the file passed validation
-	Errors      []string               `json:"errors,omitempty"`
-}
-
-// ValidateFilesResponse represents the response from the validate-files endpoint.
-type ValidateFilesResponse struct {
-	Error string                `json:"error,omitempty"`
-	Files []ValidatedFileResult `json:"files,omitempty"`
 }
 
 // Workbook represents a workbook returned by the API.
@@ -398,68 +303,10 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 	return nil
 }
 
-// TestConnection tests the provided connector credentials.
-func (c *Client) TestConnection(creds *ConnectorCredentials) (*TestConnectionResponse, error) {
-	var result TestConnectionResponse
-	if err := c.doRequest(http.MethodGet, "test-connection", creds, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
 // ListTables retrieves the list of available tables with their JSON Schema specs.
 func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
 	var result ListTablesResponse
 	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// Download downloads files from the specified table using the download endpoint.
-func (c *Client) Download(creds *ConnectorCredentials, req *DownloadRequest) (*DownloadResponse, error) {
-	var result DownloadResponse
-	if err := c.doRequest(http.MethodPost, "download", creds, req, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// Upload uploads file changes (creates, updates, deletes) to the specified table.
-func (c *Client) Upload(creds *ConnectorCredentials, tableID []string, operations []UploadOperation) (*UploadResponse, error) {
-	// Build the request by separating operations into creates, updates, and deletes
-	req := uploadRequest{
-		TableID: tableID,
-	}
-
-	for _, op := range operations {
-		switch op.Op {
-		case OpCreate:
-			req.Creates = append(req.Creates, map[string]interface{}{
-				"op":       op.Op,
-				"filename": op.Filename,
-				"data":     op.Data,
-			})
-		case OpUpdate:
-			req.Updates = append(req.Updates, map[string]interface{}{
-				"op":       op.Op,
-				"id":       op.ID,
-				"filename": op.Filename,
-				"data":     op.Data,
-			})
-		case OpDelete:
-			req.Deletes = append(req.Deletes, map[string]interface{}{
-				"op":       op.Op,
-				"id":       op.ID,
-				"filename": op.Filename,
-			})
-		default:
-			return nil, fmt.Errorf("invalid operation type %q for file %q: must be create, update, or delete", op.Op, op.Filename)
-		}
-	}
-
-	var result UploadResponse
-	if err := c.doRequest(http.MethodPost, "upload", creds, req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -510,15 +357,6 @@ func (c *Client) PollAuth(pollingCode string) (*AuthPollResponse, error) {
 	body := map[string]string{"pollingCode": pollingCode}
 	var result AuthPollResponse
 	if err := c.doRequest(http.MethodPost, "auth/poll", nil, body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ValidateFiles validates files against the table schema before publishing.
-func (c *Client) ValidateFiles(creds *ConnectorCredentials, req *ValidateFilesRequest) (*ValidateFilesResponse, error) {
-	var result ValidateFilesResponse
-	if err := c.doRequest(http.MethodPost, "validate-files", creds, req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
