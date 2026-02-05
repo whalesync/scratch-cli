@@ -24,10 +24,11 @@ import { Split } from '@gfazioli/mantine-split-pane';
 import { Accordion, Box, Stack } from '@mantine/core';
 import type { DataFolder, DataFolderId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text12Book } from '../../components/base/text';
 import { WorkbookEditorModals } from '../../workbooks-md/[...slug]/components/modals/WorkbookEditorModals';
 import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
+import accordionStyles from './components/WorkbookAccordion.module.css';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditorNew } from './components/FileEditorNew';
@@ -41,6 +42,7 @@ const MIN_LIST_WIDTH = 300;
 const MAX_LIST_WIDTH = 600;
 
 function WorkbookFilesPageContent() {
+  const [accordionValue, setAccordionValue] = useState<string | null>('apps');
   const { isDevToolsEnabled } = useDevTools();
   const { tableId: pathTableId } = useWorkbookParams();
   // const activeTab = useWorkbookEditorUIStore((state) => state.activeTab); // Unused
@@ -104,44 +106,46 @@ function WorkbookFilesPageContent() {
               <Split.Pane initialWidth={DEFAULT_LIST_WIDTH} minWidth={MIN_LIST_WIDTH} maxWidth={MAX_LIST_WIDTH}>
                 <Stack h="100%" gap={0} bg="var(--bg-base)" style={{ border: '0.5px solid var(--fg-divider)' }}>
                   <Accordion
-                    chevronPosition="left"
-                    chevronSize={14}
+                    chevronSize={0}
                     multiple={false}
-                    defaultValue="apps"
+                    value={accordionValue}
+                    onChange={(value) => {
+                      if (value) setAccordionValue(value);
+                    }}
                     transitionDuration={0}
+                    classNames={{ item: accordionStyles.item }}
                     styles={{
                       root: { display: 'flex', flexDirection: 'column', height: '100%' },
                       item: {
                         borderBottom: '1px solid var(--fg-divider)',
                         overflow: 'hidden',
-                        // Remove transition to avoid state issues
-                        transition: 'flex 0.3s ease',
+                        transition: 'none',
                         display: 'flex',
                         flexDirection: 'column',
                         backgroundColor: 'var(--bg-base)',
-                        '&[data-active]': { flex: 1 },
                       },
                       control: {
-                        padding: '0 12px 0 3px',
+                        padding: '0 12px 0 10px',
                         height: '36px',
                         flexShrink: 0,
-                        backgroundColor: 'var(--bg-base)',
-                        '&:hover': { backgroundColor: 'var(--bg-base) !important' },
+                        backgroundColor: 'var(--bg-selected)',
                       },
                       chevron: {
-                        marginRight: 3,
-                        marginLeft: 4,
-                        color: 'var(--mantine-color-gray-7)',
+                        display: 'none',
+                      },
+                      icon: {
+                        marginRight: 6,
                       },
                       // Ensure content/panel take full height provided by flex item
                       content: {
                         padding: 0,
                         flex: 1,
+                        minHeight: 0,
                         display: 'flex',
                         flexDirection: 'column',
                         borderTop: '1px solid var(--mantine-color-gray-2)',
                       },
-                      panel: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+                      panel: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
                       label: { fontWeight: 500, fontSize: '14px' },
                     }}
                   >

@@ -30,6 +30,7 @@ import {
 } from '@mantine/core';
 import type { DataFolder, DataFolderGroup, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import {
+  BlocksIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   CopyMinusIcon,
@@ -206,7 +207,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   return (
     <Accordion.Item value="apps">
       {/* Tree Header */}
-      <Accordion.Control>
+      <Accordion.Control icon={<BlocksIcon size={14} color="var(--mantine-color-gray-7)" />}>
         <Box h={20} style={{ position: 'relative' }}>
           <Text fw={500} size="sm" truncate w="100%" pr={140}>
             Apps
@@ -220,7 +221,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
               right: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-base)',
+              backgroundColor: 'var(--bg-selected)',
             }}
             pl={8}
           >
@@ -329,7 +330,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
 
       <Accordion.Panel>
         {/* Fill available height */}
-        <Stack h="100%" gap={0} bg="var(--bg-base)">
+        <Stack flex={1} mih={0} gap={0} bg="var(--bg-base)">
           {isLoading ? (
             <Box p="md" className={styles.container}>
               <Group justify="center" p="lg">

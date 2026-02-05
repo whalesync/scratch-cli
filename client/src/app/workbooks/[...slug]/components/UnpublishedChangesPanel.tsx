@@ -180,7 +180,7 @@ export function UnpublishedChangesPanel({
 
   return (
     <Accordion.Item value="changes">
-      <Accordion.Control>
+      <Accordion.Control icon={<FileDiffIcon size={14} color="var(--mantine-color-gray-7)" />}>
         <Box h={20} style={{ position: 'relative' }}>
           <Text size="sm" fw={500} truncate w="100%" pr={120}>
             Unpublished Changes
@@ -195,7 +195,7 @@ export function UnpublishedChangesPanel({
               right: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-base)', // Mask content behind
+              backgroundColor: 'var(--bg-selected)', // Mask content behind
             }}
             pl={8} // Padding for mask
           >

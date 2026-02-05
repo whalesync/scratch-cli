@@ -6,7 +6,7 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Accordion, ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { Sync, SyncId } from '@spinner/shared-types';
-import { Eye, Plus } from 'lucide-react';
+import { Eye, Plus, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AddSyncDialog } from './dialogs/AddSyncDialog';
 import { SyncCard } from './SyncCard';
@@ -69,7 +69,7 @@ export function SyncsPanel() {
   return (
     <Accordion.Item value="syncs">
       {/* Header */}
-      <Accordion.Control>
+      <Accordion.Control icon={<RefreshCwIcon size={14} color="var(--mantine-color-gray-7)" />}>
         <Box h={20} style={{ position: 'relative' }}>
           <Text13Medium truncate w="100%" pr={60}>
             Syncs
@@ -82,7 +82,7 @@ export function SyncsPanel() {
               right: 0,
               top: '50%',
               transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-base)',
+              backgroundColor: 'var(--bg-selected)',
             }}
             pl={8}
           >
