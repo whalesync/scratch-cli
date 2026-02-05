@@ -29,6 +29,14 @@ export class ListWorkbooksQueryDto {
 export type ValidatedListWorkbooksQueryDto = ListWorkbooksQueryDto;
 
 /**
+ * CLI response format for a data folder.
+ */
+export class CliDataFolderDto {
+  readonly id?: string;
+  readonly name?: string;
+}
+
+/**
  * CLI response format for a workbook.
  * Simplified version for CLI output.
  */
@@ -38,6 +46,7 @@ export class CliWorkbookResponseDto {
   readonly createdAt?: string;
   readonly updatedAt?: string;
   readonly tableCount?: number;
+  readonly dataFolders?: CliDataFolderDto[];
 }
 
 /**

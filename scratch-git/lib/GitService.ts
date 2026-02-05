@@ -1,7 +1,9 @@
+import archiver from 'archiver';
 import git from 'isomorphic-git';
 import { diff3Merge } from 'node-diff3';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 
 import { DirtyFile, FileChange, GitFile, IGitService, TreeEntry } from './types';
 
@@ -447,6 +449,40 @@ export class GitService implements IGitService {
     const dirtyContent = await this.getFile(repoId, 'dirty', filePath);
     if (mainContent === null && dirtyContent === null) return null;
     return { main: mainContent, dirty: dirtyContent };
+  }
+
+  async createArchive(repoId: string, branch: string): Promise<Readable> {
+    const dir = this.getRepoPath(repoId);
+    const commitOid = await git.resolveRef({ fs, dir, gitdir: dir, ref: branch });
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+
+    // Walk tree and add all files (skip dotfiles)
+    await git.walk({
+      fs,
+      dir,
+      gitdir: dir,
+      trees: [git.TREE({ ref: commitOid })],
+      map: async (filepath, [entry]) => {
+        if (!entry) return;
+        // Skip hidden files/directories (starting with .)
+        if (filepath.split('/').some((p) => p.startsWith('.'))) return;
+
+        const type = await entry.type();
+        if (type === 'blob') {
+          const { blob } = await git.readBlob({
+            fs,
+            dir,
+            gitdir: dir,
+            oid: await entry.oid(),
+          });
+          archive.append(Buffer.from(blob), { name: filepath });
+        }
+      },
+    });
+
+    archive.finalize();
+    return archive;
   }
 
   async list(repoId: string, branch: string, folderPath: string): Promise<GitFile[]> {

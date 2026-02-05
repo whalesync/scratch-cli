@@ -212,6 +212,18 @@ app.delete('/api/repo/:id/checkpoint/:name', async (req, res) => {
   }
 });
 
+app.get('/api/repo/:id/archive', async (req, res) => {
+  try {
+    const branch = (req.query.branch as string) || 'dirty';
+    const stream = await gitService.createArchive(req.params.id, branch);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="archive.zip"');
+    stream.pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 app.get('/health', (_, res) =>
   res.json({
     status: 'alive',

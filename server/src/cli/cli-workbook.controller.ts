@@ -9,12 +9,15 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
+import type { Response } from 'express';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
+import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import {
@@ -34,7 +37,10 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(ScratchpadAuthGuard)
 export class CliWorkbookController {
-  constructor(private readonly workbookService: WorkbookService) {}
+  constructor(
+    private readonly workbookService: WorkbookService,
+    private readonly scratchGitService: ScratchGitService,
+  ) {}
 
   /**
    * List all workbooks for the authenticated user.
@@ -109,6 +115,29 @@ export class CliWorkbookController {
   }
 
   /**
+   * Download a workbook as a ZIP archive.
+   */
+  @Get(':id/download')
+  async downloadWorkbook(@Req() req: RequestWithUser, @Param('id') id: string, @Res() res: Response): Promise<void> {
+    const actor = userToActor(req.user);
+    const workbookId = id as WorkbookId;
+
+    // Verify access
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    // Get archive stream from scratch-git
+    const stream = await this.scratchGitService.getArchive(workbookId, DIRTY_BRANCH);
+
+    const filename = encodeURIComponent(workbook.name || 'workbook') + '.zip';
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    stream.pipe(res);
+  }
+
+  /**
    * Convert a workbook to the CLI response format.
    */
   private toCliResponse(workbook: {
@@ -117,6 +146,7 @@ export class CliWorkbookController {
     createdAt: Date;
     updatedAt: Date;
     snapshotTables?: unknown[];
+    dataFolders?: { id: string; name: string }[];
   }): CliWorkbookResponseDto {
     return {
       id: workbook.id,
@@ -124,6 +154,7 @@ export class CliWorkbookController {
       createdAt: workbook.createdAt.toISOString(),
       updatedAt: workbook.updatedAt.toISOString(),
       tableCount: workbook.snapshotTables?.length ?? 0,
+      dataFolders: workbook.dataFolders?.map((df) => ({ id: df.id, name: df.name })),
     };
   }
 }

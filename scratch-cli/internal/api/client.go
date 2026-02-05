@@ -214,13 +214,20 @@ func (c *Client) PollAuth(pollingCode string) (*AuthPollResponse, error) {
 	return &result, nil
 }
 
+// DataFolder represents a data folder in the CLI response format.
+type DataFolder struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // Workbook represents a workbook in the CLI response format.
 type Workbook struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	CreatedAt  string `json:"createdAt"`
-	UpdatedAt  string `json:"updatedAt"`
-	TableCount int    `json:"tableCount"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	CreatedAt   string       `json:"createdAt"`
+	UpdatedAt   string       `json:"updatedAt"`
+	TableCount  int          `json:"tableCount"`
+	DataFolders []DataFolder `json:"dataFolders"`
 }
 
 // WorkbookListResponse represents the response from the list workbooks endpoint.
@@ -281,4 +288,39 @@ func (c *Client) DeleteWorkbook(id string) error {
 		return err
 	}
 	return nil
+}
+
+// DownloadWorkbook downloads a workbook as a ZIP archive.
+// Returns the response body as an io.ReadCloser that must be closed by the caller.
+func (c *Client) DownloadWorkbook(id string) (io.ReadCloser, error) {
+	u, err := url.JoinPath(c.baseURL, "cli/v1/workbooks", id, "download")
+	if err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/zip")
+	req.Header.Set("User-Agent", DefaultUserAgent+"/"+Version)
+	req.Header.Set("X-Scratch-CLI-Version", Version)
+
+	if c.apiToken != "" {
+		req.Header.Set("Authorization", "API-Token "+c.apiToken)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return resp.Body, nil
 }
