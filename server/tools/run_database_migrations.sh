@@ -30,14 +30,34 @@ fi
 
 ENVIRONMENT=$1
 
-# Validate environment argument
-if [[ "$ENVIRONMENT" != "test" && "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
-    echo "Error: Invalid environment '$ENVIRONMENT'"
-    echo "Allowed values: 'test', 'staging', or 'production'"
-    exit 1
-fi
-
-PROJECT="spv1-${ENVIRONMENT}"
+# Validate environment argument and set project/zone
+case "$ENVIRONMENT" in
+    "test")
+        PROJECT="spv1-test"
+        ZONE="us-central1-c"
+        ;;
+    "staging")
+        PROJECT="spv1-staging"
+        ZONE="us-central1-c"
+        ;;
+    "production")
+        PROJECT="spv1-production"
+        ZONE="us-central1-c"
+        ;;
+    "eu-test")
+        PROJECT="spv1eu-test"
+        ZONE="europe-west1-b"
+        ;;
+    "eu-production")
+        PROJECT="spv1eu-production"
+        ZONE="europe-west1-b"
+        ;;
+    *)
+        echo "Error: Invalid environment '$ENVIRONMENT'"
+        echo "Allowed values: 'test', 'staging', 'production', 'eu-test', or 'eu-production'"
+        exit 1
+        ;;
+esac
 MIGRATIONS_DB_USER=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_USER)
 MIGRATIONS_DB_PASSWORD=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_PASSWORD)
 DB_NAME=postgres
@@ -76,7 +96,7 @@ cat <<< "$CUSTOM_DOTENV_FILE" > .env
 
 # Start the SSH tunnel.
 echo "Starting SSH tunnel to gcp VM"
-gcloud compute ssh cloudsql-proxy --project "${PROJECT}" --zone us-central1-c --tunnel-through-iap -- -N -L "$LOCAL_PORT:$DB_HOST:$REMOTE_PORT" &
+gcloud compute ssh cloudsql-proxy --project "${PROJECT}" --zone "${ZONE}" --tunnel-through-iap -- -N -L "$LOCAL_PORT:$DB_HOST:$REMOTE_PORT" &
 # Remember the PID of the background process so we can kill it later.
 ssh_tunnel_to_proxy_pid=$!
 

@@ -165,3 +165,77 @@ notify slack on success production environment:
   when: on_success
   allow_failure: true
 #endregion
+
+#region EU production env
+
+deploy api service to Cloud Run EU production environment:
+  stage: deploy
+  extends:
+    - .gcp_eu_production_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update api-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic api-service --to-latest
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+deploy client service to Cloud Run EU production environment:
+  stage: deploy
+  extends:
+    - .gcp_eu_production_env # sets before_script and variables
+  script:
+    - IMAGE_URL=${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - gcloud run services update client-service --image="${IMAGE_URL}"
+    - gcloud run services update-traffic client-service --to-latest
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+deploy scratch-git to EU production environment:
+  stage: deploy
+  extends:
+    - .gcp_eu_production_env
+  script:
+    - gcloud compute ssh scratch-git
+      --project spv1eu-production
+      --zone europe-west1-b
+      --tunnel-through-iap
+      -- 'sudo google_metadata_script_runner startup'
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+
+notify slack on failure EU production environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run EU production environment",
+      "deploy client service to Cloud Run EU production environment",
+      "deploy scratch-git to EU production environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"❌ Failed to deploy Scratch to GCP - EU Production\"}" \
+      ${SLACK_SCRATCH_PROD_FEED_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+  when: on_failure
+  allow_failure: true
+
+notify slack on success EU production environment:
+  stage: deployment notifications
+  needs:
+    [
+      "deploy api service to Cloud Run EU production environment",
+      "deploy client service to Cloud Run EU production environment",
+      "deploy scratch-git to EU production environment",
+    ]
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"✅ Successfully deployed Scratch to GCP - EU Production \"}" \
+      ${SLACK_SCRATCH_PROD_FEED_WEBHOOK_URL}
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+  when: on_success
+  allow_failure: true
+#endregion

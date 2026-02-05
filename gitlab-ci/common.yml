@@ -88,6 +88,42 @@ include:
     - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/production"
     - !reference [.google-oidc:auth, before_script]
 
+# Extend this rule to include OIDC auth and all required settings for the EU test project
+.gcp_eu_test_env:
+  extends: .google-oidc:auth
+  variables:
+    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/eu-test"
+    AUDIENCE: "https://gitlab.com"
+  before_script:
+    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
+    - export GCLOUD_PROJECT="spv1eu-test"
+    - export GCP_PROJECT_NUMBER="491293505063"
+    - export CLOUDSDK_RUN_REGION="europe-west1"
+    - export GCP_REGISTRY="eu-test-registry"
+    - export SERVICE_ACCOUNT="gitlab-service-account@spv1eu-test.iam.gserviceaccount.com"
+    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
+    - export GCP_REGISTRY_URL="europe-west1-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
+    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/eu-test"
+    - !reference [.google-oidc:auth, before_script]
+
+# Extend this rule to include OIDC auth and all required settings for the EU production project
+.gcp_eu_production_env:
+  extends: .google-oidc:auth
+  variables:
+    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/eu-production"
+    AUDIENCE: "https://gitlab.com"
+  before_script:
+    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
+    - export GCLOUD_PROJECT="spv1eu-production"
+    - export GCP_PROJECT_NUMBER="75080978117"
+    - export CLOUDSDK_RUN_REGION="europe-west1"
+    - export GCP_REGISTRY="eu-production-registry"
+    - export SERVICE_ACCOUNT="gitlab-service-account@spv1eu-production.iam.gserviceaccount.com"
+    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
+    - export GCP_REGISTRY_URL="europe-west1-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
+    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/eu-production"
+    - !reference [.google-oidc:auth, before_script]
+
 .caches:
   shared_types:
     key:

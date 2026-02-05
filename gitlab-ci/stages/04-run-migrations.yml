@@ -40,3 +40,19 @@ run migrations on production environment:
   rules:
     - !reference [.rules, on_merge_to_prod]
 #endregion
+
+#region EU production env
+run migrations on EU production environment:
+  extends:
+    - .gcp_eu_production_env # sets before_script and variables
+  stage: run migrations
+  cache: !reference [.caches, server]
+  dependencies: []
+  script:
+    - pushd server
+    - !reference [.use_nvm, script]
+    - ./tools/run_database_migrations.sh eu-production
+    - popd
+  rules:
+    - !reference [.rules, on_merge_to_prod]
+#endregion

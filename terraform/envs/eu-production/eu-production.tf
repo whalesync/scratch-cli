@@ -2,6 +2,7 @@ module "eu_production" {
   source = "../../modules/env"
 
   env_name           = "eu-production"
+  app_env            = "production"
   gcp_project_id     = "spv1eu-production"
   gcp_project_number = 75080978117
   gcp_region         = "europe-west1"
