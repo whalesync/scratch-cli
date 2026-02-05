@@ -1,0 +1,48 @@
+import { IsIn, IsOptional, IsString } from 'class-validator';
+
+/**
+ * DTO for creating a workbook via CLI.
+ */
+export class CreateCliWorkbookDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+}
+
+export type ValidatedCreateCliWorkbookDto = CreateCliWorkbookDto;
+
+/**
+ * Query parameters for listing workbooks via CLI.
+ */
+export class ListWorkbooksQueryDto {
+  @IsString()
+  @IsOptional()
+  @IsIn(['name', 'createdAt', 'updatedAt'])
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
+}
+
+export type ValidatedListWorkbooksQueryDto = ListWorkbooksQueryDto;
+
+/**
+ * CLI response format for a workbook.
+ * Simplified version for CLI output.
+ */
+export class CliWorkbookResponseDto {
+  readonly id?: string;
+  readonly name?: string;
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
+  readonly tableCount?: number;
+}
+
+/**
+ * CLI response format for listing workbooks.
+ */
+export class ListWorkbooksResponseDto {
+  readonly workbooks?: CliWorkbookResponseDto[];
+}

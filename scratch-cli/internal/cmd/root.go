@@ -20,16 +20,25 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "scratchmd",
-	Short: "Command-line tool for Scratch.md",
-	Long: `scratchmd is the command-line tool for Scratch.md.
+	Short: "Command-line tool for ScratchMD",
+	Long: `scratchmd is the command-line tool for ScratchMD.
 
 ══════════════════════════════════════════════════════════════════════════════
                               AUTHENTICATION
 ══════════════════════════════════════════════════════════════════════════════
 
-  auth login                     Log in to Scratch.md
-  auth logout                    Log out from Scratch.md
-  auth status                    Show current authentication status
+  auth login                     Authenticate with ScratchMD
+  auth logout                    End current session
+  auth status                    Show current auth state
+
+══════════════════════════════════════════════════════════════════════════════
+                                WORKBOOKS
+══════════════════════════════════════════════════════════════════════════════
+
+  workbooks list                 List all workbooks
+  workbooks create               Create a new workbook
+  workbooks show <id>            Show workbook details
+  workbooks delete <id>          Delete a workbook
 
 ══════════════════════════════════════════════════════════════════════════════
 

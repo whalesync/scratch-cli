@@ -16,19 +16,19 @@ import (
 // authCmd represents the auth command
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Manage authentication with Scratch.md",
-	Long: `Manage your authentication with Scratch.md.
+	Short: "Manage authentication with ScratchMD",
+	Long: `Manage your authentication with ScratchMD.
 
 Commands:
-  auth login     Authenticate with your Scratch.md account
-  auth logout    Remove stored credentials
-  auth status    Show current authentication status`,
+  auth login     Authenticate with ScratchMD
+  auth logout    End current session
+  auth status    Show current auth state`,
 }
 
 // authLoginCmd represents the auth login command
 var authLoginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Authenticate with your Scratch.md account",
+	Short: "Authenticate with ScratchMD",
 	Long: `Authenticate the CLI with your Scratch.md account.
 
 This command opens a browser to Scratch.md where you can log in and authorize the CLI.
@@ -42,7 +42,7 @@ Once authorized, an API token is stored locally for future CLI operations.`,
 // authLogoutCmd represents the auth logout command
 var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Remove stored credentials",
+	Short: "End current session",
 	Long: `Remove stored authentication credentials.
 
 This revokes the CLI's access to your Scratch.md account.`,
@@ -52,7 +52,7 @@ This revokes the CLI's access to your Scratch.md account.`,
 // authStatusCmd represents the auth status command
 var authStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show current authentication status",
+	Short: "Show current auth state",
 	Long:  `Display the current authentication status and stored credentials info.`,
 	RunE:  runAuthStatus,
 }
