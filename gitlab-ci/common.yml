@@ -1,8 +1,8 @@
 variables:
   # Node.js version for client and server
   NODE_VERSION: "22"
-  # For GCP.
-  GCP_REGION: "us-central1"
+  # For GCP (EU region).
+  GCP_REGION: "europe-west1"
 
   # For uv
   UV_VERSION: "0.9.18"
@@ -30,7 +30,7 @@ include:
 
 .setup_docker_gcp_auth:
   script:
-    - gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${GCP_REGION}-docker.pkg.dev
+    - gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${CLOUDSDK_RUN_REGION}-docker.pkg.dev
 
 .use_nvm:
   script:
@@ -51,42 +51,6 @@ include:
     - if: '$CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "merge_request_event" && $CI_PIPELINE_SOURCE != "schedule"'
   on_merge_to_prod:
     - if: '$CI_COMMIT_BRANCH == "prod" && $CI_PIPELINE_SOURCE != "merge_request_event" && $CI_PIPELINE_SOURCE != "schedule"'
-
-# Extend this rule to include OIDC auth and all required settings for the test project
-.gcp_test_env:
-  extends: .google-oidc:auth
-  variables:
-    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/test"
-    AUDIENCE: "https://gitlab.com"
-  before_script:
-    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
-    - export GCLOUD_PROJECT="spv1-test"
-    - export GCP_PROJECT_NUMBER="211553068097"
-    - export CLOUDSDK_RUN_REGION="${GCP_REGION}"
-    - export GCP_REGISTRY="test-registry"
-    - export SERVICE_ACCOUNT="gitlab-service-account@spv1-test.iam.gserviceaccount.com"
-    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
-    - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
-    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/test"
-    - !reference [.google-oidc:auth, before_script]
-
-# Extend this rule to include OIDC auth and all required settings for the production project
-.gcp_production_env:
-  extends: .google-oidc:auth
-  variables:
-    TF_ROOT: "${CI_PROJECT_DIR}/terraform/envs/production"
-    AUDIENCE: "https://gitlab.com"
-  before_script:
-    - export GCP_OIDC_JWT_ORIG=$GCP_OIDC_JWT
-    - export GCLOUD_PROJECT="spv1-production"
-    - export GCP_PROJECT_NUMBER="806617013435"
-    - export CLOUDSDK_RUN_REGION="${GCP_REGION}"
-    - export GCP_REGISTRY="production-registry"
-    - export SERVICE_ACCOUNT="gitlab-service-account@spv1-production.iam.gserviceaccount.com"
-    - export WI_POOL_PROVIDER="//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/gitlab-oidc-pool/providers/gitlab-oidc-provider"
-    - export GCP_REGISTRY_URL="${GCP_REGION}-docker.pkg.dev/${GCLOUD_PROJECT}/${GCP_REGISTRY}"
-    - export TF_ROOT="${CI_PROJECT_DIR}/terraform/envs/production"
-    - !reference [.google-oidc:auth, before_script]
 
 # Extend this rule to include OIDC auth and all required settings for the EU test project
 .gcp_eu_test_env:

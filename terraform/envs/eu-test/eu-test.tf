@@ -14,10 +14,10 @@ module "eu_test" {
 
   # Load Balancer
   enable_client_load_balancer = true
-  client_domain               = "eu-test.scratch.md"
+  client_domain               = "test.scratch.md"
   enable_client_cdn           = true
-  api_domain                  = "eu-test-api.scratch.md"
-  agent_domain                = "eu-test-agent.scratch.md"
+  api_domain                  = "test-api.scratch.md"
+  agent_domain                = "test-agent.scratch.md"
 
   # Database
   db_disk_size         = 10

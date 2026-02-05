@@ -10,7 +10,7 @@ push client image to test artifact registry:
     - job: build client docker image for test
       artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
+    - .gcp_eu_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -19,10 +19,10 @@ push client image to test artifact registry:
     - !reference [.setup_docker_gcp_auth, script]
     - docker load -i client/image-test.tar
     # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client-test:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client-test:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client-test:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client-test:latest
+    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-client-test:latest ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -37,7 +37,7 @@ push client image to production artifact registry:
     - job: build client docker image for production
       artifacts: true
   extends:
-    - .gcp_production_env # sets before_script and variables
+    - .gcp_eu_production_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -45,11 +45,10 @@ push client image to production artifact registry:
   script:
     - !reference [.setup_docker_gcp_auth, script]
     - docker load -i client/image-production.tar
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client-production:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client-production:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client-production:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client-production:latest
+    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
+    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client:latest
+    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
   rules:
     - !reference [.rules, on_merge_to_prod]
 
@@ -63,7 +62,7 @@ push server image to test artifact registry:
     - job: build server docker image
       artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
+    - .gcp_eu_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -90,7 +89,7 @@ push server image to production artifact registry:
     - job: build server docker image
       artifacts: true
   extends:
-    - .gcp_production_env # sets before_script and variables
+    - .gcp_eu_production_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -98,7 +97,6 @@ push server image to production artifact registry:
   script:
     - !reference [.setup_docker_gcp_auth, script]
     - docker load -i server/image.tar
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
     - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
     - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
     - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
@@ -116,7 +114,7 @@ push scratch-git image to test artifact registry:
     - job: build scratch-git docker image
       artifacts: true
   extends:
-    - .gcp_test_env # sets before_script and variables
+    - .gcp_eu_test_env # sets before_script and variables
     - .docker_builder_image
   cache: []
   services:
@@ -143,75 +141,6 @@ push scratch-git image to production artifact registry:
     - job: build scratch-git docker image
       artifacts: true
   extends:
-    - .gcp_production_env # sets before_script and variables
-    - .docker_builder_image
-  cache: []
-  services:
-    - docker:26-dind
-  script:
-    - !reference [.setup_docker_gcp_auth, script]
-    - docker load -i scratch-git/image.tar
-    # Push twice, tagged as both 'latest' and '$CI_COMMIT_SHORT_SHA'
-    - docker tag spinner/spinner-scratch-git:latest ${GCP_REGISTRY_URL}/spinner-scratch-git:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-scratch-git:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner/spinner-scratch-git:latest ${GCP_REGISTRY_URL}/spinner-scratch-git:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-scratch-git:latest
-  rules:
-    - !reference [.rules, on_merge_to_prod]
-#endregion
-
-#region EU environments
-# EU environments use the same production images (APP_ENV=production)
-# They are pushed to EU artifact registries for low-latency deployment
-
-push client image to EU production artifact registry:
-  stage: push images
-  needs:
-    - job: build client docker image for production
-      artifacts: true
-  extends:
-    - .gcp_eu_production_env # sets before_script and variables
-    - .docker_builder_image
-  cache: []
-  services:
-    - docker:26-dind
-  script:
-    - !reference [.setup_docker_gcp_auth, script]
-    - docker load -i client/image-production.tar
-    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner/spinner-client-production:latest ${GCP_REGISTRY_URL}/spinner-client:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-client:latest
-  rules:
-    - !reference [.rules, on_merge_to_prod]
-
-push server image to EU production artifact registry:
-  stage: push images
-  needs:
-    - job: build server docker image
-      artifacts: true
-  extends:
-    - .gcp_eu_production_env # sets before_script and variables
-    - .docker_builder_image
-  cache: []
-  services:
-    - docker:26-dind
-  script:
-    - !reference [.setup_docker_gcp_auth, script]
-    - docker load -i server/image.tar
-    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
-    - docker push ${GCP_REGISTRY_URL}/spinner-server:$CI_COMMIT_SHORT_SHA
-    - docker tag spinner/spinner-server:latest ${GCP_REGISTRY_URL}/spinner-server:latest
-    - docker push ${GCP_REGISTRY_URL}/spinner-server:latest
-  rules:
-    - !reference [.rules, on_merge_to_prod]
-
-push scratch-git image to EU production artifact registry:
-  stage: push images
-  needs:
-    - job: build scratch-git docker image
-      artifacts: true
-  extends:
     - .gcp_eu_production_env # sets before_script and variables
     - .docker_builder_image
   cache: []
@@ -226,4 +155,5 @@ push scratch-git image to EU production artifact registry:
     - docker push ${GCP_REGISTRY_URL}/spinner-scratch-git:latest
   rules:
     - !reference [.rules, on_merge_to_prod]
+
 #endregion
