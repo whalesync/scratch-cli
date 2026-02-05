@@ -2,8 +2,8 @@ stages:
   - build and test
   - push to prod
   - push images
-  - pre-deploy integration tests
+  - pre-deploy environment tests
   - run migrations
   - deploy
-  - post-deploy integration tests
+  - post-deploy environment tests
   - deployment notifications

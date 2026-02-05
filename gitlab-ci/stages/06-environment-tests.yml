@@ -3,11 +3,11 @@ include:
   - "/gitlab-ci/common.yml"
 
 # =============================================================================
-# INTEGRATION TESTS
+# ENVIRONMENT TESTS
 # =============================================================================
 
-integration tests for test env post-deploy:
-  stage: post-deploy integration tests
+environment tests for test env post-deploy:
+  stage: post-deploy environment tests
   interruptible: false
   resource_group: test
   variables:
@@ -29,8 +29,8 @@ integration tests for test env post-deploy:
     # - !reference [.rules, on_merge_to_master]
     - when: never
 
-integration tests for test env pre-deploy:
-  stage: pre-deploy integration tests
+environment tests for test env pre-deploy:
+  stage: pre-deploy environment tests
   interruptible: false
   resource_group: test
   variables:
@@ -50,10 +50,10 @@ integration tests for test env pre-deploy:
   rules:
     # - !reference [.rules, on_merge_to_prod]
     - when: never
-# notify slack on integration test failure test env post-deploy:
-#   stage: post-deploy integration tests
+# notify slack on environment test failure test env post-deploy:
+#   stage: post-deploy environment tests
 #   needs:
-#     - integration tests for test env post-deploy
+#     - environment tests for test env post-deploy
 #   dependencies: []
 #   script:
 #     - |
@@ -64,10 +64,10 @@ integration tests for test env pre-deploy:
 #     - !reference [.rules, on_merge_to_master]
 #   when: on_failure
 
-# notify slack on integration test failure test env pre-deploy:
-#   stage: pre-deploy integration tests
+# notify slack on environment test failure test env pre-deploy:
+#   stage: pre-deploy environment tests
 #   needs:
-#     - integration tests for test env pre-deploy
+#     - environment tests for test env pre-deploy
 #   dependencies: []
 #   script:
 #     - |

@@ -142,6 +142,37 @@ build and test server:
     - !reference [.rules, on_merge_to_master]
     - !reference [.rules, on_merge_to_prod]
 
+integration test server:
+  stage: build and test
+  interruptible: true
+  services:
+    - name: postgres:16
+      alias: postgres
+  variables:
+    POSTGRES_DB: scratchpaper
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/scratchpaper"
+  script:
+    - !reference [.build_shared_types, script]
+    - cd server
+    - !reference [.use_nvm, script]
+    - yarn run migrate
+    - yarn run test:integration --verbose --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    reports:
+      junit: "server/junit.xml"
+  cache: !reference [.caches, server]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - server/**/*
+        - packages/**/*
+        - gitlab-ci/stages/01-build-and-test.yml
+    - !reference [.rules, on_merge_to_master]
+    - !reference [.rules, on_merge_to_prod]
+
 build server docker image:
   stage: build and test
   extends:
