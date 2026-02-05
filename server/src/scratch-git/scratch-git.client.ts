@@ -31,6 +31,10 @@ export class ScratchGitClient {
     await this.callGitApi(`/api/repo/${repoId}`, 'DELETE');
   }
 
+  async resetRepo(repoId: string): Promise<void> {
+    await this.callGitApi(`/api/repo/${repoId}/reset`, 'POST');
+  }
+
   async commitFiles(
     repoId: string,
     branch: string,

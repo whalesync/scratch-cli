@@ -452,6 +452,19 @@ export class WorkbookService {
     }
   }
 
+  async discardChanges(workbookId: WorkbookId, actor: Actor): Promise<void> {
+    await this.findOneOrThrow(workbookId, actor);
+    await this.scratchGitService.discardChanges(workbookId);
+
+    // Track event
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'delete',
+      message: `Discarded all unpublished changes in workbook`,
+      entityId: workbookId,
+    });
+  }
+
   findAllForConnectorAccount(
     connectorAccountId: string,
     actor: Actor,

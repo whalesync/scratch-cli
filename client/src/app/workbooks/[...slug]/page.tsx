@@ -16,6 +16,7 @@ import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbook } from '@/hooks/use-workbook';
 import { useWorkbookParams } from '@/hooks/use-workbook-params';
+import { workbookApi } from '@/lib/api/workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
@@ -28,7 +29,6 @@ import { useEffect, useState } from 'react';
 import { Text12Book } from '../../components/base/text';
 import { WorkbookEditorModals } from '../../workbooks-md/[...slug]/components/modals/WorkbookEditorModals';
 import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
-import accordionStyles from './components/WorkbookAccordion.module.css';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditorNew } from './components/FileEditorNew';
@@ -36,6 +36,7 @@ import { SyncsPanel } from './components/SyncsPanel';
 import { SyncsView } from './components/SyncsView';
 import { TabBar } from './components/TabBar';
 import { UnpublishedChangesPanel } from './components/UnpublishedChangesPanel';
+import accordionStyles from './components/WorkbookAccordion.module.css';
 
 const DEFAULT_LIST_WIDTH = '300px';
 const MIN_LIST_WIDTH = 300;
@@ -153,7 +154,11 @@ function WorkbookFilesPageContent() {
                     <SyncsPanel />
                     <UnpublishedChangesPanel
                       onPublishAll={() => console.log('Publish All')}
-                      onDiscardAll={() => console.log('Discard All')}
+                      onDiscardAll={async () => {
+                        if (workbook?.id) {
+                          await workbookApi.discardChanges(workbook.id);
+                        }
+                      }}
                       onPublishItem={(path) => console.log('Publish', path)}
                       onDiscardItem={(path) => console.log('Discard', path)}
                     />

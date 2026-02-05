@@ -320,6 +320,12 @@ export class WorkbookController {
     }
   }
 
+  @Post(':id/discard-changes')
+  @HttpCode(204)
+  async discardChanges(@Param('id') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
+    await this.service.discardChanges(workbookId, userToActor(req.user));
+  }
+
   /* Start new Data Folder functions */
   @Get(':id/data-folders/list')
   async listDataFolders(@Param('id') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<DataFolderGroup[]> {

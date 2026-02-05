@@ -4,7 +4,6 @@ import { diff3Merge } from 'node-diff3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-
 import { DirtyFile, FileChange, GitFile, IGitService, TreeEntry } from './types';
 
 const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || 'repos';
@@ -259,6 +258,23 @@ export class GitService implements IGitService {
     }
 
     return { rebased: true, conflicts };
+  }
+
+  async resetToMain(repoId: string): Promise<void> {
+    const dir = this.getRepoPath(repoId);
+    const mainRef = 'main';
+    const dirtyRef = 'dirty';
+
+    // Resolve main commit
+    const mainOid = await git.resolveRef({
+      fs,
+      dir,
+      gitdir: dir,
+      ref: mainRef,
+    });
+
+    // Force dirty to point to main
+    await this.forceRef(dir, dirtyRef, mainOid);
   }
 
   async getDirtyStatus(repoId: string): Promise<DirtyFile[]> {

@@ -27,6 +27,7 @@ export interface IGitService {
   getRepoPath(repoId: string): string;
   initRepo(repoId: string): Promise<void>;
   deleteRepo(repoId: string): Promise<void>;
+  resetToMain(repoId: string): Promise<void>;
 
   list(repoId: string, branch: string, folderPath: string): Promise<GitFile[]>;
 

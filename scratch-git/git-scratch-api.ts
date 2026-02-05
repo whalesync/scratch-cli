@@ -56,6 +56,15 @@ app.post('/api/repo/:id/rebase', async (req, res) => {
   }
 });
 
+app.post('/api/repo/:id/reset', async (req, res) => {
+  try {
+    await gitService.resetToMain(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 app.get('/api/repo/:id/status', async (req, res) => {
   try {
     const status = await gitService.getDirtyStatus(req.params.id);
@@ -233,5 +242,7 @@ app.get('/health', (_, res) =>
 );
 
 app.listen(port, () => {
-  console.log(`ScratchGit API listening at http://localhost:${port} (build: ${buildVersion}, repos: ${reposDir}, env: ${process.env.NODE_ENV || 'development'})`);
+  console.log(
+    `ScratchGit API listening at http://localhost:${port} (build: ${buildVersion}, repos: ${reposDir}, env: ${process.env.NODE_ENV || 'development'})`,
+  );
 });

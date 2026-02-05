@@ -383,4 +383,14 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  async discardChanges(workbookId: WorkbookId): Promise<void> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/workbook/${workbookId}/discard-changes`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to discard changes');
+      throw error;
+    }
+  },
 };

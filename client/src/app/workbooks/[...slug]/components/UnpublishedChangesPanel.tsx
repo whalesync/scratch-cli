@@ -50,10 +50,10 @@ interface TreeNode {
 }
 
 interface UnpublishedChangesPanelProps {
-  onPublishAll?: () => void;
-  onDiscardAll?: () => void;
-  onPublishItem?: (path: string) => void;
-  onDiscardItem?: (path: string) => void;
+  onPublishAll?: () => Promise<void> | void;
+  onDiscardAll?: () => Promise<void> | void;
+  onPublishItem?: (path: string) => Promise<void> | void;
+  onDiscardItem?: (path: string) => Promise<void> | void;
 }
 
 export function UnpublishedChangesPanel({
@@ -79,6 +79,29 @@ export function UnpublishedChangesPanel({
       setLoading(false);
     }
   }, [workbook?.id]);
+
+  const handlePublishAll = async () => {
+    if (!onPublishAll) return;
+    setLoading(true);
+    try {
+      await onPublishAll();
+      await fetchGitStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiscardAll = async () => {
+    if (!onDiscardAll) return;
+    if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;
+    setLoading(true);
+    try {
+      await onDiscardAll();
+      await fetchGitStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchGitStatus();
@@ -249,7 +272,8 @@ export function UnpublishedChangesPanel({
                     variant="light"
                     color="blue"
                     leftSection={<CloudUpload size={16} />}
-                    onClick={onPublishAll}
+                    onClick={handlePublishAll}
+                    loading={loading}
                     size="xs"
                   >
                     Publish All
@@ -258,7 +282,8 @@ export function UnpublishedChangesPanel({
                     variant="light"
                     color="red"
                     leftSection={<RotateCcw size={16} />}
-                    onClick={onDiscardAll}
+                    onClick={handleDiscardAll}
+                    loading={loading}
                     size="xs"
                   >
                     Discard All
