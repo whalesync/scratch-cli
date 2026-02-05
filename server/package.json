@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.1.0",
-    "@google/genai": "^1.5.1",
     "@googleapis/youtube": "25.1.0",
     "@linear/sdk": "^66.0.1",
     "@nestjs/common": "^11.0.1",

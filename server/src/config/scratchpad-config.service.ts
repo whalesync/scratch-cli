@@ -70,13 +70,6 @@ export class ScratchpadConfigService {
     return this.getEnvVariable('CLERK_PUBLISHABLE_KEY');
   }
 
-  /**
-   * @returns The Gemini API key. If not set, the local GCP credentials will be used.
-   */
-  getGeminiApiKey(): string | undefined {
-    return this.configService.get<string>('GEMINI_API_KEY');
-  }
-
   getDbDebug(): boolean {
     return this.getOptionalFlagVariable('DB_DEBUG', false);
   }
