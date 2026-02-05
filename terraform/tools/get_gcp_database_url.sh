@@ -34,7 +34,7 @@ if [[ "$ENVIRONMENT" != "test" && "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" 
     exit 1
 fi
 
-PROJECT="spv1-${ENVIRONMENT}"
+PROJECT="spv1eu-${ENVIRONMENT}"
 MIGRATIONS_DB_USER=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_USER)
 MIGRATIONS_DB_PASSWORD=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_PASSWORD)
 DB_NAME=postgres

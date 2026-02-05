@@ -115,7 +115,7 @@ To retrieve the current IP:
 ```bash
 # Via gcloud
 gcloud compute addresses describe nat-egress-ip \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='get(address)'
 
 # Via Terraform output

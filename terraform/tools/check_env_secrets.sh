@@ -10,7 +10,7 @@ fi
 secrets_file="$(dirname "$0")/../secrets.txt"
 
 env="$1"
-project_id="spv1-$env"
+project_id="spv1eu-$env"
 
 # Read secrets from secrets.txt, removing whitespace and ignoring blank lines
 secret_ids=()

@@ -156,7 +156,7 @@ To retrieve the current IP:
 
 ```bash
 gcloud compute addresses describe nat-egress-ip \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='get(address)'
 ```
 ````
@@ -205,13 +205,13 @@ terraform apply
 ```bash
 # Check the reserved IP
 gcloud compute addresses describe nat-egress-ip \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='get(address)'
 
 # Verify NAT is using it
 gcloud compute routers nats describe my-router-nat \
   --router=nat-router \
-  --region=us-central1
+  --region=europe-west1
 ```
 
 ### Test Outbound Requests

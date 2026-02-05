@@ -11,7 +11,7 @@ env="$1"
 name="$2"
 value="$3"
 secrets_file=$(realpath "$(dirname "$0")/../secrets.txt")
-project_id="spv1-$env"
+project_id="spv1eu-$env"
 
 # Check if the secret name exists in the secrets file
 if ! grep -q "^$name$" "$secrets_file"; then

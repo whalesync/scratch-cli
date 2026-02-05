@@ -27,7 +27,7 @@ if ! command -v gcloud &> /dev/null; then
 fi
 
 ENVIRONMENT=$1
-GCP_PROJECT="spv1-${ENVIRONMENT}"
+GCP_PROJECT="spv1eu-${ENVIRONMENT}"
 
 # Validate environment argument
 if [[ "$ENVIRONMENT" != "test" && "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
@@ -42,7 +42,7 @@ REMOTE_PORT=3100
 
 # Start the SSH tunnel.
 echo "Starting SSH tunnel to scratch-git VM for $ENVIRONMENT..."
-gcloud compute ssh scratch-git --project "${GCP_PROJECT}" --zone us-central1-c --tunnel-through-iap -- -N -L "$LOCAL_PORT:$LOCAL_HOSTNAME:$REMOTE_PORT" &
+gcloud compute ssh scratch-git --project "${GCP_PROJECT}" --zone europe-west1-b --tunnel-through-iap -- -N -L "$LOCAL_PORT:$LOCAL_HOSTNAME:$REMOTE_PORT" &
 # Remember the PID of the background process so we can kill it later.
 ssh_tunnel_pid=$!
 
