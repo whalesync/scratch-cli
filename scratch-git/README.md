@@ -86,7 +86,7 @@ docker run -p 3100:3100 -p 3101:3101 \
 
 Docker images are built automatically by the GitLab CI/CD pipeline and pushed to Artifact Registry as `spinner-scratch-git:latest`.
 
-The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to both **Test** (`spv1-test`) and **Production** (`spv1-production`) environments.
+The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to **Test** (`spv1eu-test`) and **Production** (`spv1eu-production`) in the EU region.
 
 ### Deploy via gcloud
 
@@ -96,8 +96,8 @@ To update the running container without a full Terraform apply, SSH into the ins
 
 ```bash
 gcloud compute ssh scratch-git \
-  --project spv1-test \
-  --zone us-central1-c \
+  --project spv1eu-test \
+  --zone europe-west1-b \
   --tunnel-through-iap \
   -- 'sudo google_metadata_script_runner startup'
 ```
@@ -106,18 +106,18 @@ gcloud compute ssh scratch-git \
 
 ```bash
 gcloud compute ssh scratch-git \
-  --project spv1-production \
-  --zone us-central1-c \
+  --project spv1eu-production \
+  --zone europe-west1-b \
   --tunnel-through-iap \
   -- 'sudo google_metadata_script_runner startup'
 ```
 
-Alternatively, SSH in and interact with the instance directly
+Alternatively, SSH in and interact with the instance directly:
 
 ```bash
 gcloud compute ssh scratch-git \
-  --project spv1-test \
-  --zone us-central1-c \
+  --project spv1eu-test \
+  --zone europe-west1-b \
   --tunnel-through-iap
 ```
 
