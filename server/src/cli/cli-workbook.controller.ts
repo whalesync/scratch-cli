@@ -1,5 +1,4 @@
 import {
-  All,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -15,9 +14,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
+import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import {
@@ -37,11 +37,10 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(ScratchpadAuthGuard)
 export class CliWorkbookController {
-  private readonly gitBackendUrl: string;
-
-  constructor(private readonly workbookService: WorkbookService) {
-    this.gitBackendUrl = process.env.SCRATCH_GIT_HTTP_URL || 'http://localhost:3101';
-  }
+  constructor(
+    private readonly workbookService: WorkbookService,
+    private readonly scratchGitService: ScratchGitService,
+  ) {}
 
   /**
    * List all workbooks for the authenticated user.
@@ -86,7 +85,7 @@ export class CliWorkbookController {
    * Get a single workbook by ID.
    */
   @Get(':id')
-  async getWorkbook(@Req() req: RequestWithUser & Request, @Param('id') id: string): Promise<CliWorkbookResponseDto> {
+  async getWorkbook(@Req() req: RequestWithUser, @Param('id') id: string): Promise<CliWorkbookResponseDto> {
     const actor = userToActor(req.user);
     const workbook = await this.workbookService.findOne(id as WorkbookId, actor);
 
@@ -94,8 +93,7 @@ export class CliWorkbookController {
       throw new NotFoundException('Workbook not found');
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    return this.toCliResponse(workbook, baseUrl);
+    return this.toCliResponse(workbook);
   }
 
   /**
@@ -117,12 +115,10 @@ export class CliWorkbookController {
   }
 
   /**
-   * Git HTTP proxy endpoint.
-   * Proxies git operations to the internal git HTTP backend with authentication.
-   * Supports: git clone, git fetch, git push, etc.
+   * Download a workbook as a ZIP archive.
    */
-  @All(':id/git/*')
-  async gitProxy(@Req() req: RequestWithUser & Request, @Param('id') id: string, @Res() res: Response): Promise<void> {
+  @Get(':id/download')
+  async downloadWorkbook(@Req() req: RequestWithUser, @Param('id') id: string, @Res() res: Response): Promise<void> {
     const actor = userToActor(req.user);
     const workbookId = id as WorkbookId;
 
@@ -132,64 +128,26 @@ export class CliWorkbookController {
       throw new NotFoundException('Workbook not found');
     }
 
-    // Extract the git path (everything after /git/)
-    const gitPath = req.url.replace(`/cli/v1/workbooks/${id}/git`, '');
+    // Get archive stream from scratch-git
+    const stream = await this.scratchGitService.getArchive(workbookId, DIRTY_BRANCH);
 
-    // Build the target URL: http://localhost:3101/<workbook-id>.git/<path>
-    const targetUrl = `${this.gitBackendUrl}/${workbookId}.git${gitPath}`;
-
-    // Get request body (RawBodyMiddleware stores it in req.body as Buffer)
-    const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-    const bodyBuffer: Buffer | undefined = hasBody && req.body ? (req.body as Buffer) : undefined;
-
-    // Proxy the request to git backend
-    const proxyResponse = await fetch(targetUrl, {
-      method: req.method,
-      headers: {
-        'Content-Type': req.headers['content-type'] || 'application/octet-stream',
-      },
-      body: bodyBuffer as BodyInit | undefined,
-    });
-
-    // Copy response headers
-    proxyResponse.headers.forEach((value, key) => {
-      res.setHeader(key, value);
-    });
-
-    res.status(proxyResponse.status);
-
-    // Stream the response body
-    if (proxyResponse.body) {
-      const reader = proxyResponse.body.getReader();
-      const pump = async (): Promise<void> => {
-        const { done, value } = await reader.read();
-        if (done) {
-          res.end();
-          return;
-        }
-        res.write(value);
-        await pump();
-      };
-      await pump();
-    } else {
-      res.end();
-    }
+    const filename = encodeURIComponent(workbook.name || 'workbook') + '.zip';
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    stream.pipe(res);
   }
 
   /**
    * Convert a workbook to the CLI response format.
    */
-  private toCliResponse(
-    workbook: {
-      id: string;
-      name: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      snapshotTables?: unknown[];
-      dataFolders?: { id: string; name: string }[];
-    },
-    baseUrl?: string,
-  ): CliWorkbookResponseDto {
+  private toCliResponse(workbook: {
+    id: string;
+    name: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    snapshotTables?: unknown[];
+    dataFolders?: { id: string; name: string }[];
+  }): CliWorkbookResponseDto {
     return {
       id: workbook.id,
       name: workbook.name ?? undefined,
@@ -197,7 +155,6 @@ export class CliWorkbookController {
       updatedAt: workbook.updatedAt.toISOString(),
       tableCount: workbook.snapshotTables?.length ?? 0,
       dataFolders: workbook.dataFolders?.map((df) => ({ id: df.id, name: df.name })),
-      gitUrl: baseUrl ? `${baseUrl}/cli/v1/workbooks/${workbook.id}/git` : undefined,
     };
   }
 }

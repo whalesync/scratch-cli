@@ -47,7 +47,6 @@ export class CliWorkbookResponseDto {
   readonly updatedAt?: string;
   readonly tableCount?: number;
   readonly dataFolders?: CliDataFolderDto[];
-  readonly gitUrl?: string;
 }
 
 /**
