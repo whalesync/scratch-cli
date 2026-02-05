@@ -1,6 +1,7 @@
 'use client';
 
 import { Alert, Divider, SimpleGrid, Stack } from '@mantine/core';
+import { ScratchPlanType } from '@spinner/shared-types';
 import { CreditCardIcon } from 'lucide-react';
 import { useState } from 'react';
 import { usePayments } from '../../hooks/use-payments';
@@ -29,10 +30,14 @@ const BillingPage = () => {
           <ActiveSubscriptionSection />
           <Divider c="var(--mantine-color-gray-3)" />
           <ConfigSection title="Plans" description="Upgrade or change your plan" hasBorder={false} p="0">
-            <SimpleGrid cols={3} spacing="xs">
-              {plans?.map((plan) => (
-                <PlanCard key={plan.planType} plan={plan} onError={setPlanError} />
-              ))}
+            <SimpleGrid cols={2} spacing="xs">
+              {plans
+                ?.filter(
+                  (plan) => plan.planType === ScratchPlanType.PRO_PLAN || plan.planType === ScratchPlanType.MAX_PLAN,
+                )
+                .map((plan) => (
+                  <PlanCard key={plan.planType} plan={plan} onError={setPlanError} />
+                ))}
             </SimpleGrid>
           </ConfigSection>
           <BillingDevTools />

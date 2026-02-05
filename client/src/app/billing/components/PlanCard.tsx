@@ -34,6 +34,7 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
     portalRedirectError,
   } = usePayments();
   const isCurrentPlan = subscription.planType === plan.planType;
+  const isComingSoon = plan.planType === ScratchPlanType.MAX_PLAN;
 
   useEffect(() => {
     onError(portalRedirectError);
@@ -59,18 +60,20 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
   }, [plan.planType, redirectToUpdateSubscription, redirectToPlanCheckout, isFreePlan]);
 
   let actionButton = null;
-  if (!isSignedIn) {
+  if (isComingSoon) {
+    actionButton = (
+      <Center w="100%" h="36px" bg="var(--bg-panel)" className={customBordersClasses.cornerBorders}>
+        <Text13Regular c="dimmed">Coming soon</Text13Regular>
+      </Center>
+    );
+  } else if (!isSignedIn) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleSignUp} loading={portalRedirectInProgress}>
         Sign up
       </ButtonPrimaryLight>
     );
   } else if (isCurrentPlan) {
-    actionButton = (
-      <Center w="100%" h="36px" bg="var(--bg-panel)" className={customBordersClasses.cornerBorders}>
-        <Text13Regular c="dimmed">Current Plan</Text13Regular>
-      </Center>
-    );
+    actionButton = <ButtonPrimaryLight disabled={true}>Current Plan</ButtonPrimaryLight>;
   } else if (!isCurrentPlan && plan.planType !== ScratchPlanType.FREE_PLAN) {
     actionButton = (
       <ButtonPrimaryLight onClick={handleCheckout} loading={portalRedirectInProgress}>
@@ -99,13 +102,21 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
     }
   }
 
+  const currentPlanStyle = isCurrentPlan ? { backgroundColor: 'var(--mantine-primary-color-light)' } : {};
+
   if (workbookModeActiveFlag === 'files' || workbookMode === 'files') {
     return (
-      <Box px={12} py={10} className={customBordersClasses.cornerBorders} style={{ position: 'relative' }}>
+      <Box
+        px={12}
+        py={10}
+        className={customBordersClasses.cornerBorders}
+        style={{ position: 'relative', ...currentPlanStyle }}
+      >
         <Stack gap="sm">
           <Group justify="space-between" align="flex-start">
             <Text13Medium>{plan.displayName}</Text13Medium>
-            {plan.popular && !isCurrentPlan && <Badge w="fit-content">Popular</Badge>}
+            {isComingSoon && <Badge w="fit-content">Coming soon</Badge>}
+            {plan.popular && !isCurrentPlan && !isComingSoon && <Badge w="fit-content">Popular</Badge>}
           </Group>
           <Group gap="2px">
             <Text16Medium>${plan.costUSD}</Text16Medium>
@@ -117,14 +128,6 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
           <Stack gap="xs" mt="xs">
             <Text13Book c="dimmed">Features:</Text13Book>
             <FeatureLineItem
-              id="availableModels"
-              label={
-                plan.features.availableModels.length > 0
-                  ? `${plan.features.availableModels.length} models`
-                  : 'Any model'
-              }
-            />
-            <FeatureLineItem
               id="publishingLimit"
               label={
                 plan.features.publishingLimit > 0
@@ -132,6 +135,11 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
                   : 'Unlimited publishing'
               }
             />
+            {plan.features.dataSourcePerServiceLimit === 0 ? (
+              <FeatureLineItem id="dataSourcePerServiceLimit" label="Multiple accounts per external service" />
+            ) : (
+              <FeatureLineItem id="dataSourcePerServiceLimit" label="Single account per external service" />
+            )}
           </Stack>
         </Stack>
       </Box>
@@ -139,11 +147,17 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
   }
 
   return (
-    <Box px={12} py={10} className={customBordersClasses.cornerBorders} style={{ position: 'relative' }}>
+    <Box
+      px={12}
+      py={10}
+      className={customBordersClasses.cornerBorders}
+      style={{ position: 'relative', ...currentPlanStyle }}
+    >
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <Text13Medium>{plan.displayName}</Text13Medium>
-          {plan.popular && !isCurrentPlan && <Badge w="fit-content">Popular</Badge>}
+          {isComingSoon && <Badge w="fit-content">Coming soon</Badge>}
+          {plan.popular && !isCurrentPlan && !isComingSoon && <Badge w="fit-content">Popular</Badge>}
         </Group>
         <Group gap="2px">
           <Text16Medium>${plan.costUSD}</Text16Medium>
@@ -155,12 +169,6 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
         <Stack gap="xs" mt="xs">
           <Text13Book c="dimmed">Features:</Text13Book>
           <FeatureLineItem
-            id="availableModels"
-            label={
-              plan.features.availableModels.length > 0 ? `${plan.features.availableModels.length} models` : 'Any model'
-            }
-          />
-          <FeatureLineItem
             id="publishingLimit"
             label={
               plan.features.publishingLimit > 0
@@ -168,18 +176,6 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
                 : 'Unlimited publishing'
             }
           />
-          {plan.planType === ScratchPlanType.FREE_PLAN && (
-            <FeatureLineItem id="creditLimit" label="Enough tokens for occasional use" />
-          )}
-          {plan.planType === ScratchPlanType.PRO_PLAN && (
-            <FeatureLineItem id="creditLimit" label="Enough tokens for most use cases" />
-          )}
-          {plan.planType === ScratchPlanType.MAX_PLAN && (
-            <FeatureLineItem id="creditLimit" label="Enough tokens for heavier use cases" />
-          )}
-          {plan.features.allowPersonalKeys && (
-            <FeatureLineItem id="allowPersonalKeys" label="Bring your own OpenRouter API key" />
-          )}
           {plan.features.dataSourcePerServiceLimit === 0 ? (
             <FeatureLineItem id="dataSourcePerServiceLimit" label="Multiple accounts per external service" />
           ) : (
