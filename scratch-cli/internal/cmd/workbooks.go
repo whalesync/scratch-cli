@@ -1,22 +1,48 @@
 package cmd
 
 import (
-	"archive/zip"
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/api"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"gopkg.in/yaml.v3"
 )
+
+// APITokenAuth implements transport.AuthMethod for API token authentication
+type APITokenAuth struct {
+	Token string
+}
+
+// Name returns the name of the auth method
+func (a *APITokenAuth) Name() string {
+	return "api-token"
+}
+
+// String returns a string representation
+func (a *APITokenAuth) String() string {
+	return "API-Token authentication"
+}
+
+// SetAuth sets the auth header on the request
+func (a *APITokenAuth) SetAuth(r *http.Request) {
+	r.Header.Set("Authorization", "API-Token "+a.Token)
+}
+
+// Ensure APITokenAuth implements the required interface
+var _ githttp.AuthMethod = &APITokenAuth{}
+var _ transport.AuthMethod = &APITokenAuth{}
 
 // workbooksCmd represents the workbooks command
 var workbooksCmd = &cobra.Command{
@@ -343,10 +369,21 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 	force, _ := cmd.Flags().GetBool("force")
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 
-	client, err := getAuthenticatedClient()
-	if err != nil {
-		return err
+	serverURL := getServerURL()
+
+	if !config.IsLoggedIn(serverURL) {
+		return fmt.Errorf("not logged in. Run 'scratchmd auth login' first")
 	}
+
+	creds, err := config.LoadGlobalCredentials(serverURL)
+	if err != nil {
+		return fmt.Errorf("failed to load credentials: %w", err)
+	}
+
+	client := api.NewClient(
+		api.WithBaseURL(serverURL),
+		api.WithAPIToken(creds.APIToken),
+	)
 
 	// 1. Check if workbook is already initialized in the output directory
 	existingDir, err := findExistingWorkbookMarker(outputDir, workbookID)
@@ -356,7 +393,10 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 
 	if existingDir != "" {
 		if force {
-			// proceed with overwrite
+			// Remove existing directory to do a fresh clone
+			if err := os.RemoveAll(existingDir); err != nil {
+				return fmt.Errorf("failed to remove existing directory: %w", err)
+			}
 		} else if jsonOutput {
 			return fmt.Errorf("workbook %s is already initialized at %s (use --force to overwrite)", workbookID, existingDir)
 		} else {
@@ -371,13 +411,22 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 				fmt.Println("Cancelled.")
 				return nil
 			}
+
+			// Remove existing directory to do a fresh clone
+			if err := os.RemoveAll(existingDir); err != nil {
+				return fmt.Errorf("failed to remove existing directory: %w", err)
+			}
 		}
 	}
 
-	// 2. Get workbook metadata
+	// 2. Get workbook metadata (includes git URL)
 	workbook, err := client.GetWorkbook(workbookID)
 	if err != nil {
 		return fmt.Errorf("failed to get workbook: %w", err)
+	}
+
+	if workbook.GitUrl == "" {
+		return fmt.Errorf("server did not return git URL for workbook")
 	}
 
 	// 3. Determine target directory
@@ -385,26 +434,39 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 	if workbookName == "" {
 		workbookName = workbookID
 	}
-	// If overwriting existing, use that directory; otherwise create new one
-	var targetDir string
-	if existingDir != "" {
-		targetDir = existingDir
-	} else {
-		targetDir = filepath.Join(outputDir, workbookName)
+	targetDir := filepath.Join(outputDir, workbookName)
+
+	// 4. Clone the git repository with API token auth
+	gitAuth := &APITokenAuth{Token: creds.APIToken}
+
+	repo, err := git.PlainClone(targetDir, false, &git.CloneOptions{
+		URL:           workbook.GitUrl,
+		Auth:          gitAuth,
+		ReferenceName: "refs/heads/dirty", // Clone the dirty branch
+		SingleBranch:  true,
+		Depth:         1, // Shallow clone for faster initial download
+	})
+	if err != nil {
+		return fmt.Errorf("failed to clone workbook: %w", err)
 	}
 
-	// 3. Create directory
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+	// 5. Set up remote tracking for future pulls
+	_, err = repo.CreateRemote(&gitconfig.RemoteConfig{
+		Name: "origin",
+		URLs: []string{workbook.GitUrl},
+	})
+	if err != nil && err != git.ErrRemoteExists {
+		// Ignore if remote already exists (it should from clone)
+		return fmt.Errorf("failed to configure remote: %w", err)
 	}
 
-	// 4. Create .scratchmd marker file
+	// 6. Create .scratchmd marker file (in addition to .git)
 	marker := WorkbookMarker{
 		Version: "1",
 		Workbook: WorkbookConfig{
 			ID:            workbook.ID,
 			Name:          workbook.Name,
-			ServerURL:     getServerURL(),
+			ServerURL:     serverURL,
 			InitializedAt: time.Now().UTC().Format(time.RFC3339),
 		},
 	}
@@ -418,21 +480,29 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to write marker file: %w", err)
 	}
 
-	// 5. Download and extract ZIP
-	body, err := client.DownloadWorkbook(workbookID)
-	if err != nil {
-		return fmt.Errorf("failed to download workbook: %w", err)
-	}
-	defer body.Close()
-
-	fileCount, err := extractZip(body, targetDir)
-	if err != nil {
-		return fmt.Errorf("failed to extract workbook: %w", err)
-	}
-
-	// 6. Create .scratchmd markers in each data folder
+	// 7. Create .scratchmd markers in each data folder
 	if err := createDataFolderMarkers(targetDir, workbook.DataFolders); err != nil {
 		return fmt.Errorf("failed to create data folder markers: %w", err)
+	}
+
+	// Count files for output (excluding .git directory)
+	fileCount := 0
+	err = filepath.Walk(targetDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Skip .git directory
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+		if !info.IsDir() {
+			fileCount++
+		}
+		return nil
+	})
+	if err != nil {
+		// Non-fatal, just for display
+		fileCount = -1
 	}
 
 	if jsonOutput {
@@ -449,7 +519,11 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 
 	// Human-readable output
 	fmt.Println()
-	fmt.Printf("Initialized workbook '%s' (%d files)\n", workbookName, fileCount)
+	if fileCount >= 0 {
+		fmt.Printf("Initialized workbook '%s' (%d files)\n", workbookName, fileCount)
+	} else {
+		fmt.Printf("Initialized workbook '%s'\n", workbookName)
+	}
 	fmt.Printf("  Directory: %s\n", targetDir)
 	fmt.Println()
 
@@ -489,59 +563,6 @@ func findExistingWorkbookMarker(outputDir string, workbookID string) (string, er
 	}
 
 	return "", nil
-}
-
-// extractZip extracts a ZIP archive from a reader into the target directory
-func extractZip(r io.Reader, targetDir string) (int, error) {
-	// Read the entire ZIP into memory (needed for archive/zip)
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read archive: %w", err)
-	}
-
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return 0, fmt.Errorf("failed to open archive: %w", err)
-	}
-
-	fileCount := 0
-	for _, f := range zipReader.File {
-		// Skip directories
-		if f.FileInfo().IsDir() {
-			continue
-		}
-
-		// Construct target path
-		targetPath := filepath.Join(targetDir, f.Name)
-
-		// Ensure the directory exists
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return fileCount, fmt.Errorf("failed to create directory for %s: %w", f.Name, err)
-		}
-
-		// Extract the file
-		rc, err := f.Open()
-		if err != nil {
-			return fileCount, fmt.Errorf("failed to open %s in archive: %w", f.Name, err)
-		}
-
-		outFile, err := os.Create(targetPath)
-		if err != nil {
-			rc.Close()
-			return fileCount, fmt.Errorf("failed to create %s: %w", targetPath, err)
-		}
-
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			return fileCount, fmt.Errorf("failed to extract %s: %w", f.Name, err)
-		}
-
-		fileCount++
-	}
-
-	return fileCount, nil
 }
 
 // createDataFolderMarkers creates .scratchmd marker files in each data folder directory
