@@ -5,7 +5,8 @@ set -euo pipefail
 # Usage: ./manual_deploy.sh
 
 SECRETS_FILE="/tmp/prod-secrets.env"
-REGISTRY="europe-west1-docker.pkg.dev/spv1eu-production/eu-production-registry"
+GCP_PROJECT="spv1eu-production"
+REGISTRY="europe-west1-docker.pkg.dev/$GCP_PROJECT/eu-production-registry"
 REGION="europe-west1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -27,7 +28,10 @@ get_secret() {
 echo "==> Fetching secrets from GCP..."
 "$SCRIPT_DIR/get_secrets.sh" production > "$SECRETS_FILE"
 
-echo "==> Authenticating with GCP..."
+echo "==> Setting GCP project to $GCP_PROJECT..."
+gcloud config set project "$GCP_PROJECT"
+
+echo "==> Authenticating Docker with GCP..."
 gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev
 
 echo "==> Building client image..."
@@ -54,12 +58,14 @@ docker push "$REGISTRY/spinner-server:latest"
 echo "==> Deploying client-service..."
 gcloud run services update client-service \
   --image="$REGISTRY/spinner-client:latest" \
-  --region "$REGION"
+  --region "$REGION" \
+  --project "$GCP_PROJECT"
 
 echo "==> Deploying api-service..."
 gcloud run services update api-service \
   --image="$REGISTRY/spinner-server:latest" \
-  --region "$REGION"
+  --region "$REGION" \
+  --project "$GCP_PROJECT"
 
 echo "==> Done! Deployment complete."
 echo "Client: https://app.scratch.md/"
