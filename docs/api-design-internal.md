@@ -26,6 +26,14 @@ PATCH  /users/current/settings                    # Update user settings
 POST   /users/current/onboarding/collapse         # Collapse onboarding step
 ```
 
+### Workbook Internal Operations
+
+```
+POST   /workbook/:id/tables/:tableId/clear-active-record-filter  # Clear active record filter
+POST   /workbook/:id/tables/:tableId/records/events/test         # Send test record event (admin)
+PATCH  /workbook/:id/folders/:folderId                           # Move folder to new parent
+```
+
 ### Admin Tools
 
 ```
@@ -37,6 +45,15 @@ POST   /dev-tools/subscription/plan/update        # Update subscription (admin, 
 POST   /dev-tools/subscription/plan/expire        # Expire subscription (admin, non-prod)
 POST   /dev-tools/subscription/plan/cancel        # Cancel subscription (admin, non-prod)
 POST   /dev-tools/jobs/sync-data-folders          # Trigger sync job (admin)
+```
+
+### Worker Test Endpoints
+
+```
+POST   /workers/jobs/add-two-numbers              # Test job: add two numbers
+POST   /workers/jobs/add-three-numbers            # Test job: add three numbers
+GET    /workers/jobs/:jobId                       # Get test job status
+GET    /workers/queue/stats                       # Get queue statistics
 ```
 
 ### Payments
@@ -120,6 +137,61 @@ WS     /snapshot-events                           # Real-time snapshot updates
 ---
 
 ## Endpoint Details
+
+## Workbook Internal Operations
+
+### Clear Active Record Filter
+
+```
+POST /workbook/:id/tables/:tableId/clear-active-record-filter
+```
+
+Clears the active record filter for a snapshot table.
+
+**Response:** `204 No Content`
+
+### Send Test Record Event (Admin)
+
+```
+POST /workbook/:id/tables/:tableId/records/events/test
+```
+
+Sends a test record event through the SSE event stream. **Requires admin role.**
+
+**Response:**
+
+```
+"event sent at 2025-01-19T00:00:00.000Z"
+```
+
+**Errors:**
+
+- `401`: Only admins can send test record events
+- `404`: Workbook or table not found
+
+### Move Folder
+
+```
+PATCH /workbook/:id/folders/:folderId
+```
+
+Moves a folder to a new parent folder within the workbook.
+
+**Request Body:**
+
+```json
+{
+  "parentFolderId": "folder_parent"
+}
+```
+
+| Field            | Type   | Required | Description                          |
+| ---------------- | ------ | -------- | ------------------------------------ |
+| `parentFolderId` | string | No       | New parent folder ID (null for root) |
+
+**Response:** `204 No Content`
+
+---
 
 ## Users
 
@@ -1324,5 +1396,103 @@ Endpoints behind feature flags return:
 {
   "error": "Feature not enabled",
   "statusCode": 403
+}
+```
+
+---
+
+## Worker Test Endpoints
+
+Test endpoints for validating the worker/job system. These are used for development and debugging.
+
+### Add Two Numbers
+
+```
+POST /workers/jobs/add-two-numbers
+```
+
+Creates a test job that adds two numbers.
+
+**Request Body:**
+
+```json
+{
+  "a": 5,
+  "b": 3
+}
+```
+
+**Response:**
+
+```json
+{
+  "jobId": "123",
+  "message": "Job created"
+}
+```
+
+### Add Three Numbers
+
+```
+POST /workers/jobs/add-three-numbers
+```
+
+Creates a test job that adds three numbers.
+
+**Request Body:**
+
+```json
+{
+  "a": 5,
+  "b": 3,
+  "c": 2
+}
+```
+
+**Response:**
+
+```json
+{
+  "jobId": "456",
+  "message": "Job created"
+}
+```
+
+### Get Test Job Status
+
+```
+GET /workers/jobs/:jobId
+```
+
+Returns the status and result of a test job.
+
+**Response:**
+
+```json
+{
+  "id": "123",
+  "state": "completed",
+  "result": 8,
+  "progress": 100
+}
+```
+
+### Get Queue Statistics
+
+```
+GET /workers/queue/stats
+```
+
+Returns statistics for the worker queue.
+
+**Response:**
+
+```json
+{
+  "waiting": 0,
+  "active": 1,
+  "completed": 150,
+  "failed": 2,
+  "delayed": 0
 }
 ```

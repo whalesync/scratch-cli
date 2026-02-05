@@ -21,7 +21,10 @@ To obtain an API token, use the CLI authentication flow (see [CLI Authentication
 ### System
 
 ```
+GET    /                                          # Root info
 GET    /health                                    # Health check
+GET    /connection-test                           # Test Redis and scratch-git connections
+GET    /egress-ip                                 # Get server egress IP address
 GET    /cli/v1/health                             # CLI health check
 ```
 
@@ -41,6 +44,8 @@ POST   /workbook                                  # Create workbook
 GET    /workbook/:id                              # Get workbook
 PATCH  /workbook/:id                              # Update workbook
 DELETE /workbook/:id                              # Delete workbook
+POST   /workbook/:id/pull-files                   # Trigger file pull from external sources
+GET    /workbook/:id/data-folders/publish-status  # Get publish status for data folders
 ```
 
 ### Files
@@ -62,6 +67,8 @@ DELETE /workbooks/:workbookId/files/by-path             # Delete file by path
 DELETE /workbooks/:workbookId/files/:fileId             # Delete file by ID
 POST   /workbooks/:workbookId/files/:fileId/copy        # Copy file
 POST   /workbooks/:workbookId/files/publish             # Publish file
+GET    /workbook/public/:id/files/download              # Download file (public, no auth)
+GET    /workbook/public/:id/folders/download            # Download folder as zip (public, no auth)
 ```
 
 ### Folders
@@ -72,12 +79,14 @@ POST   /workbooks/:workbookId/folders                   # Create folder
 PATCH  /workbooks/:workbookId/folders/:folderId         # Update folder
 DELETE /workbooks/:workbookId/folders/:folderId         # Delete folder
 POST   /data-folder/create                              # Create data folder
+POST   /data-folder/publish                             # Publish multiple data folders
 GET    /data-folder/:id                                 # Get data folder
 DELETE /data-folder/:id                                 # Delete data folder
 PATCH  /data-folder/:id/rename                          # Rename data folder
 PATCH  /data-folder/:id/move                            # Move data folder
 POST   /data-folder/:id/files                           # Create file in folder
-POST   /data-folder/:id/publish                         # Publish data folder
+POST   /data-folder/:id/publish                         # Publish single data folder
+GET    /data-folder/:id/schema-paths                    # Get schema paths for data folder
 ```
 
 ### Connections
@@ -98,7 +107,10 @@ POST   /connector-accounts/:id/test                     # Test connection
 ```
 GET    /workbooks/:workbookId/syncs                     # List syncs
 POST   /workbooks/:workbookId/syncs                     # Create sync
+PATCH  /workbooks/:workbookId/syncs/:syncId             # Update sync
+DELETE /workbooks/:workbookId/syncs/:syncId             # Delete sync
 POST   /workbooks/:workbookId/syncs/:syncId/run         # Run sync
+POST   /workbooks/:workbookId/syncs/validate-mapping    # Validate sync mapping
 ```
 
 ### Jobs
@@ -106,13 +118,18 @@ POST   /workbooks/:workbookId/syncs/:syncId/run         # Run sync
 ```
 GET    /jobs                                            # List jobs
 GET    /jobs/:jobId/progress                            # Get job progress
+GET    /jobs/:jobId/raw                                 # Get raw job data
 POST   /jobs/:jobId/cancel                              # Cancel job
+POST   /jobs/bulk-status                                # Get status of multiple jobs
 ```
 
 ### CLI Operations
 
 ```
 GET    /cli/v1/workbooks                                # List workbooks (CLI)
+POST   /cli/v1/workbooks                                # Create workbook (CLI)
+GET    /cli/v1/workbooks/:id                            # Get workbook (CLI)
+DELETE /cli/v1/workbooks/:id                            # Delete workbook (CLI)
 GET    /cli/v1/workbooks/:workbookId/folders            # List folders (CLI)
 GET    /cli/v1/folders/:folderId/files                  # Get folder files (CLI)
 PUT    /cli/v1/folders/:folderId/files                  # Upload files (CLI)
@@ -238,6 +255,23 @@ Called from the web UI when a logged-in user enters the code. Requires session a
 
 ## System Endpoints
 
+### Root Info
+
+```
+GET /
+```
+
+Returns basic server info.
+
+**Response:**
+
+```json
+{
+  "server": "Scratchpad API",
+  "build_version": "1.2.3"
+}
+```
+
 ### Health Check
 
 ```
@@ -250,9 +284,61 @@ Returns server health status.
 
 ```json
 {
-  "status": "healthy",
+  "status": "alive",
   "timestamp": "2025-01-19T00:00:00.000Z",
-  "build_version": "1.2.3"
+  "service": "scratchpad-api",
+  "build_version": "1.2.3",
+  "in_cloud": true,
+  "app_url": "https://app.scratch.md",
+  "apptype": "MONOLITH"
+}
+```
+
+### Connection Test
+
+```
+GET /connection-test
+```
+
+Tests connections to Redis and scratch-git services. Useful for infrastructure monitoring.
+
+**Response:**
+
+```json
+{
+  "timestamp": "2025-01-19T00:00:00.000Z",
+  "redis": {
+    "status": "ok"
+  },
+  "scratch_git": {
+    "status": "ok",
+    "url": "https://scratch-git.example.com",
+    "build_version": "1.0.0"
+  }
+}
+```
+
+| Status        | Description            |
+| ------------- | ---------------------- |
+| `ok`          | Connection successful  |
+| `error`       | Connection failed      |
+| `not_enabled` | Service not configured |
+
+### Egress IP
+
+```
+GET /egress-ip
+```
+
+Returns the external IP address of the server. Useful for verifying Cloud NAT static IP configuration.
+
+**Response:**
+
+```json
+{
+  "egress_ip": "34.123.45.67",
+  "timestamp": "2025-01-19T00:00:00.000Z",
+  "service": "api"
 }
 ```
 
@@ -394,6 +480,55 @@ DELETE /workbook/:id
 Deletes a workbook.
 
 **Response:** `204 No Content`
+
+### Pull Files
+
+```
+POST /workbook/:id/pull-files
+```
+
+Triggers a pull operation to sync files from external sources.
+
+**Request Body:**
+
+```json
+{
+  "snapshotTableIds": ["snap_abc", "snap_xyz"]
+}
+```
+
+| Field              | Type     | Required | Description                      |
+| ------------------ | -------- | -------- | -------------------------------- |
+| `snapshotTableIds` | string[] | No       | Specific tables to pull (or all) |
+
+**Response:**
+
+```json
+{
+  "jobId": "job_xyz"
+}
+```
+
+### Get Data Folders Publish Status
+
+```
+GET /workbook/:id/data-folders/publish-status
+```
+
+Returns the publish status for all data folders in a workbook.
+
+**Response:**
+
+```json
+[
+  {
+    "dataFolderId": "dfolder_abc",
+    "name": "Blog Posts",
+    "hasUnpublishedChanges": true,
+    "lastPublishedAt": "2025-01-19T12:00:00.000Z"
+  }
+]
+```
 
 ---
 
@@ -715,6 +850,38 @@ Commits a file to the main branch (creates a snapshot).
 
 **Response:** `204 No Content`
 
+### Download File (Public)
+
+```
+GET /workbook/public/:id/files/download
+```
+
+Downloads a file as markdown. **No authentication required** - security relies on workbook IDs being unguessable.
+
+**Query Parameters:**
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `fileId`  | string | Yes      | File ID     |
+
+**Response:** Raw markdown file with `Content-Type: text/markdown` and `Content-Disposition: attachment` headers.
+
+### Download Folder (Public)
+
+```
+GET /workbook/public/:id/folders/download
+```
+
+Downloads a folder as a ZIP archive. **No authentication required** - security relies on workbook IDs being unguessable.
+
+**Query Parameters:**
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `folderId` | string | Yes      | Folder ID   |
+
+**Response:** ZIP file stream with `Content-Type: application/zip` and `Content-Disposition: attachment` headers.
+
 ---
 
 ## Folders
@@ -811,6 +978,42 @@ Creates a folder connected to an external data source.
   "lastSyncTime": null
 }
 ```
+
+### Publish Multiple Data Folders
+
+```
+POST /data-folder/publish
+```
+
+Publishes multiple data folders in a single job.
+
+**Request Body:**
+
+```json
+{
+  "workbookId": "wkb_abc123",
+  "dataFolderIds": ["dfolder_abc", "dfolder_xyz"]
+}
+```
+
+| Field           | Type     | Required | Description                         |
+| --------------- | -------- | -------- | ----------------------------------- |
+| `workbookId`    | string   | Yes      | Workbook ID                         |
+| `dataFolderIds` | string[] | Yes      | Array of data folder IDs to publish |
+
+**Response:**
+
+```json
+{
+  "jobId": "job_xyz"
+}
+```
+
+**Errors:**
+
+- `400`: At least one data folder ID is required
+- `400`: Data folder is locked by another operation
+- `404`: Workbook or data folder not found
 
 ### Get Data Folder
 
@@ -956,6 +1159,33 @@ Publishes all changes in a data folder to the external service.
 {
   "jobId": "job_xyz"
 }
+```
+
+### Get Schema Paths
+
+```
+GET /data-folder/:id/schema-paths
+```
+
+Returns the schema paths available for a data folder. Useful for building field mappings.
+
+**Response:**
+
+```json
+[
+  {
+    "path": "title",
+    "type": "string"
+  },
+  {
+    "path": "content",
+    "type": "string"
+  },
+  {
+    "path": "metadata.author",
+    "type": "string"
+  }
+]
 ```
 
 ---
@@ -1235,6 +1465,39 @@ Creates a new sync between folders.
 
 **Response (201):** Returns created sync.
 
+### Update Sync
+
+```
+PATCH /workbooks/:workbookId/syncs/:syncId
+```
+
+Updates an existing sync configuration.
+
+**Request Body:**
+
+```json
+{
+  "name": "Updated Sync Name",
+  "folderMappings": [...],
+  "schedule": "0 */30 * * * *",
+  "autoPublish": false
+}
+```
+
+All fields are optional.
+
+**Response:** Returns updated sync.
+
+### Delete Sync
+
+```
+DELETE /workbooks/:workbookId/syncs/:syncId
+```
+
+Deletes a sync configuration.
+
+**Response:** `204 No Content`
+
 ### Run Sync
 
 ```
@@ -1249,7 +1512,42 @@ Manually triggers a sync run.
 {
   "success": true,
   "jobId": "job_xyz",
-  "message": "Sync started"
+  "message": "Sync job queued successfully"
+}
+```
+
+### Validate Mapping
+
+```
+POST /workbooks/:workbookId/syncs/validate-mapping
+```
+
+Validates a folder mapping configuration before creating or updating a sync.
+
+**Request Body:**
+
+```json
+{
+  "sourceId": "dfolder_source",
+  "destId": "dfolder_dest",
+  "mapping": {
+    "title": "Title",
+    "body": "Content"
+  }
+}
+```
+
+| Field      | Type   | Required | Description                          |
+| ---------- | ------ | -------- | ------------------------------------ |
+| `sourceId` | string | Yes      | Source data folder ID                |
+| `destId`   | string | Yes      | Destination data folder ID           |
+| `mapping`  | object | Yes      | Field mapping (dest field -> source) |
+
+**Response:**
+
+```json
+{
+  "valid": true
 }
 ```
 
@@ -1339,6 +1637,16 @@ Returns detailed progress for a job.
 }
 ```
 
+### Get Raw Job Data
+
+```
+GET /jobs/:jobId/raw
+```
+
+Returns the raw job data from BullMQ, including internal state and metadata.
+
+**Response:** Raw job object from BullMQ (structure varies by job type).
+
 ### Cancel Job
 
 ```
@@ -1356,6 +1664,41 @@ Cancels a running job.
 }
 ```
 
+### Get Bulk Job Status
+
+```
+POST /jobs/bulk-status
+```
+
+Returns status for multiple jobs in a single request.
+
+**Request Body:**
+
+```json
+{
+  "jobIds": ["job_abc", "job_xyz", "job_123"]
+}
+```
+
+**Response:**
+
+```json
+[
+  {
+    "dbJobId": "job_abc",
+    "type": "publish-data-folder",
+    "state": "completed",
+    "publicProgress": {...}
+  },
+  {
+    "dbJobId": "job_xyz",
+    "type": "pull-files",
+    "state": "active",
+    "publicProgress": {...}
+  }
+]
+```
+
 ---
 
 ## CLI Operations
@@ -1370,16 +1713,104 @@ GET /cli/v1/workbooks
 
 Returns workbooks for the authenticated user.
 
+**Query Parameters:**
+
+| Parameter   | Type   | Default     | Description                                  |
+| ----------- | ------ | ----------- | -------------------------------------------- |
+| `sortBy`    | string | `createdAt` | Sort field: `name`, `createdAt`, `updatedAt` |
+| `sortOrder` | string | `desc`      | Sort direction: `asc`, `desc`                |
+
 **Response:**
 
 ```json
-[
-  {
-    "id": "wkb_abc123",
-    "name": "My Workbook"
-  }
-]
+{
+  "workbooks": [
+    {
+      "id": "wkb_abc123",
+      "name": "My Workbook",
+      "createdAt": "2025-01-19T00:00:00.000Z",
+      "updatedAt": "2025-01-19T00:00:00.000Z",
+      "tableCount": 3
+    }
+  ]
+}
 ```
+
+### Create Workbook (CLI)
+
+```
+POST /cli/v1/workbooks
+```
+
+Creates a new workbook.
+
+**Request Body:**
+
+```json
+{
+  "name": "My New Workbook"
+}
+```
+
+| Field  | Type   | Required | Description   |
+| ------ | ------ | -------- | ------------- |
+| `name` | string | Yes      | Workbook name |
+
+**Response (201):**
+
+```json
+{
+  "id": "wkb_abc123",
+  "name": "My New Workbook",
+  "createdAt": "2025-01-19T00:00:00.000Z",
+  "updatedAt": "2025-01-19T00:00:00.000Z",
+  "tableCount": 0
+}
+```
+
+### Get Workbook (CLI)
+
+```
+GET /cli/v1/workbooks/:id
+```
+
+Returns a single workbook by ID.
+
+**Response:**
+
+```json
+{
+  "id": "wkb_abc123",
+  "name": "My Workbook",
+  "createdAt": "2025-01-19T00:00:00.000Z",
+  "updatedAt": "2025-01-19T00:00:00.000Z",
+  "tableCount": 3
+}
+```
+
+**Errors:**
+
+- `404`: Workbook not found
+
+### Delete Workbook (CLI)
+
+```
+DELETE /cli/v1/workbooks/:id
+```
+
+Deletes a workbook.
+
+**Response:**
+
+```json
+{
+  "success": true
+}
+```
+
+**Errors:**
+
+- `404`: Workbook not found
 
 ### List Folders (CLI)
 
