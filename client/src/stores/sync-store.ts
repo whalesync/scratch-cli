@@ -1,3 +1,5 @@
+import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
+import { SyncDataFoldersPublicProgress } from '@/app/components/jobs/SyncStatus/SyncJobProgress';
 import { jobApi } from '@/lib/api/job';
 import { syncApi } from '@/lib/api/sync';
 import { JobEntity } from '@/types/server-entities/job';
@@ -92,7 +94,34 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
 
             if (syncId) {
               finishedSyncIds.push(syncId);
-              if (job.state === 'completed') shouldRefreshSyncs = true;
+              if (job.state === 'completed') {
+                shouldRefreshSyncs = true;
+                // Show success notification with counts
+                const progress = job.publicProgress as SyncDataFoldersPublicProgress | undefined;
+                if (progress?.tables) {
+                  const totals = progress.tables.reduce(
+                    (acc, table) => ({
+                      creates: acc.creates + table.creates,
+                      updates: acc.updates + table.updates,
+                      deletes: acc.deletes + table.deletes,
+                    }),
+                    { creates: 0, updates: 0, deletes: 0 },
+                  );
+                  const parts: string[] = [];
+                  if (totals.creates > 0) parts.push(`${totals.creates} created`);
+                  if (totals.updates > 0) parts.push(`${totals.updates} updated`);
+                  if (totals.deletes > 0) parts.push(`${totals.deletes} deleted`);
+                  const message = parts.length > 0 ? parts.join(', ') : 'No changes';
+                  ScratchpadNotifications.success({ title: 'Sync completed', message });
+                } else {
+                  ScratchpadNotifications.success({ title: 'Sync completed', message: 'Sync finished successfully' });
+                }
+              } else if (job.state === 'failed') {
+                ScratchpadNotifications.error({
+                  title: 'Sync failed',
+                  message: job.failedReason || 'Unknown error',
+                });
+              }
             }
           }
         }
