@@ -695,4 +695,150 @@ describe('SyncService - syncTableMapping', () => {
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0].error).toContain('Batch write failed');
   });
+
+  it('should auto-inject match key field into new destination records', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "name": "John", "company": "Acme"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    // Column mappings do NOT include the match key field (id -> source_id)
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
+      { type: 'local', sourceColumnId: 'company', destinationColumnId: 'company_name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'id',
+        destinationColumnId: 'source_id', // Not in columnMappings!
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    // Verify the written file contains the auto-injected match key field
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+
+    // Match key should be auto-injected
+    expect(fileContent.source_id).toBe('rec1');
+
+    // Column-mapped fields should also be present
+    expect(fileContent.full_name).toBe('John');
+    expect(fileContent.company_name).toBe('Acme');
+  });
+
+  it('should not auto-inject match key if column mappings already populate it', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "external_id": "ext_999", "name": "John"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    // Column mappings explicitly map external_id to source_id (the match key field)
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
+      { type: 'local', sourceColumnId: 'external_id', destinationColumnId: 'source_id' }, // User maps this!
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'id',
+        destinationColumnId: 'source_id',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    // Verify the user's mapping took precedence (external_id value, not id value)
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+
+    // User mapping should win - source_id should be 'ext_999' not 'rec1'
+    expect(fileContent.source_id).toBe('ext_999');
+    expect(fileContent.full_name).toBe('John');
+  });
+
+  it('should return error when source record is missing match key field', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        // Has 'id' (required for record parsing) but missing 'external_ref' (the match key)
+        content: '{"id": "rec1", "name": "John", "company": "Acme"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'external_ref', // This field doesn't exist in the source record
+        destinationColumnId: 'source_id',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    // Record should fail, not be created
+    expect(result.recordsCreated).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].error).toContain('Source record missing match key field: external_ref');
+  });
 });

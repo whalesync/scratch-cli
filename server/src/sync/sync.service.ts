@@ -13,6 +13,8 @@ import {
   WorkbookId,
 } from '@spinner/shared-types';
 import at from 'lodash/at';
+import get from 'lodash/get';
+import set from 'lodash/set';
 import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
 import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connectors/types';
@@ -455,6 +457,21 @@ export class SyncService {
       Array.from(sourceRecordsById.keys()),
     );
 
+    // Check for source records that weren't included in mappings (missing match key)
+    if (tableMapping.recordMatching) {
+      for (const [sourceId, sourceRecord] of sourceRecordsById) {
+        if (!mappingsBySourceId.has(sourceId)) {
+          const matchKeyValue = sourceRecord.fields[tableMapping.recordMatching.sourceColumnId];
+          if (matchKeyValue === undefined || matchKeyValue === null) {
+            result.errors.push({
+              sourceRemoteId: sourceId,
+              error: `Source record missing match key field: ${tableMapping.recordMatching.sourceColumnId}`,
+            });
+          }
+        }
+      }
+    }
+
     // Get the destination folder path for new files
     const destinationFolderPath = destinationFolder.path?.replace(/^\//, '') ?? '';
 
@@ -475,17 +492,34 @@ export class SyncService {
       try {
         // Transform the record using column mappings
         const transformedFields = transformRecord(sourceRecord, tableMapping.columnMappings);
-        const content = serializeRecord(transformedFields);
 
         let destinationPath: string;
 
         if (destinationRemoteId === null) {
-          // This is a new record - generate a temporary filename
+          // This is a new record - inject match key so subsequent syncs can find it
+          if (tableMapping.recordMatching) {
+            const destColumnId = tableMapping.recordMatching.destinationColumnId;
+            const sourceMatchValue = sourceRecord.fields[tableMapping.recordMatching.sourceColumnId];
+
+            // Fail if source match key is undefined
+            if (sourceMatchValue === undefined) {
+              result.errors.push({
+                sourceRemoteId,
+                error: `Source record missing match key field: ${tableMapping.recordMatching.sourceColumnId}`,
+              });
+              continue;
+            }
+
+            // Skip injection if column mappings already populated this field (user config wins)
+            if (get(transformedFields, destColumnId) === undefined) {
+              set(transformedFields, destColumnId, sourceMatchValue);
+            }
+          }
+
+          // Generate a temporary filename
           const tempFileName = `pending-publish-${createPlainId()}.json`;
           destinationPath = destinationFolderPath ? `${destinationFolderPath}/${tempFileName}` : tempFileName;
 
-          // Track the mapping update with the new file path
-          // TODO: How do we actually do this, if the records are going to be rewritten with new remote IDs on publish?
           newMappings.push({
             sourceRemoteId,
             destinationRemoteId: destinationPath,
@@ -505,6 +539,7 @@ export class SyncService {
           result.recordsUpdated++;
         }
 
+        const content = serializeRecord(transformedFields);
         filesToWrite.push({ path: destinationPath, content });
       } catch (error) {
         result.errors.push({

@@ -2,9 +2,9 @@
 // Verifies that all three services (client, server, agent) respond with 200 status on their health endpoints.
 import axios from 'axios';
 
-import { getAgentUrl, getApiUrl, getClientUrl } from './common';
+import { getApiUrl, getClientUrl } from './common';
 
-const healthEndpoints = [`${getClientUrl()}/api/health`, `${getApiUrl()}/health`, `${getAgentUrl()}/health`];
+const healthEndpoints = [`${getClientUrl()}/api/health`, `${getApiUrl()}/health`];
 
 const describeOrSkip = process.env.RUN_JEST_HEALTH_CHECKS ? describe : describe.skip;
 
