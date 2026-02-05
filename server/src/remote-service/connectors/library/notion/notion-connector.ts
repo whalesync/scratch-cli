@@ -650,17 +650,67 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     const databaseId = tableSpec.id.remoteId[0];
 
     for (const file of files) {
-      const properties = (file.properties as CreatePageParameters['properties']) || {};
+      const rawProperties = (file.properties as Record<string, unknown>) || {};
+      // Transform properties from read format to create format (same rules as update)
+      const properties = this.transformPropertiesForUpdate(rawProperties);
 
       const newPage = await this.client.pages.create({
         parent: { database_id: databaseId },
-        properties,
+        properties: properties as CreatePageParameters['properties'],
       });
-
       results.push(newPage as unknown as ConnectorFile);
     }
 
     return results;
+  }
+
+  /**
+   * Read-only property types that cannot be updated via the Notion API.
+   * These must be filtered out before sending an update request.
+   */
+  private static readonly READ_ONLY_PROPERTY_TYPES = new Set([
+    'rollup',
+    'formula',
+    'created_time',
+    'last_edited_time',
+    'created_by',
+    'last_edited_by',
+    'unique_id',
+    'verification',
+  ]);
+
+  /**
+   * Transform properties from Notion's read format to update format.
+   * - Removes read-only properties (rollup, formula, etc.)
+   * - Removes the 'type' field from each property (required for update API)
+   */
+  private transformPropertiesForUpdate(properties: Record<string, unknown>): Record<string, unknown> {
+    const transformed: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(properties)) {
+      if (!value || typeof value !== 'object') {
+        continue;
+      }
+
+      const prop = value as Record<string, unknown>;
+      const propType = prop.type as string;
+
+      // Skip read-only properties
+      if (NotionConnector.READ_ONLY_PROPERTY_TYPES.has(propType)) {
+        continue;
+      }
+
+      // Create a copy without the 'type' and 'id' fields
+      // The Notion update API expects just the property value, not the type wrapper
+      const rest = Object.fromEntries(Object.entries(prop).filter(([k]) => k !== 'type' && k !== 'id'));
+
+      // Only include if there's actual content to update
+      if (Object.keys(rest).length > 0) {
+        transformed[key] = rest;
+      }
+    }
+
+    return transformed;
   }
 
   /**
@@ -674,12 +724,15 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   ): Promise<void> {
     for (const file of files) {
       const pageId = file.id as string;
-      const properties = (file.properties as CreatePageParameters['properties']) || {};
+      const rawProperties = (file.properties as Record<string, unknown>) || {};
+
+      // Transform properties from read format to update format
+      const properties = this.transformPropertiesForUpdate(rawProperties);
 
       if (Object.keys(properties).length > 0) {
         await this.client.pages.update({
           page_id: pageId,
-          properties,
+          properties: properties as CreatePageParameters['properties'],
         });
       }
     }
