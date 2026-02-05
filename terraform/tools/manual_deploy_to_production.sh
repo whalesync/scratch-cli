@@ -36,6 +36,7 @@ gcloud auth print-access-token | docker login -u oauth2accesstoken --password-st
 
 echo "==> Building client image..."
 docker build \
+  --platform linux/amd64 \
   --build-arg APP_ENV=production \
   --build-arg CLERK_PUBLISHABLE_KEY="$(get_secret CLERK_PUBLISHABLE_KEY)" \
   --build-arg NEXT_PUBLIC_POSTHOG_KEY="$(get_secret POSTHOG_API_KEY)" \
@@ -47,6 +48,7 @@ docker build \
 
 echo "==> Building server image..."
 docker build \
+  --platform linux/amd64 \
   -t "$REGISTRY/spinner-server:latest" \
   -f "$REPO_ROOT/server/Dockerfile.monorepo" \
   "$REPO_ROOT"
