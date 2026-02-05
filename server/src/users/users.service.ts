@@ -1,12 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TokenType, UserRole } from '@prisma/client';
-import {
-  createApiTokenId,
-  createOrganizationId,
-  createUserId,
-  createWorkbookId,
-  UpdateSettingsDto,
-} from '@spinner/shared-types';
+import { createApiTokenId, createOrganizationId, createUserId, UpdateSettingsDto } from '@spinner/shared-types';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { PostHogService } from 'src/posthog/posthog.service';
@@ -14,7 +8,7 @@ import { SlackFormatters } from 'src/slack/slack-formatters';
 import { SlackNotificationService } from 'src/slack/slack-notification.service';
 import { DbService } from '../db/db.service';
 import { generateApiToken, generateTokenExpirationDate, generateWebsocketTokenExpirationDate } from './tokens';
-import { DEFAULT_GETTING_STARTED_V1, UserOnboarding, UserSettings } from './types';
+import { UserSettings } from './types';
 
 @Injectable()
 export class UsersService {
@@ -104,16 +98,10 @@ export class UsersService {
       return user;
     }
 
-    const defaultOnboarding: UserOnboarding = {
-      gettingStartedV1: DEFAULT_GETTING_STARTED_V1,
-    };
-
     const newUserId = createUserId();
     const newOrganizationId = createOrganizationId();
-    const onboardingWorkbookId = createWorkbookId();
 
-    // Step 1: Create user without onboardingWorkbookId (FK constraint requires workbook to exist first)
-    let newUser: UserCluster.User = await this.db.client.user.create({
+    const newUser: UserCluster.User = await this.db.client.user.create({
       data: {
         id: newUserId,
         clerkId: clerkUserId,
@@ -121,7 +109,6 @@ export class UsersService {
         role: UserRole.USER,
         name,
         email,
-        onboarding: defaultOnboarding as object,
         apiTokens: {
           create: {
             id: createApiTokenId(),
@@ -138,23 +125,6 @@ export class UsersService {
           },
         },
       },
-      include: UserCluster._validator.include,
-    });
-
-    // Step 2: Create the onboarding workbook for the new user
-    await this.db.client.workbook.create({
-      data: {
-        id: onboardingWorkbookId,
-        name: 'My First Workbook',
-        userId: newUserId,
-        organizationId: newOrganizationId,
-      },
-    });
-
-    // Step 3: Update user with onboardingWorkbookId
-    newUser = await this.db.client.user.update({
-      where: { id: newUserId },
-      data: { onboardingWorkbookId },
       include: UserCluster._validator.include,
     });
 

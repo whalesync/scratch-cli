@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SyncService } from 'src/sync/sync.service';
-import { OnboardingService } from 'src/users/onboarding.service';
 import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
 import { WorkbookDbService } from 'src/workbook/workbook-db.service';
@@ -29,7 +28,6 @@ export class JobHandlerService {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly workbookService: WorkbookService,
-    private readonly onboardingService: OnboardingService,
     private readonly scratchGitService: ScratchGitService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,

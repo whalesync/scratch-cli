@@ -1,9 +1,6 @@
 import { ButtonSecondaryInline, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
-import { OnboardingFlowButton } from '@/app/components/onboarding/OnboardingFlowButton';
-import { OnboardingStepContent } from '@/app/components/onboarding/OnboardingStepContent';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
@@ -51,11 +48,7 @@ export const WorkbookHeader = () => {
             Chat
           </ButtonSecondaryInline>
         )}
-        <OnboardingFlowButton />
-        <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="dataPublished" hide={true}>
-          {publishButton}
-        </OnboardingStepContent>
-
+        {publishButton}
         <WorkbookActionsMenu />
       </Group>
     </Group>

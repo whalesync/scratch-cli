@@ -34,7 +34,6 @@ import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlanTypeFromString } from 'src/payment/plans';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { User } from 'src/users/entities/user.entity';
-import { OnboardingService } from 'src/users/onboarding.service';
 import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -62,7 +61,6 @@ export class DevToolsController {
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,
-    private readonly onboardingService: OnboardingService,
     private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
 
@@ -114,22 +112,6 @@ export class DevToolsController {
     }
 
     await this.usersService.updateUserSettings(targetUser, dto);
-  }
-
-  /* Reset user onboarding to default state */
-  @Post('users/:id/onboarding/reset')
-  @HttpCode(204)
-  async resetUserOnboarding(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can reset user onboarding');
-    }
-
-    const targetUser = await this.usersService.findOne(id);
-    if (!targetUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    await this.onboardingService.resetOnboarding(id);
   }
 
   /* Subscription testing tools */

@@ -25,7 +25,6 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { sanitizeForTableWsId } from 'src/remote-service/connectors/ids';
-import { OnboardingService } from 'src/users/onboarding.service';
 import { SubscriptionService } from 'src/users/subscription.service';
 import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
@@ -55,7 +54,6 @@ export class WorkbookService {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly subscriptionService: SubscriptionService,
-    private readonly onboardingService: OnboardingService,
     private readonly folderService: FolderService,
     private readonly scratchGitService: ScratchGitService,
   ) {}

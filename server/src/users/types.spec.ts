@@ -22,7 +22,6 @@ describe('User Type Utilities', () => {
         stripeCustomerId: 'stripe_123',
         settings: {},
         apiTokens: [],
-        onboarding: {},
         organization: {
           id: 'org_789',
           name: 'Test Organization',
@@ -51,7 +50,6 @@ describe('User Type Utilities', () => {
           planType: 'FREE_PLAN',
           status: 'active',
         },
-        onboarding: {},
       });
     });
 
@@ -72,7 +70,6 @@ describe('User Type Utilities', () => {
         settings: {},
         apiTokens: [],
         organization: null,
-        onboarding: {},
       };
 
       const actor = userToActor(user);

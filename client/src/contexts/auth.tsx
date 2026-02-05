@@ -6,7 +6,7 @@ import { API_CONFIG } from '@/lib/api/config';
 import { trackUserSignIn } from '@/lib/posthog';
 import { RouteUrls } from '@/utils/route-urls';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
 
 const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
@@ -16,27 +16,12 @@ const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
  */
 export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const scratchPadUser = useScratchPadUser();
-  const router = useRouter();
-  const pathname = usePathname();
-  const workbookModeActiveFlag = scratchPadUser.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE;
 
   useEffect(() => {
     if (scratchPadUser) {
       trackUserSignIn(scratchPadUser);
     }
   }, [scratchPadUser]);
-
-  // Redirect to onboarding workbook if set
-  useEffect(() => {
-    const onboardingWorkbookId = scratchPadUser.user?.onboardingWorkbookId;
-    if (onboardingWorkbookId && !pathname.startsWith('/workbooks/')) {
-      router.replace(
-        workbookModeActiveFlag === 'files'
-          ? RouteUrls.workbookFilePageUrl(onboardingWorkbookId)
-          : RouteUrls.workbookScratchSyncPageUrl(onboardingWorkbookId),
-      );
-    }
-  }, [scratchPadUser.user?.onboardingWorkbookId, pathname, router, workbookModeActiveFlag]);
 
   if (scratchPadUser.isLoading) {
     return <FullPageLoader message="Loading user data..." />;

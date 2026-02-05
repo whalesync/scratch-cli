@@ -1,5 +1,4 @@
 import { Badge, BadgeError, BadgeOK } from '@/app/components/base/badge';
-import { ButtonSecondarySolid } from '@/app/components/base/buttons';
 import { Text13Book, TextTitle2, TextTitle3 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
@@ -9,8 +8,8 @@ import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { getBuildFlavor } from '@/utils/build';
-import { Anchor, Card, CloseButton, Code, Group, Stack, Table, Tooltip } from '@mantine/core';
-import { CreditCardIcon, HatGlassesIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react';
+import { Anchor, Card, CloseButton, Group, Stack, Table, Tooltip } from '@mantine/core';
+import { CreditCardIcon, HatGlassesIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { clerkUserUrl, stripeCustomerUrl } from '../utils';
 
@@ -47,25 +46,6 @@ export const UserDetailsCard = ({
     [details, onRefreshUser],
   );
 
-  const handleResetOnboarding = useCallback(async () => {
-    try {
-      setSaving(true);
-      await devToolsApi.resetUserOnboarding(details.user.id);
-      ScratchpadNotifications.success({
-        title: 'Onboarding reset',
-        message: 'User onboarding has been reset to default state',
-      });
-      onRefreshUser(details.user.id);
-    } catch (error) {
-      console.error('Failed to reset onboarding', error);
-      ScratchpadNotifications.error({
-        title: 'Failed to reset onboarding',
-        message: 'The onboarding state could not be reset',
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [details, onRefreshUser]);
   return (
     <Card withBorder shadow="sm" radius="xs">
       <Card.Section withBorder inheritPadding py="xs">
@@ -133,22 +113,6 @@ export const UserDetailsCard = ({
               }
             />
           ))}
-        </Stack>
-      </Card.Section>
-      <Card.Section p="xs" withBorder>
-        <Stack>
-          <Group justify="space-between">
-            <TextTitle3>Onboarding</TextTitle3>
-            <ButtonSecondarySolid
-              size="xs"
-              leftSection={<StyledLucideIcon Icon={RotateCcwIcon} size={14} />}
-              onClick={handleResetOnboarding}
-              loading={saving}
-            >
-              Reset
-            </ButtonSecondarySolid>
-          </Group>
-          <Code block>{JSON.stringify(details.user.onboarding ?? {}, null, 2)}</Code>
         </Stack>
       </Card.Section>
       <Card.Section p="xs" withBorder>

@@ -6,8 +6,6 @@ import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
-import { gettingStartedFlowUI } from '@/app/components/onboarding/getting-started/getting-started';
-import { OnboardingStepLayout } from '@/app/components/onboarding/OnboardingStepLayout';
 import {
   Alert,
   Anchor,
@@ -829,20 +827,6 @@ import { Settings } from 'lucide-react'
                 </Text12Medium>
                 <Code block>{`<ButtonPrimarySolid>Click</ButtonPrimarySolid>`}</Code>
               </Box>
-            </Stack>
-          </Box>
-          <Box ml="md" mt="xl" mb="xl">
-            <TextTitle3 mb="md">Always Black</TextTitle3>
-            <Text12Book c="dimmed" mb="sm">
-              --
-            </Text12Book>
-            <Stack gap="md">
-              <Group>
-                <Box data-always-dark bg="black" style={{ display: 'flex', flexShrink: 1 }}>
-                  <OnboardingStepLayout data={gettingStartedFlowUI.steps[0].data} showDescription />
-                  {/* <OnboardingStepContent flow={gettingStartedFlowUI} stepKey="suggestionsAccepted" /> */}
-                </Box>
-              </Group>
             </Stack>
           </Box>
         </Stack>

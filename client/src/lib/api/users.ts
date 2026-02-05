@@ -21,15 +21,4 @@ export const usersApi = {
       handleAxiosError(error, 'Failed to update user settings');
     }
   },
-
-  collapseOnboardingStep: async (flow: string, stepKey: string, collapsed: boolean): Promise<void> => {
-    await fetch(`${API_CONFIG.getApiUrl()}/users/current/onboarding/collapse`, {
-      method: 'POST',
-      headers: {
-        ...API_CONFIG.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ flow, stepKey, collapsed }),
-    });
-  },
 };

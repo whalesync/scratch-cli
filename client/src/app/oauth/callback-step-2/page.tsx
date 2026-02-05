@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSecondaryOutline } from '@/app/components/base/buttons';
-import { useOnboardingUpdate } from '@/hooks/useOnboardingUpdate';
 import { oAuthApi } from '@/lib/api/oauth';
 import { serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
@@ -22,7 +21,6 @@ export default function OAuthCallbackPage() {
   const searchParams = useSearchParams();
   const [state, setState] = useState<OAuthCallbackState>({ status: 'loading' });
   const hasExecuted = useRef(false);
-  const { markStepCompleted } = useOnboardingUpdate();
 
   useEffect(() => {
     // Prevent multiple executions
@@ -78,8 +76,6 @@ export default function OAuthCallbackPage() {
         }
 
         const result = await oAuthApi.callback(service, { code, state });
-
-        markStepCompleted('gettingStartedV1', 'dataSourceConnected');
 
         setState({
           status: 'success',

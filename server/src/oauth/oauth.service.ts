@@ -5,7 +5,6 @@ import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { getServiceDisplayName } from 'src/remote-service/connectors/display-names';
-import { OnboardingService } from 'src/users/onboarding.service';
 import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
@@ -42,7 +41,6 @@ export class OAuthService {
     private readonly youTubeProvider: YouTubeOAuthProvider,
     private readonly posthogService: PostHogService,
     private readonly credentialEncryptionService: CredentialEncryptionService,
-    private readonly onboardingService: OnboardingService,
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
@@ -156,9 +154,6 @@ export class OAuthService {
         customClientSecret: statePayload.customClientSecret,
         connectionName: statePayload.connectionName,
       });
-
-      // Mark onboarding step as completed
-      await this.onboardingService.markStepCompleted(actor.userId, 'gettingStartedV1', 'dataSourceConnected');
 
       return { connectorAccountId: connectorAccount.id };
     }

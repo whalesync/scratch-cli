@@ -1,4 +1,4 @@
-import { Organization, SubscriptionInfo, UserOnboarding } from '@spinner/shared-types';
+import { Organization, SubscriptionInfo } from '@spinner/shared-types';
 
 export interface User {
   id: string;
@@ -14,8 +14,6 @@ export interface User {
   stripeCustomerId?: string;
   organization?: Organization;
   settings?: Record<string, string | number | boolean>;
-  onboarding?: UserOnboarding;
-  onboardingWorkbookId?: string | null;
 }
 
 export type { SubscriptionInfo } from '@spinner/shared-types';

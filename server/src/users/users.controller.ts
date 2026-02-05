@@ -6,26 +6,17 @@ import {
   HttpCode,
   NotFoundException,
   Patch,
-  Post,
   Req,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import {
-  BillableActions,
-  CollapseOnboardingStepDto,
-  UpdateSettingsDto,
-  ValidatedCollapseOnboardingStepDto,
-  ValidatedUpdateSettingsDto,
-} from '@spinner/shared-types';
+import { BillableActions, UpdateSettingsDto, ValidatedUpdateSettingsDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
 import { User } from './entities/user.entity';
-import { OnboardingService } from './onboarding.service';
 import { SubscriptionService } from './subscription.service';
-import { GettingStartedV1StepKey, UserOnboarding } from './types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -36,7 +27,6 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly experimentsService: ExperimentsService,
     private readonly subscriptionService: SubscriptionService,
-    private readonly onboardingService: OnboardingService,
   ) {}
 
   @Get('current')
@@ -68,17 +58,5 @@ export class UsersController {
     }
 
     await this.usersService.updateUserSettings(user, dto);
-  }
-
-  @Post('current/onboarding/collapse')
-  @HttpCode(204)
-  async collapseOnboardingStep(@Req() req: RequestWithUser, @Body() dto: CollapseOnboardingStepDto): Promise<void> {
-    const validatedDto = dto as ValidatedCollapseOnboardingStepDto;
-    await this.onboardingService.setStepCollapsed(
-      req.user.id,
-      validatedDto.flow as keyof UserOnboarding,
-      validatedDto.stepKey as GettingStartedV1StepKey,
-      validatedDto.collapsed,
-    );
   }
 }

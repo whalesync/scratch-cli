@@ -60,10 +60,4 @@ export const devToolsApi = {
       handleAxiosError(error, 'Failed to force cancel subscription');
     }
   },
-  resetUserOnboarding: async (userId: string): Promise<void> => {
-    await fetch(`${API_CONFIG.getApiUrl()}/dev-tools/users/${userId}/onboarding/reset`, {
-      method: 'POST',
-      headers: API_CONFIG.getAuthHeaders(),
-    });
-  },
 };

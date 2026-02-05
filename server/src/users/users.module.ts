@@ -8,14 +8,13 @@ import { ExperimentsModule } from 'src/experiments/experiments.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { SlackNotificationModule } from 'src/slack/slack-notification.module';
-import { OnboardingService } from './onboarding.service';
 import { OrganizationsService } from './organizations.service';
 import { SubscriptionService } from './subscription.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService, SubscriptionService, OrganizationsService, OnboardingService],
+  providers: [UsersService, SubscriptionService, OrganizationsService],
   imports: [
     DbModule,
     PosthogModule,
@@ -25,7 +24,7 @@ import { UsersService } from './users.service';
     SlackNotificationModule,
     AuditLogModule,
   ],
-  exports: [UsersService, SubscriptionService, OnboardingService], //export this service to use in other modules
+  exports: [UsersService, SubscriptionService],
   controllers: [UsersController],
 })
 export class UserModule {}

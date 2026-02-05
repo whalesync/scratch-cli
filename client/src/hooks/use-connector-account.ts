@@ -7,7 +7,6 @@ import { useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
 import { serviceName } from '../service-naming-conventions';
-import { useOnboardingUpdate } from './useOnboardingUpdate';
 
 export const useConnectorAccounts = () => {
   const { mutate } = useSWRConfig();
@@ -17,14 +16,11 @@ export const useConnectorAccounts = () => {
     isLoading,
     mutate: mutateConnectorAccounts,
   } = useSWR(SWR_KEYS.connectorAccounts.list(), connectorAccountsApi.list);
-  const { markStepCompleted } = useOnboardingUpdate();
 
   const createConnectorAccount = async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
     const newAccount = await connectorAccountsApi.create(dto);
     mutate(SWR_KEYS.connectorAccounts.list());
     mutate(SWR_KEYS.connectorAccounts.allTables());
-    // Mark data source connected step as completed
-    markStepCompleted('gettingStartedV1', 'dataSourceConnected');
     return newAccount;
   };
 
