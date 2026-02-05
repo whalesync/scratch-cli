@@ -25,8 +25,8 @@ export class ScratchGitService {
     await this.scratchGitClient.deleteRepo(workbookId);
   }
 
-  async discardChanges(workbookId: WorkbookId): Promise<void> {
-    await this.scratchGitClient.resetRepo(workbookId);
+  async discardChanges(workbookId: WorkbookId, path?: string): Promise<void> {
+    await this.scratchGitClient.resetRepo(workbookId, path);
   }
 
   async rebaseDirty(workbookId: WorkbookId) {

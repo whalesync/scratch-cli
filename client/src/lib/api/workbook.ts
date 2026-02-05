@@ -384,10 +384,10 @@ export const workbookApi = {
     }
   },
 
-  async discardChanges(workbookId: WorkbookId): Promise<void> {
+  async discardChanges(workbookId: WorkbookId, path?: string): Promise<void> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/discard-changes`);
+      await axios.post(`/workbook/${workbookId}/discard-changes`, { path });
     } catch (error) {
       handleAxiosError(error, 'Failed to discard changes');
       throw error;

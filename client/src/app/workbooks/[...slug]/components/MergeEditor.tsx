@@ -24,6 +24,13 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
 
     // const themeExtension = colorScheme === 'dark' ? githubDark : githubLight;
 
+    console.log('[MergeEditor] Initializing MergeView', {
+      originalLength: original?.length,
+      modifiedLength: modified?.length,
+      containerHeight: containerRef.current.clientHeight,
+      collapseOption: { margin: 3, minSize: 4 },
+    });
+
     const view = new MergeView({
       a: {
         doc: original,

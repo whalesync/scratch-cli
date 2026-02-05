@@ -277,6 +277,42 @@ export class GitService implements IGitService {
     await this.forceRef(dir, dirtyRef, mainOid);
   }
 
+  async discardChanges(repoId: string, path: string): Promise<void> {
+    const changes = await this.getDirtyStatus(repoId);
+    const normalizedTarget = path.startsWith('/') ? path.slice(1) : path;
+
+    // Filter changes that match the path (file exact, or folder prefix)
+    const changesToDiscard = changes.filter(
+      (change) => change.path === normalizedTarget || change.path.startsWith(normalizedTarget + '/'),
+    );
+
+    if (changesToDiscard.length === 0) return;
+
+    return withWriteLock(repoId, 'dirty', async () => {
+      const revertChanges: FileChange[] = [];
+
+      for (const change of changesToDiscard) {
+        if (change.status === 'added') {
+          revertChanges.push({ path: change.path, type: 'delete' });
+        } else {
+          // modified or deleted: restore from main
+          const mainContent = await this.getFile(repoId, 'main', change.path);
+          if (mainContent !== null) {
+            revertChanges.push({
+              path: change.path,
+              content: mainContent,
+              type: 'modify', // acts as restore/write
+            });
+          }
+        }
+      }
+
+      if (revertChanges.length > 0) {
+        await this.commitChangesToRef(repoId, 'dirty', revertChanges, `Discard changes to ${normalizedTarget}`);
+      }
+    });
+  }
+
   async getDirtyStatus(repoId: string): Promise<DirtyFile[]> {
     const dir = this.getRepoPath(repoId);
     const mainRef = 'main';

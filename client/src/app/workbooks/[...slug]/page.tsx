@@ -52,7 +52,12 @@ function WorkbookFilesPageContent() {
   const closeDevTools = useWorkbookEditorUIStore((state) => state.closeDevTools);
   // File tab state is now managed in the store
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
+
+  const openDataFolderPublishConfirmation = useWorkbookEditorUIStore(
+    (state) => state.openDataFolderPublishConfirmation,
+  );
 
   const router = useRouter();
   const { workbook, activeTable, isLoading } = useActiveWorkbook();
@@ -153,14 +158,35 @@ function WorkbookFilesPageContent() {
                     <DataFolderBrowser />
                     <SyncsPanel />
                     <UnpublishedChangesPanel
-                      onPublishAll={() => console.log('Publish All')}
+                      onPublishAll={() => openDataFolderPublishConfirmation()}
                       onDiscardAll={async () => {
                         if (workbook?.id) {
                           await workbookApi.discardChanges(workbook.id);
                         }
                       }}
-                      onPublishItem={(path) => console.log('Publish', path)}
-                      onDiscardItem={(path) => console.log('Discard', path)}
+                      onPublishItem={(path) => {
+                        const rootFolder = path.split('/')[0];
+                        const folder = workbook?.dataFolders?.find((df) => df.name === rootFolder);
+                        if (folder) {
+                          openDataFolderPublishConfirmation([folder.id]);
+                        }
+                      }}
+                      onDiscardItem={async (path) => {
+                        if (workbook?.id) {
+                          await workbookApi.discardChanges(workbook.id, path);
+                        }
+                      }}
+                      onFileClick={(path) => {
+                        const parts = path.split('/');
+                        const name = parts[parts.length - 1];
+                        openFileTab({
+                          id: path,
+                          type: 'file',
+                          title: name,
+                          path: path,
+                          initialViewMode: 'original-current-split',
+                        });
+                      }}
                     />
                   </Accordion>
                 </Stack>
@@ -193,7 +219,14 @@ function WorkbookFilesPageContent() {
                         return <AddLinkedFolderTab />;
                       }
                       if (activeTab?.type === 'file') {
-                        return <FileEditorNew workbookId={workbook.id} filePath={activeFileTabId} />;
+                        return (
+                          <FileEditorNew
+                            key={activeFileTabId}
+                            workbookId={workbook.id}
+                            filePath={activeFileTabId}
+                            initialViewMode={activeTab.initialViewMode}
+                          />
+                        );
                       }
                       if (activeTab?.type === 'syncs-view') {
                         return <SyncsView />;

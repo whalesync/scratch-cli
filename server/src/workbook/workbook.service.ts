@@ -452,15 +452,15 @@ export class WorkbookService {
     }
   }
 
-  async discardChanges(workbookId: WorkbookId, actor: Actor): Promise<void> {
+  async discardChanges(workbookId: WorkbookId, actor: Actor, path?: string): Promise<void> {
     await this.findOneOrThrow(workbookId, actor);
-    await this.scratchGitService.discardChanges(workbookId);
+    await this.scratchGitService.discardChanges(workbookId, path);
 
     // Track event
     await this.auditLogService.logEvent({
       actor,
       eventType: 'delete',
-      message: `Discarded all unpublished changes in workbook`,
+      message: `Discarded unpublished changes in workbook${path ? ` for ${path}` : ''}`,
       entityId: workbookId,
     });
   }

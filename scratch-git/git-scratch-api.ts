@@ -58,7 +58,12 @@ app.post('/api/repo/:id/rebase', async (req, res) => {
 
 app.post('/api/repo/:id/reset', async (req, res) => {
   try {
-    await gitService.resetToMain(req.params.id);
+    const { path } = req.body as { path?: string };
+    if (path) {
+      await gitService.discardChanges(req.params.id, path);
+    } else {
+      await gitService.resetToMain(req.params.id);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

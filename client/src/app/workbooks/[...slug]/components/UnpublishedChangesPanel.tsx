@@ -54,6 +54,7 @@ interface UnpublishedChangesPanelProps {
   onDiscardAll?: () => Promise<void> | void;
   onPublishItem?: (path: string) => Promise<void> | void;
   onDiscardItem?: (path: string) => Promise<void> | void;
+  onFileClick?: (path: string) => void;
 }
 
 export function UnpublishedChangesPanel({
@@ -61,6 +62,7 @@ export function UnpublishedChangesPanel({
   onDiscardAll,
   onPublishItem,
   onDiscardItem,
+  onFileClick,
 }: UnpublishedChangesPanelProps) {
   const { workbook } = useActiveWorkbook();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -97,6 +99,18 @@ export function UnpublishedChangesPanel({
     setLoading(true);
     try {
       await onDiscardAll();
+      await fetchGitStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiscardItem = async (path: string) => {
+    if (!onDiscardItem) return;
+    if (!confirm(`Are you sure you want to discard changes to ${path}? This cannot be undone.`)) return;
+    setLoading(true);
+    try {
+      await onDiscardItem(path);
       await fetchGitStatus();
     } finally {
       setLoading(false);
@@ -194,7 +208,8 @@ export function UnpublishedChangesPanel({
           onToggle={toggleFolder}
           renderChildren={renderTreeNodes}
           onPublish={onPublishItem}
-          onDiscard={onDiscardItem}
+          onDiscard={handleDiscardItem}
+          onFileClick={onFileClick}
         />
       ));
   };
@@ -317,6 +332,7 @@ function TreeNodeItem({
   renderChildren,
   onPublish,
   onDiscard,
+  onFileClick,
 }: {
   node: TreeNode;
   expandedFolders: Set<string>;
@@ -324,6 +340,7 @@ function TreeNodeItem({
   renderChildren: (nodes: Record<string, TreeNode>) => React.ReactNode;
   onPublish?: (path: string) => void;
   onDiscard?: (path: string) => void;
+  onFileClick?: (path: string) => void;
 }) {
   const isExpanded = expandedFolders.has(node.path);
   const isDirectory = node.type === 'directory';
@@ -351,7 +368,7 @@ function TreeNodeItem({
     <Box>
       <UnstyledButton
         className={styles.folderItem}
-        onClick={isDirectory ? () => onToggle(node.path) : undefined}
+        onClick={isDirectory ? () => onToggle(node.path) : () => onFileClick?.(node.path)}
         style={{ paddingLeft: 'var(--spacing-xs)', paddingRight: 'var(--spacing-xs)' }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -373,17 +390,19 @@ function TreeNodeItem({
           <Group ml="auto" gap={4} wrap="nowrap">
             {hovered && (
               <>
-                <ActionIcon
-                  size="xs"
-                  variant="subtle"
-                  color="blue"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPublish?.(node.path);
-                  }}
-                >
-                  <CloudUpload size={12} />
-                </ActionIcon>
+                {isDirectory && (
+                  <ActionIcon
+                    size="xs"
+                    variant="subtle"
+                    color="blue"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPublish?.(node.path);
+                    }}
+                  >
+                    <CloudUpload size={12} />
+                  </ActionIcon>
+                )}
                 <ActionIcon
                   size="xs"
                   variant="subtle"

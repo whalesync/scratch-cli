@@ -28,6 +28,7 @@ export interface FileTab {
   type: 'file' | 'folder' | 'add-table' | 'syncs-view';
   title: string;
   path: string; // Full path for determining hierarchy (e.g., closing tabs when parent folder deleted)
+  initialViewMode?: 'original-current-split' | 'original-current' | 'current' | 'original';
 }
 
 export type ActiveCells = {
@@ -197,10 +198,15 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
 
   openFileTab: (tab: FileTab) => {
     const current = get();
-    if (!current.openFileTabs.find((t) => t.id === tab.id)) {
+    const existingTabIndex = current.openFileTabs.findIndex((t) => t.id === tab.id);
+
+    if (existingTabIndex === -1) {
       set({ openFileTabs: [...current.openFileTabs, tab], activeFileTabId: tab.id });
     } else {
-      set({ activeFileTabId: tab.id });
+      // Update existing tab with new properties (like initialViewMode) and set as active
+      const updatedTabs = [...current.openFileTabs];
+      updatedTabs[existingTabIndex] = { ...updatedTabs[existingTabIndex], ...tab };
+      set({ openFileTabs: updatedTabs, activeFileTabId: tab.id });
     }
   },
 

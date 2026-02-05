@@ -2,7 +2,7 @@
 
 import { IconButtonOutline } from '@/app/components/base/buttons';
 import { MergeEditor } from '@/app/workbooks/[...slug]/components/MergeEditor';
-import { markdown } from '@codemirror/lang-markdown';
+import { json } from '@codemirror/lang-json';
 import { unifiedMergeView } from '@codemirror/merge';
 import { EditorView } from '@codemirror/view';
 import { Box, Button, Group, Modal, Select, Text, Tooltip } from '@mantine/core';
@@ -22,52 +22,58 @@ type ViewMode = 'original' | 'original-current' | 'original-current-split' | 'cu
 interface FileEditorNewProps {
   workbookId: WorkbookId;
   filePath: string | null;
+  initialViewMode?: ViewMode;
 }
 
-export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
+export function FileEditorNew({ workbookId, filePath, initialViewMode }: FileEditorNewProps) {
   const { file: fileResponse, isLoading, updateFile } = useFileByPath(workbookId, filePath);
+
+  // Editor content states
   const [content, setContent] = useState<string>('');
+  const [savedContent, setSavedContent] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('current');
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode || 'current');
 
   const originalContent = fileResponse?.file?.originalContent ?? '';
 
-  // Build view mode options with disabled state based on available data
-  const viewModeOptionsWithState = useMemo(() => {
-    return [
-      { value: 'current', label: 'Current', disabled: false },
-      { value: 'original-current-split', label: 'Diff (side-by-side)', disabled: !originalContent },
-      { value: 'original-current', label: 'Diff (unified)', disabled: !originalContent },
-      { value: 'original', label: 'Original (read-only)', disabled: !originalContent },
-    ];
-  }, [originalContent]);
-
-  // Reset view mode if current mode becomes unavailable
+  // Handle view mode switching logic
+  // 1. If initialViewMode prop changes, prefer that.
   useEffect(() => {
-    const currentOption = viewModeOptionsWithState.find((m) => m.value === viewMode);
-    if (currentOption?.disabled) {
+    if (initialViewMode) {
+      setViewMode(initialViewMode);
+    }
+  }, [initialViewMode, filePath]); // Re-evaluate when file changes too
+
+  // 2. Validate view mode feasibility (e.g. can't show diff if no original content)
+  const canShowDiff = !!originalContent;
+  useEffect(() => {
+    if (!isLoading && !canShowDiff && viewMode.startsWith('original')) {
+      // If loaded and requested diff but can't show it, fallback to current
       setViewMode('current');
     }
-  }, [viewModeOptionsWithState, viewMode]);
+  }, [isLoading, canShowDiff, viewMode]);
 
-  // Update local content when file loads or changes
-  useEffect(() => {
-    if (fileResponse?.file?.content !== undefined) {
-      setContent(fileResponse.file.content ?? '');
-      setHasChanges(false);
-    }
-  }, [fileResponse]);
+  const viewModeOptions = useMemo(() => {
+    return [
+      { value: 'current', label: 'Current', disabled: false },
+      { value: 'original-current-split', label: 'Diff (side-by-side)', disabled: !canShowDiff },
+      { value: 'original-current', label: 'Diff (unified)', disabled: !canShowDiff },
+      { value: 'original', label: 'Original (read-only)', disabled: !canShowDiff },
+    ];
+  }, [canShowDiff]);
 
   const handleContentChange = useCallback(
     (newContent: string) => {
-      // Only allow changes in editable modes
-      if (viewMode === 'current' || viewMode === 'original-current') {
-        setContent(newContent);
-        setHasChanges(true);
-      }
+      // Allow editing in all modes except original-only (read-only)
+      if (viewMode === 'original') return;
+
+      setContent(newContent);
+      setHasChanges(newContent !== savedContent);
     },
-    [viewMode],
+    [viewMode, savedContent],
   );
 
   const handleSave = useCallback(async () => {
@@ -76,6 +82,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
     setIsSaving(true);
     try {
       await updateFile({ content });
+      setSavedContent(content);
       setHasChanges(false);
     } catch (error) {
       console.error('Failed to save file:', error);
@@ -84,11 +91,9 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
     }
   }, [filePath, hasChanges, content, updateFile]);
 
-  // Content formatting (Preview, Prettify, Minify) - same logic as HtmlActionButtons
+  // Content formatting (Preview, Prettify, Minify)
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
-
-  // Check if content editing is allowed in current view mode
-  const isEditable = viewMode === 'current' || viewMode === 'original-current';
+  const isEditable = viewMode !== 'original';
 
   // Extract the body content (after front matter) for preview
   const bodyContent = useMemo(() => {
@@ -101,9 +106,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
   }, [content]);
 
   const handlePrettifyBody = useCallback(async () => {
-    if (!isEditable) {
-      return;
-    }
+    if (!isEditable) return;
     try {
       const parsed = matter(content);
       const formatted = await prettier.format(parsed.content || '', {
@@ -114,16 +117,14 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
       });
       const result = matter.stringify(formatted.trim(), parsed.data);
       setContent(result);
-      setHasChanges(true);
+      setHasChanges(result !== savedContent);
     } catch {
       // If formatting fails, leave as-is
     }
-  }, [content, isEditable]);
+  }, [content, isEditable, savedContent]);
 
   const handleMinifyBody = useCallback(() => {
-    if (!isEditable) {
-      return;
-    }
+    if (!isEditable) return;
     try {
       const parsed = matter(content);
       const minified = (parsed.content || '')
@@ -135,22 +136,22 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
         .trim();
       const result = matter.stringify(minified, parsed.data);
       setContent(result);
-      setHasChanges(true);
+      setHasChanges(result !== savedContent);
     } catch {
       // If minifying fails, leave as-is
     }
-  }, [content, isEditable]);
+  }, [content, isEditable, savedContent]);
 
   const extensions = useMemo(() => {
     switch (viewMode) {
       case 'original':
-        return [markdown(), EditorView.editable.of(false)];
+        return [json(), EditorView.editable.of(false)];
 
       case 'original-current':
         // In this mode, original is the base and current is the edited version
         // Accept button reverts the chunk back to original
         return [
-          markdown(),
+          json(),
           unifiedMergeView({
             original: originalContent,
             mergeControls: true,
@@ -159,10 +160,10 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
         ];
 
       case 'current':
-        return [markdown()];
+        return [json()];
 
       default:
-        return [markdown()];
+        return [json()];
     }
   }, [viewMode, originalContent]);
 
@@ -184,6 +185,29 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
     return `${viewMode}-0`;
   }, [viewMode]);
 
+  /* 
+     Fix for focus loss and diff collapsing:
+     1. We need to key the MergeEditor by the content length to force a re-mount when the file FIRST loads.
+        This ensures MergeView is constructed with the full text, allowing 'collapseUnchanged' to calc correctly.
+     2. We must NOT use dynamic content.length in the key, or it will remount on every keystroke, losing focus.
+     3. Solution: Capture the length ONLY when the file is first initialized/loaded.
+  */
+  const [initialContentLength, setInitialContentLength] = useState<number | 0>(0);
+
+  // Initialize content from file response
+  const [isContentInitialized, setIsContentInitialized] = useState(false);
+
+  useEffect(() => {
+    if (fileResponse?.file?.content !== undefined) {
+      const fileContent = fileResponse.file.content ?? '';
+      setContent(fileContent);
+      setSavedContent(fileContent);
+      setHasChanges(false);
+      setInitialContentLength(fileContent.length);
+      setIsContentInitialized(true);
+    }
+  }, [fileResponse]);
+
   if (!filePath) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -201,12 +225,21 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
     );
   }
 
-  if (!fileResponse && !isSaving) {
-    return (
-      <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Text c="dimmed">File not found</Text>
-      </Box>
-    );
+  if ((!fileResponse && !isSaving) || !isContentInitialized) {
+    if (!isContentInitialized && isLoading) {
+      return (
+        <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Text c="dimmed">Loading file...</Text>
+        </Box>
+      );
+    }
+    if (!fileResponse && !isSaving && !isLoading) {
+      return (
+        <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Text c="dimmed">File not found</Text>
+        </Box>
+      );
+    }
   }
 
   return (
@@ -238,7 +271,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
               w={200}
               value={viewMode}
               onChange={(value) => setViewMode(value as ViewMode)}
-              data={viewModeOptionsWithState}
+              data={viewModeOptions}
             />
             {/* Content formatting buttons - same as HtmlActionButtons */}
             <Group gap={4}>
@@ -299,7 +332,7 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
               autocompletion: true,
               rectangularSelection: true,
               crosshairCursor: true,
-              highlightActiveLine: viewMode === 'current' || viewMode === 'original-current',
+              highlightActiveLine: isEditable,
               highlightSelectionMatches: true,
               closeBracketsKeymap: true,
               defaultKeymap: true,
@@ -319,8 +352,16 @@ export function FileEditorNew({ workbookId, filePath }: FileEditorNewProps) {
           />
 
           {/* Merge Editor for split view */}
+          {/* We key the MergeEditor by originalContent length and the INITIAL content length.
+              This forces a correct first render for collapsing, but keeps the component stable
+              during subsequent editing (preventing focus loss). */}
           {viewMode === 'original-current-split' && (
-            <MergeEditor original={originalContent} modified={content} onModifiedChange={handleContentChange} />
+            <MergeEditor
+              key={`split-${originalContent?.length ?? 0}-${initialContentLength}`}
+              original={originalContent}
+              modified={content}
+              onModifiedChange={handleContentChange}
+            />
           )}
         </Box>
       </Box>
