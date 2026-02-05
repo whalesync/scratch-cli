@@ -3,7 +3,6 @@ import { DataFolder } from '@prisma/client';
 import { TSchema } from '@sinclair/typebox';
 import {
   AnyColumnMapping,
-  createPlainId,
   createScratchPendingPublishId,
   CreateSyncDto,
   createSyncId,
@@ -521,8 +520,8 @@ export class SyncService {
           const tempId = createScratchPendingPublishId();
           set(transformedFields, destIdColumn, tempId);
 
-          // Generate a temporary filename
-          const tempFileName = `pending-publish-${createPlainId()}.json`;
+          // Generate a temporary filename using the same ID
+          const tempFileName = `${tempId}.json`;
           destinationPath = destinationFolderPath ? `${destinationFolderPath}/${tempFileName}` : tempFileName;
 
           result.recordsCreated++;

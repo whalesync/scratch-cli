@@ -442,11 +442,11 @@ describe('SyncService - syncTableMapping', () => {
     );
 
     // Verify files were written with transformed content
-    // New files get generated paths with file IDs (e.g., dest/pending-publish-xxx.json)
+    // New files get generated paths using the temporary ID (e.g., dest/scratch_pending_publish_xxx.json)
     expect(writtenFiles).toHaveLength(3);
-    expect(writtenFiles.every((f) => f.path.startsWith('dest/pending-publish-') && f.path.endsWith('.json'))).toBe(
-      true,
-    );
+    expect(
+      writtenFiles.every((f) => f.path.startsWith('dest/scratch_pending_publish_') && f.path.endsWith('.json')),
+    ).toBe(true);
 
     // Verify one of the files has the correct transformed content
     const file1Content = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
@@ -597,7 +597,7 @@ describe('SyncService - syncTableMapping', () => {
     expect(johnFile).toBeDefined();
 
     // Verify new files (jane, bob) use generated paths
-    const newFiles = writtenFiles.filter((f) => f.path.startsWith('dest/pending-publish-'));
+    const newFiles = writtenFiles.filter((f) => f.path.startsWith('dest/scratch_pending_publish_'));
     expect(newFiles).toHaveLength(2);
 
     // Verify new files have temporary IDs
@@ -653,7 +653,7 @@ describe('SyncService - syncTableMapping', () => {
     expect(writtenFiles).toHaveLength(1);
     const file = writtenFiles[0];
     // New file should have a generated path
-    expect(file.path.startsWith('dest/pending-publish-')).toBe(true);
+    expect(file.path.startsWith('dest/scratch_pending_publish_')).toBe(true);
     const fileContent = JSON.parse(file.content) as Record<string, unknown>;
     expect(fileContent.contact_email).toBe('john@example.com');
     expect(fileContent.given_name).toBe('John');
