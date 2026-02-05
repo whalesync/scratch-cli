@@ -14,6 +14,7 @@ import {
 } from '@spinner/shared-types';
 import at from 'lodash/at';
 import get from 'lodash/get';
+import merge from 'lodash/merge';
 import set from 'lodash/set';
 import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
@@ -445,8 +446,9 @@ export class SyncService {
     // 4. Fill caches - populates match keys and creates initial remote ID mappings
     await this.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
 
-    // Create a map of source records by ID for quick lookup
+    // Create maps of records by ID for quick lookup
     const sourceRecordsById = new Map(sourceRecords.map((r) => [r.id, r]));
+    const destinationRecordsById = new Map(destinationRecords.map((r) => [r.id, r]));
 
     // 5. Get all source-to-destination mappings
     const mappingsBySourceId = await this.getDestinationRemoteIds(
@@ -536,6 +538,14 @@ export class SyncService {
             continue;
           }
           destinationPath = existingPath;
+
+          // Merge existing destination fields with transformed source fields (source takes precedence).
+          // This preserves destination fields that aren't covered by column mappings.
+          const existingRecord = destinationRecordsById.get(destinationRemoteId);
+          if (existingRecord) {
+            Object.assign(transformedFields, merge({}, existingRecord.fields, transformedFields));
+          }
+
           result.recordsUpdated++;
         }
 

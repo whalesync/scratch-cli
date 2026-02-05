@@ -99,7 +99,9 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
                 // Show success notification with counts
                 const progress = job.publicProgress as SyncDataFoldersPublicProgress | undefined;
                 if (progress?.tables) {
-                  const totals = progress.tables.reduce(
+                  const failedTables = progress.tables.filter((t) => t.status === 'failed');
+                  const succeededTables = progress.tables.filter((t) => t.status !== 'failed');
+                  const totals = succeededTables.reduce(
                     (acc, table) => ({
                       creates: acc.creates + table.creates,
                       updates: acc.updates + table.updates,
@@ -111,8 +113,15 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
                   if (totals.creates > 0) parts.push(`${totals.creates} created`);
                   if (totals.updates > 0) parts.push(`${totals.updates} updated`);
                   if (totals.deletes > 0) parts.push(`${totals.deletes} deleted`);
+                  if (failedTables.length > 0) {
+                    parts.push(`${failedTables.length} table${failedTables.length > 1 ? 's' : ''} failed`);
+                  }
                   const message = parts.length > 0 ? parts.join(', ') : 'No changes';
-                  ScratchpadNotifications.success({ title: 'Sync completed', message });
+                  if (failedTables.length > 0) {
+                    ScratchpadNotifications.warning({ title: 'Sync completed with errors', message });
+                  } else {
+                    ScratchpadNotifications.success({ title: 'Sync completed', message });
+                  }
                 } else {
                   ScratchpadNotifications.success({ title: 'Sync completed', message: 'Sync finished successfully' });
                 }

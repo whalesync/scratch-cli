@@ -22,7 +22,7 @@ import { extractSchemaFields } from 'src/utils/schema-helpers';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
-import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
+import { DIRTY_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { FilesService } from './files.service';
 import { WorkbookService } from './workbook.service';
@@ -643,6 +643,7 @@ export class DataFolderService {
     workbookId: WorkbookId,
     folderId: DataFolderId,
     actor: Actor,
+    branch: string = DIRTY_BRANCH,
   ): Promise<{ folderId: DataFolderId; path: string; content: string }[]> {
     const folder = await this.findOne(folderId, actor);
 
@@ -651,15 +652,11 @@ export class DataFolderService {
     }
 
     const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
-    const repoFiles = (await this.scratchGitService.listRepoFiles(
-      workbookId,
-      MAIN_BRANCH,
-      folderPath,
-    )) as RepoFileRef[];
+    const repoFiles = (await this.scratchGitService.listRepoFiles(workbookId, branch, folderPath)) as RepoFileRef[];
 
     return Promise.all(
       repoFiles.map(async (fileRef) => {
-        const result = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, fileRef.path);
+        const result = await this.scratchGitService.getRepoFile(workbookId, branch, fileRef.path);
         if (result === null) {
           throw new NotFoundException(`Unable to find ${fileRef.path}`);
         }

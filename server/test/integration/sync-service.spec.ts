@@ -465,7 +465,7 @@ describe('SyncService - syncTableMapping', () => {
     }
   });
 
-  it('should update existing records when they match', async () => {
+  it('should update existing records when they match, merging with existing destination fields', async () => {
     const sourceFiles = [
       {
         folderId: sourceFolderId,
@@ -479,16 +479,17 @@ describe('SyncService - syncTableMapping', () => {
       },
     ];
 
+    // Destination records have extra fields (phone, notes) not covered by column mappings
     const destFiles = [
       {
         folderId: destFolderId,
         path: 'dest/item1.json',
-        content: '{"id": "dest1", "email": "john@example.com", "name": "John"}',
+        content: '{"id": "dest1", "email": "john@example.com", "name": "John", "phone": "555-1234", "notes": "VIP"}',
       },
       {
         folderId: destFolderId,
         path: 'dest/item2.json',
-        content: '{"id": "dest2", "email": "jane@example.com", "name": "Jane"}',
+        content: '{"id": "dest2", "email": "jane@example.com", "name": "Jane", "phone": "555-5678"}',
       },
     ];
 
@@ -522,15 +523,27 @@ describe('SyncService - syncTableMapping', () => {
     expect(result.recordsUpdated).toBe(2);
     expect(result.errors).toHaveLength(0);
 
-    // Verify files were written to existing destination paths (not source paths)
+    // Verify files were written to existing destination paths
     expect(writtenFiles).toHaveLength(2);
+
     const file1 = writtenFiles.find((f) => f.path === 'dest/item1.json');
     expect(file1).toBeDefined();
     const file1Content = JSON.parse(file1!.content) as Record<string, unknown>;
+    // Mapped fields should be updated from source
     expect(file1Content.name).toBe('John Updated');
+    expect(file1Content.email).toBe('john@example.com');
+    // Unmapped destination fields should be preserved
+    expect(file1Content.phone).toBe('555-1234');
+    expect(file1Content.notes).toBe('VIP');
+    // Destination id should be preserved
+    expect(file1Content.id).toBe('dest1');
 
     const file2 = writtenFiles.find((f) => f.path === 'dest/item2.json');
     expect(file2).toBeDefined();
+    const file2Content = JSON.parse(file2!.content) as Record<string, unknown>;
+    expect(file2Content.name).toBe('Jane Updated');
+    expect(file2Content.phone).toBe('555-5678');
+    expect(file2Content.id).toBe('dest2');
   });
 
   it('should handle mixed create and update scenarios', async () => {
@@ -552,12 +565,12 @@ describe('SyncService - syncTableMapping', () => {
       },
     ];
 
-    // Only john exists in destination
+    // Only john exists in destination (with an extra unmapped field)
     const destFiles = [
       {
         folderId: destFolderId,
         path: 'dest/john.json',
-        content: '{"id": "dest1", "email": "john@example.com", "name": "John Old"}',
+        content: '{"id": "dest1", "email": "john@example.com", "name": "John Old", "phone": "555-9999"}',
       },
     ];
 
@@ -592,9 +605,13 @@ describe('SyncService - syncTableMapping', () => {
     expect(result.errors).toHaveLength(0);
     expect(writtenFiles).toHaveLength(3);
 
-    // Verify john's update uses existing destination path
+    // Verify john's update uses existing destination path and preserves unmapped fields
     const johnFile = writtenFiles.find((f) => f.path === 'dest/john.json');
     expect(johnFile).toBeDefined();
+    const johnContent = JSON.parse(johnFile!.content) as Record<string, unknown>;
+    expect(johnContent.name).toBe('John');
+    expect(johnContent.phone).toBe('555-9999');
+    expect(johnContent.id).toBe('dest1');
 
     // Verify new files (jane, bob) use generated paths
     const newFiles = writtenFiles.filter((f) => f.path.startsWith('dest/scratch_pending_publish_'));
