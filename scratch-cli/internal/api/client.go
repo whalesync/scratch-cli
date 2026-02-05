@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"time"
 )
 
-// DefaultScratchURL is the default base URL for the scratch API
+// DefaultScratchServerURL is the default base URL for the scratch API
 // This can be overridden at build time using:
 // go build -ldflags "-X github.com/whalesync/scratch-cli/internal/config.DefaultScratchURL=https://api.example.com"
 var DefaultScratchServerURL = "http://localhost:3010"
@@ -27,40 +26,11 @@ const DefaultUserAgent = "Scratch-CLI"
 // This should be set by the main package at startup.
 var Version = "dev"
 
-// SupportedProviders returns the list of supported provider names
-func SupportedDataSources() []string {
-	return []string{"webflow", "wordpress", "airtable", "notion"}
-}
-
 // Client represents a client for the Scratch CLI API.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	apiToken   string // API token for authenticated requests
-}
-
-// ConnectorCredentials represents the credentials for a connector.
-// These are sent via the X-Scratch-Connector header.
-type ConnectorCredentials struct {
-	Service string            `json:"service"`
-	Params  map[string]string `json:"params,omitempty"`
-}
-
-// TableInfo represents a table with its JSON Schema.
-type TableInfo struct {
-	ID       string                 `json:"id,omitempty"`
-	SiteID   string                 `json:"siteId,omitempty"`
-	SiteName string                 `json:"siteName,omitempty"`
-	Name     string                 `json:"name,omitempty"`
-	Slug     string                 `json:"slug,omitempty"`
-	Schema   map[string]interface{} `json:"schema,omitempty"`
-	IdField  string                 `json:"idField,omitempty"` // The field name to use as the unique identifier (e.g., 'id', 'uid')
-}
-
-// ListTablesResponse represents the response from the list-tables endpoint.
-type ListTablesResponse struct {
-	Error  string      `json:"error,omitempty"`
-	Tables []TableInfo `json:"tables,omitempty"`
 }
 
 // AuthInitiateResponse represents the response from the auth initiate endpoint.
@@ -80,104 +50,6 @@ type AuthPollResponse struct {
 	UserEmail      string `json:"userEmail,omitempty"`      // Only set when status is "approved"
 	TokenExpiresAt string `json:"tokenExpiresAt,omitempty"` // Only set when status is "approved"
 	Error          string `json:"error,omitempty"`
-}
-
-// Workbook represents a workbook returned by the API.
-type Workbook struct {
-	ID             string       `json:"id,omitempty"`
-	Name           string       `json:"name,omitempty"`
-	CreatedAt      string       `json:"createdAt,omitempty"`
-	UpdatedAt      string       `json:"updatedAt,omitempty"`
-	UserId         string       `json:"userId,omitempty"`
-	OrganizationId string       `json:"organizationId,omitempty"`
-	DataFolders    []DataFolder `json:"dataFolders,omitempty"`
-}
-
-// DataFolder represents a data folder within a workbook.
-type DataFolder struct {
-	ID                   string   `json:"id,omitempty"`
-	Name                 string   `json:"name,omitempty"`
-	CreatedAt            string   `json:"createdAt,omitempty"`
-	UpdatedAt            string   `json:"updatedAt,omitempty"`
-	WorkbookId           string   `json:"workbookId,omitempty"`
-	ConnectorAccountId   string   `json:"connectorAccountId,omitempty"`
-	ConnectorService     string   `json:"connectorService,omitempty"`
-	ConnectorDisplayName string   `json:"connectorDisplayName,omitempty"`
-	ParentId             string   `json:"parentId,omitempty"`
-	Path                 string   `json:"path,omitempty"`
-	Lock                 string   `json:"lock,omitempty"`
-	LastSyncTime         string   `json:"lastSyncTime,omitempty"`
-	TableId              []string `json:"tableId,omitempty"`
-}
-
-// FolderMetadata represents metadata about a downloaded folder.
-type FolderMetadata struct {
-	ID                   string                 `json:"id"`
-	Name                 string                 `json:"name"`
-	WorkbookID           string                 `json:"workbookId"`
-	ConnectorService     string                 `json:"connectorService,omitempty"`
-	ConnectorDisplayName string                 `json:"connectorDisplayName,omitempty"`
-	TableID              []string               `json:"tableId,omitempty"`
-	Path                 string                 `json:"path,omitempty"`
-	Schema               map[string]interface{} `json:"schema,omitempty"`
-	LastSyncTime         string                 `json:"lastSyncTime,omitempty"`
-}
-
-// SyncOperation represents the type of sync operation.
-type SyncOperation string
-
-const (
-	SyncOperationDownload SyncOperation = "download"
-	SyncOperationUpload   SyncOperation = "upload"
-)
-
-// LocalFile represents a file from the CLI's local filesystem.
-type LocalFile struct {
-	Name            string `json:"name"`
-	Content         string `json:"content"`
-	OriginalHash    string `json:"originalHash"`
-	OriginalContent string `json:"originalContent,omitempty"` // For three-way merge
-	Deleted         bool   `json:"deleted,omitempty"`
-}
-
-// SyncFolderRequest represents the request body for the sync endpoint.
-type SyncFolderRequest struct {
-	Operation  SyncOperation `json:"operation"`
-	LocalFiles []LocalFile   `json:"localFiles"`
-}
-
-// SyncedFile represents a file returned from the sync endpoint.
-type SyncedFile struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	Hash    string `json:"hash"`
-}
-
-// DeletedFileInfo represents information about a deleted file.
-type DeletedFileInfo struct {
-	Name            string `json:"name"`
-	DeletedBy       string `json:"deletedBy"` // "local" or "server"
-	HadLocalChanges bool   `json:"hadLocalChanges"`
-}
-
-// ConflictInfo represents information about a resolved conflict.
-type ConflictInfo struct {
-	File        string `json:"file"`
-	Field       string `json:"field,omitempty"`
-	Resolution  string `json:"resolution"`
-	LocalValue  string `json:"localValue,omitempty"`
-	ServerValue string `json:"serverValue,omitempty"`
-}
-
-// SyncFolderResponse represents the response from the sync endpoint.
-type SyncFolderResponse struct {
-	Success      bool              `json:"success"`
-	Error        string            `json:"error,omitempty"`
-	Folder       *FolderMetadata   `json:"folder,omitempty"`
-	Files        []SyncedFile      `json:"files,omitempty"`
-	DeletedFiles []DeletedFileInfo `json:"deletedFiles,omitempty"`
-	Conflicts    []ConflictInfo    `json:"conflicts,omitempty"`
-	SyncHash     string            `json:"syncHash,omitempty"`
 }
 
 // ClientOption is a function that configures a Client.
@@ -229,20 +101,8 @@ func NewClient(opts ...ClientOption) *Client {
 	return c
 }
 
-// buildConnectorHeader builds the X-Scratch-Connector header value from credentials.
-func buildConnectorHeader(creds *ConnectorCredentials) (string, error) {
-	if creds == nil {
-		return "", nil
-	}
-	data, err := json.Marshal(creds)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal connector credentials: %w", err)
-	}
-	return string(data), nil
-}
-
 // doRequest performs an HTTP request and decodes the JSON response.
-func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, body interface{}, result interface{}) error {
+func (c *Client) doRequest(method, path string, body interface{}, result interface{}) error {
 	u, err := url.JoinPath(c.baseURL, "cli/v1", path)
 	if err != nil {
 		return fmt.Errorf("failed to build URL: %w", err)
@@ -275,14 +135,6 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 		req.Header.Set("Authorization", "API-Token "+c.apiToken)
 	}
 
-	if creds != nil {
-		headerValue, err := buildConnectorHeader(creds)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("X-Scratch-Connector", headerValue)
-	}
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -301,15 +153,6 @@ func (c *Client) doRequest(method, path string, creds *ConnectorCredentials, bod
 	}
 
 	return nil
-}
-
-// ListTables retrieves the list of available tables with their JSON Schema specs.
-func (c *Client) ListTables(creds *ConnectorCredentials) (*ListTablesResponse, error) {
-	var result ListTablesResponse
-	if err := c.doRequest(http.MethodGet, "list-tables", creds, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
 }
 
 // CheckHealth performs a health check against the server's /health endpoint.
@@ -345,7 +188,7 @@ func (c *Client) CheckHealth() error {
 // Returns a user code (for display) and polling code (for polling).
 func (c *Client) InitiateAuth() (*AuthInitiateResponse, error) {
 	var result AuthInitiateResponse
-	if err := c.doRequest(http.MethodPost, "auth/initiate", nil, nil, &result); err != nil {
+	if err := c.doRequest(http.MethodPost, "auth/initiate", nil, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -356,215 +199,7 @@ func (c *Client) InitiateAuth() (*AuthInitiateResponse, error) {
 func (c *Client) PollAuth(pollingCode string) (*AuthPollResponse, error) {
 	body := map[string]string{"pollingCode": pollingCode}
 	var result AuthPollResponse
-	if err := c.doRequest(http.MethodPost, "auth/poll", nil, body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ListWorkbooks retrieves the list of workbooks available for the authenticated user.
-func (c *Client) ListWorkbooks() ([]Workbook, error) {
-	var result []Workbook
-	if err := c.doRequest(http.MethodGet, "workbooks", nil, nil, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// ListDataFolders retrieves the list of data folders in a workbook.
-func (c *Client) ListDataFolders(workbookId string) ([]DataFolder, error) {
-	var result []DataFolder
-	path := fmt.Sprintf("workbooks/%s/folders", workbookId)
-	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// SyncFolder syncs a folder between local and server state.
-// For download: merges server state with local files, local wins on conflict.
-// For upload: merges local files with server state and commits to dirty branch.
-// Deprecated: Use GetFolderFiles + local merge + PutFolderFiles instead.
-func (c *Client) SyncFolder(folderId string, req *SyncFolderRequest) (*SyncFolderResponse, error) {
-	var result SyncFolderResponse
-	path := fmt.Sprintf("folders/%s/sync", folderId)
-	if err := c.doRequest(http.MethodPost, path, nil, req, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// ServerFile represents a file from the server's dirty branch.
-type ServerFile struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	Hash    string `json:"hash"`
-}
-
-// GetFolderFilesResponse represents the response from the get folder files endpoint.
-type GetFolderFilesResponse struct {
-	Success bool            `json:"success"`
-	Error   string          `json:"error,omitempty"`
-	Folder  *FolderMetadata `json:"folder,omitempty"`
-	Files   []ServerFile    `json:"files,omitempty"`
-}
-
-// FileToWrite represents a file to write to the server.
-type FileToWrite struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-}
-
-// PutFolderFilesRequest represents the request body for the put folder files endpoint.
-type PutFolderFilesRequest struct {
-	Files        []FileToWrite `json:"files"`
-	DeletedFiles []string      `json:"deletedFiles"`
-}
-
-// PutFolderFilesResponse represents the response from the put folder files endpoint.
-type PutFolderFilesResponse struct {
-	Success  bool   `json:"success"`
-	Error    string `json:"error,omitempty"`
-	SyncHash string `json:"syncHash,omitempty"`
-}
-
-// GetFolderFiles retrieves all files from a folder on the server's dirty branch.
-// This is a simple storage layer operation - no merge logic.
-func (c *Client) GetFolderFiles(folderId string) (*GetFolderFilesResponse, error) {
-	var result GetFolderFilesResponse
-	path := fmt.Sprintf("folders/%s/files", folderId)
-	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// PutFolderFiles writes pre-merged files to a folder on the server's dirty branch.
-// Uses multipart/form-data to send raw file content without JSON encoding.
-func (c *Client) PutFolderFiles(folderId string, req *PutFolderFilesRequest) (*PutFolderFilesResponse, error) {
-	u, err := url.JoinPath(c.baseURL, "cli/v1", fmt.Sprintf("folders/%s/files", folderId))
-	if err != nil {
-		return nil, fmt.Errorf("failed to build URL: %w", err)
-	}
-
-	// Create multipart form
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	// Add each file as a form file part with raw content
-	for _, file := range req.Files {
-		part, err := writer.CreateFormFile("files", file.Name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create form file: %w", err)
-		}
-		if _, err := part.Write([]byte(file.Content)); err != nil {
-			return nil, fmt.Errorf("failed to write file content: %w", err)
-		}
-	}
-
-	// Add deleted files as a JSON field
-	if len(req.DeletedFiles) > 0 {
-		deletedJSON, _ := json.Marshal(req.DeletedFiles)
-		if err := writer.WriteField("deletedFiles", string(deletedJSON)); err != nil {
-			return nil, fmt.Errorf("failed to write deleted files: %w", err)
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
-	}
-
-	// Create request
-	httpReq, err := http.NewRequest(http.MethodPut, u, &buf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
-	httpReq.Header.Set("Accept", "application/json")
-	httpReq.Header.Set("User-Agent", DefaultUserAgent+"/"+Version)
-	httpReq.Header.Set("X-Scratch-CLI-Version", Version)
-
-	// Add auth token (same as doRequest)
-	if c.apiToken != "" {
-		httpReq.Header.Set("Authorization", "API-Token "+c.apiToken)
-	}
-
-	// Send request
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
-	}
-
-	var result PutFolderFilesResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &result, nil
-}
-
-// TriggerPullRequest represents the request body for triggering a pull job.
-type TriggerPullRequest struct {
-	DataFolderID string `json:"dataFolderId"`
-}
-
-// TriggerPullResponse represents the response from the trigger pull endpoint.
-type TriggerPullResponse struct {
-	JobID string `json:"jobId,omitempty"`
-	Error string `json:"error,omitempty"`
-}
-
-// FolderProgress represents the progress of a single folder in a download job.
-type FolderProgress struct {
-	ID        string `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Connector string `json:"connector,omitempty"`
-	Files     int    `json:"files,omitempty"`
-	Status    string `json:"status,omitempty"`
-}
-
-// JobStatusProgress represents the progress information of a job.
-type JobStatusProgress struct {
-	TotalFiles int              `json:"totalFiles,omitempty"`
-	Folders    []FolderProgress `json:"folders,omitempty"`
-}
-
-// JobStatusResponse represents the response from the job status endpoint.
-type JobStatusResponse struct {
-	JobID        string             `json:"jobId,omitempty"`
-	State        string             `json:"state,omitempty"`
-	Progress     *JobStatusProgress `json:"progress,omitempty"`
-	Error        string             `json:"error,omitempty"`
-	FailedReason string             `json:"failedReason,omitempty"`
-}
-
-// TriggerWorkbookPull starts a pull job for a data folder in a workbook.
-func (c *Client) TriggerWorkbookPull(workbookID string, req *TriggerPullRequest) (*TriggerPullResponse, error) {
-	var result TriggerPullResponse
-	path := fmt.Sprintf("workbooks/%s/pull", workbookID)
-	if err := c.doRequest(http.MethodPost, path, nil, req, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// GetJobStatus retrieves the status of a job by its ID.
-func (c *Client) GetJobStatus(jobID string) (*JobStatusResponse, error) {
-	var result JobStatusResponse
-	path := fmt.Sprintf("jobs/%s/status", jobID)
-	if err := c.doRequest(http.MethodGet, path, nil, nil, &result); err != nil {
+	if err := c.doRequest(http.MethodPost, "auth/poll", body, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
