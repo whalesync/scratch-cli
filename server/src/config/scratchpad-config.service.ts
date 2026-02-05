@@ -139,6 +139,14 @@ export class ScratchpadConfigService {
     return `https://${env}.scratch.md`;
   }
 
+  getScratchGitApiUrl(): string {
+    return this.getOptionalEnvVariable('SCRATCH_GIT_API_URL') ?? 'http://localhost:3100';
+  }
+
+  getScratchGitBackendUrl(): string {
+    return this.getOptionalEnvVariable('SCRATCH_GIT_BACKEND_URL') ?? 'http://localhost:3101';
+  }
+
   private getEnvVariable<T>(envVariable: string): T {
     const returnedVar: T | undefined = this.configService.get<T>(envVariable);
     if (returnedVar === undefined) {

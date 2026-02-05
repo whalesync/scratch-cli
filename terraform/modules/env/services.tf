@@ -192,7 +192,9 @@ resource "google_cloud_run_v2_service" "api_service" {
             "USE_JOBS" : "true",
           },
           var.enable_scratch_git ? {
-            "SCRATCH_GIT_URL" : "http://${module.scratch_git_gce[0].lb_ip}:3100"
+            "SCRATCH_GIT_URL" : "http://${module.scratch_git_gce[0].lb_ip}:3100",
+            "SCRATCH_GIT_API_URL" : "http://${module.scratch_git_gce[0].lb_ip}:3100",
+            "SCRATCH_GIT_BACKEND_URL" : "http://${module.scratch_git_gce[0].lb_ip}:3101"
           } : {}
         )
         content {

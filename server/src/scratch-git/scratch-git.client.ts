@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Readable } from 'node:stream';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 @Injectable()
 export class ScratchGitClient {
-  private readonly gitApiUrl = process.env.SCRATCH_GIT_URL || 'http://localhost:3100';
+  private readonly gitApiUrl: string;
+
+  constructor(private readonly configService: ScratchpadConfigService) {
+    this.gitApiUrl = this.configService.getScratchGitApiUrl();
+  }
 
   private async callGitApi(endpoint: string, method: string, body?: any): Promise<unknown> {
     const options: RequestInit = {
