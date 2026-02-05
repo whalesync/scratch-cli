@@ -37,6 +37,7 @@ export enum IdPrefixes {
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
   SYNC = 'syn_', // Sync
   SYNC_TABLE_PAIR = 'stp_', // Pair of source=>destination tables in a Sync
+  SCRATCH_PENDING_PUBLISH = 'scratch_pending_publish_', // Temporary ID for sync-created records before publishing
 }
 
 type PrefixedId<T extends IdPrefixes> = `${T}${string}`;
@@ -342,4 +343,18 @@ export function isSyncTablePairId(id: unknown): id is SyncTablePairId {
 
 export function createSyncTablePairId(): SyncTablePairId {
   return createId(IdPrefixes.SYNC_TABLE_PAIR) as SyncTablePairId;
+}
+
+// ------- Scratch Pending Publish -------
+// Temporary ID for sync-created destination records before they are published to a connector.
+// The connector will assign a real ID when the record is published.
+export type ScratchPendingPublishId = PrefixedId<IdPrefixes.SCRATCH_PENDING_PUBLISH>;
+
+export function isScratchPendingPublishId(id: unknown): id is ScratchPendingPublishId {
+  // Can't use isId() since length differs from standard IDs due to longer prefix
+  return typeof id === 'string' && id.startsWith(IdPrefixes.SCRATCH_PENDING_PUBLISH);
+}
+
+export function createScratchPendingPublishId(): ScratchPendingPublishId {
+  return createId(IdPrefixes.SCRATCH_PENDING_PUBLISH) as ScratchPendingPublishId;
 }

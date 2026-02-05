@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Service, WorkbookId } from '@spinner/shared-types';
+import { isScratchPendingPublishId } from '@spinner/shared-types';
 import { WSLogger } from '../logger';
 import type { Connector } from '../remote-service/connectors/connector';
 import type { AnyJsonTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
@@ -198,7 +199,14 @@ export class DataFolderPublishingService {
       const batch = files.slice(i, i + batchSize);
 
       // Prepare files for the connector (ConnectorFile is Record<string, unknown>)
-      const connectorFiles = batch.map((file) => file.content);
+      // Strip temporary IDs - let the connector assign real IDs
+      const connectorFiles = batch.map((file) => {
+        const content = { ...file.content };
+        if (isScratchPendingPublishId(content[idField])) {
+          delete content[idField];
+        }
+        return content;
+      });
 
       // Send to connector
       const returnedFiles = await connector.createRecords(tableSpec, {}, connectorFiles);

@@ -4,6 +4,7 @@ import { TSchema } from '@sinclair/typebox';
 import {
   AnyColumnMapping,
   createPlainId,
+  createScratchPendingPublishId,
   CreateSyncDto,
   createSyncId,
   DataFolderId,
@@ -473,9 +474,11 @@ export class SyncService {
     // Get the destination folder path for new files
     const destinationFolderPath = destinationFolder.path?.replace(/^\//, '') ?? '';
 
+    // Get the destination idColumnRemoteId from schema
+    const destIdColumn = this.getIdColumnFromSchema(destinationFolder.schema);
+
     // 6. Partition records and transform
     const filesToWrite: Array<{ path: string; content: string }> = [];
-    const newMappings: RemoteIdMappingPair[] = [];
 
     for (const [sourceRemoteId, destinationRemoteId] of mappingsBySourceId) {
       const sourceRecord = sourceRecordsById.get(sourceRemoteId);
@@ -514,14 +517,14 @@ export class SyncService {
             }
           }
 
+          // Generate a temporary ID for the new record so it can be matched on subsequent syncs
+          const tempId = createScratchPendingPublishId();
+          set(transformedFields, destIdColumn, tempId);
+
           // Generate a temporary filename
           const tempFileName = `pending-publish-${createPlainId()}.json`;
           destinationPath = destinationFolderPath ? `${destinationFolderPath}/${tempFileName}` : tempFileName;
 
-          newMappings.push({
-            sourceRemoteId,
-            destinationRemoteId: destinationPath,
-          });
           result.recordsCreated++;
         } else {
           // This is an existing record - use the existing file path
@@ -569,11 +572,6 @@ export class SyncService {
         result.recordsUpdated = 0;
         return result;
       }
-    }
-
-    // 8. Update mappings for newly created records
-    if (newMappings.length > 0) {
-      await this.upsertRemoteIdMappings(syncId, tableMapping, newMappings);
     }
 
     return result;

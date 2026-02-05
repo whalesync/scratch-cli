@@ -444,21 +444,25 @@ describe('SyncService - syncTableMapping', () => {
     // Verify files were written with transformed content
     // New files get generated paths with file IDs (e.g., dest/pending-publish-xxx.json)
     expect(writtenFiles).toHaveLength(3);
-    expect(writtenFiles.every((f) => f.path.startsWith('dest/pending-publish-') && f.path.endsWith('.json'))).toBe(true);
+    expect(writtenFiles.every((f) => f.path.startsWith('dest/pending-publish-') && f.path.endsWith('.json'))).toBe(
+      true,
+    );
 
     // Verify one of the files has the correct transformed content
     const file1Content = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
     expect(file1Content.email_address).toBeDefined();
     expect(file1Content.full_name).toBeDefined();
 
-    // Verify SyncRemoteIdMappings were updated with destination IDs (file paths)
-    const mappings = await prisma.syncRemoteIdMapping.findMany({
-      where: { syncId, dataFolderId: sourceFolderId },
-    });
-    expect(mappings).toHaveLength(3);
-    expect(mappings.every((m) => m.destinationRemoteId !== null)).toBe(true);
-    // New mappings should point to generated file paths
-    expect(mappings.every((m) => m.destinationRemoteId?.startsWith('dest/pending-publish-'))).toBe(true);
+    // Verify new records have temporary IDs for matching on subsequent syncs
+    expect(file1Content.id).toBeDefined();
+    expect(typeof file1Content.id).toBe('string');
+    expect((file1Content.id as string).startsWith('scratch_pending_publish_')).toBe(true);
+
+    // Verify all written files have temp IDs
+    for (const file of writtenFiles) {
+      const content = JSON.parse(file.content) as Record<string, unknown>;
+      expect((content.id as string).startsWith('scratch_pending_publish_')).toBe(true);
+    }
   });
 
   it('should update existing records when they match', async () => {
@@ -595,6 +599,12 @@ describe('SyncService - syncTableMapping', () => {
     // Verify new files (jane, bob) use generated paths
     const newFiles = writtenFiles.filter((f) => f.path.startsWith('dest/pending-publish-'));
     expect(newFiles).toHaveLength(2);
+
+    // Verify new files have temporary IDs
+    for (const newFile of newFiles) {
+      const fileContent = JSON.parse(newFile.content) as Record<string, unknown>;
+      expect((fileContent.id as string).startsWith('scratch_pending_publish_')).toBe(true);
+    }
   });
 
   it('should apply column mappings correctly (rename fields)', async () => {
@@ -652,6 +662,8 @@ describe('SyncService - syncTableMapping', () => {
     expect(fileContent.email).toBeUndefined();
     expect(fileContent.first_name).toBeUndefined();
     expect(fileContent.last_name).toBeUndefined();
+    // Verify temporary ID was set
+    expect((fileContent.id as string).startsWith('scratch_pending_publish_')).toBe(true);
   });
 
   it('should return error when batch write fails', async () => {
@@ -747,6 +759,9 @@ describe('SyncService - syncTableMapping', () => {
     // Column-mapped fields should also be present
     expect(fileContent.full_name).toBe('John');
     expect(fileContent.company_name).toBe('Acme');
+
+    // Verify temporary ID was set
+    expect((fileContent.id as string).startsWith('scratch_pending_publish_')).toBe(true);
   });
 
   it('should not auto-inject match key if column mappings already populate it', async () => {
@@ -797,6 +812,9 @@ describe('SyncService - syncTableMapping', () => {
     // User mapping should win - source_id should be 'ext_999' not 'rec1'
     expect(fileContent.source_id).toBe('ext_999');
     expect(fileContent.full_name).toBe('John');
+
+    // Verify temporary ID was set
+    expect((fileContent.id as string).startsWith('scratch_pending_publish_')).toBe(true);
   });
 
   it('should return error when source record is missing match key field', async () => {

@@ -245,7 +245,9 @@ describe('ID Utilities', () => {
       prefixes.forEach((prefix) => {
         const id = createId(prefix);
         expect(id).toMatch(new RegExp(`^${prefix.replace('_', '_')}`));
-        expect(id.length).toBe(14);
+        if (prefix !== IdPrefixes.SCRATCH_PENDING_PUBLISH) {
+          expect(id.length).toBe(14);
+        }
       });
     });
 
