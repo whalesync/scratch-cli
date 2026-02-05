@@ -6,6 +6,7 @@ import {
   HttpCode,
   NotFoundException,
   Patch,
+  Post,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -58,5 +59,15 @@ export class UsersController {
     }
 
     await this.usersService.updateUserSettings(user, dto);
+  }
+
+  @Post('current/api-token')
+  async generateApiToken(@Req() req: RequestWithUser): Promise<{ apiToken: string }> {
+    if (!req.user) {
+      throw new UnauthorizedException();
+    }
+
+    const apiToken = await this.usersService.generateUserApiToken(req.user.id);
+    return { apiToken };
   }
 }

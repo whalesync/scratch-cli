@@ -6,6 +6,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   websocketToken?: string;
+  apiToken?: string;
   isAdmin: boolean;
   subscription?: SubscriptionInfo;
   experimentalFlags?: UserExperimentFlags;

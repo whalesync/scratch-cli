@@ -4,7 +4,7 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { Button, Divider, Stack, Tooltip } from '@mantine/core';
 import { SettingsIcon } from 'lucide-react';
 import MainContent from '../components/layouts/MainContent';
-import { CurrentUserSection, UserDevToolsSection } from './components/UserDevToolsSection';
+import { ApiKeySection, CurrentUserSection, UserDevToolsSection } from './components/UserDevToolsSection';
 
 const SettingsPage = () => {
   const { isDevToolsEnabled, showSecretButton, toggleDevToolsVisible } = useDevTools();
@@ -14,6 +14,8 @@ const SettingsPage = () => {
       <MainContent.Body>
         <Stack gap="20px" maw={800}>
           <CurrentUserSection />
+          <Divider />
+          <ApiKeySection />
 
           {isDevToolsEnabled && (
             <>

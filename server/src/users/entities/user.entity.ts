@@ -23,6 +23,9 @@ export class User {
   // The token for the client to use for websockets when connecting to the Scratch API
   websocketToken?: string;
 
+  // The user's API token for external API access (CLI, integrations, etc.)
+  apiToken?: string;
+
   subscription?: SubscriptionInfo;
 
   experimentalFlags?: UserFlagValues;
@@ -43,6 +46,7 @@ export class User {
 
     if (user.apiTokens) {
       this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);
+      this.apiToken = findValidToken(user, TokenType.USER);
     }
 
     this.experimentalFlags = experiments;

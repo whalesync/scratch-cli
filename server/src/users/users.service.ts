@@ -153,6 +153,31 @@ export class UsersService {
     });
   }
 
+  /**
+   * Creates or regenerates a USER type API token for the given user.
+   * If the user already has a USER token, it will be deleted and replaced.
+   * @returns The new API token string
+   */
+  public async generateUserApiToken(userId: string): Promise<string> {
+    // Delete any existing USER tokens for this user
+    await this.db.client.aPIToken.deleteMany({
+      where: { userId, type: TokenType.USER },
+    });
+
+    // Create a new USER token
+    const newToken = await this.db.client.aPIToken.create({
+      data: {
+        id: createApiTokenId(),
+        userId,
+        token: generateApiToken(),
+        expiresAt: generateTokenExpirationDate(),
+        type: TokenType.USER,
+      },
+    });
+
+    return newToken.token;
+  }
+
   public async updateUserSettings(user: UserCluster.User, dto: UpdateSettingsDto): Promise<void> {
     const existingSettings = (user.settings ?? {}) as UserSettings;
 

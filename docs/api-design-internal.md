@@ -23,6 +23,7 @@ Some endpoints require **admin role** (`hasAdminToolsPermission`).
 ```
 GET    /users/current                             # Get current user profile
 PATCH  /users/current/settings                    # Update user settings
+POST   /users/current/api-token                   # Generate API token
 POST   /users/current/onboarding/collapse         # Collapse onboarding step
 ```
 
@@ -216,6 +217,7 @@ Returns the authenticated user's profile with subscription and feature flags.
   "clerkId": "clerk_xyz",
   "stripeCustomerId": "cus_abc",
   "websocketToken": "ws_token_xyz",
+  "apiToken": "aBcDeFgHiJkLmNoPqRsTuVwXyZ012345",
   "subscription": {
     "planType": "pro",
     "status": "active",
@@ -267,6 +269,34 @@ Updates the current user's settings. Set a value to `null` to remove it.
 ```
 
 **Response:** `204 No Content`
+
+### Generate API Token
+
+```
+POST /users/current/api-token
+```
+
+Generates a new API token for the current user. If the user already has an API token, the existing token is revoked and replaced with a new one.
+
+The generated token can be used for programmatic API access via the `Authorization: API-Token <token>` header.
+
+**Response:**
+
+```json
+{
+  "apiToken": "aBcDeFgHiJkLmNoPqRsTuVwXyZ012345"
+}
+```
+
+| Field      | Type   | Description                         |
+| ---------- | ------ | ----------------------------------- |
+| `apiToken` | string | 32-character API token (6mo expiry) |
+
+**Notes:**
+
+- Tokens expire after 6 months
+- Only one USER token is allowed per user; generating a new token invalidates the previous one
+- The token is also returned in the `apiToken` field of `GET /users/current` after generation
 
 ### Collapse Onboarding Step
 

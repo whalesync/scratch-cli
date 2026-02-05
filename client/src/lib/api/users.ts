@@ -21,4 +21,14 @@ export const usersApi = {
       handleAxiosError(error, 'Failed to update user settings');
     }
   },
+
+  generateApiToken: async (): Promise<{ apiToken: string }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<{ apiToken: string }>('/users/current/api-token');
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to generate API token');
+    }
+  },
 };
