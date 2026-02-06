@@ -18,6 +18,7 @@ import { WorkbookId } from '@spinner/shared-types';
 import type { Request, Response } from 'express';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
+import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -40,8 +41,11 @@ import {
 export class CliWorkbookController {
   private readonly gitBackendUrl: string;
 
-  constructor(private readonly workbookService: WorkbookService) {
-    this.gitBackendUrl = process.env.SCRATCH_GIT_HTTP_URL || 'http://localhost:3101';
+  constructor(
+    private readonly workbookService: WorkbookService,
+    private readonly configService: ScratchpadConfigService,
+  ) {
+    this.gitBackendUrl = this.configService.getScratchGitBackendUrl();
   }
 
   /**
