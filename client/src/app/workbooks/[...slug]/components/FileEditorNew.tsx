@@ -91,6 +91,19 @@ export function FileEditorNew({ workbookId, filePath, initialViewMode }: FileEdi
     }
   }, [filePath, hasChanges, content, updateFile]);
 
+  // Keyboard shortcut: Cmd+S / Ctrl+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
+
   // Content formatting (Preview, Prettify, Minify)
   const [previewOpened, { open: openPreview, close: closePreview }] = useDisclosure(false);
   const isEditable = viewMode !== 'original';
