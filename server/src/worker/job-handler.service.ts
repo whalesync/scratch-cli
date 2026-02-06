@@ -66,7 +66,6 @@ export class JobHandlerService {
         return new PullLinkedFolderFilesJobHandler(
           prisma,
           this.connectorService,
-          this.workbookDbService.workbookDb,
           this.connectorAccountService,
           this.snapshotEventService,
           this.scratchGitService,

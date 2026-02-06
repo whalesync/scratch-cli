@@ -125,6 +125,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
       idColumnRemoteId: 'id',
       titleColumnRemoteId,
       mainContentColumnRemoteId,
+      slugColumnRemoteId: 'slug',
     };
   }
 

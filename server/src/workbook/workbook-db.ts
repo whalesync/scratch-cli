@@ -10,7 +10,7 @@ import {
   ConnectorFile,
   ConnectorRecord,
 } from '../remote-service/connectors/types';
-import { assertFolderPathIsValid, normalizeFileName } from './util';
+import { assertFolderPathIsValid, deduplicateFileName, normalizeFileName, resolveBaseFileName } from './util';
 
 // Table name constant
 export const FILES_TABLE = 'files';
@@ -1037,23 +1037,46 @@ export class WorkbookDb {
     const processedFiles: { path: string; content: string }[] = [];
 
     try {
-      for (const record of records) {
-        // Convert to Front Matter markdown format
+      // Query existing filenames in this folder for dedup (single query, not per-record)
+      const existingFiles = await trx<FileDbRecord>(FILES_TABLE)
+        .withSchema(workbookId)
+        .where(FOLDER_ID_COLUMN, folderId)
+        .select(FILE_NAME_COLUMN, REMOTE_ID_COLUMN);
 
+      const usedFileNames = new Set<string>();
+      const existingNameByRemoteId = new Map<string, string>();
+      for (const f of existingFiles) {
+        usedFileNames.add(f[FILE_NAME_COLUMN]);
+        if (f[REMOTE_ID_COLUMN]) {
+          existingNameByRemoteId.set(f[REMOTE_ID_COLUMN], f[FILE_NAME_COLUMN]);
+        }
+      }
+
+      for (const record of records) {
         const content = JSON.stringify(record, null, 2);
         const metadata = {};
 
         // Generate a scratch ID for new records
         const fileId = createFileId();
 
-        // Determine the file name - use title column if available, otherwise use the record ID
-        let fileName = String(record[idColumnRemoteId]);
         const recordId = String(record[idColumnRemoteId]);
 
-        if (!fileName.endsWith('.json')) {
-          fileName += '.json';
+        // Remove existing name from used set so this record can reclaim it
+        const existingName = existingNameByRemoteId.get(recordId);
+        if (existingName) {
+          usedFileNames.delete(existingName);
         }
 
+        // Resolve filename: slug > title > id
+        const slugValue = tableSpec.slugColumnRemoteId
+          ? (_.get(record, tableSpec.slugColumnRemoteId) as string | undefined)
+          : undefined;
+        const titleValue = tableSpec.titleColumnRemoteId
+          ? (_.get(record, tableSpec.titleColumnRemoteId[0]) as string | undefined)
+          : undefined;
+
+        const baseName = resolveBaseFileName({ slugValue, titleValue, idValue: recordId });
+        const fileName = deduplicateFileName(baseName, '.json', usedFileNames, recordId);
         const fullPath = `${prefix}/${fileName}`;
 
         // Check if file with this remote_id already exists

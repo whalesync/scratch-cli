@@ -1,15 +1,16 @@
 import type { PrismaClient } from '@prisma/client';
-import { DataFolderId, FolderId, Service, type WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { ConnectorFile } from '../../../remote-service/connectors/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
+import _ from 'lodash';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
-import { WorkbookDb } from 'src/workbook/workbook-db';
+import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WSLogger } from '../../../logger';
 import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
 
@@ -43,11 +44,46 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
   constructor(
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
-    private readonly workbookDb: WorkbookDb,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly scratchGitService: ScratchGitService,
   ) {}
+
+  /**
+   * Constructs git file payloads from connector files, applying slug > title > id naming.
+   * Deduplicates filenames across the entire pull (maintained in usedFileNames across batches).
+   */
+  private buildGitFilesFromConnectorFiles(
+    parentPath: string,
+    records: ConnectorFile[],
+    tableSpec: AnyJsonTableSpec,
+    usedFileNames: Set<string>,
+  ): { path: string; content: string }[] {
+    const prefix = parentPath === '/' ? '' : parentPath;
+    const idColumnRemoteId = tableSpec.idColumnRemoteId;
+    const processedFiles: { path: string; content: string }[] = [];
+
+    for (const record of records) {
+      const content = JSON.stringify(record, null, 2);
+      const recordId = String(record[idColumnRemoteId]);
+
+      // Resolve filename: slug > title > id
+      const slugValue = tableSpec.slugColumnRemoteId
+        ? (_.get(record, tableSpec.slugColumnRemoteId) as string | undefined)
+        : undefined;
+      const titleValue = tableSpec.titleColumnRemoteId
+        ? (_.get(record, tableSpec.titleColumnRemoteId[0]) as string | undefined)
+        : undefined;
+
+      const baseName = resolveBaseFileName({ slugValue, titleValue, idValue: recordId });
+      const fileName = deduplicateFileName(baseName, '.json', usedFileNames, recordId);
+      const fullPath = `${prefix}/${fileName}`;
+
+      processedFiles.push({ path: fullPath, content });
+    }
+
+    return processedFiles;
+  }
 
   async run(params: {
     data: PullLinkedFolderFilesJobDefinition['data'];
@@ -111,12 +147,6 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       dataFolderId: dataFolder.id,
     });
 
-    // Reset seen flags for files in the folder
-    await this.workbookDb.resetSeenFlagForFolder(
-      dataFolder.workbookId as WorkbookId,
-      dataFolder.id as unknown as FolderId,
-    );
-
     // Get connector for this folder
     const service = dataFolder.connectorService;
 
@@ -139,6 +169,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
     });
 
     let gitFiles: { path: string; content: string }[] = [];
+    const usedFileNames = new Set<string>();
     const callback = async (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => {
       const { files, connectorProgress } = params;
 
@@ -151,28 +182,25 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         folderPath: dataFolder.path,
       });
 
-      // Upsert files from connector files
-      const upsertedFiles = await this.workbookDb.upsertFilesFromConnectorFiles(
-        dataFolder.workbookId as WorkbookId,
-        dataFolder.id,
-        dataFolder.path ?? '',
-        files,
-        tableSpec,
-      );
+      // Build git file payloads from connector files
+      const builtFiles = this.buildGitFilesFromConnectorFiles(dataFolder.path ?? '', files, tableSpec, usedFileNames);
 
       // Sync to Git (Commit to main + Rebase dirty)
-      if (upsertedFiles.length > 0) {
-        gitFiles = upsertedFiles.map((f) => ({
+      if (builtFiles.length > 0) {
+        const batchGitFiles = builtFiles.map((f) => ({
           path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
           content: f.content,
         }));
+
+        // Accumulate for deletion tracking
+        gitFiles = gitFiles.concat(batchGitFiles);
 
         try {
           await this.scratchGitService.commitFilesToBranch(
             dataFolder.workbookId as WorkbookId,
             'main',
-            gitFiles,
-            `Sync batch of ${upsertedFiles.length} files`,
+            batchGitFiles,
+            `Sync batch of ${builtFiles.length} files`,
           );
 
           await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);

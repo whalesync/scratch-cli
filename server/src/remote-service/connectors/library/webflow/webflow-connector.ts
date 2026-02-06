@@ -291,6 +291,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       titleColumnRemoteId,
       mainContentColumnRemoteId,
       idColumnRemoteId: 'id',
+      slugColumnRemoteId: 'fieldData.slug',
     };
   }
 

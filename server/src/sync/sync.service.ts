@@ -23,6 +23,7 @@ import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.ser
 import { validateSchemaMapping } from 'src/sync/schema-validator';
 import { Actor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
+import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WorkbookService } from 'src/workbook/workbook.service';
 
 export interface RemoteIdMappingPair {
@@ -481,6 +482,14 @@ export class SyncService {
     // 6. Partition records and transform
     const filesToWrite: Array<{ path: string; content: string }> = [];
 
+    // Build a set of existing destination filenames for dedup
+    const usedDestFileNames = new Set<string>(
+      Array.from(destinationIdToFilePath.values()).map((p) => p.split('/').pop()!),
+    );
+
+    // Get destination table spec for slug resolution
+    const destTableSpec = destinationFolder.schema as BaseJsonTableSpec | null;
+
     for (const [sourceRemoteId, destinationRemoteId] of mappingsBySourceId) {
       const sourceRecord = sourceRecordsById.get(sourceRemoteId);
       if (!sourceRecord) {
@@ -522,9 +531,13 @@ export class SyncService {
           const tempId = createScratchPendingPublishId();
           set(transformedFields, destIdColumn, tempId);
 
-          // Generate a temporary filename using the same ID
-          const tempFileName = `${tempId}.json`;
-          destinationPath = destinationFolderPath ? `${destinationFolderPath}/${tempFileName}` : tempFileName;
+          // Resolve filename: prefer slug from destination schema, fall back to temp ID
+          const slugValue = destTableSpec?.slugColumnRemoteId
+            ? (get(transformedFields, destTableSpec.slugColumnRemoteId) as string | undefined)
+            : undefined;
+          const baseName = resolveBaseFileName({ slugValue, idValue: tempId });
+          const fileName = deduplicateFileName(baseName, '.json', usedDestFileNames, tempId);
+          destinationPath = destinationFolderPath ? `${destinationFolderPath}/${fileName}` : fileName;
 
           result.recordsCreated++;
         } else {

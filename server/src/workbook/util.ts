@@ -78,6 +78,44 @@ export function extractFilenameFromPath(path: string): string {
   return posixPath.basename(path);
 }
 
+/**
+ * Resolves the preferred base filename (without extension) for a record.
+ * Priority: slug value > title value > ID value.
+ * Slug and title values are run through normalizeFileName for safety.
+ */
+export function resolveBaseFileName(options: {
+  slugValue?: string | null;
+  titleValue?: string | null;
+  idValue: string;
+}): string {
+  if (options.slugValue && typeof options.slugValue === 'string' && options.slugValue.trim()) {
+    return normalizeFileName(options.slugValue);
+  }
+  if (options.titleValue && typeof options.titleValue === 'string' && options.titleValue.trim()) {
+    return normalizeFileName(options.titleValue);
+  }
+  return options.idValue;
+}
+
+/**
+ * Ensures a filename is unique within a set of existing names.
+ * If the candidate collides, appends the record's ID as a deterministic suffix.
+ * Adds the final name to the existingNames set.
+ */
+export function deduplicateFileName(
+  baseName: string,
+  extension: string,
+  existingNames: Set<string>,
+  recordId: string,
+): string {
+  let candidate = baseName + extension;
+  if (existingNames.has(candidate)) {
+    candidate = `${baseName}-${recordId}${extension}`;
+  }
+  existingNames.add(candidate);
+  return candidate;
+}
+
 export function assertFolderPathIsValid(path: unknown): asserts path is string {
   if (typeof path !== 'string') {
     throw new Error(`Path must be a string, but got ${typeof path}: ${path as string}`);

@@ -1,0 +1,701 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { PrismaClient } from '@prisma/client';
+import { Type } from '@sinclair/typebox';
+import { DataFolderId, WorkbookId } from '@spinner/shared-types';
+import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
+import { MAIN_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
+import { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
+import { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
+import { ConnectorFile } from '../../../remote-service/connectors/types';
+import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import { PullLinkedFolderFilesJobHandler } from './pull-linked-folder-files.job';
+
+describe('PullLinkedFolderFilesJobHandler', () => {
+  let handler: PullLinkedFolderFilesJobHandler;
+  let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockConnectorService: jest.Mocked<ConnectorsService>;
+  let mockConnectorAccountService: jest.Mocked<ConnectorAccountService>;
+  let mockSnapshotEventService: jest.Mocked<SnapshotEventService>;
+  let mockScratchGitService: jest.Mocked<ScratchGitService>;
+
+  beforeEach(() => {
+    mockPrisma = {
+      dataFolder: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+    } as unknown as jest.Mocked<PrismaClient>;
+
+    mockConnectorService = {
+      getConnector: jest.fn(),
+    } as unknown as jest.Mocked<ConnectorsService>;
+
+    mockConnectorAccountService = {
+      findOne: jest.fn(),
+    } as unknown as jest.Mocked<ConnectorAccountService>;
+
+    mockSnapshotEventService = {
+      sendSnapshotEvent: jest.fn(),
+    } as unknown as jest.Mocked<SnapshotEventService>;
+
+    mockScratchGitService = {
+      commitFilesToBranch: jest.fn(),
+      rebaseDirty: jest.fn(),
+      listRepoFiles: jest.fn(),
+      deleteFilesFromBranch: jest.fn(),
+    } as unknown as jest.Mocked<ScratchGitService>;
+
+    handler = new PullLinkedFolderFilesJobHandler(
+      mockPrisma,
+      mockConnectorService,
+      mockConnectorAccountService,
+      mockSnapshotEventService,
+      mockScratchGitService,
+    );
+  });
+
+  describe('buildGitFilesFromConnectorFiles', () => {
+    const createMockTableSpec = (overrides?: Partial<AnyJsonTableSpec>): AnyJsonTableSpec => ({
+      idColumnRemoteId: 'id',
+      slugColumnRemoteId: 'slug',
+      titleColumnRemoteId: ['title'],
+      id: { remoteId: ['example'], wsId: '' },
+      slug: 'example',
+      name: 'Example',
+      schema: Type.Object({}),
+
+      ...overrides,
+    });
+
+    describe('file naming priority', () => {
+      it('should use slug when available', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'my-blog-post',
+            title: 'My Blog Post',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(1);
+        expect(result[0].path).toContain('my-blog-post.json');
+      });
+
+      it('should use title when slug is missing', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            title: 'My Blog Post',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(1);
+        expect(result[0].path).toContain('my-blog-post.json');
+      });
+
+      it('should use id when slug and title are missing', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec-12345',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(1);
+        expect(result[0].path).toContain('rec-12345.json');
+      });
+
+      it('should ignore empty slug and fall back to title', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: '',
+            title: 'Fallback Title',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(1);
+        expect(result[0].path).toContain('fallback-title.json');
+      });
+
+      it('should handle dot-path slug access (nested properties)', () => {
+        const tableSpec = createMockTableSpec({ slugColumnRemoteId: 'metadata.slug' });
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            metadata: {
+              slug: 'nested-slug-value',
+            },
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(1);
+        expect(result[0].path).toContain('nested-slug-value.json');
+      });
+    });
+
+    describe('deduplication', () => {
+      it('should append record ID on filename collision', () => {
+        const tableSpec = createMockTableSpec();
+        const usedFileNames = new Set<string>();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            title: 'Same Title',
+          },
+          {
+            id: 'rec2',
+            title: 'Same Title',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, usedFileNames);
+
+        expect(result).toHaveLength(2);
+        expect(result[0].path).toContain('same-title.json');
+        expect(result[1].path).toContain('same-title-rec2.json');
+      });
+
+      it('should preserve deduplication across multiple calls (cross-batch)', () => {
+        const tableSpec = createMockTableSpec();
+        const usedFileNames = new Set<string>();
+
+        const batch1: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            title: 'Post',
+          },
+        ];
+        const result1 = (handler as any).buildGitFilesFromConnectorFiles('/', batch1, tableSpec, usedFileNames);
+
+        const batch2: ConnectorFile[] = [
+          {
+            id: 'rec2',
+            title: 'Post',
+          },
+        ];
+        const result2 = (handler as any).buildGitFilesFromConnectorFiles('/', batch2, tableSpec, usedFileNames);
+
+        expect(result1[0].path).toContain('post.json');
+        expect(result2[0].path).toContain('post-rec2.json');
+      });
+    });
+
+    describe('path construction', () => {
+      it('should construct path with parentPath prefix', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'test-file',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/my-folder', records, tableSpec, new Set());
+
+        expect(result[0].path).toBe('/my-folder/test-file.json');
+      });
+
+      it('should handle root path correctly (remove trailing slash)', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'test-file',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result[0].path).toBe('/test-file.json');
+      });
+
+      it('should handle empty parentPath', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'test-file',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('', records, tableSpec, new Set());
+
+        expect(result[0].path).toBe('/test-file.json');
+      });
+    });
+
+    describe('content serialization', () => {
+      it('should serialize record as JSON with 2-space indentation', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            name: 'Test',
+            nested: {
+              field: 'value',
+            },
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result[0].content).toBe(
+          JSON.stringify(
+            {
+              id: 'rec1',
+              name: 'Test',
+              nested: {
+                field: 'value',
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      });
+
+      it('should preserve all record properties in content', () => {
+        const tableSpec = createMockTableSpec();
+        const testRecord = {
+          id: 'rec1',
+          slug: 'test',
+          title: 'Test Title',
+          customField: 'custom value',
+          arrayField: [1, 2, 3],
+        };
+        const records: ConnectorFile[] = [testRecord];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        const parsedContent = JSON.parse(result[0].content);
+        expect(parsedContent).toEqual(testRecord);
+      });
+    });
+
+    describe('multiple records', () => {
+      it('should process multiple records correctly', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'first-post',
+          },
+          {
+            id: 'rec2',
+            slug: 'second-post',
+          },
+          {
+            id: 'rec3',
+            slug: 'third-post',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(3);
+        expect(result[0].path).toContain('first-post.json');
+        expect(result[1].path).toContain('second-post.json');
+        expect(result[2].path).toContain('third-post.json');
+      });
+
+      it('should handle empty record array', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('filename normalization', () => {
+      it('should normalize slug with special characters', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            slug: 'Hello World! @Special #Chars',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        // normalizeFileName should lowercase, remove special chars, replace spaces with hyphens
+        expect(result[0].path).toMatch(/hello-world-special-chars\.json/);
+      });
+
+      it('should handle accented characters in title', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            title: 'Café Français',
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        // Accents should be removed, spaces converted to hyphens
+        expect(result[0].path).toMatch(/cafe-francais\.json/);
+      });
+    });
+  });
+
+  describe('run', () => {
+    const createMockDataFolder = (overrides?: any) => ({
+      id: 'dfld_123' as DataFolderId,
+      workbookId: 'wkb_123' as WorkbookId,
+      name: 'Test Folder',
+      path: '/test-folder',
+      connectorService: 'airtable',
+      connectorAccountId: 'coa_123',
+      schema: {
+        idColumnRemoteId: 'id',
+        slugColumnRemoteId: 'slug',
+        titleColumnRemoteId: ['title'],
+      } as AnyJsonTableSpec,
+      ...overrides,
+    });
+
+    const createMockConnectorAccount = () => ({
+      id: 'coa_123',
+      service: 'airtable',
+      credentials: { apiKey: 'test-key' },
+    });
+
+    const createMockConnector = () => ({
+      pullRecordFiles: jest.fn(),
+    });
+
+    const createMockParams = (overrides?: any) => ({
+      data: {
+        workbookId: 'wkb_123' as WorkbookId,
+        dataFolderId: 'dfld_123' as DataFolderId,
+        userId: 'usr_123',
+        organizationId: 'org_123',
+      },
+      progress: {
+        publicProgress: {
+          totalFiles: 0,
+          folderId: 'dfld_123',
+          folderName: 'Test Folder',
+          connector: 'airtable',
+          status: 'pending' as const,
+        },
+        jobProgress: {},
+        connectorProgress: {},
+      },
+      abortSignal: new AbortController().signal,
+      checkpoint: jest.fn(),
+      ...overrides,
+    });
+
+    it('should successfully pull and commit files to git', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      // Simulate connector pulling files
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [
+            {
+              id: 'rec1',
+              slug: 'test-post',
+              title: 'Test Post',
+            },
+          ],
+          connectorProgress: {},
+        });
+      });
+
+      (mockScratchGitService.commitFilesToBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.rebaseDirty as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      expect(mockScratchGitService.commitFilesToBranch).toHaveBeenCalledWith(
+        'wkb_123',
+        'main',
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: expect.stringContaining('test-post.json'),
+            content: expect.stringContaining('rec1'),
+          }),
+        ]),
+        expect.stringContaining('Sync batch'),
+      );
+
+      expect(mockScratchGitService.rebaseDirty).toHaveBeenCalledWith('wkb_123');
+    });
+
+    it('should accumulate files across multiple batches for deletion tracking', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      // Simulate two batches of files by calling callback twice within pullRecordFiles
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [
+            {
+              id: 'rec1',
+              slug: 'post-1',
+            },
+          ],
+          connectorProgress: {},
+        });
+        await callback({
+          files: [
+            {
+              id: 'rec2',
+              slug: 'post-2',
+            },
+          ],
+          connectorProgress: {},
+        });
+      });
+
+      (mockScratchGitService.commitFilesToBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.rebaseDirty as jest.Mock).mockResolvedValue(undefined);
+      // Git has only the files that were downloaded - paths without leading slashes (matching gitFiles after strip)
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([
+        { path: 'test-folder/post-1.json', name: 'post-1.json', type: 'file' },
+        { path: 'test-folder/post-2.json', name: 'post-2.json', type: 'file' },
+      ]);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      // Verify that both batches were committed
+      expect(mockScratchGitService.commitFilesToBranch).toHaveBeenCalledTimes(2);
+
+      // Verify deletion tracking correctly accumulates files across batches
+      // Since all downloaded files match git files, no deletions should occur
+      expect(mockScratchGitService.deleteFilesFromBranch).not.toHaveBeenCalled();
+    });
+
+    it('should delete files from git that no longer exist in remote', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      // Simulate pulling only one file
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [
+            {
+              id: 'rec1',
+              slug: 'post-1',
+            },
+          ],
+          connectorProgress: {},
+        });
+      });
+
+      (mockScratchGitService.commitFilesToBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.rebaseDirty as jest.Mock).mockResolvedValue(undefined);
+      // Mock that git has two files, but only one was downloaded
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([
+        { path: '/test-folder/post-1.json', name: 'post-1.json', type: 'file' },
+        { path: '/test-folder/post-2.json', name: 'post-2.json', type: 'file' },
+      ]);
+      (mockScratchGitService.deleteFilesFromBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      // Verify that the stale file is deleted
+      expect(mockScratchGitService.deleteFilesFromBranch).toHaveBeenCalledWith(
+        'wkb_123',
+        MAIN_BRANCH,
+        expect.arrayContaining(['/test-folder/post-2.json']),
+        expect.stringContaining('Remove'),
+      );
+    });
+
+    it('should handle missing connector account', async () => {
+      const dataFolder = createMockDataFolder();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(handler.run(params)).rejects.toThrow('Connector account');
+    });
+
+    it('should handle missing data folder', async () => {
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(handler.run(params)).rejects.toThrow('DataFolder');
+    });
+
+    it('should update dataFolder lock and lastSyncTime on success', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [],
+          connectorProgress: {},
+        });
+      });
+
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      expect(mockPrisma.dataFolder.update).toHaveBeenCalledWith({
+        where: { id: 'dfld_123' },
+        data: {
+          lock: null,
+          lastSyncTime: expect.any(Date),
+        },
+      });
+    });
+
+    it('should set lock=null on error', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      // Simulate connector error during pull
+      mockConnector.pullRecordFiles.mockRejectedValue(new Error('Connector error'));
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      try {
+        await handler.run(params);
+      } catch {
+        // Expected to throw
+      }
+
+      // Verify that update was called to clear the lock, even on error
+      expect(mockPrisma.dataFolder.update).toHaveBeenCalledWith({
+        where: { id: 'dfld_123' },
+        data: { lock: null },
+      });
+    });
+
+    it('should send snapshot events', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [
+            {
+              id: 'rec1',
+              slug: 'post-1',
+            },
+          ],
+          connectorProgress: {},
+        });
+      });
+
+      (mockScratchGitService.commitFilesToBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.rebaseDirty as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      expect(mockSnapshotEventService.sendSnapshotEvent).toHaveBeenCalledWith(
+        'wkb_123',
+        expect.objectContaining({
+          type: 'snapshot-updated',
+          data: expect.objectContaining({
+            tableId: 'dfld_123',
+          }),
+        }),
+      );
+    });
+
+    it('should checkpoint progress on each batch', async () => {
+      const dataFolder = createMockDataFolder();
+      const connectorAccount = createMockConnectorAccount();
+      const mockConnector = createMockConnector();
+      const params = createMockParams();
+
+      (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
+      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
+
+      mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
+        await callback({
+          files: [
+            {
+              id: 'rec1',
+              slug: 'post-1',
+            },
+          ],
+          connectorProgress: { processed: 1 },
+        });
+      });
+
+      (mockScratchGitService.commitFilesToBranch as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.rebaseDirty as jest.Mock).mockResolvedValue(undefined);
+      (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
+
+      await handler.run(params);
+
+      expect(params.checkpoint).toHaveBeenCalled();
+    });
+  });
+});

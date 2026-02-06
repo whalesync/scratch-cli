@@ -49,6 +49,10 @@ export type BaseJsonTableSpec = {
   // The remoteId of the column that should be used as the main content/body in MD view
   // This is used to display the main content of the record in the MD view.
   mainContentColumnRemoteId?: EntityId['remoteId'];
+  // Dot-path to the field in a raw record whose value should be used as the filename slug.
+  // When set, files will be named `<slug>.json` instead of `<id>.json`.
+  // Example: 'fieldData.slug' for Webflow records.
+  slugColumnRemoteId?: string;
 };
 
 /** This is being passed to the agent as a string.

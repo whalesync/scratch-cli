@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Service, WorkbookId } from '@spinner/shared-types';
 import { isScratchPendingPublishId } from '@spinner/shared-types';
+import _ from 'lodash';
 import { WSLogger } from '../logger';
 import type { Connector } from '../remote-service/connectors/connector';
 import type { AnyJsonTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import type { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
+import { deduplicateFileName, resolveBaseFileName } from './util';
 
 /**
  * Represents a file to be created (exists in dirty branch but not in main)
@@ -195,6 +197,8 @@ export class DataFolderPublishingService {
     const batchSize = connector.getBatchSize('create');
     const idField = tableSpec.idColumnRemoteId || 'id';
 
+    const usedFileNames = new Set<string>();
+
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
 
@@ -226,10 +230,15 @@ export class DataFolderPublishingService {
           // Update the content with the new ID
           const updatedContent = { ...originalFile.content, ...returned };
 
-          // Calculate new path based on remoteId
+          // Calculate new path: prefer slug, fall back to remoteId
           const remoteIdStr = typeof remoteId === 'string' ? remoteId : JSON.stringify(remoteId);
           const folder = originalFile.path.substring(0, originalFile.path.lastIndexOf('/'));
-          const newPath = `${folder}/${remoteIdStr}.json`;
+          const slugValue = tableSpec.slugColumnRemoteId
+            ? (_.get(updatedContent, tableSpec.slugColumnRemoteId) as string | undefined)
+            : undefined;
+          const baseName = resolveBaseFileName({ slugValue, idValue: remoteIdStr });
+          const newFileName = deduplicateFileName(baseName, '.json', usedFileNames, remoteIdStr);
+          const newPath = `${folder}/${newFileName}`;
 
           // Track if we need to delete the old file (rename scenario)
           if (originalFile.path !== newPath) {
