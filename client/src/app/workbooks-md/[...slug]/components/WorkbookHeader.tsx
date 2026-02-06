@@ -9,8 +9,16 @@ import { workbookApi } from '@/lib/api/workbook';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Group } from '@mantine/core';
-import { CloudDownloadIcon, CloudUploadIcon, MessagesSquareIcon, PanelLeftIcon, Table2 } from 'lucide-react';
+import {
+  CloudDownloadIcon,
+  CloudUploadIcon,
+  MessagesSquareIcon,
+  PanelLeftIcon,
+  SquareChevronRightIcon,
+  Table2,
+} from 'lucide-react';
 import { useState } from 'react';
+import { ConnectToCLIModal } from './modals/ConnectToCLIModal';
 import { WorkbookActionsMenu } from './WorkbookActionsMenu';
 
 export const WorkbookHeader = () => {
@@ -24,6 +32,7 @@ export const WorkbookHeader = () => {
 
   const [pullJobId, setPullJobId] = useState<string | null>(null);
   const [isPulling, setIsPulling] = useState(false);
+  const [cliModalOpened, setCliModalOpened] = useState(false);
 
   const handlePullAll = async () => {
     if (!workbook) return;
@@ -41,6 +50,15 @@ export const WorkbookHeader = () => {
       setIsPulling(false);
     }
   };
+
+  const connectToCLIButton = (
+    <ToolIconButton
+      icon={SquareChevronRightIcon}
+      onClick={() => setCliModalOpened(true)}
+      size="md"
+      tooltip="Connect to CLI"
+    />
+  );
 
   const pullButton = (
     <ButtonSecondaryOutline
@@ -83,12 +101,20 @@ export const WorkbookHeader = () => {
             Chat
           </ButtonSecondaryInline>
         )}
+        {connectToCLIButton}
         {pullButton}
         {publishButton}
         <WorkbookActionsMenu />
       </Group>
 
       {pullJobId && <PullProgressModal jobId={pullJobId} onClose={() => setPullJobId(null)} />}
+      {workbook && (
+        <ConnectToCLIModal
+          workbookId={workbook.id}
+          opened={cliModalOpened}
+          onClose={() => setCliModalOpened(false)}
+        />
+      )}
     </Group>
   );
 };
