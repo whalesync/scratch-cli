@@ -438,12 +438,16 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		if jsonOutput {
 			encoder := json.NewEncoder(os.Stdout)
 			encoder.SetIndent("", "  ")
-			return encoder.Encode(result)
+			if err := encoder.Encode(result); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
+			fmt.Printf("  ID: %s\n", result.ID)
 		}
 
-		fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
-		fmt.Printf("  ID: %s\n\n", result.ID)
-		return nil
+		fmt.Println("Downloading files...")
+		return runFilesDownload(cmd, nil)
 	}
 
 	// Interactive mode
@@ -535,12 +539,16 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(result)
+		if err := encoder.Encode(result); err != nil {
+			return err
+		}
+	} else {
+		fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
+		fmt.Printf("  ID: %s\n", result.ID)
 	}
 
-	fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
-	fmt.Printf("  ID: %s\n\n", result.ID)
-	return nil
+	fmt.Println("Downloading files...")
+	return runFilesDownload(cmd, nil)
 }
 
 func runLinkedRemove(cmd *cobra.Command, args []string) error {
@@ -585,15 +593,19 @@ func runLinkedRemove(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(map[string]interface{}{
+		if err := encoder.Encode(map[string]interface{}{
 			"success": true,
 			"id":      dataFolderID,
 			"name":    detail.Name,
-		})
+		}); err != nil {
+			return err
+		}
+	} else {
+		fmt.Printf("Linked table \"%s\" removed successfully.\n", detail.Name)
 	}
 
-	fmt.Printf("Linked table \"%s\" removed successfully.\n", detail.Name)
-	return nil
+	fmt.Println("Downloading files...")
+	return runFilesDownload(cmd, nil)
 }
 
 func runLinkedShow(cmd *cobra.Command, args []string) error {

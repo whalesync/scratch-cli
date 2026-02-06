@@ -204,9 +204,8 @@ func runWorkbooksList(cmd *cobra.Command, args []string) error {
 		if name == "" {
 			name = "(unnamed)"
 		}
-		fmt.Printf("  ID:      %s\n", wb.ID)
 		fmt.Printf("  Name:    %s\n", name)
-		fmt.Printf("  Tables:  %d\n", wb.TableCount)
+		fmt.Printf("  ID:      %s\n", wb.ID)
 		fmt.Printf("  Created: %s\n", wb.CreatedAt)
 		fmt.Println()
 	}

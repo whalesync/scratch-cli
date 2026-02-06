@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -15,8 +16,51 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/whalesync/scratch-cli/internal/config"
 	"github.com/whalesync/scratch-cli/internal/merge"
+	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 )
+
+// ANSI color codes
+const (
+	colorReset  = "\033[0m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorRed    = "\033[31m"
+)
+
+// fileChangeType represents the type of change made to a file
+type fileChangeType int
+
+const (
+	fileAdded fileChangeType = iota
+	fileModified
+	fileDeleted
+)
+
+// printFileChange prints a color-coded file change line
+func printFileChange(path string, changeType fileChangeType) {
+	// Check if stdout is a terminal for color support
+	useColor := term.IsTerminal(int(os.Stdout.Fd()))
+
+	var label, color string
+	switch changeType {
+	case fileAdded:
+		label = "added"
+		color = colorGreen
+	case fileModified:
+		label = "modified"
+		color = colorYellow
+	case fileDeleted:
+		label = "deleted"
+		color = colorRed
+	}
+
+	if useColor {
+		fmt.Printf("  %s  %s%s%s\n", path, color, label, colorReset)
+	} else {
+		fmt.Printf("  %s  %s\n", path, label)
+	}
+}
 
 var filesCmd = &cobra.Command{
 	Use:   "files",
@@ -204,6 +248,13 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 	var messages []string
 	result := DownloadResult{Status: "downloaded"}
 
+	// Track file changes for output
+	type fileChange struct {
+		path       string
+		changeType fileChangeType
+	}
+	var changes []fileChange
+
 	for _, act := range actions {
 		switch act.Action {
 		case merge.ActionKeepLocal:
@@ -214,14 +265,17 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 		case merge.ActionWriteRemote:
 			if act.Base == nil {
 				result.FilesCreated++
+				changes = append(changes, fileChange{act.Path, fileAdded})
 			} else {
 				result.FilesUpdated++
+				changes = append(changes, fileChange{act.Path, fileModified})
 			}
 			// Remote content will be on disk after hard reset — no stash needed.
 
 		case merge.ActionDelete:
 			result.FilesDeleted++
 			deletions = append(deletions, act.Path)
+			changes = append(changes, fileChange{act.Path, fileDeleted})
 			if act.WarningMsg != "" {
 				messages = append(messages, act.WarningMsg)
 			}
@@ -230,6 +284,7 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 			merged := mergeFileContent(act.Path, act.Base, act.Local, act.Remote)
 			stash[act.Path] = merged
 			result.FilesMerged++
+			changes = append(changes, fileChange{act.Path, fileModified})
 			// If both sides changed, count as auto-resolved conflict.
 			if act.Base != nil {
 				result.ConflictsAutoResolved++
@@ -286,33 +341,43 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 	}
 	result.Messages = messages
 
-	// 12. Print summary.
+	// 12. Print file changes.
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
 		return encoder.Encode(result)
 	}
 
-	displayName := marker.Workbook.Name
-	if displayName == "" {
-		displayName = marker.Workbook.ID
+	if len(changes) == 0 {
+		fmt.Println("No changes.")
+		return nil
 	}
 
-	fmt.Printf("Downloaded workbook '%s'\n", displayName)
-	if result.FilesUpdated > 0 {
-		fmt.Printf("  %d file(s) updated (server-only changes)\n", result.FilesUpdated)
+	for _, change := range changes {
+		printFileChange(change.path, change.changeType)
 	}
+
+	// Print summary
+	fmt.Println()
+	var summary []string
 	if result.FilesCreated > 0 {
-		fmt.Printf("  %d file(s) created (new on server)\n", result.FilesCreated)
+		summary = append(summary, fmt.Sprintf("%d added", result.FilesCreated))
+	}
+	if result.FilesUpdated > 0 {
+		summary = append(summary, fmt.Sprintf("%d modified", result.FilesUpdated))
 	}
 	if result.FilesMerged > 0 {
-		fmt.Printf("  %d file(s) merged (auto-resolved, local wins)\n", result.FilesMerged)
+		summary = append(summary, fmt.Sprintf("%d merged", result.FilesMerged))
 	}
 	if result.FilesDeleted > 0 {
-		fmt.Printf("  %d file(s) deleted\n", result.FilesDeleted)
+		summary = append(summary, fmt.Sprintf("%d deleted", result.FilesDeleted))
 	}
+	if len(summary) > 0 {
+		fmt.Println(strings.Join(summary, ", "))
+	}
+
 	for _, msg := range messages {
-		fmt.Printf("  Warning: %s\n", msg)
+		fmt.Printf("Warning: %s\n", msg)
 	}
 
 	return nil
@@ -469,6 +534,13 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 		var messages []string
 		result := UploadResult{Status: "uploaded", Retries: attempt, Messages: []string{}}
 
+		// Track file changes for output
+		type fileChange struct {
+			path       string
+			changeType fileChangeType
+		}
+		var changes []fileChange
+
 		for _, act := range actions {
 			switch act.Action {
 			case merge.ActionKeepLocal:
@@ -476,8 +548,12 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 					mergedMap[act.Path] = act.Local
 					// Count as uploaded if content differs from remote.
 					remoteContent, inRemote := remoteMap[act.Path]
-					if !inRemote || !bytes.Equal(act.Local, remoteContent) {
+					if !inRemote {
 						result.FilesUploaded++
+						changes = append(changes, fileChange{act.Path, fileAdded})
+					} else if !bytes.Equal(act.Local, remoteContent) {
+						result.FilesUploaded++
+						changes = append(changes, fileChange{act.Path, fileModified})
 					}
 				}
 
@@ -491,6 +567,7 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 				_, inRemote := remoteMap[act.Path]
 				if inRemote {
 					result.FilesDeleted++
+					changes = append(changes, fileChange{act.Path, fileDeleted})
 				}
 				if act.WarningMsg != "" {
 					messages = append(messages, act.WarningMsg)
@@ -500,6 +577,7 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 				merged := mergeFileContent(act.Path, act.Base, act.Local, act.Remote)
 				mergedMap[act.Path] = merged
 				result.FilesMerged++
+				changes = append(changes, fileChange{act.Path, fileModified})
 				if act.Base != nil {
 					result.ConflictsAutoResolved++
 				}
@@ -629,26 +707,33 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 				return encoder.Encode(result)
 			}
 
-			displayName := marker.Workbook.Name
-			if displayName == "" {
-				displayName = marker.Workbook.ID
+			if len(changes) == 0 {
+				fmt.Println("No changes.")
+				return nil
 			}
 
-			fmt.Printf("Uploaded workbook '%s'\n", displayName)
+			for _, change := range changes {
+				printFileChange(change.path, change.changeType)
+			}
+
+			// Print summary
+			fmt.Println()
+			var summary []string
 			if result.FilesUploaded > 0 {
-				fmt.Printf("  %d file(s) uploaded (local changes pushed)\n", result.FilesUploaded)
+				summary = append(summary, fmt.Sprintf("%d uploaded", result.FilesUploaded))
 			}
 			if result.FilesMerged > 0 {
-				fmt.Printf("  %d file(s) merged (auto-resolved, local wins)\n", result.FilesMerged)
+				summary = append(summary, fmt.Sprintf("%d merged", result.FilesMerged))
 			}
 			if result.FilesDeleted > 0 {
-				fmt.Printf("  %d file(s) deleted\n", result.FilesDeleted)
+				summary = append(summary, fmt.Sprintf("%d deleted", result.FilesDeleted))
 			}
-			if attempt > 0 {
-				fmt.Printf("  (succeeded after %d retries)\n", attempt)
+			if len(summary) > 0 {
+				fmt.Println(strings.Join(summary, ", "))
 			}
+
 			for _, msg := range result.Messages {
-				fmt.Printf("  Warning: %s\n", msg)
+				fmt.Printf("Warning: %s\n", msg)
 			}
 
 			return nil
