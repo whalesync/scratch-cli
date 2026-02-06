@@ -43,10 +43,14 @@ func LoadConfigFrom(dir string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			serverURL := api.DefaultScratchServerURL
+			if Overrides.Settings.ScratchServerURL != "" {
+				serverURL = Overrides.Settings.ScratchServerURL
+			}
 			return &Config{
 				Version: ConfigFileVersion,
 				Settings: &Settings{
-					ScratchServerURL: api.DefaultScratchServerURL,
+					ScratchServerURL: serverURL,
 				},
 			}, nil
 		}
