@@ -25,7 +25,7 @@ The core configuration for a sync, stored as JSON in the `Sync.mappings` column.
 
 | Table | Purpose |
 |-------|---------|
-| `Sync` | Stores sync configuration including name and mappings JSON |
+| `Sync` | Stores sync configuration including name, mappings JSON, and `lastSyncTime` |
 | `SyncTablePair` | Links source/destination DataFolder pairs for a sync |
 | `SyncMatchKeys` | Temporary table for matching records during sync execution |
 | `SyncRemoteIdMapping` | Persists source→destination record ID mappings |
@@ -38,14 +38,13 @@ When `POST /workbooks/:workbookId/syncs/:syncId/run` is called:
 2. **Clear Match Keys**: Previous match keys for this sync are deleted
 3. **Fetch Records**: Files are read from both source and destination DataFolders
 4. **Parse Records**: JSON files are parsed into `ConnectorRecord` objects
-5. **Build Match Keys**: Insert match column values into `SyncMatchKeys` for both sides
-6. **Find Matches**: SQL join identifies records existing in both source and destination
-7. **Transform Records**: Apply column mappings to convert source fields to destination schema
-8. **Write Files**:
-   - **New records**: Written to destination with temporary filename (`pending-publish-*.json`)
-   - **Existing records**: Overwrite the matched destination file
-9. **Commit**: All file changes are committed to the `DIRTY_BRANCH` via git
-10. **Update Mappings**: Store source→destination ID mappings in `SyncRemoteIdMapping`
+5. **Fill Caches**: Insert match column values into `SyncMatchKeys` for both sides, then create `SyncRemoteIdMapping` entries for all source records (with null destination for unmatched records) via a SQL LEFT JOIN
+6. **Get Mappings**: Look up the source→destination ID mappings from `SyncRemoteIdMapping`
+7. **Transform & Write**:
+   - **New records**: A temporary ID is generated via `createScratchPendingPublishId()` and injected as the record's ID field. The file is written as `<tempId>.json`. This temp ID allows subsequent syncs to match the record before it's published.
+   - **Existing records**: Existing destination fields are merged with the transformed source fields (source takes precedence), preserving destination fields not covered by column mappings. Written to the existing file path.
+8. **Commit**: All file changes are committed to the `DIRTY_BRANCH` via git
+9. **Update lastSyncTime**: On success, the `Sync` record's `lastSyncTime` is updated
 
 ## API Endpoints
 
@@ -60,20 +59,26 @@ When `POST /workbooks/:workbookId/syncs/:syncId/run` is called:
 
 ### Create/Update Sync DTO
 
-See [dtos/create-sync.dto.ts](dtos/create-sync.dto.ts) for the full DTO definition. Key fields:
+DTOs are defined in `@spinner/shared-types` (see [packages/shared-types/src/dto/sync/](../../../packages/shared-types/src/dto/sync/)). Key fields:
 
 - `name`: Display name for the sync
-- `folderMappings`: Array of source→destination folder mappings with field maps
+- `folderMappings`: Array of source→destination folder mappings, each with:
+  - `sourceId`, `destId`: DataFolder IDs
+  - `fieldMap`: `Record<string, string>` mapping source columns to destination columns
+  - `matchingSourceField`, `matchingDestinationField`: Optional columns used for record matching
 - `schedule`, `autoPublish`: Accepted but not yet implemented
+- `enableValidation` (UpdateSyncDto only): Set to `false` to skip schema validation on update
 
 ## Schema Validation
 
-The `validateSchemaMapping()` function ensures mapped fields have compatible types:
+The `validateSchemaMapping()` function in [schema-validator.ts](schema-validator.ts) ensures mapped fields have compatible types:
 
 - Traverses TypeBox JSON schemas using dot-notation paths
 - Unwraps `Optional<T>` (union with null) to get base type
 - Compares base types (string, number, boolean, object)
 - Returns validation errors if types don't match
+
+Validation runs on create and update by default. Set `enableValidation: false` in the update DTO to skip it.
 
 ## Record Matching
 
@@ -110,7 +115,7 @@ And a source record has `{ id: 'rec_001', name: 'John' }`, the new destination r
 | [sync.service.ts](sync.service.ts) | Core sync logic |
 | [sync.controller.ts](sync.controller.ts) | REST API endpoints |
 | [schema-validator.ts](schema-validator.ts) | Schema compatibility checking |
-| [dtos/create-sync.dto.ts](dtos/create-sync.dto.ts) | Request validation |
+| [shared-types/.../create-sync.dto.ts](../../../packages/shared-types/src/dto/sync/create-sync.dto.ts) | Canonical DTO definitions |
 
 ## Limitations
 

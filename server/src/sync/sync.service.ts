@@ -802,7 +802,7 @@ export class SyncService {
 
     return new Set(results.map((r) => r.matchId));
   }
-  /**
+
   /**
    * Validates a mapping between two data folders.
    * Fetches schemas and checks validity.
