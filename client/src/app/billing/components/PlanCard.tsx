@@ -104,7 +104,7 @@ export const PlanCard = ({ plan, onError }: PlanCardProps) => {
 
   const currentPlanStyle = isCurrentPlan ? { backgroundColor: 'var(--mantine-primary-color-light)' } : {};
 
-  if (workbookModeActiveFlag === 'files' || workbookMode === 'files') {
+  if (workbookModeActiveFlag === 'scratchsync' || workbookMode === 'scratchsync') {
     return (
       <Box
         px={12}

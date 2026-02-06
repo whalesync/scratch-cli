@@ -1,6 +1,4 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { useActiveWorkbook } from '@/hooks/use-active-workbook';
-import { useFileList } from '@/hooks/use-file-list';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { Box, Group, Menu, Text } from '@mantine/core';
 import { DataFolder, Service } from '@spinner/shared-types';
@@ -14,7 +12,6 @@ interface TabBarProps {
 }
 
 export function TabBar({ onTabChange }: TabBarProps) {
-  const { workbook } = useActiveWorkbook();
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
   const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
@@ -22,7 +19,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
   const setActiveFileTab = useWorkbookEditorUIStore((state) => state.setActiveFileTab);
   const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
   const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
-  const { files } = useFileList(workbook?.id ?? null);
   const { folders } = useDataFolders();
 
   // Context menu state
@@ -128,8 +124,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
         let tabObject;
         if (isFolder) {
           tabObject = folders?.find((df) => df.id === tab.id);
-        } else {
-          tabObject = files?.items.find((f) => f.id === tab.id);
         }
 
         // We want to use the up to date file name when possible, but fallback to the tab title or id if not available

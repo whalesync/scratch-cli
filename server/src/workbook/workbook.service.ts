@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConnectorAccount, Prisma } from '@prisma/client';
 import { InputJsonObject } from '@prisma/client/runtime/library';
@@ -8,7 +6,6 @@ import {
   createSnapshotTableId,
   createWorkbookId,
   DataFolderId,
-  FolderId,
   Service,
   SnapshotTableId,
   UpdateWorkbookDto,
@@ -35,11 +32,9 @@ import { ConnectorsService } from '../remote-service/connectors/connectors.servi
 import { AnySpec, AnyTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import { BaseJsonTableSpec, PostgresColumnType, SnapshotRecord } from '../remote-service/connectors/types';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
-import { FolderService } from './folder.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import type { SnapshotColumnSettingsMap } from './types';
 import { getSnapshotTableById, normalizeFolderName } from './util';
-import { WorkbookDbService } from './workbook-db.service';
 
 @Injectable()
 export class WorkbookService {
@@ -47,14 +42,12 @@ export class WorkbookService {
     private readonly db: DbService,
     private readonly configService: ScratchpadConfigService,
     private readonly connectorService: ConnectorsService,
-    private readonly workbookDbService: WorkbookDbService,
     private readonly snapshotEventService: SnapshotEventService,
     private readonly posthogService: PostHogService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly subscriptionService: SubscriptionService,
-    private readonly folderService: FolderService,
     private readonly scratchGitService: ScratchGitService,
   ) {}
 
@@ -150,11 +143,6 @@ export class WorkbookService {
       snapshotTablesCount: tableCreateInput.length,
     });
 
-    // New version that creates the single files table for the workbook.
-    await this.workbookDbService.workbookDb.createForWorkbook(newWorkbook.id as WorkbookId);
-
-    await this.bullEnqueuerService.enqueuePullFilesJob(newWorkbook.id as WorkbookId, actor);
-
     this.posthogService.trackCreateWorkbook(actor.userId, newWorkbook);
     await this.auditLogService.logEvent({
       actor,
@@ -190,6 +178,7 @@ export class WorkbookService {
     workbookId: WorkbookId,
     addTableDto: ValidatedAddTableToWorkbookDto,
     actor: Actor,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: { skipDownload?: boolean },
   ): Promise<SnapshotTableCluster.SnapshotTable> {
     const { service, connectorAccountId, tableId } = addTableDto;
@@ -264,28 +253,28 @@ export class WorkbookService {
     });
 
     // 7. Start pulling records in background for this specific table only (unless skipDownload is true)
-    if (!options?.skipDownload) {
-      try {
-        if (this.configService.getUseJobs()) {
-          await this.bullEnqueuerService.enqueuePullRecordFilesJob(workbookId, actor, snapshotTableId);
-        }
-        WSLogger.info({
-          source: 'WorkbookService.addTableToWorkbook',
-          message: 'Started pulling records for newly added table',
-          workbookId,
-          snapshotTableId,
-        });
-      } catch (error) {
-        WSLogger.error({
-          source: 'WorkbookService.addTableToWorkbook',
-          message: 'Failed to start pull job for newly added table',
-          error,
-          workbookId,
-          snapshotTableId,
-        });
-        // Don't fail the addTable operation if pull fails - table was still added successfully
-      }
-    }
+    // if (!options?.skipDownload) {
+    //   try {
+    //     if (this.configService.getUseJobs()) {
+    //       await this.bullEnqueuerService.enqueuePullRecordFilesJob(workbookId, actor, snapshotTableId);
+    //     }
+    //     WSLogger.info({
+    //       source: 'WorkbookService.addTableToWorkbook',
+    //       message: 'Started pulling records for newly added table',
+    //       workbookId,
+    //       snapshotTableId,
+    //     });
+    //   } catch (error) {
+    //     WSLogger.error({
+    //       source: 'WorkbookService.addTableToWorkbook',
+    //       message: 'Failed to start pull job for newly added table',
+    //       error,
+    //       workbookId,
+    //       snapshotTableId,
+    //     });
+    //     // Don't fail the addTable operation if pull fails - table was still added successfully
+    //   }
+    // }
 
     WSLogger.info({
       source: 'WorkbookService.addTableToSnapshot',
@@ -358,86 +347,8 @@ export class WorkbookService {
     return updatedWorkbook;
   }
 
-  async deleteTable(workbookId: WorkbookId, tableId: string, actor: Actor): Promise<WorkbookCluster.Workbook> {
-    // 1. Verify snapshot exists and user has permission
-    const workbook = await this.findOne(workbookId, actor);
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
-    }
-
-    // 2. Get the table to delete
-    const snapshotTable = await this.db.client.snapshotTable.findFirst({
-      where: {
-        workbookId,
-        id: tableId,
-      },
-    });
-
-    if (!snapshotTable) {
-      throw new NotFoundException('Table not found in workbook');
-    }
-
-    // 3. Delete the files related to this table from the folder it belongs to
-    if (snapshotTable.folderId) {
-      try {
-        await this.workbookDbService.workbookDb.deleteFilesInFolder(workbookId, snapshotTable.folderId as FolderId);
-      } catch (error) {
-        WSLogger.error({
-          source: 'WorkbookService.deleteTable',
-          message: 'Failed to delete folder contents',
-          error,
-          workbookId,
-          folderId: snapshotTable.id,
-        });
-      }
-    }
-
-    // 4. Delete the SnapshotTable record
-    await this.db.client.snapshotTable.delete({
-      where: {
-        id: tableId,
-      },
-    });
-
-    // 6. Fetch and return updated snapshot
-    const updatedWorkbook = await this.db.client.workbook.findUnique({
-      where: { id: workbookId },
-      include: WorkbookCluster._validator.include,
-    });
-
-    if (!updatedWorkbook) {
-      throw new NotFoundException('Workbook not found after deletion');
-    }
-
-    await this.auditLogService.logEvent({
-      actor,
-      eventType: 'delete',
-      message: `Deleted table ${snapshotTable.tableName} from workbook ${workbook.name}`,
-      entityId: workbookId,
-      context: {
-        tableId,
-        tableName: snapshotTable.tableName,
-      },
-    });
-
-    return updatedWorkbook;
-  }
-
   async delete(id: WorkbookId, actor: Actor): Promise<void> {
     const workbook = await this.findOneOrThrow(id, actor); // Permissions
-
-    await this.workbookDbService.workbookDb.cleanupSchema(id);
-    await this.db.client.workbook.delete({
-      where: { id },
-    });
-
-    this.posthogService.trackRemoveWorkbook(actor.userId, workbook);
-    await this.auditLogService.logEvent({
-      actor,
-      eventType: 'delete',
-      message: `Deleted workbook ${workbook.name}`,
-      entityId: workbook.id as WorkbookId,
-    });
 
     // Delete Git Repo
     try {
@@ -450,6 +361,18 @@ export class WorkbookService {
         workbookId: id,
       });
     }
+
+    await this.db.client.workbook.delete({
+      where: { id },
+    });
+
+    this.posthogService.trackRemoveWorkbook(actor.userId, workbook);
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'delete',
+      message: `Deleted workbook ${workbook.name}`,
+      entityId: workbook.id as WorkbookId,
+    });
   }
 
   async discardChanges(workbookId: WorkbookId, actor: Actor, path?: string): Promise<void> {
@@ -855,29 +778,4 @@ export class WorkbookService {
       },
     });
   }
-
-  async moveFolder(
-    workbookId: WorkbookId,
-    folderId: string, // Using string to avoid potential type import issues, cast inside if needed
-    newParentId: string | null,
-    actor: Actor,
-  ): Promise<void> {
-    await this.findOneOrThrow(workbookId, actor);
-    await this.folderService.moveFolder(workbookId, folderId as any, newParentId as any);
-  }
-}
-
-function filterToOnlyEditedKnownFields(record: SnapshotRecord, tableSpec: AnyTableSpec): SnapshotRecord {
-  const editedFieldNames = tableSpec.columns
-    .filter((c) => !c.metadata?.scratch)
-    .map((c) => c.id.wsId)
-    .filter((colWsId) => !!record.__edited_fields[colWsId]);
-  const editedFields = Object.fromEntries(
-    Object.entries(record.fields).filter(([fieldName]) => editedFieldNames.includes(fieldName)),
-  );
-
-  return {
-    ...record,
-    fields: editedFields,
-  };
 }

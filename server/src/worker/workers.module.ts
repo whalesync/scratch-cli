@@ -4,7 +4,6 @@ import { ConnectorAccountModule } from 'src/remote-service/connector-account/con
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { SyncModule } from 'src/sync/sync.module';
 import { UserModule } from 'src/users/users.module';
-import { WorkbookDbModule } from 'src/workbook/workbook-db.module';
 import { WorkbookModule } from 'src/workbook/workbook.module';
 import { JobModule } from '../job/job.module';
 import { ScratchGitModule } from '../scratch-git/scratch-git.module';
@@ -20,7 +19,6 @@ import { WorkersController } from './test/workers.controller';
     ScratchpadConfigModule,
     WorkerEnqueuerModule,
     ConnectorsModule,
-    WorkbookDbModule,
     WorkbookModule,
     JobModule,
     ConnectorAccountModule,

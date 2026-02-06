@@ -1,7 +1,7 @@
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { TableSelectorModal } from '@/app/components/modals/TableSelectorModal';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { PublishLimitExceededModal } from '@/app/workbooks-md/[...slug]/components/modals/PublishLimitExceededModal';
+import { PublishLimitExceededModal } from '@/app/workbooks/[...slug]/components/modals/PublishLimitExceededModal';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useSubscription } from '@/hooks/use-subscription';
 import { workbookApi } from '@/lib/api/workbook';

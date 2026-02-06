@@ -109,11 +109,7 @@ export const WorkbookHeader = () => {
 
       {pullJobId && <PullProgressModal jobId={pullJobId} onClose={() => setPullJobId(null)} />}
       {workbook && (
-        <ConnectToCLIModal
-          workbookId={workbook.id}
-          opened={cliModalOpened}
-          onClose={() => setCliModalOpened(false)}
-        />
+        <ConnectToCLIModal workbookId={workbook.id} opened={cliModalOpened} onClose={() => setCliModalOpened(false)} />
       )}
     </Group>
   );

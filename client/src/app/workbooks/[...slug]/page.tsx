@@ -8,10 +8,10 @@ import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
-import { WorkbookInspector } from '@/app/workbooks-md/[...slug]/components/devtool/WorkbookInspector';
-import { PublishDataFolderWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishDataFolderWorkflow';
-import { PublishWorkbookWorkflow } from '@/app/workbooks-md/[...slug]/components/PublishWorkbookWorkflow';
-import { WorkbookHeader } from '@/app/workbooks-md/[...slug]/components/WorkbookHeader';
+import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
+import { PublishDataFolderWorkflow } from '@/app/workbooks/[...slug]/components/PublishDataFolderWorkflow';
+import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
+import { WorkbookHeader } from '@/app/workbooks/[...slug]/components/WorkbookHeader';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useWorkbook } from '@/hooks/use-workbook';
@@ -27,11 +27,11 @@ import type { DataFolder, DataFolderId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Text12Book } from '../../components/base/text';
-import { WorkbookEditorModals } from '../../workbooks-md/[...slug]/components/modals/WorkbookEditorModals';
 import { AddLinkedFolderTab } from './components/AddLinkedFolderTab';
 import { DataFolderBrowser } from './components/DataFolderBrowser';
 import { DataFolderFileList } from './components/DataFolderFileList';
 import { FileEditorNew } from './components/FileEditorNew';
+import { WorkbookEditorModals } from './components/modals/WorkbookEditorModals';
 import { SyncsPanel } from './components/SyncsPanel';
 import { SyncsView } from './components/SyncsView';
 import { TabBar } from './components/TabBar';
@@ -46,9 +46,7 @@ function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
   const { tableId: pathTableId, viewType } = useWorkbookParams();
   // Set initial accordion based on deep link view type
-  const [accordionValue, setAccordionValue] = useState<string | null>(
-    viewType === 'review' ? 'changes' : 'apps',
-  );
+  const [accordionValue, setAccordionValue] = useState<string | null>(viewType === 'review' ? 'changes' : 'apps');
   // const activeTab = useWorkbookEditorUIStore((state) => state.activeTab); // Unused
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);

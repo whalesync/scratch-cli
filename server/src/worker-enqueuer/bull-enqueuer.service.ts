@@ -4,11 +4,9 @@ import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { Actor } from 'src/users/types';
-import { PullFilesJobDefinition } from 'src/worker/jobs/job-definitions/pull-files.job';
 import { JobData } from 'src/worker/jobs/union-types';
 import { PublishDataFolderJobDefinition } from '../worker/jobs/job-definitions/publish-data-folder.job';
 import { PullLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/pull-linked-folder-files.job';
-import { PullRecordFilesJobDefinition } from '../worker/jobs/job-definitions/pull-record-files.job';
 import { SyncDataFoldersJobDefinition } from '../worker/jobs/job-definitions/sync-data-folders.job';
 
 @Injectable()
@@ -47,44 +45,6 @@ export class BullEnqueuerService implements OnModuleDestroy {
 
   async enqueueJob(data: JobData): Promise<Job> {
     return await this.getQueue().add(data.type, data);
-  }
-
-  async enqueuePullFilesJob(
-    workbookId: WorkbookId,
-    actor: Actor,
-    snapshotTableIds?: string[],
-    initialPublicProgress?: PullFilesJobDefinition['publicProgress'],
-  ): Promise<Job> {
-    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `pull-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: PullFilesJobDefinition['data'] = {
-      workbookId,
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-      snapshotTableIds,
-      type: 'pull-files',
-      initialPublicProgress,
-    };
-    return await this.enqueueJobWithId(data, id);
-  }
-
-  async enqueuePullRecordFilesJob(
-    workbookId: WorkbookId,
-    actor: Actor,
-    snapshotTableId: string,
-    initialPublicProgress?: PullRecordFilesJobDefinition['publicProgress'],
-  ): Promise<Job> {
-    // Generate a simple ID without table names (since we can have 0, 1, or many tables)
-    const id = `pull-files-${actor.userId}-${workbookId}-${createPlainId()}`;
-    const data: PullRecordFilesJobDefinition['data'] = {
-      workbookId,
-      userId: actor.userId,
-      organizationId: actor.organizationId,
-      snapshotTableId,
-      type: 'pull-record-files',
-      initialPublicProgress,
-    };
-    return await this.enqueueJobWithId(data, id);
   }
 
   async enqueuePullLinkedFolderFilesJob(

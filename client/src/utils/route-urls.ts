@@ -14,7 +14,6 @@ export class RouteUrls {
   static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
   static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
-  static workbookFilePageUrl = (id: string) => `/workbooks-md/${id}`;
   static workbookScratchSyncPageUrl = (id: string) => `/workbooks/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
   static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
@@ -53,7 +52,7 @@ export class RouteUrls {
     `^\/$`, // root path
     RouteUrls.dataSourcesPageUrl,
     RouteUrls.workbooksPageUrl,
-    '/workbooks-md',
+    '/workbooks',
   ];
 
   /** Routes that require an active subscription or free trial to access*/
@@ -68,8 +67,7 @@ export class RouteUrls {
    * @param recordId - The ID or name of the file. If undefined, the record id will be removed from the path.
    */
   static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string) => {
-    const isFileView = typeof window !== 'undefined' && RouteUrls.isWorkbookFilePage(window.location.pathname);
-    const base = isFileView ? '/workbooks-md' : '/workbooks';
+    const base = '/workbooks';
 
     let url = `${base}/${workbookId}`;
 
@@ -85,10 +83,6 @@ export class RouteUrls {
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', url);
     }
-  };
-
-  static isWorkbookFilePage = (pathname: string): boolean => {
-    return pathname.startsWith('/workbooks-md');
   };
 
   /**

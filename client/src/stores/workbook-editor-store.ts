@@ -45,7 +45,7 @@ export enum WorkbookModals {
   CONFIRM_PULL_SOURCE = 'confirm-pull-source',
 }
 
-export type WorkbookMode = 'tables' | 'files' | 'scratchsync';
+export type WorkbookMode = 'scratchsync';
 
 export type WorkbookModalParams =
   | { type: WorkbookModals.CREATE_SCRATCH_COLUMN; tableId: SnapshotTableId }
@@ -149,7 +149,7 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   dataFolderPublishConfirmationOpen: false,
   preselectedPublishDataFolderIds: null,
   activeModal: null,
-  workbookMode: 'tables',
+  workbookMode: 'scratchsync',
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
@@ -165,7 +165,7 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
       workbookId: params.workbookId,
       activeTab: params.tableId ?? null,
       activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
-      workbookMode: params.workbookMode ?? 'tables',
+      workbookMode: params.workbookMode ?? 'scratchsync',
     });
   },
   closeWorkbook: () => {

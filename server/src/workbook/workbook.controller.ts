@@ -32,7 +32,6 @@ import {
   SetContentColumnDto,
   SetTitleColumnDto,
   UpdateColumnSettingsDto,
-  UpdateFolderDto,
   UpdateWorkbookDto,
 } from '@spinner/shared-types';
 import { Observable } from 'rxjs';
@@ -126,15 +125,6 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<Workbook> {
     return new Workbook(await this.service.setTableHidden(workbookId, tableId, hidden, userToActor(req.user)));
-  }
-
-  @Delete(':workbookId/tables/:tableId')
-  async deleteTable(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<Workbook> {
-    return new Workbook(await this.service.deleteTable(workbookId, tableId, userToActor(req.user)));
   }
 
   @Post(':id/pull-files')
@@ -307,19 +297,6 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     await this.service.clearHiddenColumns(workbookId, tableId, userToActor(req.user));
-  }
-
-  @Patch(':id/folders/:folderId')
-  @HttpCode(204)
-  async moveFolder(
-    @Param('id') workbookId: WorkbookId,
-    @Param('folderId') folderId: string,
-    @Body() updateFolderDto: UpdateFolderDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    if (updateFolderDto.parentFolderId !== undefined) {
-      await this.service.moveFolder(workbookId, folderId, updateFolderDto.parentFolderId, userToActor(req.user));
-    }
   }
 
   @Post(':id/discard-changes')

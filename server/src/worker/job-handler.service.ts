@@ -5,17 +5,13 @@ import { ConnectorsService } from 'src/remote-service/connectors/connectors.serv
 import { SyncService } from 'src/sync/sync.service';
 import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing.service';
 import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
-import { WorkbookDbService } from 'src/workbook/workbook-db.service';
-import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { PublishDataFolderJobHandler } from './jobs/job-definitions/publish-data-folder.job';
-import { PullFilesJobHandler } from './jobs/job-definitions/pull-files.job';
 import { PullLinkedFolderFilesJobHandler } from './jobs/job-definitions/pull-linked-folder-files.job';
-import { PullRecordFilesJobHandler } from './jobs/job-definitions/pull-record-files.job';
 import { SyncDataFoldersJobHandler } from './jobs/job-definitions/sync-data-folders.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 
@@ -23,11 +19,9 @@ import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 export class JobHandlerService {
   constructor(
     private readonly connectorService: ConnectorsService,
-    private readonly workbookDbService: WorkbookDbService,
     private readonly config: ScratchpadConfigService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly snapshotEventService: SnapshotEventService,
-    private readonly workbookService: WorkbookService,
     private readonly scratchGitService: ScratchGitService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,
@@ -44,24 +38,6 @@ export class JobHandlerService {
         return AddTwoNumbersJobHandler as JobHandler<JobDefinition>;
       case 'add-three-numbers':
         return new AddThreeNumbersJobHandler(prisma) as JobHandler<JobDefinition>;
-      case 'pull-files':
-        return new PullFilesJobHandler(
-          prisma,
-          this.connectorService,
-          this.workbookDbService.workbookDb,
-          this.connectorAccountService,
-          this.snapshotEventService,
-          this.scratchGitService,
-        ) as JobHandler<JobDefinition>;
-      case 'pull-record-files':
-        return new PullRecordFilesJobHandler(
-          prisma,
-          this.connectorService,
-          this.workbookDbService.workbookDb,
-          this.connectorAccountService,
-          this.snapshotEventService,
-          this.scratchGitService,
-        ) as JobHandler<JobDefinition>;
       case 'pull-linked-folder-files':
         return new PullLinkedFolderFilesJobHandler(
           prisma,

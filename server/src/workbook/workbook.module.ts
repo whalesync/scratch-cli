@@ -11,18 +11,16 @@ import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { ScratchGitModule } from '../scratch-git/scratch-git.module';
 import { FilesPublicController } from './files-public.controller';
-import { FilesController, FoldersController } from './files.controller';
+import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 import { SnapshotEventService } from './snapshot-event.service';
 import { SnapshotDataGateway } from './snapshot.gateway';
-import { WorkbookDbModule } from './workbook-db.module';
 import { WorkbookController } from './workbook.controller';
 import { WorkbookService } from './workbook.service';
 
 import { DataFolderPublishingService } from './data-folder-publishing.service';
 import { DataFolderController } from './data-folder.controller';
 import { DataFolderService } from './data-folder.service';
-import { FolderService } from './folder.service';
 
 @Module({
   imports: [
@@ -35,28 +33,18 @@ import { FolderService } from './folder.service';
     ConnectorAccountModule,
     RedisModule,
     WorkerEnqueuerModule,
-    WorkbookDbModule,
     AuditLogModule,
     ScratchGitModule,
   ],
-  controllers: [WorkbookController, FilesController, FoldersController, FilesPublicController, DataFolderController],
+  controllers: [WorkbookController, FilesController, FilesPublicController, DataFolderController],
   providers: [
     WorkbookService,
     SnapshotEventService,
     SnapshotDataGateway,
     FilesService,
-    FolderService,
     DataFolderService,
     DataFolderPublishingService,
   ],
-  exports: [
-    WorkbookService,
-    SnapshotEventService,
-    FolderService,
-    FilesService,
-    DataFolderService,
-    DataFolderPublishingService,
-    WorkbookDbModule,
-  ],
+  exports: [WorkbookService, SnapshotEventService, FilesService, DataFolderService, DataFolderPublishingService],
 })
 export class WorkbookModule {}

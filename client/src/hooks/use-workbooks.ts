@@ -1,12 +1,10 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi, WorkbookSortBy, WorkbookSortOrder } from '@/lib/api/workbook';
-import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { CreateWorkbookDto, UpdateWorkbookDto, Workbook, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { useScratchPadUser } from './useScratchpadUser';
 
 export interface UseWorkbooksOptions {
   connectorAccountId?: string;
@@ -26,8 +24,6 @@ export interface UseWorkbooksReturn {
 }
 
 export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksReturn => {
-  const user = useScratchPadUser();
-  const workbookMode = useWorkbookEditorUIStore((state) => state.workbookMode);
   const { connectorAccountId, sortBy = 'createdAt', sortOrder = 'desc' } = options;
   const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(
@@ -77,15 +73,9 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
     return error?.message;
   }, [error]);
 
-  const getWorkbookPageUrl = useCallback(
-    (id: WorkbookId) => {
-      if (user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE === 'files' || workbookMode === 'files') {
-        return RouteUrls.workbookFilePageUrl(id);
-      }
-      return RouteUrls.workbookScratchSyncPageUrl(id);
-    },
-    [workbookMode, user.user?.experimentalFlags?.DEFAULT_WORKBOOK_MODE],
-  );
+  const getWorkbookPageUrl = (id: WorkbookId) => {
+    return RouteUrls.workbookScratchSyncPageUrl(id);
+  };
   return {
     workbooks: data,
     isLoading,
