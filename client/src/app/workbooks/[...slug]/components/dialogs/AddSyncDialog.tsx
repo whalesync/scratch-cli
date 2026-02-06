@@ -1,4 +1,5 @@
 import { Text13Medium } from '@/app/components/base/text';
+import { ComingSoonBadge } from '@/app/components/ComingSoonBadge';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { syncApi } from '@/lib/api/sync';
@@ -69,12 +70,18 @@ const createPair = (): FolderPair => ({
   expanded: true,
 });
 
-const SCHEDULE_OPTIONS = [
+interface ScheduleOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+const SCHEDULE_OPTIONS: ScheduleOption[] = [
   { value: '', label: 'Manual only' },
-  { value: '*/5 * * * *', label: 'Every 5 minutes' },
-  { value: '*/15 * * * *', label: 'Every 15 minutes' },
-  { value: '0 * * * *', label: 'Every hour' },
-  { value: '0 0 * * *', label: 'Daily at midnight' },
+  { value: '*/5 * * * *', label: 'Every 5 minutes', disabled: true },
+  { value: '*/15 * * * *', label: 'Every 15 minutes', disabled: true },
+  { value: '0 * * * *', label: 'Every hour', disabled: true },
+  { value: '0 0 * * *', label: 'Daily at midnight', disabled: true },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -475,6 +482,15 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
     </Stack>
   );
 
+  const renderScheduleOption = ({ option }: { option: ScheduleOption }) => (
+    <Group gap="sm" wrap="nowrap" justify="space-between" w="100%">
+      <Text size="sm" c={option.disabled ? 'dimmed' : undefined}>
+        {option.label}
+      </Text>
+      {option.disabled && <ComingSoonBadge />}
+    </Group>
+  );
+
   const renderNameAndSchedule = () => (
     <Stack>
       <TextInput
@@ -489,6 +505,7 @@ export const AddSyncDialog = ({ opened, onClose, onSyncCreated, syncToEdit }: Ad
         data={SCHEDULE_OPTIONS}
         value={schedule}
         onChange={(val) => setSchedule(val || '')}
+        renderOption={renderScheduleOption}
       />
 
       <Checkbox
