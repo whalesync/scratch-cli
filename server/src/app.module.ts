@@ -72,16 +72,21 @@ export class AppModule implements NestModule {
       // NOTE! Stripe webhooks require access to the unparsed body to check the signatures. Connector webhooks need the
       // raw body because we have no idea ahead of time what format the body will be in.
       .apply(RawBodyMiddleware)
-      .forRoutes({
-        path: '/payment/webhook',
-        method: RequestMethod.POST,
-      })
+      .forRoutes(
+        { path: '/payment/webhook', method: RequestMethod.POST },
+        // Git proxy needs raw body for git protocol data
+        { path: '/cli/v1/workbooks/:id/git/(.*)', method: RequestMethod.ALL },
+      )
       .apply(JsonBodyMiddleware)
       .exclude(
         // Import suggestions endpoint
-        { path: '/workbook/*/tables/*/import-suggestions', method: RequestMethod.POST },
+        { path: '/workbook/:id/tables/:tableId/import-suggestions', method: RequestMethod.POST },
         // Payment webhook
         { path: '/payment/webhook', method: RequestMethod.POST },
+        // CLI folder files upload (multipart/form-data)
+        { path: '/cli/v1/folders/:id/files', method: RequestMethod.PUT },
+        // Git proxy (uses raw body)
+        { path: '/cli/v1/workbooks/:id/git/(.*)', method: RequestMethod.ALL },
       )
       .forRoutes('*');
   }

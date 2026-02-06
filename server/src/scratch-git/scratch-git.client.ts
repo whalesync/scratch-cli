@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Readable } from 'node:stream';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 
 @Injectable()
@@ -133,16 +132,5 @@ export class ScratchGitClient {
 
   async deleteCheckpoint(repoId: string, name: string): Promise<void> {
     await this.callGitApi(`/api/repo/${repoId}/checkpoint/${encodeURIComponent(name)}`, 'DELETE');
-  }
-
-  async getArchive(repoId: string, branch: string): Promise<Readable> {
-    const response = await fetch(`${this.gitApiUrl}/api/repo/${repoId}/archive?branch=${encodeURIComponent(branch)}`, {
-      method: 'GET',
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Archive failed: ${response.status} ${text}`);
-    }
-    return Readable.fromWeb(response.body as never);
   }
 }

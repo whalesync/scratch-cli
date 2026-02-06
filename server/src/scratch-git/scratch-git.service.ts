@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
-import { Readable } from 'node:stream';
 import { ScratchGitClient } from './scratch-git.client';
 
 // The object returned by listRepoFiles
@@ -129,9 +128,5 @@ export class ScratchGitService {
 
   async deleteCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
     await this.scratchGitClient.deleteCheckpoint(workbookId, name);
-  }
-
-  async getArchive(workbookId: WorkbookId, branch: string): Promise<Readable> {
-    return this.scratchGitClient.getArchive(workbookId, branch);
   }
 }
