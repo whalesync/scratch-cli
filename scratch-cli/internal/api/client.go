@@ -33,25 +33,6 @@ type Client struct {
 	apiToken   string // API token for authenticated requests
 }
 
-// AuthInitiateResponse represents the response from the auth initiate endpoint.
-type AuthInitiateResponse struct {
-	UserCode        string `json:"userCode,omitempty"`
-	PollingCode     string `json:"pollingCode,omitempty"`
-	VerificationURL string `json:"verificationUrl,omitempty"`
-	ExpiresIn       int    `json:"expiresIn,omitempty"`
-	Interval        int    `json:"interval,omitempty"`
-	Error           string `json:"error,omitempty"`
-}
-
-// AuthPollResponse represents the response from the auth poll endpoint.
-type AuthPollResponse struct {
-	Status         string `json:"status,omitempty"`         // "pending", "approved", "denied", "expired"
-	APIToken       string `json:"apiToken,omitempty"`       // Only set when status is "approved"
-	UserEmail      string `json:"userEmail,omitempty"`      // Only set when status is "approved"
-	TokenExpiresAt string `json:"tokenExpiresAt,omitempty"` // Only set when status is "approved"
-	Error          string `json:"error,omitempty"`
-}
-
 // ClientOption is a function that configures a Client.
 type ClientOption func(*Client)
 
@@ -190,103 +171,5 @@ func (c *Client) CheckHealth() error {
 		return fmt.Errorf("server returned status %d", resp.StatusCode)
 	}
 
-	return nil
-}
-
-// InitiateAuth starts the authorization flow.
-// Returns a user code (for display) and polling code (for polling).
-func (c *Client) InitiateAuth() (*AuthInitiateResponse, error) {
-	var result AuthInitiateResponse
-	if err := c.doRequest(http.MethodPost, "auth/initiate", nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// PollAuth checks the authorization status for a polling code.
-// Returns the API token when the user has approved the authorization.
-func (c *Client) PollAuth(pollingCode string) (*AuthPollResponse, error) {
-	body := map[string]string{"pollingCode": pollingCode}
-	var result AuthPollResponse
-	if err := c.doRequest(http.MethodPost, "auth/poll", body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// DataFolder represents a data folder in the CLI response format.
-type DataFolder struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-// Workbook represents a workbook in the CLI response format.
-type Workbook struct {
-	ID          string       `json:"id"`
-	Name        string       `json:"name"`
-	CreatedAt   string       `json:"createdAt"`
-	UpdatedAt   string       `json:"updatedAt"`
-	TableCount  int          `json:"tableCount"`
-	DataFolders []DataFolder `json:"dataFolders"`
-	GitUrl      string       `json:"gitUrl"`
-}
-
-// WorkbookListResponse represents the response from the list workbooks endpoint.
-type WorkbookListResponse struct {
-	Workbooks []Workbook `json:"workbooks"`
-}
-
-// CreateWorkbookRequest represents the request body for creating a workbook.
-type CreateWorkbookRequest struct {
-	Name string `json:"name,omitempty"`
-}
-
-// DeleteWorkbookResponse represents the response from deleting a workbook.
-type DeleteWorkbookResponse struct {
-	Success bool `json:"success"`
-}
-
-// ListWorkbooks returns all workbooks for the authenticated user.
-func (c *Client) ListWorkbooks(sortBy, sortOrder string) (*WorkbookListResponse, error) {
-	params := url.Values{}
-	if sortBy != "" {
-		params.Set("sortBy", sortBy)
-	}
-	if sortOrder != "" {
-		params.Set("sortOrder", sortOrder)
-	}
-
-	var result WorkbookListResponse
-	if err := c.doRequestWithQuery(http.MethodGet, "workbooks", params, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// CreateWorkbook creates a new workbook.
-func (c *Client) CreateWorkbook(name string) (*Workbook, error) {
-	body := &CreateWorkbookRequest{Name: name}
-	var result Workbook
-	if err := c.doRequest(http.MethodPost, "workbooks", body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// GetWorkbook retrieves a single workbook by ID.
-func (c *Client) GetWorkbook(id string) (*Workbook, error) {
-	var result Workbook
-	if err := c.doRequest(http.MethodGet, "workbooks/"+id, nil, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
-}
-
-// DeleteWorkbook deletes a workbook by ID.
-func (c *Client) DeleteWorkbook(id string) error {
-	var result DeleteWorkbookResponse
-	if err := c.doRequest(http.MethodDelete, "workbooks/"+id, nil, &result); err != nil {
-		return err
-	}
 	return nil
 }

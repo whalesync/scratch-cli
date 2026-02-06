@@ -93,7 +93,7 @@ func ComputeMergeActions(base, local, remote FileMap) []MergeAction {
 
 		// Both sides created (no base) — merge.
 		case !bOk && lOk && rOk:
-			if bytesEqual(l, r) {
+			if bytes.Equal(l, r) {
 				act.Action = ActionKeepLocal
 			} else {
 				act.Action = ActionMerge
@@ -106,7 +106,7 @@ func ComputeMergeActions(base, local, remote FileMap) []MergeAction {
 		// Server deleted, local still exists.
 		case bOk && lOk && !rOk:
 			act.Action = ActionDelete
-			if !bytesEqual(l, b) {
+			if !bytes.Equal(l, b) {
 				act.WarningMsg = "'" + p + "' deleted on server but had local changes"
 			}
 
@@ -116,9 +116,9 @@ func ComputeMergeActions(base, local, remote FileMap) []MergeAction {
 
 		// All three exist.
 		case bOk && lOk && rOk:
-			localChanged := !bytesEqual(l, b)
-			remoteChanged := !bytesEqual(r, b)
-			sameChange := bytesEqual(l, r)
+			localChanged := !bytes.Equal(l, b)
+			remoteChanged := !bytes.Equal(r, b)
+			sameChange := bytes.Equal(l, r)
 
 			switch {
 			case sameChange:
@@ -152,18 +152,6 @@ func nilIfMissing(data []byte, ok bool) []byte {
 		return nil
 	}
 	return data
-}
-
-func bytesEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // NormalizeCRLF replaces all \r\n sequences with \n so that content read from

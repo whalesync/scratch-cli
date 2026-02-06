@@ -41,6 +41,18 @@ var rootCmd = &cobra.Command{
   workbooks delete <id>          Delete a workbook
 
 ══════════════════════════════════════════════════════════════════════════════
+                              LINKED TABLES
+══════════════════════════════════════════════════════════════════════════════
+
+  linked available               List available tables from connections
+  linked list                    List linked tables in a workbook
+  linked add                     Link a new table to a workbook
+  linked remove [id]             Unlink a table from a workbook
+  linked show [id]               Show linked table details
+  linked pull [id]               Pull CRM changes into the workbook
+  linked publish [id]            Publish workbook changes to the CRM
+
+══════════════════════════════════════════════════════════════════════════════
 
 For more information, visit: https://github.com/whalesync/scratch-cli`,
 	Version: version,
