@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import cors from 'cors';
 import express from 'express';
+import fs from 'node:fs';
 import { resolve } from 'node:path';
 import { GitService } from './lib/GitService';
 
@@ -9,7 +10,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  console.log(`[API] ${req.method} ${req.url}`);
   next();
 });
 
@@ -17,6 +18,20 @@ const port = process.env.PORT || 3100;
 const buildVersion = process.env.BUILD_VERSION || '0.0.0-local';
 const reposDir = resolve(process.env.GIT_REPOS_DIR || 'repos');
 const gitService = new GitService();
+
+// Startup diagnostics
+console.log(`[API] Repos directory: ${reposDir}`);
+console.log(`[API] Repos directory exists: ${fs.existsSync(reposDir)}`);
+if (fs.existsSync(reposDir)) {
+  try {
+    const entries = fs.readdirSync(reposDir);
+    console.log(`[API] Repos directory contains ${entries.length} entries: ${entries.slice(0, 20).join(', ')}${entries.length > 20 ? '...' : ''}`);
+  } catch (err) {
+    console.error(`[API] Failed to read repos directory: ${err}`);
+  }
+} else {
+  console.warn(`[API] Repos directory does not exist, will be created on first init`);
+}
 
 app.get('/', (_, res) =>
   res.json({
@@ -26,10 +41,15 @@ app.get('/', (_, res) =>
 );
 
 app.post('/api/repo/:id/init', async (req, res) => {
+  const repoId = req.params.id;
+  console.log(`[API] Initializing repo: ${repoId}`);
   try {
-    await gitService.initRepo(req.params.id);
+    await gitService.initRepo(repoId);
+    const repoPath = gitService.getRepoPath(repoId);
+    console.log(`[API] Repo initialized successfully: ${repoId} at ${repoPath}, exists: ${fs.existsSync(repoPath)}`);
     res.json({ success: true });
   } catch (err) {
+    console.error(`[API] Failed to initialize repo ${repoId}:`, err);
     res.status(500).json({ error: (err as Error).message });
   }
 });
@@ -238,10 +258,20 @@ app.get('/api/repo/:id/archive', async (req, res) => {
   }
 });
 
+app.get('/api/repo/:id/exists', (req, res) => {
+  const repoId = req.params.id;
+  const repoPath = gitService.getRepoPath(repoId);
+  const exists = fs.existsSync(repoPath);
+  const hasHead = exists && fs.existsSync(resolve(repoPath, 'HEAD'));
+  res.json({ repoId, repoPath, exists, hasHead });
+});
+
 app.get('/health', (_, res) =>
   res.json({
     status: 'alive',
     build_version: buildVersion,
+    reposDir,
+    reposDirExists: fs.existsSync(reposDir),
     timestamp: new Date().toISOString(),
   }),
 );

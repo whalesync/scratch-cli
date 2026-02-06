@@ -1,7 +1,8 @@
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import { GitService } from './lib/GitService';
 
@@ -27,6 +28,23 @@ app.all('/:repoId.git/*', (req, res) => {
   const repoId = req.params.repoId;
   const repoPath = gitService.getRepoPath(repoId);
 
+  // Check if repo directory exists before spawning git
+  if (!fs.existsSync(repoPath)) {
+    console.error(`[GIT] Repository not found: ${repoPath}`);
+    res.status(404).send(`Repository not found: ${repoId}`);
+    return;
+  }
+
+  // Check if it's a valid git repo (has HEAD file)
+  const headPath = path.join(repoPath, 'HEAD');
+  if (!fs.existsSync(headPath)) {
+    console.error(`[GIT] Invalid git repository (no HEAD): ${repoPath}`);
+    res.status(500).send(`Invalid git repository: ${repoId}`);
+    return;
+  }
+
+  console.log(`[GIT] Proxying to repo: ${repoPath}, GIT_PROJECT_ROOT: ${path.dirname(repoPath)}, PATH_INFO: ${req.path}`);
+
   // env vars for git http-backend
   const env = Object.assign({}, process.env, {
     GIT_PROJECT_ROOT: path.dirname(repoPath), // Parent dir of repos
@@ -47,6 +65,7 @@ app.all('/:repoId.git/*', (req, res) => {
   // Pipe outputs with CGI header parsing
   let headersSent = false;
   let buffer = Buffer.alloc(0);
+  let stderrBuffer = '';
 
   gitProc.stdout.on('data', (chunk) => {
     if (headersSent) {
@@ -76,14 +95,15 @@ app.all('/:repoId.git/*', (req, res) => {
   });
 
   gitProc.stderr.on('data', (data) => {
-    console.error(`Git Backend Error: ${data}`);
+    stderrBuffer += data.toString();
+    console.error(`[GIT] stderr for ${repoId}: ${data}`);
   });
 
   gitProc.on('exit', (code) => {
     if (code !== 0) {
-      console.error(`git http-backend exited with code ${code}`);
+      console.error(`[GIT] git http-backend exited with code ${code} for repo ${repoId}, path: ${req.path}, stderr: ${stderrBuffer}`);
       if (!res.headersSent) {
-        res.status(500).send('Git backend error');
+        res.status(500).send(`Git backend error (code ${code}): ${stderrBuffer}`);
       }
     } else {
       res.end();

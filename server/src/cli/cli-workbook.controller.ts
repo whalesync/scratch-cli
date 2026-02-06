@@ -18,6 +18,7 @@ import { WorkbookId } from '@spinner/shared-types';
 import type { Request, Response } from 'express';
 import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
+import { WSLogger } from 'src/logger';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import {
@@ -138,18 +139,57 @@ export class CliWorkbookController {
     // Build the target URL: http://localhost:3101/<workbook-id>.git/<path>
     const targetUrl = `${this.gitBackendUrl}/${workbookId}.git${gitPath}`;
 
+    WSLogger.info({
+      source: 'CliWorkbookController.gitProxy',
+      message: `Proxying git request`,
+      method: req.method,
+      targetUrl,
+      gitBackendUrl: this.gitBackendUrl,
+      workbookId,
+    });
+
     // Get request body (RawBodyMiddleware stores it in req.body as Buffer)
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
     const bodyBuffer: Buffer | undefined = hasBody && req.body ? (req.body as Buffer) : undefined;
 
-    // Proxy the request to git backend
-    const proxyResponse = await fetch(targetUrl, {
-      method: req.method,
-      headers: {
-        'Content-Type': req.headers['content-type'] || 'application/octet-stream',
-      },
-      body: bodyBuffer as BodyInit | undefined,
-    });
+    let proxyResponse: globalThis.Response;
+    try {
+      // Proxy the request to git backend
+      proxyResponse = await fetch(targetUrl, {
+        method: req.method,
+        headers: {
+          'Content-Type': req.headers['content-type'] || 'application/octet-stream',
+        },
+        body: bodyBuffer as BodyInit | undefined,
+      });
+    } catch (fetchError) {
+      WSLogger.error({
+        source: 'CliWorkbookController.gitProxy',
+        message: `Failed to connect to git backend`,
+        targetUrl,
+        gitBackendUrl: this.gitBackendUrl,
+        workbookId,
+        error: fetchError,
+      });
+      res.status(502).json({
+        statusCode: 502,
+        message: 'Git backend is unreachable',
+        detail: fetchError instanceof Error ? fetchError.message : String(fetchError),
+      });
+      return;
+    }
+
+    if (!proxyResponse.ok) {
+      const responseBody = await proxyResponse.text().catch(() => '(unable to read body)');
+      WSLogger.error({
+        source: 'CliWorkbookController.gitProxy',
+        message: `Git backend returned error`,
+        targetUrl,
+        workbookId,
+        status: proxyResponse.status,
+        responseBody,
+      });
+    }
 
     // Copy response headers
     proxyResponse.headers.forEach((value, key) => {
