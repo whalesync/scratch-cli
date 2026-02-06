@@ -25,6 +25,7 @@ environment tests for test env post-deploy:
     when: always
     reports:
       junit: "server/junit.xml"
+    expire_in: 1 week
   rules:
     # - !reference [.rules, on_merge_to_master]
     - when: never
@@ -47,6 +48,7 @@ environment tests for test env pre-deploy:
     when: always
     reports:
       junit: "server/junit.xml"
+    expire_in: 1 week
   rules:
     # - !reference [.rules, on_merge_to_prod]
     - when: never

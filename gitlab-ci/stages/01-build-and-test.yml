@@ -163,6 +163,7 @@ integration test server:
     when: always
     reports:
       junit: "server/junit.xml"
+    expire_in: 1 week
   cache: !reference [.caches, server]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
