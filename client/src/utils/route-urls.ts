@@ -73,7 +73,9 @@ export class RouteUrls {
 
     let url = `${base}/${workbookId}`;
 
-    if (tableId) {
+    // Don't include transient new-tab IDs in the URL
+    const isNewTab = tableId?.startsWith('new-tab') || tableId === 'new';
+    if (tableId && !isNewTab) {
       url += `/${tableId}`;
       if (recordId) {
         url += `/${recordId}`;
@@ -87,5 +89,30 @@ export class RouteUrls {
 
   static isWorkbookFilePage = (pathname: string): boolean => {
     return pathname.startsWith('/workbooks-md');
+  };
+
+  /**
+   * Updates the URL path for file-based workbook views.
+   * @param workbookId - The ID of the workbook
+   * @param viewType - The view type: 'files' or 'review'
+   * @param filePath - The file path (optional)
+   */
+  static updateWorkbookFilePath = (workbookId: string, viewType?: 'files' | 'review', filePath?: string) => {
+    let url = `/workbooks/${workbookId}`;
+
+    if (viewType) {
+      url += `/${viewType}`;
+      if (filePath) {
+        // Strip leading slashes to avoid double slashes
+        const cleanPath = filePath.replace(/^\/+/, '');
+        if (cleanPath) {
+          url += `/${cleanPath}`;
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', url);
+    }
   };
 }

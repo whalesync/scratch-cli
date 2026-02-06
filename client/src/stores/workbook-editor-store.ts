@@ -208,6 +208,12 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
       updatedTabs[existingTabIndex] = { ...updatedTabs[existingTabIndex], ...tab };
       set({ openFileTabs: updatedTabs, activeFileTabId: tab.id });
     }
+
+    // Update URL
+    if (current.workbookId) {
+      const viewType = tab.initialViewMode?.includes('original') ? 'review' : 'files';
+      RouteUrls.updateWorkbookFilePath(current.workbookId, viewType, tab.path);
+    }
   },
 
   closeFileTab: (tabId: string) => {
@@ -227,6 +233,17 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     }
 
     set({ openFileTabs: newOpenFileTabs, activeFileTabId: newActiveFileTabId });
+
+    // Update URL
+    if (current.workbookId) {
+      const newActiveTab = newOpenFileTabs.find((t) => t.id === newActiveFileTabId);
+      if (newActiveTab) {
+        const viewType = newActiveTab.initialViewMode?.includes('original') ? 'review' : 'files';
+        RouteUrls.updateWorkbookFilePath(current.workbookId, viewType, newActiveTab.path);
+      } else {
+        RouteUrls.updateWorkbookFilePath(current.workbookId);
+      }
+    }
   },
 
   closeFileTabs: (tabIds: string[]) => {
@@ -268,10 +285,29 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     }
 
     set({ openFileTabs: newOpenFileTabs, activeFileTabId: newActiveFileTabId });
+
+    // Update URL
+    if (current.workbookId) {
+      const newActiveTab = newOpenFileTabs.find((t) => t.id === newActiveFileTabId);
+      if (newActiveTab) {
+        const viewType = newActiveTab.initialViewMode?.includes('original') ? 'review' : 'files';
+        RouteUrls.updateWorkbookFilePath(current.workbookId, viewType, newActiveTab.path);
+      } else {
+        RouteUrls.updateWorkbookFilePath(current.workbookId);
+      }
+    }
   },
 
   setActiveFileTab: (tabId: string | null) => {
     set({ activeFileTabId: tabId });
+    const current = get();
+    const activeTab = current.openFileTabs.find((t) => t.id === tabId);
+    if (current.workbookId && activeTab) {
+      const viewType = activeTab.initialViewMode?.includes('original') ? 'review' : 'files';
+      RouteUrls.updateWorkbookFilePath(current.workbookId, viewType, activeTab.path);
+    } else if (current.workbookId) {
+      RouteUrls.updateWorkbookFilePath(current.workbookId);
+    }
   },
 
   openDevTools: () => set({ devToolsOpen: true }),

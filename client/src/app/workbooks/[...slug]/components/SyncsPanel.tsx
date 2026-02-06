@@ -68,53 +68,56 @@ export function SyncsPanel() {
 
   return (
     <Accordion.Item value="syncs">
-      {/* Header */}
-      <Accordion.Control icon={<RefreshCwIcon size={14} color="var(--mantine-color-gray-7)" />}>
-        <Box h={20} style={{ position: 'relative' }}>
+      {/* Header - Actions are outside Accordion.Control to avoid nested buttons */}
+      <Box style={{ position: 'relative' }}>
+        <Accordion.Control icon={<RefreshCwIcon size={14} color="var(--mantine-color-gray-7)" />}>
           <Text13Medium truncate w="100%" pr={60}>
             Syncs
           </Text13Medium>
-          <Group
-            gap={4}
-            wrap="nowrap"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-selected)',
-            }}
-            pl={8}
-          >
-            <Tooltip label="View All Syncs" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' });
-                }}
-              >
-                <Eye size={14} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Create Sync" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAddSyncOpen(true);
-                }}
-              >
-                <Plus size={14} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        </Box>
-      </Accordion.Control>
+        </Accordion.Control>
+
+        {/* Action icons positioned absolutely, outside of Accordion.Control to avoid button-in-button */}
+        <Group
+          gap={4}
+          wrap="nowrap"
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            backgroundColor: 'var(--bg-selected)',
+            zIndex: 1,
+          }}
+          pl={8}
+        >
+          <Tooltip label="View All Syncs" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openFileTab({ id: 'syncs-view', type: 'syncs-view', title: 'Syncs', path: '' });
+              }}
+            >
+              <Eye size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Create Sync" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsAddSyncOpen(true);
+              }}
+            >
+              <Plus size={14} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      </Box>
 
       <Accordion.Panel>
         {/* Fill available height */}

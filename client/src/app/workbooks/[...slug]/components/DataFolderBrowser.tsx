@@ -63,6 +63,7 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
   const { isAdmin } = useScratchPadUser();
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
   const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedFolderId, setSelectedFolderId] = useState<DataFolderId | null>(null);
@@ -139,6 +140,27 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
     }
   }, [dataFolderGroups, hasInitialized]);
 
+  // Sync selection with active file tab (for deep linking)
+  useEffect(() => {
+    if (!activeFileTabId || dataFolderGroups.length === 0) return;
+
+    const activeTab = openFileTabs.find((t) => t.id === activeFileTabId);
+    if (!activeTab?.path) return;
+
+    // Find the folder that contains this file by matching path prefix
+    for (const group of dataFolderGroups) {
+      for (const folder of group.dataFolders) {
+        const folderPath = folder.path ?? folder.name;
+        if (activeTab.path.startsWith(folderPath)) {
+          // Expand the group and select the folder
+          setExpandedGroups((prev) => new Set([...prev, group.name]));
+          setSelectedFolderId(folder.id);
+          return;
+        }
+      }
+    }
+  }, [activeFileTabId, openFileTabs, dataFolderGroups]);
+
   const toggleGroup = useCallback((groupName: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -206,127 +228,129 @@ export function DataFolderBrowser({ onFolderSelect }: DataFolderBrowserProps) {
 
   return (
     <Accordion.Item value="apps">
-      {/* Tree Header */}
-      <Accordion.Control icon={<BlocksIcon size={14} color="var(--mantine-color-gray-7)" />}>
-        <Box h={20} style={{ position: 'relative' }}>
+      {/* Tree Header - Actions are outside Accordion.Control to avoid nested buttons */}
+      <Box style={{ position: 'relative' }}>
+        <Accordion.Control icon={<BlocksIcon size={14} color="var(--mantine-color-gray-7)" />}>
           <Text fw={500} size="sm" truncate w="100%" pr={140}>
             Apps
           </Text>
+        </Accordion.Control>
 
-          <Group
-            gap={4}
-            wrap="nowrap"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-selected)',
-            }}
-            pl={8}
-          >
-            <Tooltip label="New File" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (selectedFolderId) {
-                    // Find the folder object from groups
-                    const folder = dataFolderGroups
-                      .flatMap((g) => g.dataFolders)
-                      .find((f) => f.id === selectedFolderId);
-                    if (folder) {
-                      handleOpenNewFileModal(folder);
-                    }
+        {/* Action icons positioned absolutely, outside of Accordion.Control to avoid button-in-button */}
+        <Group
+          gap={4}
+          wrap="nowrap"
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            backgroundColor: 'var(--bg-selected)',
+            zIndex: 1,
+          }}
+          pl={8}
+        >
+          <Tooltip label="New File" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (selectedFolderId) {
+                  // Find the folder object from groups
+                  const folder = dataFolderGroups
+                    .flatMap((g) => g.dataFolders)
+                    .find((f) => f.id === selectedFolderId);
+                  if (folder) {
+                    handleOpenNewFileModal(folder);
                   }
-                }}
-                disabled={!selectedFolderId}
-              >
-                <FilePlusIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
-            {/* ... other actions ... */}
-            <Tooltip label="New Linked Folder" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openFileTab({ id: 'add-table', type: 'add-table', title: 'New Linked Folder', path: '' });
-                }}
-              >
-                <FolderSyncIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
+                }
+              }}
+              disabled={!selectedFolderId}
+            >
+              <FilePlusIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
+          {/* ... other actions ... */}
+          <Tooltip label="New Linked Folder" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openFileTab({ id: 'add-table', type: 'add-table', title: 'New Linked Folder', path: '' });
+              }}
+            >
+              <FolderSyncIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
 
-            <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+          <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
 
-            <Tooltip label="Collapse All" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  collapseAllGroups();
-                }}
-              >
-                <CopyMinusIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Expand All" openDelay={500}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  expandAllGroups();
-                }}
-              >
-                <CopyPlusIcon size={14} />
-              </ActionIcon>
-            </Tooltip>
+          <Tooltip label="Collapse All" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                collapseAllGroups();
+              }}
+            >
+              <CopyMinusIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Expand All" openDelay={500}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                expandAllGroups();
+              }}
+            >
+              <CopyPlusIcon size={14} />
+            </ActionIcon>
+          </Tooltip>
 
-            <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
+          <Box w={1} h={16} bg="var(--fg-divider)" mx={4} />
 
-            {isAdmin && (
-              <Menu shadow="md" width={200} position="bottom-end">
-                <Menu.Target>
-                  <ActionIcon
-                    variant="subtle"
-                    color="violet"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <GitBranchIcon size={14} />
-                  </ActionIcon>
-                </Menu.Target>
+          {isAdmin && (
+            <Menu shadow="md" width={200} position="bottom-end">
+              <Menu.Target>
+                <ActionIcon
+                  variant="subtle"
+                  color="violet"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <GitBranchIcon size={14} />
+                </ActionIcon>
+              </Menu.Target>
 
-                <Menu.Dropdown>
-                  <Menu.Item leftSection={<FileDiffIcon size={14} />} onClick={handleGitStatus} color="violet">
-                    main vs dirty
-                  </Menu.Item>
-                  <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
-                    Git Graph
-                  </Menu.Item>
-                  <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleVersions} color="violet">
-                    Version History
-                  </Menu.Item>
-                  <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
-                    Browse Files
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            )}
-          </Group>
-        </Box>
-      </Accordion.Control>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<FileDiffIcon size={14} />} onClick={handleGitStatus} color="violet">
+                  main vs dirty
+                </Menu.Item>
+                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleGitGraph} color="violet">
+                  Git Graph
+                </Menu.Item>
+                <Menu.Item leftSection={<GitBranchIcon size={14} />} onClick={handleVersions} color="violet">
+                  Version History
+                </Menu.Item>
+                <Menu.Item leftSection={<FolderSearchIcon size={14} />} onClick={handleBrowseFiles} color="violet">
+                  Browse Files
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
+        </Group>
+      </Box>
 
       <Accordion.Panel>
         {/* Fill available height */}

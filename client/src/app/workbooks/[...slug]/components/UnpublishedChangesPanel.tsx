@@ -1,5 +1,6 @@
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { workbookApi } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   Accordion,
   ActionIcon,
@@ -11,7 +12,6 @@ import {
   ScrollArea,
   Stack,
   Text,
-  UnstyledButton,
 } from '@mantine/core';
 import {
   CloudUpload,
@@ -68,6 +68,8 @@ export function UnpublishedChangesPanel({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const openFileTabs = useWorkbookEditorUIStore((state) => state.openFileTabs);
+  const activeFileTabId = useWorkbookEditorUIStore((state) => state.activeFileTabId);
 
   const fetchGitStatus = useCallback(async () => {
     if (!workbook?.id) return;
@@ -120,6 +122,25 @@ export function UnpublishedChangesPanel({
   useEffect(() => {
     fetchGitStatus();
   }, [fetchGitStatus]);
+
+  // Expand parent folders when deep linking to a file in review mode
+  useEffect(() => {
+    if (!activeFileTabId) return;
+
+    const activeTab = openFileTabs.find((t) => t.id === activeFileTabId);
+    if (!activeTab?.path) return;
+
+    // Expand all parent folders of the active file
+    const pathParts = activeTab.path.split('/');
+    const foldersToExpand = new Set<string>();
+    for (let i = 1; i < pathParts.length; i++) {
+      foldersToExpand.add(pathParts.slice(0, i).join('/'));
+    }
+
+    if (foldersToExpand.size > 0) {
+      setExpandedFolders((prev) => new Set([...prev, ...foldersToExpand]));
+    }
+  }, [activeFileTabId, openFileTabs]);
 
   const changesStats = useMemo(() => {
     return dirtyFiles.reduce(
@@ -218,64 +239,66 @@ export function UnpublishedChangesPanel({
 
   return (
     <Accordion.Item value="changes">
-      <Accordion.Control icon={<FileDiffIcon size={14} color="var(--mantine-color-gray-7)" />}>
-        <Box h={20} style={{ position: 'relative' }}>
+      {/* Header - ActionIcon is outside Accordion.Control to avoid nested buttons */}
+      <Box style={{ position: 'relative' }}>
+        <Accordion.Control icon={<FileDiffIcon size={14} color="var(--mantine-color-gray-7)" />}>
           <Text size="sm" fw={500} truncate w="100%" pr={120}>
             Unpublished Changes
           </Text>
+        </Accordion.Control>
 
-          {/* Action Buttons overlay */}
-          <Group
-            gap={4}
-            wrap="nowrap"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'var(--bg-selected)', // Mask content behind
+        {/* Badges and refresh button positioned outside Accordion.Control to avoid button-in-button */}
+        <Group
+          gap={4}
+          wrap="nowrap"
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            backgroundColor: 'var(--bg-selected)',
+            zIndex: 1,
+          }}
+          pl={8}
+        >
+          {changesStats.added > 0 && (
+            <Badge size="sm" color="green" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
+              <Group gap={2} justify="center" wrap="nowrap">
+                <FilePlusIcon size={10} />
+                <span style={{ fontSize: 9 }}>{changesStats.added}</span>
+              </Group>
+            </Badge>
+          )}
+          {changesStats.modified > 0 && (
+            <Badge size="sm" color="orange" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
+              <Group gap={2} justify="center" wrap="nowrap">
+                <FileDiffIcon size={10} style={{ marginRight: -2 }} />
+                <span style={{ fontSize: 9 }}>{changesStats.modified}</span>
+              </Group>
+            </Badge>
+          )}
+          {changesStats.deleted > 0 && (
+            <Badge size="sm" color="red" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
+              <Group gap={2} justify="center" wrap="nowrap">
+                <FileMinusIcon size={10} style={{ marginRight: -2 }} />
+                <span style={{ fontSize: 9 }}>{changesStats.deleted}</span>
+              </Group>
+            </Badge>
+          )}
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              fetchGitStatus();
             }}
-            pl={8} // Padding for mask
+            loading={loading}
           >
-            {changesStats.added > 0 && (
-              <Badge size="sm" color="green" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
-                <Group gap={2} justify="center" wrap="nowrap">
-                  <FilePlusIcon size={10} />
-                  <span style={{ fontSize: 9 }}>{changesStats.added}</span>
-                </Group>
-              </Badge>
-            )}
-            {changesStats.modified > 0 && (
-              <Badge size="sm" color="orange" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
-                <Group gap={2} justify="center" wrap="nowrap">
-                  <FileDiffIcon size={10} style={{ marginRight: -2 }} />
-                  <span style={{ fontSize: 9 }}>{changesStats.modified}</span>
-                </Group>
-              </Badge>
-            )}
-            {changesStats.deleted > 0 && (
-              <Badge size="sm" color="red" variant="filled" style={{ paddingLeft: 4, paddingRight: 4 }}>
-                <Group gap={2} justify="center" wrap="nowrap">
-                  <FileMinusIcon size={10} style={{ marginRight: -2 }} />
-                  <span style={{ fontSize: 9 }}>{changesStats.deleted}</span>
-                </Group>
-              </Badge>
-            )}
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                fetchGitStatus();
-              }}
-              loading={loading}
-            >
-              <RefreshCw size={14} />
-            </ActionIcon>
-          </Group>
-        </Box>
-      </Accordion.Control>
+            <RefreshCw size={14} />
+          </ActionIcon>
+        </Group>
+      </Box>
       <Accordion.Panel>
         {/* Fill available height */}
         <Stack h="100%" gap={0} bg="var(--bg-base)">
@@ -366,10 +389,11 @@ function TreeNodeItem({
 
   return (
     <Box>
-      <UnstyledButton
+      {/* Use Box instead of UnstyledButton to avoid nested button issues with ActionIcons */}
+      <Box
         className={styles.folderItem}
         onClick={isDirectory ? () => onToggle(node.path) : () => onFileClick?.(node.path)}
-        style={{ paddingLeft: 'var(--spacing-xs)', paddingRight: 'var(--spacing-xs)' }}
+        style={{ paddingLeft: 'var(--spacing-xs)', paddingRight: 'var(--spacing-xs)', cursor: 'pointer' }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
@@ -458,7 +482,7 @@ function TreeNodeItem({
             )}
           </Group>
         </Group>
-      </UnstyledButton>
+      </Box>
 
       {isDirectory && (
         <Collapse in={isExpanded}>

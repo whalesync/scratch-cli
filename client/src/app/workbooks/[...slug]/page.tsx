@@ -43,9 +43,12 @@ const MIN_LIST_WIDTH = 300;
 const MAX_LIST_WIDTH = 600;
 
 function WorkbookFilesPageContent() {
-  const [accordionValue, setAccordionValue] = useState<string | null>('apps');
   const { isDevToolsEnabled } = useDevTools();
-  const { tableId: pathTableId } = useWorkbookParams();
+  const { tableId: pathTableId, viewType } = useWorkbookParams();
+  // Set initial accordion based on deep link view type
+  const [accordionValue, setAccordionValue] = useState<string | null>(
+    viewType === 'review' ? 'changes' : 'apps',
+  );
   // const activeTab = useWorkbookEditorUIStore((state) => state.activeTab); // Unused
   const setActiveTab = useWorkbookEditorUIStore((state) => state.setActiveTab);
   const devToolsOpen = useWorkbookEditorUIStore((state) => state.devToolsOpen);
@@ -223,7 +226,7 @@ function WorkbookFilesPageContent() {
                           <FileEditorNew
                             key={activeFileTabId}
                             workbookId={workbook.id}
-                            filePath={activeFileTabId}
+                            filePath={activeTab.path}
                             initialViewMode={activeTab.initialViewMode}
                           />
                         );
@@ -271,6 +274,7 @@ export default function WorkbookNewPage() {
   const openWorkbook = useWorkbookEditorUIStore((state) => state.openWorkbook);
   const closeWorkbook = useWorkbookEditorUIStore((state) => state.closeWorkbook);
   const reconcileWithWorkbook = useWorkbookEditorUIStore((state) => state.reconcileWithWorkbook);
+  const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const closeNavDrawer = useLayoutManagerStore((state) => state.closeNavDrawer);
 
   const connectWorkbookWebSocket = useWorkbookWebSocketStore((state) => state.connect);
@@ -300,6 +304,27 @@ export default function WorkbookNewPage() {
       reconcileWithWorkbook(workbook);
     }
   }, [workbook, reconcileWithWorkbook]);
+
+  // Restore file tab from URL on initial load (deep linking)
+  useEffect(() => {
+    if (params.viewType && params.filePath) {
+      // Decode the URL-encoded path
+      const decodedPath = decodeURIComponent(params.filePath);
+      // Extract filename from path for the tab title
+      const pathParts = decodedPath.split('/');
+      const fileName = pathParts[pathParts.length - 1] || decodedPath;
+
+      openFileTab({
+        id: decodedPath,
+        type: 'file',
+        title: fileName,
+        path: decodedPath,
+        initialViewMode: params.viewType === 'review' ? 'original-current-split' : 'current',
+      });
+    }
+    // Only run on initial mount with these params
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
