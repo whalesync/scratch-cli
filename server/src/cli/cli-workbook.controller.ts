@@ -22,6 +22,7 @@ import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
+import { Readable } from 'stream';
 import {
   CliWorkbookResponseDto,
   CreateCliWorkbookDto,
@@ -152,9 +153,10 @@ export class CliWorkbookController {
       workbookId,
     });
 
-    // Get request body (RawBodyMiddleware stores it in req.body as Buffer)
+    // Stream the request body directly to the git backend without buffering.
+    // This avoids body-parser size limits and reduces memory usage for large packfiles.
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-    const bodyBuffer: Buffer | undefined = hasBody && req.body ? (req.body as Buffer) : undefined;
+    const body: BodyInit | undefined = hasBody ? (Readable.toWeb(req) as ReadableStream) : undefined;
 
     let proxyResponse: globalThis.Response;
     try {
@@ -164,7 +166,9 @@ export class CliWorkbookController {
         headers: {
           'Content-Type': req.headers['content-type'] || 'application/octet-stream',
         },
-        body: bodyBuffer as BodyInit | undefined,
+        body,
+        // @ts-expect-error -- Node fetch requires duplex for streaming request bodies
+        duplex: 'half',
       });
     } catch (fetchError) {
       WSLogger.error({
