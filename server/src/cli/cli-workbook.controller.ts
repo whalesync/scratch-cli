@@ -184,7 +184,9 @@ export class CliWorkbookController {
     }
 
     if (!proxyResponse.ok) {
-      const responseBody = await proxyResponse.text().catch(() => '(unable to read body)');
+      // Clone the response so we can read the body for logging without consuming the stream
+      const cloned = proxyResponse.clone();
+      const responseBody = await cloned.text().catch(() => '(unable to read body)');
       WSLogger.error({
         source: 'CliWorkbookController.gitProxy',
         message: `Git backend returned error`,
