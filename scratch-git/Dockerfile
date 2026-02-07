@@ -15,8 +15,8 @@ RUN yarn build
 # Stage 2: Production runtime
 FROM node:22.22.0-alpine AS runner
 
-# Install dumb-init for proper signal handling, and git for git-http-backend
-RUN apk add --no-cache dumb-init git
+# Install dumb-init for proper signal handling, git + git-daemon (provides git-http-backend)
+RUN apk add --no-cache dumb-init git git-daemon
 
 WORKDIR /app
 
