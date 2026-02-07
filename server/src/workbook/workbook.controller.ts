@@ -4,47 +4,24 @@ import {
   Controller,
   Delete,
   Get,
-  Header,
   HttpCode,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
   Req,
-  Sse,
-  UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type {
-  DataFolderGroup,
-  DataFolderPublishStatus,
-  ValidatedAddTableToWorkbookDto,
-  ValidatedSetContentColumnDto,
-  ValidatedSetTitleColumnDto,
-  ValidatedUpdateColumnSettingsDto,
-  WorkbookId,
-} from '@spinner/shared-types';
-import {
-  CreateWorkbookDto,
-  PullFilesDto,
-  SetContentColumnDto,
-  SetTitleColumnDto,
-  UpdateColumnSettingsDto,
-  UpdateWorkbookDto,
-} from '@spinner/shared-types';
-import { Observable } from 'rxjs';
-import { hasAdminToolsPermission } from 'src/auth/permissions';
+import type { DataFolderGroup, DataFolderPublishStatus, WorkbookId } from '@spinner/shared-types';
+import { CreateWorkbookDto, PullFilesDto, UpdateWorkbookDto } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
 import { DataFolderService } from './data-folder.service';
 import { Workbook } from './entities';
-import { SnapshotTable } from './entities/snapshot-table.entity';
 
-import { SnapshotEvent, SnapshotEventService, SnapshotRecordEvent } from './snapshot-event.service';
-import { getSnapshotTableById } from './util';
+import { SnapshotEventService } from './snapshot-event.service';
 import { WorkbookService } from './workbook.service';
 
 @Controller('workbook')
@@ -98,35 +75,6 @@ export class WorkbookController {
     return new Workbook(await this.service.update(id, dto, userToActor(req.user)));
   }
 
-  @Post(':id/add-table')
-  async addTable(
-    @Param('id') id: WorkbookId,
-    @Body() addTableDto: ValidatedAddTableToWorkbookDto,
-    @Req() req: RequestWithUser,
-  ): Promise<SnapshotTable> {
-    const dto = addTableDto;
-    const actor = userToActor(req.user);
-
-    // Verify the user is an admin or owner of the workbookId
-    const workbook = await this.service.findOne(id, actor);
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
-    }
-
-    const createdTable = await this.service.addTableToWorkbook(id, dto, actor);
-    return new SnapshotTable(createdTable);
-  }
-
-  @Patch(':workbookId/tables/:tableId/hide')
-  async hideTable(
-    @Param('workbookId') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body('hidden') hidden: boolean,
-    @Req() req: RequestWithUser,
-  ): Promise<Workbook> {
-    return new Workbook(await this.service.setTableHidden(workbookId, tableId, hidden, userToActor(req.user)));
-  }
-
   @Post(':id/pull-files')
   async pullFiles(
     @Param('id') id: WorkbookId,
@@ -134,169 +82,13 @@ export class WorkbookController {
     @Req() req: RequestWithUser,
   ): Promise<{ jobId: string }> {
     const dto = pullDto;
-    // Support both old field name (snapshotTableIds) and new field name (dataFolderIds) for backward compatibility
-    const folderIds = dto.dataFolderIds ?? dto.snapshotTableIds;
-    return this.service.pullFiles(id, userToActor(req.user), folderIds);
+    return this.service.pullFiles(id, userToActor(req.user), dto.dataFolderIds);
   }
 
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
     await this.service.delete(id, userToActor(req.user));
-  }
-
-  @Patch(':id/tables/:tableId/column-settings')
-  @HttpCode(204)
-  async updateColumnSettings(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body() updateColumnSettingsDto: UpdateColumnSettingsDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    const dto = updateColumnSettingsDto as ValidatedUpdateColumnSettingsDto;
-    await this.service.updateColumnSettings(workbookId, tableId, dto.columnSettings, userToActor(req.user));
-  }
-
-  @Patch(':id/tables/:tableId/title-column')
-  @HttpCode(204)
-  async setTitleColumn(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body() setTitleColumnDto: SetTitleColumnDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    const dto = setTitleColumnDto as ValidatedSetTitleColumnDto;
-    await this.service.setTitleColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
-  }
-
-  @Patch(':id/tables/:tableId/content-column')
-  @HttpCode(204)
-  async setContentColumn(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body() setContentColumnDto: SetContentColumnDto,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    const dto = setContentColumnDto as ValidatedSetContentColumnDto;
-    await this.service.setContentColumn(workbookId, tableId, dto.columnId, userToActor(req.user));
-  }
-
-  @Post(':id/tables/:tableId/clear-active-record-filter')
-  @HttpCode(204)
-  async clearActiveRecordFilter(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.clearActiveRecordFilter(workbookId, tableId, userToActor(req.user));
-  }
-
-  /**
-   * SSE endpoint to stream record changes for a snapshot table.
-   * GET /workbook/:id/tables/:tableId/records/events
-   */
-
-  @Sse(':id/tables/:tableId/records/events')
-  @Header('Content-Type', 'text/event-stream')
-  @Header('Cache-Control', 'no-cache')
-  @Header('Connection', 'keep-alive')
-  async subscribeRecordEvents(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<Observable<SnapshotRecordEvent>> {
-    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
-
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
-    }
-
-    const snapshotTable = getSnapshotTableById(workbook, tableId);
-    if (!snapshotTable) {
-      throw new NotFoundException(`Table ${tableId} not found in workbook`);
-    }
-
-    return this.snapshotEventService.getRecordEvents(workbook, snapshotTable.id);
-  }
-
-  /**
-   * SSE endpoint to stream record changes for a snapshot table.
-   * GET /workbook/:id/tables/:tableId/records/events
-   */
-
-  @Sse(':id/events')
-  @Header('Content-Type', 'text/event-stream')
-  @Header('Cache-Control', 'no-cache')
-  @Header('Connection', 'keep-alive')
-  async subscribeSnapshotEvents(
-    @Param('id') workbookId: WorkbookId,
-    @Req() req: RequestWithUser,
-  ): Promise<Observable<SnapshotEvent>> {
-    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
-
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
-    }
-
-    return this.snapshotEventService.getSnapshotEvents(workbook);
-  }
-
-  // TODO: move this endpoint to some kind of debug controller.
-
-  @Post(':id/tables/:tableId/records/events/test')
-  async sendTestRecordEvent(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<string> {
-    if (!hasAdminToolsPermission(req.user)) {
-      throw new UnauthorizedException('Only admins can send test record events');
-    }
-
-    const workbook = await this.service.findOne(workbookId, userToActor(req.user));
-    if (!workbook) {
-      throw new NotFoundException('Workbook not found');
-    }
-    const event: SnapshotRecordEvent = {
-      type: 'record-changes',
-      data: {
-        tableId,
-        numRecords: 1,
-        changeType: 'suggested',
-        source: 'agent',
-      },
-    };
-    this.snapshotEventService.sendRecordEvent(workbookId, tableId, event);
-    return 'event sent at ' + new Date().toISOString();
-  }
-
-  @Post(':id/tables/:tableId/hide-column')
-  async hideColumn(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body() hideColumnDto: { columnId: string },
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.hideColumn(workbookId, tableId, hideColumnDto.columnId, userToActor(req.user));
-  }
-
-  @Post(':id/tables/:tableId/unhide-column')
-  async unhideColumn(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Body() unhideColumnDto: { columnId: string },
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.unhideColumn(workbookId, tableId, unhideColumnDto.columnId, userToActor(req.user));
-  }
-
-  @Post(':id/tables/:tableId/clear-hidden-columns')
-  async clearHiddenColumns(
-    @Param('id') workbookId: WorkbookId,
-    @Param('tableId') tableId: string,
-    @Req() req: RequestWithUser,
-  ): Promise<void> {
-    await this.service.clearHiddenColumns(workbookId, tableId, userToActor(req.user));
   }
 
   @Post(':id/discard-changes')

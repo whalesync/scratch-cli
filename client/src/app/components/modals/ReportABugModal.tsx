@@ -24,7 +24,7 @@ export function ReportABugModal() {
   const closeReportABugModal = useLayoutManagerStore((state) => state.closeReportABugModal);
   const [bugReportScreenshot, setBugReportScreenshot] = useState<string | null>(null);
 
-  const { workbook, activeTable } = useActiveWorkbook();
+  const { workbook } = useActiveWorkbook();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +95,6 @@ export function ReportABugModal() {
           pageUrl: pathname,
           // add some additional context based on the page the user is on
           workbookId: isWorkbookPage ? workbook?.id : undefined,
-          snapshotTableId: isWorkbookPage ? activeTable?.id : undefined,
           screenshot: bugReportScreenshot || undefined,
         });
         form.reset();

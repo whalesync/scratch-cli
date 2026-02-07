@@ -10,7 +10,6 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { WorkbookInspector } from '@/app/workbooks/[...slug]/components/devtool/WorkbookInspector';
 import { PublishDataFolderWorkflow } from '@/app/workbooks/[...slug]/components/PublishDataFolderWorkflow';
-import { PublishWorkbookWorkflow } from '@/app/workbooks/[...slug]/components/PublishWorkbookWorkflow';
 import { WorkbookHeader } from '@/app/workbooks/[...slug]/components/WorkbookHeader';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
@@ -44,7 +43,7 @@ const MAX_LIST_WIDTH = 600;
 
 function WorkbookFilesPageContent() {
   const { isDevToolsEnabled } = useDevTools();
-  const { tableId: pathTableId, viewType } = useWorkbookParams();
+  const { dataFolderId: pathTableId, viewType } = useWorkbookParams();
   // Set initial accordion based on deep link view type
   const [accordionValue, setAccordionValue] = useState<string | null>(viewType === 'review' ? 'changes' : 'apps');
   // const activeTab = useWorkbookEditorUIStore((state) => state.activeTab); // Unused
@@ -327,7 +326,6 @@ export default function WorkbookNewPage() {
   return (
     <>
       <WorkbookFilesPageContent />
-      <PublishWorkbookWorkflow />
       <PublishDataFolderWorkflow />
       <WorkbookEditorModals />
     </>

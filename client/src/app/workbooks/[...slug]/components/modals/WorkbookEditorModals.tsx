@@ -1,5 +1,4 @@
 import { DeleteWorkbookModal } from './DeleteWorkbookModal';
-import { PullTableDataModal } from './PullTableDataModal';
 import { RenameWorkbookModal } from './RenameWorkbookModal';
 
 /**
@@ -12,7 +11,6 @@ export const WorkbookEditorModals = () => {
     <>
       <RenameWorkbookModal />
       <DeleteWorkbookModal />
-      <PullTableDataModal />
     </>
   );
 };

@@ -17,8 +17,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
   const closeFileTabs = useWorkbookEditorUIStore((state) => state.closeFileTabs);
   const setActiveFileTab = useWorkbookEditorUIStore((state) => state.setActiveFileTab);
-  const activeCells = useWorkbookEditorUIStore((state) => state.activeCells);
-  const setActiveCells = useWorkbookEditorUIStore((state) => state.setActiveCells);
   const { folders } = useDataFolders();
 
   // Context menu state
@@ -33,11 +31,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
 
   const handleTabClick = (tabId: string) => {
     setActiveFileTab(tabId);
-    setActiveCells({
-      recordId: tabId,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
     onTabChange?.(tabId);
   };
 
@@ -45,35 +38,17 @@ export function TabBar({ onTabChange }: TabBarProps) {
     e.stopPropagation();
     // Close tab and handle active tab switching
     closeFileTab(tabId);
-    // Update activeCells based on new active tab
-    const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
-    setActiveCells({
-      recordId: newActiveId ?? undefined,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
   };
 
   // Context menu handlers
   const handleCloseAllTabs = () => {
     const allTabIds = openFileTabs.map((tab) => tab.id);
     closeFileTabs(allTabIds);
-    setActiveCells({
-      recordId: undefined,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
   };
 
   const handleCloseOtherTabs = (tabId: string) => {
     const otherTabIds = openFileTabs.filter((tab) => tab.id !== tabId).map((tab) => tab.id);
     closeFileTabs(otherTabIds);
-    // Update activeCells to the remaining tab
-    setActiveCells({
-      recordId: tabId,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
   };
 
   const handleCloseTabsToRight = (tabId: string) => {
@@ -82,13 +57,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
 
     const tabsToClose = openFileTabs.slice(tabIndex + 1).map((tab) => tab.id);
     closeFileTabs(tabsToClose);
-    // Update activeCells if needed
-    const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
-    setActiveCells({
-      recordId: newActiveId ?? undefined,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
   };
 
   const handleCloseTabsToLeft = (tabId: string) => {
@@ -97,13 +65,6 @@ export function TabBar({ onTabChange }: TabBarProps) {
 
     const tabsToClose = openFileTabs.slice(0, tabIndex).map((tab) => tab.id);
     closeFileTabs(tabsToClose);
-    // Update activeCells if needed
-    const newActiveId = useWorkbookEditorUIStore.getState().activeFileTabId;
-    setActiveCells({
-      recordId: newActiveId ?? undefined,
-      columnId: activeCells?.columnId,
-      viewType: 'md',
-    });
   };
 
   return (

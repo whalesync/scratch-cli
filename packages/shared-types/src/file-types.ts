@@ -3,7 +3,7 @@
  */
 
 import { Service } from './enums';
-import { DataFolderId, FileId, FolderId, SnapshotTableId } from './ids';
+import { DataFolderId, FileId } from './ids';
 
 /**
  * Reference to a file in the workbook
@@ -13,7 +13,7 @@ export interface FileRefEntity {
   id: FileId;
   name: string;
   /** ID of the parent folder, or null if at workbook root */
-  parentFolderId: FolderId | DataFolderId | null;
+  parentFolderId: DataFolderId | null;
   /** Full path of the file, e.g. "/folder/file.md" */
   path: string;
   /** Whether the file has unpublished changes */
@@ -27,16 +27,14 @@ export interface FileRefEntity {
  */
 export interface FolderRefEntity {
   type: 'folder';
-  id: FolderId;
+  id: DataFolderId;
   name: string;
   /** ID of the parent folder, or null if at workbook root */
-  parentFolderId: FolderId | null;
+  parentFolderId: DataFolderId | null;
   /** Full path of the folder, e.g. "/parent/child" */
   path: string;
   /** Service type if folder is linked to a snapshot table */
   connectorService?: Service | null;
-  /** Whether the folder is linked to a snapshot table */
-  snapshotTableId?: SnapshotTableId | null;
   /** Remote ID of the source table if synced */
   remoteId?: string | string[] | null;
 }

@@ -1,5 +1,5 @@
 import { RouteUrls } from '@/utils/route-urls';
-import { DataFolderId, SnapshotTable, SnapshotTableId, Workbook, WorkbookId } from '@spinner/shared-types';
+import { DataFolder, DataFolderId, Workbook, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
 
 // Transient ID for a tab that doesn't have a table yet.
@@ -14,28 +14,22 @@ export type NewTabState = {
 
 export type TableTabState = {
   type: 'table';
-  id: SnapshotTableId;
+  id: DataFolderId;
   // TODO Add all current state of the UI in the tab that's not stored in the workbook.
 };
 
-export type TabId = NewTabId | SnapshotTableId | DataFolderId;
+export type TabId = NewTabId | DataFolderId;
 export type TabState = NewTabState | TableTabState;
 
 export type RecordViewType = 'details' | 'md';
 
 export interface FileTab {
-  id: string; // FileId or FolderId
+  id: string; // full path
   type: 'file' | 'folder' | 'add-table' | 'syncs-view';
   title: string;
   path: string; // Full path for determining hierarchy (e.g., closing tabs when parent folder deleted)
   initialViewMode?: 'original-current-split' | 'original-current' | 'current' | 'original';
 }
-
-export type ActiveCells = {
-  recordId: string | undefined;
-  columnId: string | undefined;
-  viewType?: RecordViewType;
-};
 
 export enum WorkbookModals {
   CREATE_SCRATCH_COLUMN = 'create_scratch_column',
@@ -48,7 +42,6 @@ export enum WorkbookModals {
 export type WorkbookMode = 'scratchsync';
 
 export type WorkbookModalParams =
-  | { type: WorkbookModals.CREATE_SCRATCH_COLUMN; tableId: SnapshotTableId }
   | { type: WorkbookModals.KEYBOARD_SHORTCUT_HELP }
   | { type: WorkbookModals.RENAME_WORKBOOK }
   | {
@@ -63,7 +56,6 @@ export interface WorkbookEditorUIState {
   // The real entities are available with useActiveWorkbook() hook.
   workbookId: WorkbookId | null;
   activeTab: TabId | null;
-  activeCells: ActiveCells | null;
   recordDetailsVisible: boolean;
 
   tabs: (TableTabState | NewTabState)[];
@@ -78,10 +70,6 @@ export interface WorkbookEditorUIState {
   // UI state for the chat panel.
   chatOpen: boolean;
 
-  // UI state for the publish confirmation modal (tables).
-  publishConfirmationOpen: boolean;
-  preselectedPublishTableIds: SnapshotTableId[] | null;
-
   // UI state for the data folder publish confirmation modal.
   dataFolderPublishConfirmationOpen: boolean;
   preselectedPublishDataFolderIds: DataFolderId[] | null;
@@ -92,18 +80,11 @@ export interface WorkbookEditorUIState {
 }
 
 type Actions = {
-  openWorkbook: (params: {
-    workbookId: WorkbookId;
-    tableId?: SnapshotTableId;
-    recordId?: string;
-    columnId?: string;
-    mode?: WorkbookMode;
-  }) => void;
+  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId; mode?: WorkbookMode }) => void;
   closeWorkbook: () => void;
   reconcileWithWorkbook: (workbook: Workbook) => void;
 
   setActiveTab: (activeTab: TabId) => void;
-  setActiveCells: (activeCells: ActiveCells | null) => void;
 
   openNewBlankTab: () => void;
   closeTab: (id: TabId) => void;
@@ -121,9 +102,6 @@ type Actions = {
   openChat: () => void;
   closeChat: () => void;
 
-  openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) => void;
-  closePublishConfirmation: () => void;
-
   openDataFolderPublishConfirmation: (preselectedFolderIds?: DataFolderId[]) => void;
   closeDataFolderPublishConfirmation: () => void;
 
@@ -136,7 +114,6 @@ type WorkbookEditorUIStore = WorkbookEditorUIState & Actions;
 const INITIAL_STATE: WorkbookEditorUIState = {
   workbookId: null,
   activeTab: null, // Will pick an initial tab in reconcileWithWorkbook.
-  activeCells: null,
   recordDetailsVisible: false,
   tabs: [],
 
@@ -144,8 +121,6 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   activeFileTabId: null,
   devToolsOpen: false,
   chatOpen: true,
-  publishConfirmationOpen: false,
-  preselectedPublishTableIds: null,
   dataFolderPublishConfirmationOpen: false,
   preselectedPublishDataFolderIds: null,
   activeModal: null,
@@ -154,17 +129,10 @@ const INITIAL_STATE: WorkbookEditorUIState = {
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openWorkbook: (params: {
-    workbookId: WorkbookId;
-    tableId?: TabId;
-    recordId?: string;
-    columnId?: string;
-    workbookMode?: WorkbookMode;
-  }) => {
+  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId; workbookMode?: WorkbookMode }) => {
     set({
       workbookId: params.workbookId,
-      activeTab: params.tableId ?? null,
-      activeCells: params.recordId ? { recordId: params.recordId, columnId: params.columnId } : null,
+      activeTab: params.tabId ?? null,
       workbookMode: params.workbookMode ?? 'scratchsync',
     });
   },
@@ -174,11 +142,6 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   setActiveTab: (activeTab: TabId) => {
     set({ activeTab });
     RouteUrls.updateWorkbookPath(get().workbookId ?? '', activeTab);
-  },
-  setActiveCells: (activeCells: ActiveCells | null) => {
-    const current = get();
-    set({ activeCells, recordDetailsVisible: !!activeCells?.recordId });
-    RouteUrls.updateWorkbookPath(current.workbookId ?? '', current.activeTab || undefined, activeCells?.recordId);
   },
   openNewBlankTab: () => {
     const newTab = newBlankTab();
@@ -316,10 +279,6 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   openChat: () => set({ chatOpen: true }),
   closeChat: () => set({ chatOpen: false }),
 
-  openPublishConfirmation: (preselectedTableIds?: SnapshotTableId[]) =>
-    set({ publishConfirmationOpen: true, preselectedPublishTableIds: preselectedTableIds ?? null }),
-  closePublishConfirmation: () => set({ publishConfirmationOpen: false, preselectedPublishTableIds: null }),
-
   openDataFolderPublishConfirmation: (preselectedFolderIds?: DataFolderId[]) =>
     set({ dataFolderPublishConfirmationOpen: true, preselectedPublishDataFolderIds: preselectedFolderIds ?? null }),
   closeDataFolderPublishConfirmation: () =>
@@ -346,7 +305,7 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
     const changes: Partial<WorkbookEditorUIState> = reconcileOpenTabs(
       workbook.id,
       current.tabs,
-      workbook.snapshotTables ?? [],
+      workbook.dataFolders ?? [],
       current.activeTab,
     );
 
@@ -357,26 +316,21 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
 function reconcileOpenTabs(
   workbookId: WorkbookId,
   tabs: TabState[],
-  snapshotTables: SnapshotTable[],
+  dataFolders: DataFolder[],
   activeTab: TabId | null,
 ): { tabs: TabState[]; activeTab: TabId | null } {
   let result = { tabs: [...tabs], activeTab };
 
   // Close tabs that no longer exist in the workbook.
   for (const existingTab of result.tabs) {
-    if (
-      existingTab.type === 'table' &&
-      !snapshotTables.find((table) => table.id === existingTab.id && table.hidden === false)
-    ) {
+    if (existingTab.type === 'table' && !dataFolders.find((folder) => folder.id === existingTab.id)) {
       result = closeTabAndFixActiveTab(existingTab.id, result.tabs, result.activeTab);
     }
   }
 
   // Add tabs that exist in the workbook but not in the current tabs.
-  const missingTables = snapshotTables.filter(
-    (table) => table.hidden === false && !result.tabs.find((tab) => tab.id === table.id),
-  );
-  result.tabs = result.tabs.concat(missingTables.map((table) => ({ type: 'table' as const, id: table.id })));
+  const missingFolders = dataFolders.filter((folder) => !result.tabs.find((tab) => tab.id === folder.id));
+  result.tabs = result.tabs.concat(missingFolders.map((folder) => ({ type: 'table' as const, id: folder.id })));
 
   // Add a new blank tab if there are no tables open.
   if (result.tabs.length === 0) {

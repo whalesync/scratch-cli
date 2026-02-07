@@ -42,7 +42,6 @@ The `cluster-types.ts` file defines:
 - Prisma validators for key models:
   - User
   - Snapshot
-  - SnapshotTable
   - StyleGuide
 - Type-safe operations for querying with relationships
 

@@ -160,7 +160,6 @@ model ConnectorAccount {
   healthStatusMessage       String? // Message if health status is not OK
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
-  snapshotTables            SnapshotTable[]
   dataFolders               DataFolder[]
 
   @@index([userId])
@@ -187,115 +186,10 @@ model Workbook {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  snapshotTables    SnapshotTable[]
-  folders           Folder[]
-  dataFolders       DataFolder[]
+  dataFolders DataFolder[]
 
   @@index([userId])
   @@index([organizationId])
-}
-
-///
-/// End "keep in sync" section
-///
-
-///
-/// NOTE: Keep this in sync with packages/shared-types/src/db/snapshot-table.ts
-/// Begin "keep in sync" section
-///
-
-model SnapshotTable {
-  id        String   @id // type: SnapshotTableId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
-  workbookId String
-
-  connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
-  connectorAccountId String?
-
-  // Service type for this table (e.g., CSV, AIRTABLE, NOTION)
-  // Required field - stored denormalized for performance and to support CSV (which has no connector account)
-  connectorService Service
-
-  // Single TableSpec object (not array)
-  tableSpec Json // TableSpec
-
-  /// Map of user settings for the columns in this table
-  /// type: SnapshotColumnSettingsMap.
-  columnSettings Json @default("{}")
-
-  // SQL WHERE clause filter for this table
-  activeRecordSqlFilter String?
-
-  // Page size limit for records (null means unlimited)
-  pageSize Int? @default(25)
-
-  // Current pagination offset (skip) for this table's view state
-  currentSkip Int? @default(0)
-
-  // Whether this table is hidden from the UI
-  hidden Boolean @default(false)
-
-  // Lock indicating an operation in progress: "pull", "publish", or null
-  lock String?
-
-  // Timestamp of the last successful sync (pull or publish)
-  lastSyncTime DateTime?
-
-  // Columns that are hidden from the UI and agent, list of column wsIds
-  hiddenColumns String[] @default([])
-
-  // Dynamic table name in the snapshot schema (e.g., "snt_abc123_my_table")
-  // v0: tableName = wsId from tableSpec.id.wsId
-  // v1: tableName = {id}_{sanitized_name}
-  tableName String @default("")
-
-  // Version of the table naming scheme
-  // v0: uses wsId from connector as table name
-  // v1: uses {id}_{wsId} format
-  version String @default("v0")
-
-  // Whether the table has any dirty records (records with local changes)
-  dirty Boolean @default(false)
-
-  // Path of the table in the workbook folder structure, separated by '/'
-  path String?
-
-  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  folderId String?
-
-  @@index([workbookId])
-  @@index([connectorAccountId])
-  @@index([version])
-  @@index([path])
-  @@index([folderId])
-}
-
-// Folder structure for organizing content within a workbook
-model Folder {
-  id        String   @id // type: FolderId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name String
-  path String? // Cached full path, e.g. "/parent/child"
-
-  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
-  workbookId String
-
-  // Parent folder (null for top-level folders)
-  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId String?
-  children Folder[] @relation("FolderHierarchy")
-
-  // Contents
-  snapshotTables SnapshotTable[]
-
-  @@unique([workbookId, parentId, name])
-  @@index([workbookId])
-  @@index([parentId])
 }
 
 ///
@@ -469,7 +363,7 @@ model DataFolder {
   workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
   workbookId String
 
-  // Optional connector account link (like SnapshotTable)
+  // Optional connector account link
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
   connectorAccountId String?
 

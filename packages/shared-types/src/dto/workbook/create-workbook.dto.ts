@@ -1,18 +1,9 @@
-import { IsArray, IsOptional, IsString } from 'class-validator';
-import type { EntityId } from '../../connector-types';
-import type { ConnectorAccountId } from '../../ids';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreateWorkbookDto {
   @IsOptional()
   @IsString()
   name?: string;
-
-  @IsArray()
-  @IsOptional()
-  tables?: {
-    connectorAccountId: ConnectorAccountId;
-    tableId: EntityId;
-  }[];
 }
 
 export type ValidatedCreateWorkbookDto = CreateWorkbookDto;

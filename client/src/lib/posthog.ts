@@ -168,6 +168,6 @@ function snapshotProperties(workbook: Workbook | undefined | null): Record<strin
   return {
     workbookId: workbook.id,
     workbookName: workbook.name,
-    connector: workbook.snapshotTables?.[0]?.connectorService,
+    connector: workbook.dataFolders?.[0]?.connectorService,
   };
 }

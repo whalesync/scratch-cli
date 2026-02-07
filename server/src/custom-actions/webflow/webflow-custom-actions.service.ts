@@ -41,15 +41,15 @@ export class WebflowCustomActionsService {
    */
   async publishSite(dto: ValidatedWebflowPublishSiteDto, actor: Actor) {
     // Get the snapshot table and verify access through snapshot
-    const snapshotTable = await this.getSnapshotTableWithAccess(dto.snapshotTableId, actor);
+    const dataFolder = await this.getDatFolderWithAccess(dto.snapshotTableId, actor);
 
     // Verify the snapshot table has a connector account
-    if (!snapshotTable.connectorAccountId) {
-      throw new Error('Snapshot table does not have a connector account');
+    if (!dataFolder.connectorAccountId) {
+      throw new Error('Data folder does not have a connector account');
     }
 
     // Verify the connector account exists and user has access
-    const connectorAccount = await this.connectorAccountService.findOne(snapshotTable.connectorAccountId, actor);
+    const connectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, actor);
 
     // Verify it's a Webflow connector
     this.validateWebflowService({ service: connectorAccount.service as Service });
@@ -66,17 +66,20 @@ export class WebflowCustomActionsService {
     }
 
     // Get the table spec from the snapshot table (it's stored as JSON)
-    const tableSpec = snapshotTable.tableSpec as unknown as WebflowTableSpec;
+    // TODO: this no longer works as DataFolder schemas don't match the old WebFlow TableSpec
+    const tableSpec = dataFolder.schema as unknown as WebflowTableSpec;
 
     // Initialize custom actions
     const customActions = new WebflowCustomActions(accessToken);
 
-    // Publish the site
-    const result = await customActions.publishSite({
-      tableSpec,
-    });
+    // // Publish the site
+    // const result = await customActions.publishSite({
+    //   tableSpec,
+    // });
 
-    return result;
+    // return result;
+
+    throw new NotImplementedException('Webflow publishing is not implemented');
   }
 
   /**
@@ -102,26 +105,26 @@ export class WebflowCustomActionsService {
   }
 
   /**
-   * Gets a snapshot table and verifies the user has access through the parent snapshot
+   * Gets a Lined Folder and verifies the user has access through the parent snapshot
    */
-  private async getSnapshotTableWithAccess(snapshotTableId: string, actor: Actor) {
+  private async getDatFolderWithAccess(dataFolderId: string, actor: Actor) {
     // First get the snapshot table to find its parent Workbook
-    const snapshotTable = await this.db.client.snapshotTable.findUniqueOrThrow({
-      where: { id: snapshotTableId },
+    const dataFolder = await this.db.client.dataFolder.findUniqueOrThrow({
+      where: { id: dataFolderId },
     });
 
     // Verify the user has access to the parent snapshot (this enforces organization-level access control)
-    const workbook = await this.workbookService.findOne(snapshotTable.workbookId as WorkbookId, actor);
+    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
     if (!workbook) {
       throw new NotFoundException('Workbook not found or access denied');
     }
 
     // Verify the snapshot table is still part of the snapshot
-    const foundTable = workbook.snapshotTables?.find((t) => t.id === snapshotTableId);
-    if (!foundTable) {
-      throw new NotFoundException('Snapshot table not found in Workbook');
+    const foundFolder = workbook.dataFolders?.find((t) => t.id === dataFolderId);
+    if (!foundFolder) {
+      throw new NotFoundException('Folder was not found in Workbook');
     }
 
-    return foundTable;
+    return foundFolder;
   }
 }

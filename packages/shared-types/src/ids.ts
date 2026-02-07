@@ -14,10 +14,7 @@ export enum IdPrefixes {
   API_TOKEN = 'atk_',
   CONNECTOR_ACCOUNT = 'coa_',
   WORKBOOK = 'wkb_',
-  SNAPSHOT_TABLE = 'snt_',
   SNAPSHOT_RECORD = 'sre_',
-  CUSTOM_CONNECTOR = 'cuc_',
-  SNAPSHOT_TABLE_VIEW = 'stv_',
   STYLE_GUIDE = 'sgd_',
   CSV_FILE_RECORD = 'cfr_', // Record in CSV upload table
   CSV_SNAPSHOT_RECORD = 'csr_', // Record in snapshot created from CSV
@@ -32,7 +29,6 @@ export enum IdPrefixes {
   JOB = 'job_', // Job
   ACTION = 'act_', // Action
   FILE = 'fil_', // File
-  FOLDER = 'fld_', // Folder
   DATA_FOLDER = 'dfd_', // Data folder
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
   SYNC = 'syn_', // Sync
@@ -114,17 +110,6 @@ export function createWorkbookId(): WorkbookId {
   return createId(IdPrefixes.WORKBOOK) as WorkbookId;
 }
 
-// ------- SnapshotTable -------
-export type SnapshotTableId = PrefixedId<IdPrefixes.SNAPSHOT_TABLE>;
-
-export function isSnapshotTableId(id: unknown): id is SnapshotTableId {
-  return isId(id, IdPrefixes.SNAPSHOT_TABLE);
-}
-
-export function createSnapshotTableId(): SnapshotTableId {
-  return createId(IdPrefixes.SNAPSHOT_TABLE) as SnapshotTableId;
-}
-
 // ------- SnapshotRecord -------
 export type SnapshotRecordId = PrefixedId<IdPrefixes.SNAPSHOT_RECORD>;
 
@@ -134,17 +119,6 @@ export function isSnapshotRecordId(id: unknown): id is SnapshotRecordId {
 
 export function createSnapshotRecordId(): SnapshotRecordId {
   return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
-}
-
-// ------- CustomConnector -------
-export type CustomConnectorId = PrefixedId<IdPrefixes.CUSTOM_CONNECTOR>;
-
-export function isCustomConnectorId(id: unknown): id is CustomConnectorId {
-  return isId(id, IdPrefixes.CUSTOM_CONNECTOR);
-}
-
-export function createCustomConnectorId(): CustomConnectorId {
-  return createId(IdPrefixes.CUSTOM_CONNECTOR) as CustomConnectorId;
 }
 
 // ------- StyleGuide -------
@@ -288,17 +262,6 @@ export function isFileId(id: unknown): id is FileId {
 
 export function createFileId(): FileId {
   return createId(IdPrefixes.FILE) as FileId;
-}
-
-// ------- Folder -------
-export type FolderId = PrefixedId<IdPrefixes.FOLDER>;
-
-export function isFolderId(id: unknown): id is FolderId {
-  return isId(id, IdPrefixes.FOLDER);
-}
-
-export function createFolderId(): FolderId {
-  return createId(IdPrefixes.FOLDER) as FolderId;
 }
 
 // ------- DataFolder -------

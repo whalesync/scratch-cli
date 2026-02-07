@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { FileDetailsEntity } from '../../file-types';
-import { DataFolderId, FolderId } from '../../ids';
+import { DataFolderId } from '../../ids';
 
 export interface FileDetailsResponseDto {
   file: FileDetailsEntity;
@@ -37,23 +37,9 @@ export class UpdateFileDto {
   @IsOptional()
   name?: string;
 
-  /** New parent folder ID, or null to move to workbook root */
-  @IsString()
-  @IsOptional()
-  parentFolderId?: FolderId | null;
-
   @IsString()
   @IsOptional()
   content?: string | null;
 }
 
 export type ValidatedUpdateFileDto = UpdateFileDto;
-
-export class CopyFileDto {
-  /** ID of the target folder, or null for workbook root */
-  @IsString()
-  @IsOptional()
-  targetFolderId?: FolderId | null;
-}
-
-export type ValidatedCopyFileDto = CopyFileDto;

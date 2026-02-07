@@ -1,7 +1,19 @@
 import { TSchema } from '@sinclair/typebox';
-import type { EntityId } from '@spinner/shared-types';
+import type { CREATED_FIELD, DELETED_FIELD, EntityId } from '@spinner/shared-types';
 import { PostgresColumnType, SnapshotRecordId } from '@spinner/shared-types';
-import { EditedFieldsMetadata } from 'src/workbook/snapshot-db';
+
+/**
+ * @deprecated This code only exist to keep the connector code compiling. Once that connector code is refactored, this type can be removed.
+ */
+export type EditedFieldsMetadata = {
+  /** Timestamps when the record was created locally. */
+  [CREATED_FIELD]?: string;
+  /** Timestamps when the record was deleted locally. */
+  [DELETED_FIELD]?: string;
+} & {
+  /** The fields that have been edited since last download */
+  [wsId: string]: string;
+};
 
 // Re-export from shared-types for backwards compatibility
 export { PostgresColumnType };
@@ -140,6 +152,9 @@ export type ConnectorRecord = {
   errors?: RecordErrorsMetadata;
 };
 
+/**
+ * @deprecated
+ */
 export type SnapshotRecord = {
   id: {
     // Internal ID for the record.
@@ -164,6 +179,9 @@ export type SnapshotRecord = {
   __old_remote_id: string | null;
 };
 
+/**
+ * @deprecated
+ */
 export type ExistingSnapshotRecord = SnapshotRecord & {
   id: {
     remoteId: string;

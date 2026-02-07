@@ -1,12 +1,8 @@
 import {} from '@/types/server-entities/workbook';
 import {
-  AddTableToWorkbookDto,
   CreateWorkbookDto,
   DataFolderGroup,
   DataFolderPublishStatus,
-  SnapshotTable,
-  SnapshotTableId,
-  UpdateColumnSettingsDto,
   UpdateWorkbookDto,
   Workbook,
   WorkbookId,
@@ -74,97 +70,13 @@ export const workbookApi = {
     }
   },
 
-  addTable: async (id: WorkbookId, dto: AddTableToWorkbookDto): Promise<SnapshotTable> => {
+  async pullFiles(id: WorkbookId): Promise<{ jobId: string }> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<SnapshotTable>(`/workbook/${id}/add-table`, dto);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to add table to workbook');
-    }
-  },
-
-  hideTable: async (workbookId: WorkbookId, tableId: SnapshotTableId, hidden: boolean): Promise<Workbook> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.patch<Workbook>(`/workbook/${workbookId}/tables/${tableId}/hide`, { hidden });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to hide/unhide table');
-    }
-  },
-
-  deleteTable: async (workbookId: WorkbookId, tableId: SnapshotTableId): Promise<Workbook> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.delete<Workbook>(`/workbook/${workbookId}/tables/${tableId}`);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to delete table');
-    }
-  },
-
-  updateColumnSettings: async (
-    id: WorkbookId,
-    tableId: SnapshotTableId,
-    dto: UpdateColumnSettingsDto,
-  ): Promise<void> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbook/${id}/tables/${tableId}/column-settings`, dto);
-    } catch (error) {
-      handleAxiosError(error, 'Failed to update column contexts');
-    }
-  },
-
-  setTitleColumn: async (id: WorkbookId, tableId: SnapshotTableId, columnId: string): Promise<void> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbook/${id}/tables/${tableId}/title-column`, { columnId });
-    } catch (error) {
-      handleAxiosError(error, 'Failed to set title column');
-    }
-  },
-
-  setContentColumn: async (id: WorkbookId, tableId: SnapshotTableId, columnId: string): Promise<void> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbook/${id}/tables/${tableId}/content-column`, { columnId });
-    } catch (error) {
-      handleAxiosError(error, 'Failed to set content column');
-    }
-  },
-
-  async pullFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/pull-files`, { snapshotTableIds });
+      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/pull-files`, {});
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to start files pull');
-    }
-  },
-
-  async publishFiles(id: WorkbookId, snapshotTableIds?: string[]): Promise<{ jobId: string }> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/publish-files`, { snapshotTableIds });
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to start publish files');
-    }
-  },
-  async getOperationCountsFiles(
-    id: WorkbookId,
-  ): Promise<{ tableId: string; creates: number; updates: number; deletes: number }[]> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<{ tableId: string; creates: number; updates: number; deletes: number }[]>(
-        `/workbook/${id}/operation-counts-files`,
-      );
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to get operation counts');
     }
   },
 
@@ -174,42 +86,6 @@ export const workbookApi = {
       await axios.delete(`/workbook/${id}`);
     } catch (error) {
       handleAxiosError(error, 'Failed to delete workbook');
-    }
-  },
-
-  async hideColumn(workbookId: WorkbookId, tableId: SnapshotTableId, columnId: string): Promise<void> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/tables/${tableId}/hide-column`, { columnId });
-    } catch (error) {
-      handleAxiosError(error, 'Failed to hide column');
-    }
-  },
-
-  async unhideColumn(workbookId: WorkbookId, tableId: SnapshotTableId, columnId: string): Promise<void> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/tables/${tableId}/unhide-column`, { columnId });
-    } catch (error) {
-      handleAxiosError(error, 'Failed to unhide column');
-    }
-  },
-
-  async clearHiddenColumns(workbookId: WorkbookId, tableId: SnapshotTableId): Promise<void> {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/tables/${tableId}/clear-hidden-columns`);
-    } catch (error) {
-      handleAxiosError(error, 'Failed to clear hidden columns');
-    }
-  },
-
-  moveFolder: async (workbookId: WorkbookId, folderId: string, parentFolderId: string | null): Promise<void> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      await axios.patch(`/workbook/${workbookId}/folders/${folderId}`, { parentFolderId });
-    } catch (error) {
-      handleAxiosError(error, 'Failed to move folder');
     }
   },
 

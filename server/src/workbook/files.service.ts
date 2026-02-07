@@ -183,7 +183,7 @@ export class FilesService {
   ): Promise<void> {
     await this.verifyWorkbookAccess(workbookId, actor);
 
-    if (updateFileDto.name || updateFileDto.parentFolderId !== undefined) {
+    if (updateFileDto.name) {
       throw new NotImplementedException('move and rename not supported yet');
     }
 

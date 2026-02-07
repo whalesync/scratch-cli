@@ -106,24 +106,24 @@ export class PostHogService implements OnModuleDestroy {
   trackCreateWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
     this.captureEvent(PostHogEventName.WORKBOOK_CREATED, userId, {
       workbookId: workbook.id,
-      numTables: workbook.snapshotTables.length,
-      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
+      numTables: workbook.dataFolders.length,
+      connectors: workbook.dataFolders.map((t) => t.connectorAccount?.service),
     });
   }
 
   trackRemoveWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
     this.captureEvent(PostHogEventName.WORKBOOK_REMOVED, userId, {
       workbookId: workbook.id,
-      numTables: workbook.snapshotTables.length,
-      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
+      numTables: workbook.dataFolders.length,
+      connectors: workbook.dataFolders.map((t) => t.connectorAccount?.service),
     });
   }
 
   trackPublishWorkbook(userId: string, workbook: WorkbookCluster.Workbook): void {
     this.captureEvent(PostHogEventName.WORKBOOK_PUBLISHED, userId, {
       workbookId: workbook.id,
-      numTables: workbook.snapshotTables.length,
-      connectors: workbook.snapshotTables.map((t) => t.connectorAccount?.service),
+      numTables: workbook.dataFolders.length,
+      connectors: workbook.dataFolders.map((t) => t.connectorAccount?.service),
     });
   }
 

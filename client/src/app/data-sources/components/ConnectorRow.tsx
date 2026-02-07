@@ -5,13 +5,11 @@ import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { serviceName } from '@/service-naming-conventions';
 import { Group, Menu, Table } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { AuthType, ConnectorAccount, ConnectorHealthStatus, Service } from '@spinner/shared-types';
 import { ArrowLeftRightIcon, RefreshCcwIcon, SquarePenIcon, Trash2 } from 'lucide-react';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import { RelativeDate } from '../../components/RelativeDate';
-import { CreateWorkbookModal } from './CreateWorkbookModal';
 
 interface ConnectorRowProps {
   connectorAccount: ConnectorAccount;
@@ -42,11 +40,8 @@ export function ConnectorRow({
   onReauthorize,
   testingId,
 }: ConnectorRowProps) {
-  const [opened, { close }] = useDisclosure(false);
-
   return (
     <>
-      <CreateWorkbookModal connectorAccount={connectorAccount} opened={opened} onClose={close} />
       <Table.Tr key={connectorAccount.id}>
         <Table.Td>
           <Group gap="sm">

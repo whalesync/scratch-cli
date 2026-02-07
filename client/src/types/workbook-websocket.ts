@@ -1,4 +1,4 @@
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, WorkbookId } from '@spinner/shared-types';
 
 export type MessageLogItem = {
   message: string;
@@ -13,7 +13,7 @@ export type Subscriptions = {
 export interface WorkbookTableEvent {
   type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
   data: {
-    tableId?: SnapshotTableId;
+    tableId?: DataFolderId;
     source: 'user' | 'agent';
     message?: string;
   };
@@ -22,7 +22,7 @@ export interface WorkbookTableEvent {
 export interface WorkbookTableRecordEvent {
   type: 'record-changes';
   data: {
-    tableId: SnapshotTableId;
+    tableId: DataFolderId;
     numRecords: number;
     changeType: 'suggested' | 'accepted' | 'rejected';
     source: 'user' | 'agent';
@@ -32,6 +32,6 @@ export interface WorkbookTableRecordEvent {
 
 export interface SubscriptionConfirmedEvent {
   workbookId: WorkbookId;
-  tableId?: SnapshotTableId;
+  tableId?: DataFolderId;
   message: string;
 }

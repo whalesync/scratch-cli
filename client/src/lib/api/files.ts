@@ -3,7 +3,6 @@ import {
   DataFolderId,
   FileDetailsResponseDto,
   FileRefEntity,
-  FolderId,
   ListFilesResponseDto,
   UpdateFileDto,
   WorkbookId,
@@ -19,10 +18,7 @@ export const filesApi = {
    * List files and folders at a given path (non-recursive, like `ls`).
    * GET /workbooks/:workbookId/files/list/by-folder?folderId=...
    */
-  listFilesByFolder: async (
-    workbookId: WorkbookId,
-    folderId: DataFolderId | FolderId,
-  ): Promise<ListFilesResponseDto> => {
+  listFilesByFolder: async (workbookId: WorkbookId, folderId: DataFolderId): Promise<ListFilesResponseDto> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.get<ListFilesResponseDto>(`/workbooks/${workbookId}/files/list/by-folder`, {

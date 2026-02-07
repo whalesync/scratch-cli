@@ -1,8 +1,4 @@
-import { Service, SnapshotTableId, WorkbookId } from '../';
 import { EntityId, PostgresColumnType } from '../connector-types';
-import { FolderId } from '../ids';
-import { SnapshotColumnSettingsMap } from '../workbook-types';
-import { Folder } from './folder';
 
 export type ColumnMetadata = {
   textFormat?: 'markdown' | 'html' | 'url' | 'email' | 'phone' | 'csv' | 'rich_text';
@@ -45,34 +41,3 @@ export interface TableSpec {
   // The remoteId of the column that should be used as the main content/body in MD view
   mainContentColumnRemoteId?: string[];
 }
-
-///
-/// NOTE: Keep this in sync with server/prisma/schema.prisma SnapshotTable model
-/// Begin "keep in sync" section
-///
-
-export interface SnapshotTable {
-  id: SnapshotTableId;
-  createdAt: string;
-  updatedAt: string;
-  workbookId: WorkbookId;
-  connectorAccountId: string | null;
-  connectorDisplayName: string | null;
-  connectorService: Service | null;
-  tableSpec: TableSpec;
-  columnSettings: SnapshotColumnSettingsMap;
-  activeRecordSqlFilter: string | null;
-  pageSize: number | null;
-  hidden: boolean;
-  lock: string | null;
-  hiddenColumns: string[];
-  lastSyncTime: string | null;
-  dirty: boolean;
-  path: string | null;
-  folderId: FolderId | null;
-  folder?: Folder | null;
-}
-
-///
-/// End "keep in sync" section
-///

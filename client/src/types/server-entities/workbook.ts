@@ -1,13 +1,5 @@
 import { isNotEmpty } from '@/utils/helpers';
-import {
-  ColumnSpec,
-  PostgresColumnType,
-  Service,
-  SnapshotColumnSettingsMap,
-  SnapshotTable,
-  TableSpec,
-  Workbook,
-} from '@spinner/shared-types';
+import { DataFolder, Service, SnapshotColumnSettingsMap, Workbook } from '@spinner/shared-types';
 import isBoolean from 'lodash/isBoolean';
 import isNumber from 'lodash/isNumber';
 import partition from 'lodash/partition';
@@ -53,54 +45,6 @@ export type RecordErrorsMetadata = {
 
 export interface PullWorkbookResult {
   jobId: string;
-}
-
-export function isTextColumn(column: ColumnSpec) {
-  return column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT;
-}
-
-export function isLargeTextColumn(column: ColumnSpec, value: string | undefined | null) {
-  return (
-    column.metadata?.textFormat === 'markdown' ||
-    column.metadata?.textFormat === 'rich_text' ||
-    column.pgType === PostgresColumnType.JSONB ||
-    (column.pgType === PostgresColumnType.TEXT && value && value.length > 100)
-  );
-}
-
-export function isUrlColumn(column: ColumnSpec, value: string | undefined | null): boolean {
-  if (column.pgType === PostgresColumnType.TEXT && column.name.toLowerCase().includes('url') && value) {
-    try {
-      new URL(value);
-      return true;
-    } catch (error) {
-      console.debug('Failed to parse URL:', error);
-      return false;
-    }
-  }
-
-  return false;
-}
-
-export function formatFieldValue(value: unknown, column: ColumnSpec): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  if (column.pgType === PostgresColumnType.JSONB || column.pgType === PostgresColumnType.TEXT_ARRAY) {
-    // if it's a string most likely it's already a stringified JSON object, so we return it as is.
-    if (typeof value === 'string') {
-      return value;
-    }
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch (error) {
-      console.warn('Failed to stringify JSONB value:', error);
-      return String(value);
-    }
-  }
-
-  return String(value);
 }
 
 export function buildRecordTitle(record: SnapshotRecord): string {
@@ -151,21 +95,6 @@ export function getSafeNumberValue(
   return toNumber(value);
 }
 
-// ------------------------------------------------------------
-export function getSnapshotTableById(workbook: Workbook, tableId: string): SnapshotTable | undefined {
-  return workbook.snapshotTables?.find((t) => t.id === tableId);
-}
-
-export function getTableSpecById(workbook: Workbook, tableId: string): TableSpec | undefined {
-  const table = getSnapshotTableById(workbook, tableId);
-  return table?.tableSpec;
-}
-
-export function getActiveRecordSqlFilterById(workbook: Workbook, tableId: string): string | undefined {
-  const table = getSnapshotTableById(workbook, tableId);
-  return table && table.activeRecordSqlFilter ? table.activeRecordSqlFilter : undefined;
-}
-
 /**
  * Checks if all connections in a workbook are deleted.
  * Returns true if:
@@ -177,17 +106,17 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
   if (!workbook) {
     return false;
   }
-  if (workbook.snapshotTables?.length === 0) {
+  if (workbook.dataFolders?.length === 0) {
     return false;
   }
   // Check if all tables have a deleted connection
   return (
-    workbook.snapshotTables?.every((table) => {
+    workbook.dataFolders?.every((folder) => {
       // CSV tables can't have a deleted connection, so we return false
-      if (table.connectorService === Service.CSV) {
+      if (folder.connectorService === Service.CSV) {
         return false;
       }
-      return table.connectorAccountId === null && table.connectorService !== null;
+      return folder.connectorAccountId === null && folder.connectorService !== null;
     }) ?? false
   );
 }
@@ -195,10 +124,6 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
 export function getConnectorsWithStatus(workbook: Workbook): { connectorService: Service; isBroken: boolean }[] {
   // Collect connector info from both snapshotTables and dataFolders
   const connectorSources = [
-    ...(workbook.snapshotTables ?? []).map((table) => ({
-      connectorService: table.connectorService,
-      connectorAccountId: table.connectorAccountId,
-    })),
     ...(workbook.dataFolders ?? []).map((folder) => ({
       connectorService: folder.connectorService,
       connectorAccountId: folder.connectorAccountId,
@@ -235,9 +160,9 @@ export function hasDeletedServiceConnection(workbook: Workbook | undefined, serv
     return false;
   }
   return (
-    workbook.snapshotTables
-      ?.filter((table) => table.connectorService === service)
-      .every((table) => hasDeletedConnection(table)) ?? false
+    workbook.dataFolders
+      ?.filter((folder) => folder.connectorService === service)
+      .every((folder) => hasDeletedConnection(folder)) ?? false
   );
 }
 
@@ -246,10 +171,10 @@ export function hasDeletedServiceConnection(workbook: Workbook | undefined, serv
  * A deleted connection is when the connector account was removed but the table still exists.
  * This is indicated by connectorAccountId being null while connectorService is not null.
  */
-export function hasDeletedConnection(table: SnapshotTable): boolean {
+export function hasDeletedConnection(folder: DataFolder): boolean {
   // CSV tables can't have a deleted connection, so we return false
-  if (table.connectorService === Service.CSV) {
+  if (folder.connectorService === Service.CSV) {
     return false;
   }
-  return table.connectorAccountId === null && table.connectorService !== null;
+  return folder.connectorAccountId === null && folder.connectorService !== null;
 }

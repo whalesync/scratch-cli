@@ -1,7 +1,5 @@
 import { WorkbookId } from '../ids';
 import { DataFolder } from './data-folder';
-import { Folder } from './folder';
-import { SnapshotTable } from './snapshot-table';
 
 ///
 /// NOTE: Keep this in sync with server/prisma/schema.prisma Workbook model
@@ -13,9 +11,7 @@ export interface Workbook {
   name: string | null;
   createdAt: string;
   updatedAt: string;
-  snapshotTables?: SnapshotTable[];
   dataFolders?: DataFolder[];
-  folders?: Folder[];
   userId: string;
 }
 

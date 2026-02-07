@@ -1,19 +1,7 @@
 import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import {
-  AddTableToWorkbookDto,
-  CreateDataFolderDto,
-  DataFolder,
-  EntityId,
-  Service,
-  SnapshotColumnSettingsMap,
-  SnapshotTable,
-  SnapshotTableId,
-  UpdateWorkbookDto,
-  Workbook,
-  WorkbookId,
-} from '@spinner/shared-types';
+import { CreateDataFolderDto, DataFolder, UpdateWorkbookDto, Workbook, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { dataFolderApi } from '../lib/api/data-folder';
@@ -24,14 +12,6 @@ export interface UseWorkbookReturn {
   error: Error | undefined;
   refreshWorkbook: () => Promise<void>;
   updateWorkbook: (updateDto: UpdateWorkbookDto) => Promise<void>;
-  updateColumnSettings: (tableId: SnapshotTableId, columnSettings: SnapshotColumnSettingsMap) => Promise<void>;
-  hideTable: (tableId: SnapshotTableId) => Promise<void>;
-  unhideTable: (tableId: SnapshotTableId) => Promise<void>;
-  deleteTable: (tableId: SnapshotTableId) => Promise<void>;
-  hideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
-  unhideColumn: (tableId: SnapshotTableId, columnId: string) => Promise<void>;
-  showAllColumns: (tableId: SnapshotTableId) => Promise<void>;
-  addTable: (tableId: EntityId, service: Service, connectorAccountId?: string) => Promise<SnapshotTable>;
   addLinkedDataFolder: (tableId: string[], folderName: string, connectorAccountId: string) => Promise<DataFolder>;
 }
 
@@ -49,24 +29,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
   const refreshWorkbook = useCallback(async () => {
     await mutate();
   }, [mutate]);
-
-  // const publish = useCallback(async () => {
-  //   if (!data || !id) {
-  //     return;
-  //   }
-
-  //   await workbookApi.publish(id);
-  //   // Revalidate the workbook itself
-  //   await mutate();
-
-  //   // Revalidate the records in all tables for this workbook.
-  //   globalMutate(
-  //     (key) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'records' && key[2] === id,
-  //     undefined,
-  //     { revalidate: true },
-  //   );
-  //   globalMutate(SWR_KEYS.operationCounts.get(id), undefined, { revalidate: true });
-  // }, [id, data, mutate, globalMutate]);
 
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {
@@ -86,97 +48,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       globalMutate(SWR_KEYS.workbook.detail(id));
     },
     [globalMutate, id],
-  );
-
-  const updateColumnSettings = useCallback(
-    async (tableId: SnapshotTableId, columnSettings: SnapshotColumnSettingsMap): Promise<void> => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.updateColumnSettings(id, tableId, { columnSettings });
-      globalMutate(SWR_KEYS.workbook.detail(id));
-    },
-    [globalMutate, id],
-  );
-
-  const hideTable = useCallback(
-    async (tableId: SnapshotTableId) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.hideTable(id, tableId, true);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const unhideTable = useCallback(
-    async (tableId: SnapshotTableId) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.hideTable(id, tableId, false);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const deleteTable = useCallback(
-    async (tableId: SnapshotTableId) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.deleteTable(id, tableId);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const hideColumn = useCallback(
-    async (tableId: SnapshotTableId, columnId: string) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.hideColumn(id, tableId, columnId);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const unhideColumn = useCallback(
-    async (tableId: SnapshotTableId, columnId: string) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.unhideColumn(id, tableId, columnId);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const showAllColumns = useCallback(
-    async (tableId: SnapshotTableId) => {
-      if (!id) {
-        return;
-      }
-      await workbookApi.clearHiddenColumns(id, tableId);
-      await mutate();
-    },
-    [id, mutate],
-  );
-
-  const addTable = useCallback(
-    async (tableId: EntityId, service: Service, connectorAccountId?: string): Promise<SnapshotTable> => {
-      if (!id) {
-        throw new Error('Workbook not found');
-      }
-
-      const dto: AddTableToWorkbookDto = { tableId, service, connectorAccountId };
-      const snapshotTable = await workbookApi.addTable(id, dto);
-      await mutate();
-      return snapshotTable;
-    },
-    [id, mutate],
   );
 
   const addLinkedDataFolder = useCallback(
@@ -200,14 +71,6 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     // publish,
     refreshWorkbook,
     updateWorkbook,
-    updateColumnSettings,
-    hideTable,
-    unhideTable,
-    deleteTable,
-    hideColumn,
-    unhideColumn,
-    showAllColumns,
-    addTable,
     addLinkedDataFolder,
   };
 };

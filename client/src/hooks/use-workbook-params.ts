@@ -1,4 +1,4 @@
-import { SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { useParams } from 'next/navigation';
 
 export type FileViewType = 'files' | 'review';
@@ -12,7 +12,7 @@ export function useWorkbookParams() {
   const workbookId = slugArray[0] as WorkbookId;
 
   // URL structure: /workbooks/{workbookId}/{viewType}/{filePath...}
-  // viewType can be 'files', 'review', or a tableId/dataFolderId
+  // viewType can be 'files', 'review', or a dataFolderId
   const secondSegment = slugArray[1];
   const isFileView = secondSegment === 'files' || secondSegment === 'review';
 
@@ -22,25 +22,19 @@ export function useWorkbookParams() {
 
     return {
       workbookId,
-      tableId: undefined as SnapshotTableId | undefined,
-      recordId: undefined as string | undefined,
-      columnId: undefined as string | undefined,
-      workbookMode: 'files' as const,
+      dataFolderId: undefined as DataFolderId | undefined,
+      workbookMode: 'scratchsync' as const,
       viewType,
       filePath,
     };
   }
 
-  // Table/folder page params: /workbooks/{workbookId}/{tableId}/{recordId}/{columnId}
-  const tableId = slugArray[1] as SnapshotTableId | undefined;
-  const recordId = slugArray[2] as string | undefined;
-  const columnId = slugArray[3] as string | undefined;
+  // Table/folder page params: /workbooks/{workbookId}/{dataFolderId}/{recordId}/{columnId}
+  const dataFolderId = slugArray[1] as DataFolderId | undefined;
 
   return {
     workbookId,
-    tableId,
-    recordId,
-    columnId,
+    dataFolderId,
     workbookMode: 'scratchsync' as const,
     viewType: undefined as FileViewType | undefined,
     filePath: undefined as string | undefined,

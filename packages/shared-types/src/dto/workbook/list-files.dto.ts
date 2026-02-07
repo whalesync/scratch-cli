@@ -1,12 +1,12 @@
 import { IsOptional, IsString } from 'class-validator';
 import { FileDetailsEntity, FileOrFolderRefEntity } from '../../file-types';
-import { FolderId } from '../../ids';
+import { DataFolderId } from '../../ids';
 
 export class ListFileDto {
   /** ID of the folder to list contents of. Defaults to workbook root (null). */
   @IsOptional()
   @IsString()
-  folderId?: FolderId;
+  folderId?: DataFolderId;
 }
 
 export type ValidatedListFileDto = ListFileDto;

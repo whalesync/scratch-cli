@@ -105,14 +105,6 @@ Uses Bull queues for:
 - User/organization ownership
 - Configuration metadata
 
-### SnapshotTable
-
-- Table within a snapshot
-- Column settings and configurations
-- Filter definitions
-- Title column specification
-- Connector association
-
 ### Records
 
 - Stored in snapshot-specific schema

@@ -82,12 +82,6 @@ export const AddLinkedFolderTab = () => {
     return searchQuery ? filteredGroups.filter((group) => group.tables.length > 0) : filteredGroups;
   }, [tableGroups, searchQuery]);
 
-  const recentlyClosedTables = useMemo(() => {
-    return (workbook?.snapshotTables || [])
-      .filter((table) => table.hidden)
-      .sort((a, b) => a.tableSpec.name.localeCompare(b.tableSpec.name));
-  }, [workbook?.snapshotTables]);
-
   const handleTableSelect = async (table: TableGroup['tables'][0], group: TableGroup) => {
     if (!workbook) return;
     if (!group.connectorAccountId) return;
@@ -132,19 +126,6 @@ export const AddLinkedFolderTab = () => {
   const treeData: TreeNodeData[] = useMemo(() => {
     const result: TreeNodeData[] = [];
 
-    if (recentlyClosedTables.length > 0) {
-      result.push({
-        value: 'recently-closed',
-        label: 'Recently closed',
-        nodeProps: { type: 'recently-closed-header' },
-        children: recentlyClosedTables.map((table) => ({
-          value: table.id,
-          label: table.tableSpec.name,
-          nodeProps: { type: 'recently-closed-item', table },
-        })),
-      });
-    }
-
     for (const group of groupedTables) {
       const groupKey = createGroupKey(group);
       const children =
@@ -172,7 +153,7 @@ export const AddLinkedFolderTab = () => {
       });
     }
     return result;
-  }, [recentlyClosedTables, groupedTables, workbook?.dataFolders]);
+  }, [groupedTables, workbook?.dataFolders]);
 
   const renderNode = ({
     node,

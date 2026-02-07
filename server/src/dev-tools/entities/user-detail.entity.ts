@@ -9,10 +9,10 @@ export class WorkbookSummary {
   name: string;
   numTables: number;
 
-  constructor(snapshot: WorkbookCluster.Workbook) {
-    this.id = snapshot.id;
-    this.name = snapshot.name ?? 'Unnamed snapshot';
-    this.numTables = snapshot.snapshotTables.length;
+  constructor(workbook: WorkbookCluster.Workbook) {
+    this.id = workbook.id;
+    this.name = workbook.name ?? 'Unnamed snapshot';
+    this.numTables = workbook.dataFolders.length;
   }
 }
 

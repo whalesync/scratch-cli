@@ -1,7 +1,6 @@
 import { WorkbookId } from '@spinner/shared-types';
 import { WorkbookCluster } from '../../db/cluster-types';
 import { DataFolderEntity } from './data-folder.entity';
-import { SnapshotTable as SnapshotTableEntity } from './snapshot-table.entity';
 
 export class Workbook {
   id: WorkbookId;
@@ -10,8 +9,6 @@ export class Workbook {
   updatedAt: Date;
   userId: string | null;
   organizationId: string;
-
-  snapshotTables?: SnapshotTableEntity[];
   dataFolders?: DataFolderEntity[];
 
   constructor(workbook: WorkbookCluster.Workbook) {
@@ -21,7 +18,6 @@ export class Workbook {
     this.updatedAt = workbook.updatedAt;
     this.userId = workbook.userId ?? null;
     this.organizationId = workbook.organizationId;
-    this.snapshotTables = workbook.snapshotTables?.map((st) => new SnapshotTableEntity(st));
     this.dataFolders = workbook.dataFolders?.map((df) => new DataFolderEntity(df));
   }
 }

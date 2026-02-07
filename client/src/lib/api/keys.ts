@@ -1,4 +1,4 @@
-import { DataFolderId, SnapshotTableId, WorkbookId } from '@spinner/shared-types';
+import { DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
@@ -11,27 +11,13 @@ export const SWR_KEYS = {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],
     listKeyMatcher: () => (key: Arguments) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'list',
     detail: (id: WorkbookId) => ['workbook', 'detail', id],
-    records: (workbookId: WorkbookId, tableId: SnapshotTableId, skip?: number, take?: number) => [
-      'workbook',
-      'records',
-      workbookId,
-      tableId,
-      skip,
-      take,
-    ],
     // Matches all SWR keys for records for a given workbook and table
-    recordsKeyMatcher: (workbookId: WorkbookId, tableId: SnapshotTableId) => (key: Arguments) =>
+    recordsKeyMatcher: (workbookId: WorkbookId, folderId: DataFolderId) => (key: Arguments) =>
       Array.isArray(key) &&
       key[0] === 'workbook' &&
       key[1] === 'records' &&
       key[2] === workbookId &&
-      key[3] === tableId,
-    publishSummary: (id: WorkbookId) => ['workbook', 'publish-summary', id],
-  },
-  operationCounts: { get: (id: WorkbookId) => ['operation-counts', id] },
-  view: {
-    list: (workbookId: WorkbookId) => ['view', 'list', workbookId],
-    upsert: () => ['view', 'upsert'],
+      key[3] === folderId,
   },
   users: {
     activeUser: () => ['users', 'activeUser'],
@@ -40,10 +26,7 @@ export const SWR_KEYS = {
     plans: () => ['billing', 'plans'],
   },
   files: {
-    list: (workbookId: WorkbookId) => ['files', 'list', workbookId] as const,
     listByFolder: (workbookId: WorkbookId, folderId: string) => ['files', 'list', workbookId, folderId] as const,
-    listDetails: (workbookId: WorkbookId, folderId?: string | null) =>
-      ['files', 'listDetails', workbookId, folderId ?? 'root'] as const,
     detail: (workbookId: WorkbookId, fileId: string) => ['files', 'detail', workbookId, fileId] as const,
     // Matches all file list keys for a workbook
     listKeyMatcher: (workbookId: WorkbookId) => (key: Arguments) =>

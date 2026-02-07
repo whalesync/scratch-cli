@@ -128,22 +128,7 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
       message: 'subscribed to workbook events',
     });
 
-    const snapshotTables = snapshot.snapshotTables ?? [];
-
-    snapshotTables.forEach((snapshotTable) => {
-      const tableObservable = this.snapshotEventService.getRecordEvents(snapshot, snapshotTable.id);
-      if (tableObservable) {
-        tableObservable.subscribe((event) => {
-          // send a confirmation message to the client
-          client.emit('record-event', event);
-        });
-        client.emit('record-event-subscription-confirmed', {
-          workbookId,
-          tableId: snapshotTable.id,
-          message: 'subscribed to record events',
-        });
-      }
-    });
+    // TODO - subscribe to data folders updating
   }
 
   private getServer(): Server {
