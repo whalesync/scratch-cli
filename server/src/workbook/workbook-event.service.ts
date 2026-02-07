@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { WSLogger } from 'src/logger';
 import { RedisPubSubService } from 'src/redis/redis-pubsub.service';
 
-export interface SnapshotRecordEvent {
+export interface WorkbookRecordEvent {
   type: 'record-changes';
   data: {
     tableId: string;
@@ -16,8 +16,8 @@ export interface SnapshotRecordEvent {
   };
 }
 
-export interface SnapshotEvent {
-  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
+export interface WorkbookEvent {
+  type: 'workbook-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
   data: {
     tableId?: string;
     source: 'user' | 'agent';
@@ -26,24 +26,24 @@ export interface SnapshotEvent {
 }
 
 @Injectable()
-export class SnapshotEventService {
+export class WorkbookEventService {
   constructor(private readonly redisPubSub: RedisPubSubService) {}
 
-  getRecordEvents(workbook: Workbook, tableId: string): Observable<SnapshotRecordEvent> {
+  getRecordEvents(workbook: Workbook, tableId: string): Observable<WorkbookRecordEvent> {
     const channel = this.createKey('records', workbook.id as WorkbookId, tableId);
-    return this.redisPubSub.subscribe<SnapshotRecordEvent>(channel);
+    return this.redisPubSub.subscribe<WorkbookRecordEvent>(channel);
   }
 
-  getSnapshotEvents(workbook: Workbook): Observable<SnapshotEvent> {
-    const channel = this.createKey('snapshot', workbook.id as WorkbookId);
-    return this.redisPubSub.subscribe<SnapshotEvent>(channel);
+  getWorkbookEvents(workbook: Workbook): Observable<WorkbookEvent> {
+    const channel = this.createKey('workbook', workbook.id as WorkbookId);
+    return this.redisPubSub.subscribe<WorkbookEvent>(channel);
   }
 
-  sendRecordEvent(workbookId: WorkbookId, tableId: string, event: SnapshotRecordEvent): void {
+  sendRecordEvent(workbookId: WorkbookId, tableId: string, event: WorkbookRecordEvent): void {
     const channel = this.createKey('records', workbookId, tableId);
     this.redisPubSub.publish(channel, event).catch((error) => {
       WSLogger.error({
-        source: SnapshotEventService.name,
+        source: WorkbookEventService.name,
         message: 'Failed to publish record event to Redis',
         error: error,
         channel: channel,
@@ -52,12 +52,12 @@ export class SnapshotEventService {
     });
   }
 
-  sendSnapshotEvent(workbookId: WorkbookId, event: SnapshotEvent): void {
-    const channel = this.createKey('snapshot', workbookId);
+  sendWorkbookEvent(workbookId: WorkbookId, event: WorkbookEvent): void {
+    const channel = this.createKey('workbook', workbookId);
     this.redisPubSub.publish(channel, event).catch((error) => {
       WSLogger.error({
-        source: SnapshotEventService.name,
-        message: 'Failed to publish snapshot event to Redis',
+        source: WorkbookEventService.name,
+        message: 'Failed to publish workbook event to Redis',
         error: error,
         channel: channel,
         event: event,

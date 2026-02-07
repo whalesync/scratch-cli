@@ -1,5 +1,5 @@
 import { TSchema } from '@sinclair/typebox';
-import type { CREATED_FIELD, DELETED_FIELD, EntityId } from '@spinner/shared-types';
+import type { EntityId } from '@spinner/shared-types';
 import { PostgresColumnType, SnapshotRecordId } from '@spinner/shared-types';
 
 /**
@@ -7,9 +7,9 @@ import { PostgresColumnType, SnapshotRecordId } from '@spinner/shared-types';
  */
 export type EditedFieldsMetadata = {
   /** Timestamps when the record was created locally. */
-  [CREATED_FIELD]?: string;
+  ['__created']?: string;
   /** Timestamps when the record was deleted locally. */
-  [DELETED_FIELD]?: string;
+  ['__deleted']?: string;
 } & {
   /** The fields that have been edited since last download */
   [wsId: string]: string;
@@ -188,6 +188,9 @@ export type ExistingSnapshotRecord = SnapshotRecord & {
   };
 };
 
+/**
+ * @deprecated
+ */
 export type SnapshotRecordSanitizedForUpdate = {
   id: {
     // Internal ID for the record.

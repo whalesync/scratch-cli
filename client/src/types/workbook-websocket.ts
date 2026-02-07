@@ -11,7 +11,7 @@ export type Subscriptions = {
 };
 
 export interface WorkbookTableEvent {
-  type: 'snapshot-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
+  type: 'workbook-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
   data: {
     tableId?: DataFolderId;
     source: 'user' | 'agent';

@@ -23,7 +23,6 @@ export enum IdPrefixes {
   AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',
   SUBSCRIPTION = 'sub_',
   INVOICE_RESULT = 'inv_',
-  UPLOAD = 'upl_',
   AUDIT_LOG_EVENT = 'ael_', // Audit log event
   ORGANIZATION = 'org_', // Organization
   JOB = 'job_', // Job
@@ -111,12 +110,21 @@ export function createWorkbookId(): WorkbookId {
 }
 
 // ------- SnapshotRecord -------
+/**
+ * @deprecated
+ */
 export type SnapshotRecordId = PrefixedId<IdPrefixes.SNAPSHOT_RECORD>;
 
+/**
+ * @deprecated
+ */
 export function isSnapshotRecordId(id: unknown): id is SnapshotRecordId {
   return isId(id, IdPrefixes.SNAPSHOT_RECORD);
 }
 
+/**
+ * @deprecated
+ */
 export function createSnapshotRecordId(): SnapshotRecordId {
   return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
 }
@@ -176,39 +184,6 @@ export function createInvoiceResultId(): InvoiceResultId {
   return createId(IdPrefixes.INVOICE_RESULT) as InvoiceResultId;
 }
 
-// ------- Upload -------
-export type UploadId = PrefixedId<IdPrefixes.UPLOAD>;
-
-export function isUploadId(id: unknown): id is UploadId {
-  return isId(id, IdPrefixes.UPLOAD);
-}
-
-export function createUploadId(): UploadId {
-  return createId(IdPrefixes.UPLOAD) as UploadId;
-}
-
-// ------- CsvFileRecord -------
-export type CsvFileRecordId = PrefixedId<IdPrefixes.CSV_FILE_RECORD>;
-
-export function isCsvFileRecordId(id: unknown): id is CsvFileRecordId {
-  return isId(id, IdPrefixes.CSV_FILE_RECORD);
-}
-
-export function createCsvFileRecordId(): CsvFileRecordId {
-  return createId(IdPrefixes.CSV_FILE_RECORD) as CsvFileRecordId;
-}
-
-// ------- CsvSnapshotRecord -------
-export type CsvSnapshotRecordId = PrefixedId<IdPrefixes.CSV_SNAPSHOT_RECORD>;
-
-export function isCsvSnapshotRecordId(id: unknown): id is CsvSnapshotRecordId {
-  return isId(id, IdPrefixes.CSV_SNAPSHOT_RECORD);
-}
-
-export function createCsvSnapshotRecordId(): CsvSnapshotRecordId {
-  return createId(IdPrefixes.CSV_SNAPSHOT_RECORD) as CsvSnapshotRecordId;
-}
-
 // ------- AuditLogEvent -------
 export type AuditLogEventId = PrefixedId<IdPrefixes.AUDIT_LOG_EVENT>;
 
@@ -254,12 +229,21 @@ export function createActionId(): ActionId {
 }
 
 // ------- File -------
+/**
+ * @deprecated
+ */
 export type FileId = PrefixedId<IdPrefixes.FILE>;
 
+/**
+ * @deprecated
+ */
 export function isFileId(id: unknown): id is FileId {
   return isId(id, IdPrefixes.FILE);
 }
 
+/**
+ * @deprecated
+ */
 export function createFileId(): FileId {
   return createId(IdPrefixes.FILE) as FileId;
 }

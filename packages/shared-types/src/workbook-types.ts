@@ -11,20 +11,5 @@ export type SnapshotColumnSettings = {
   dataConverter: string | null;
 };
 
-/**
- * Snapshot column contexts are extra settings for columns mapped from Table id to column id.
- * @deprecated - use SnapshotTableColumnContexts instead
- */
-export type SnapshotColumnContexts = {
-  [tableId: string]: SnapshotColumnSettingsMap;
-};
-
 /** Extra settings for columns in a table, mapped by column WS id. */
 export type SnapshotColumnSettingsMap = { [columnWsId: string]: SnapshotColumnSettings };
-
-/**
- * Maps tableId to an SQL WHERE clause that filters records.
- */
-export type ActiveRecordSqlFilter = {
-  [tableId: string]: string;
-};

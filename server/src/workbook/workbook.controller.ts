@@ -21,7 +21,6 @@ import { userToActor } from '../users/types';
 import { DataFolderService } from './data-folder.service';
 import { Workbook } from './entities';
 
-import { SnapshotEventService } from './snapshot-event.service';
 import { WorkbookService } from './workbook.service';
 
 @Controller('workbook')
@@ -30,7 +29,6 @@ import { WorkbookService } from './workbook.service';
 export class WorkbookController {
   constructor(
     private readonly service: WorkbookService,
-    private readonly snapshotEventService: SnapshotEventService,
     private readonly dataFolderService: DataFolderService,
   ) {}
 

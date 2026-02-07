@@ -12,7 +12,7 @@ import { exceptionForConnectorError } from 'src/remote-service/connectors/error'
 import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WSLogger } from '../../../logger';
-import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 
 export type PullLinkedFolderFilesPublicProgress = {
   totalFiles: number;
@@ -45,7 +45,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
     private readonly connectorAccountService: ConnectorAccountService,
-    private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookEventService: WorkbookEventService,
     private readonly scratchGitService: ScratchGitService,
   ) {}
 
@@ -216,8 +216,8 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
 
       publicProgress.totalFiles += files.length;
 
-      this.snapshotEventService.sendSnapshotEvent(dataFolder.workbookId as WorkbookId, {
-        type: 'snapshot-updated',
+      this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+        type: 'workbook-updated',
         data: {
           tableId: dataFolder.id,
           source: 'user',
@@ -300,8 +300,8 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         dataFolderId: dataFolder.id,
       });
 
-      this.snapshotEventService.sendSnapshotEvent(dataFolder.workbookId as WorkbookId, {
-        type: 'snapshot-updated',
+      this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+        type: 'workbook-updated',
         data: {
           tableId: dataFolder.id,
           source: 'agent',

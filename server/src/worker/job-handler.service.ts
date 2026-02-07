@@ -4,7 +4,7 @@ import { ConnectorAccountService } from 'src/remote-service/connector-account/co
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SyncService } from 'src/sync/sync.service';
 import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing.service';
-import { SnapshotEventService } from 'src/workbook/snapshot-event.service';
+import { WorkbookEventService } from 'src/workbook/workbook-event.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ScratchpadConfigService } from '../config/scratchpad-config.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
@@ -21,7 +21,7 @@ export class JobHandlerService {
     private readonly connectorService: ConnectorsService,
     private readonly config: ScratchpadConfigService,
     private readonly connectorAccountService: ConnectorAccountService,
-    private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookEventService: WorkbookEventService,
     private readonly scratchGitService: ScratchGitService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,
@@ -43,7 +43,7 @@ export class JobHandlerService {
           prisma,
           this.connectorService,
           this.connectorAccountService,
-          this.snapshotEventService,
+          this.workbookEventService,
           this.scratchGitService,
         ) as JobHandler<JobDefinition>;
 
@@ -52,7 +52,7 @@ export class JobHandlerService {
           prisma,
           this.connectorService,
           this.connectorAccountService,
-          this.snapshotEventService,
+          this.workbookEventService,
           this.dataFolderPublishingService,
           this.bullEnqueuerService,
         ) as JobHandler<JobDefinition>;

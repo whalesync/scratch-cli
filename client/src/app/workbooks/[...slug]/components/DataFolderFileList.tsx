@@ -99,10 +99,10 @@ export const DataFolderFileList = ({ dataFolderId }: DataFolderFileListProps) =>
   }, []);
 
   const handleFilePublish = useCallback(
-    async (fileId: FileId) => {
+    async (path: string) => {
       if (!workbook?.id) return;
       try {
-        await filesApi.publishFile(workbook.id, fileId);
+        await filesApi.publishFile(workbook.id, path);
         ScratchpadNotifications.success({
           message: 'File published',
         });

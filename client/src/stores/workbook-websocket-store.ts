@@ -83,7 +83,7 @@ export const useWorkbookWebSocketStore = create<WorkbookWebSocketStore>((set, ge
   _handleSnapshotEvent: (event: WorkbookTableEvent, workbookId: WorkbookId) => {
     console.debug('Snapshot event received:', event);
 
-    if (event.type === 'snapshot-updated' || event.type === 'filter-changed') {
+    if (event.type === 'workbook-updated' || event.type === 'filter-changed') {
       get()._addToMessageLog('Mutate snapshot SWR keys');
 
       // Invalidate snapshot detail cache
@@ -131,7 +131,7 @@ export const useWorkbookWebSocketStore = create<WorkbookWebSocketStore>((set, ge
     // Create Socket.IO connection
     const newSocket = io(API_CONFIG.getApiUrl(), {
       transports: ['websocket'],
-      path: '/snapshot-events',
+      path: '/workbook-events',
       auth: {
         token: API_CONFIG.getSnapshotWebsocketToken(),
       },

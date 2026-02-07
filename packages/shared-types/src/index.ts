@@ -13,10 +13,8 @@ export * from './connector-account-types';
 export * from './connector-types';
 export * from './file-types';
 export * from './ids';
-export * from './meta-columns';
 export * from './subscription';
 export * from './sync-mapping';
-export * from './upload-types';
 export * from './workbook-types';
 
 // DTOs

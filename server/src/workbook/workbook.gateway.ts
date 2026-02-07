@@ -17,7 +17,7 @@ import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
 import { WSLogger } from 'src/logger';
 import { userToActor } from 'src/users/types';
-import { SnapshotEventService } from './snapshot-event.service';
+import { WorkbookEventService } from './workbook-event.service';
 import { WorkbookService } from './workbook.service';
 
 @UseGuards(WebSocketAuthGuard)
@@ -25,35 +25,35 @@ import { WorkbookService } from './workbook.service';
   cors: {
     origin: '*', // In production, restrict this to your frontend origin
   },
-  path: '/snapshot-events',
+  path: '/workbook-events',
   transports: ['websocket'],
   // Configure timeouts to be more resilient to browser throttling
   pingTimeout: 60000, // 60 seconds - matches client configuration
   pingInterval: 25000, // 25 seconds - matches client configuration
   upgradeTimeout: 10000, // 10 seconds for transport upgrade
 })
-export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class WorkbookDataGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server?: Server;
 
   constructor(
     readonly configService: ScratchpadConfigService,
-    readonly snapshotEventService: SnapshotEventService,
-    readonly snapshotService: WorkbookService,
+    readonly workbookEventService: WorkbookEventService,
+    readonly workbookService: WorkbookService,
   ) {}
 
   afterInit(server: Server) {
     WSLogger.info({
-      message: 'Snapshot data gateway initialized',
-      source: 'SnapshotDataGateway',
+      message: 'Workbook data gateway initialized',
+      source: 'WorkbookDataGateway',
       server: server.eventNames(),
     });
   }
 
   handleConnection(client: SocketWithUser) {
     WSLogger.info({
-      message: 'Client connected to snapshot data gateway',
-      source: 'SnapshotDataGateway',
+      message: 'Client connected to workbook data gateway',
+      source: 'WorkbookDataGateway',
       userId: client.user?.id || 'unknown',
       auth: client.handshake.auth,
     });
@@ -66,8 +66,8 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
 
   handleDisconnect(client: SocketWithUser) {
     WSLogger.info({
-      message: 'Client disconnected from snapshot data gateway',
-      source: 'SnapshotDataGateway',
+      message: 'Client disconnected from workbook data gateway',
+      source: 'WorkbookDataGateway',
       userId: client.user?.id || 'unknown',
     });
   }
@@ -75,8 +75,8 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
   @SubscribeMessage('ping')
   handleSnapshotEvents(client: SocketWithUser, data: string): void {
     WSLogger.info({
-      message: 'Snapshot events message received',
-      source: 'SnapshotDataGateway',
+      message: 'Workbook events message received',
+      source: 'WorkbookDataGateway',
       data,
       userId: client.user?.id,
     });
@@ -90,8 +90,8 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     @MessageBody() data: { workbookId: WorkbookId },
   ): Promise<void> {
     WSLogger.info({
-      message: 'Subscribe to snapshot message received',
-      source: 'SnapshotDataGateway',
+      message: 'Subscribe to workbook message received',
+      source: 'WorkbookDataGateway',
       data,
     });
 
@@ -99,31 +99,31 @@ export class SnapshotDataGateway implements OnGatewayInit, OnGatewayConnection, 
     if (!client.user) {
       WSLogger.error({
         message: 'User not found',
-        source: 'SnapshotDataGateway',
+        source: 'WorkbookDataGateway',
         data,
       });
       throw new WsException('User not found');
     }
 
     const workbookId = data.workbookId;
-    const snapshot = await this.snapshotService.findOne(workbookId, userToActor(client.user));
-    if (!snapshot) {
+    const workbook = await this.workbookService.findOne(workbookId, userToActor(client.user));
+    if (!workbook) {
       WSLogger.error({
-        message: 'Snapshot not found',
-        source: 'SnapshotDataGateway',
+        message: 'Workbook not found',
+        source: 'WorkbookDataGateway',
         data,
       });
       throw new WsException('Snapshot not found');
     }
 
-    const snapshotObservable = this.snapshotEventService.getSnapshotEvents(snapshot);
-    snapshotObservable.subscribe((event) => {
+    const workbookObservable = this.workbookEventService.getWorkbookEvents(workbook);
+    workbookObservable.subscribe((event) => {
       // todo repackage the event and send to the client
-      client.emit('snapshot-event', event);
+      client.emit('workbook-event', event);
     });
 
     // send a confirmation message to the client
-    client.emit('snapshot-event-subscription-confirmed', {
+    client.emit('workbook-event-subscription-confirmed', {
       workbookId,
       message: 'subscribed to workbook events',
     });

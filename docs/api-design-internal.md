@@ -132,7 +132,7 @@ GET    /workbook/:id/tables/:tableId/records/events # Subscribe to record events
 ### WebSocket
 
 ```
-WS     /snapshot-events                           # Real-time snapshot updates
+WS     /workbook-events                           # Real-time snapshot updates
 ```
 
 ---
@@ -1324,13 +1324,13 @@ Real-time bidirectional communication for snapshot updates.
 ### Connection
 
 ```
-WS /snapshot-events
+WS /workbook-events
 ```
 
 **Authentication:** Token in handshake auth object:
 
 ```javascript
-const socket = io("/snapshot-events", {
+const socket = io("/workbook-events", {
   auth: {
     token: "api_token_or_jwt",
   },

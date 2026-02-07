@@ -12,7 +12,7 @@ import { MAIN_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.serv
 import { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
 import { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import { ConnectorFile } from '../../../remote-service/connectors/types';
-import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 import { PullLinkedFolderFilesJobHandler } from './pull-linked-folder-files.job';
 
 describe('PullLinkedFolderFilesJobHandler', () => {
@@ -20,7 +20,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;
   let mockConnectorService: jest.Mocked<ConnectorsService>;
   let mockConnectorAccountService: jest.Mocked<ConnectorAccountService>;
-  let mockSnapshotEventService: jest.Mocked<SnapshotEventService>;
+  let mockSnapshotEventService: jest.Mocked<WorkbookEventService>;
   let mockScratchGitService: jest.Mocked<ScratchGitService>;
 
   beforeEach(() => {
@@ -40,8 +40,8 @@ describe('PullLinkedFolderFilesJobHandler', () => {
     } as unknown as jest.Mocked<ConnectorAccountService>;
 
     mockSnapshotEventService = {
-      sendSnapshotEvent: jest.fn(),
-    } as unknown as jest.Mocked<SnapshotEventService>;
+      sendWorkbookEvent: jest.fn(),
+    } as unknown as jest.Mocked<WorkbookEventService>;
 
     mockScratchGitService = {
       commitFilesToBranch: jest.fn(),
@@ -384,6 +384,10 @@ describe('PullLinkedFolderFilesJobHandler', () => {
 
     const createMockConnector = () => ({
       pullRecordFiles: jest.fn(),
+      extractConnectorErrorDetails: jest.fn().mockReturnValue({
+        userFriendlyMessage: 'An error occurred',
+        description: 'Test error',
+      }),
     });
 
     const createMockParams = (overrides?: any) => ({
@@ -655,10 +659,10 @@ describe('PullLinkedFolderFilesJobHandler', () => {
 
       await handler.run(params);
 
-      expect(mockSnapshotEventService.sendSnapshotEvent).toHaveBeenCalledWith(
+      expect(mockSnapshotEventService.sendWorkbookEvent).toHaveBeenCalledWith(
         'wkb_123',
         expect.objectContaining({
-          type: 'snapshot-updated',
+          type: 'workbook-updated',
           data: expect.objectContaining({
             tableId: 'dfld_123',
           }),

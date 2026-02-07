@@ -9,7 +9,7 @@ import { exceptionForConnectorError } from 'src/remote-service/connectors/error'
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { WSLogger } from '../../../logger';
 import { DataFolderPublishingService } from '../../../workbook/data-folder-publishing.service';
-import { SnapshotEventService } from '../../../workbook/snapshot-event.service';
+import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 
 export type FolderPublishStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
@@ -54,7 +54,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
     private readonly prisma: PrismaClient,
     private readonly connectorService: ConnectorsService,
     private readonly connectorAccountService: ConnectorAccountService,
-    private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookEventService: WorkbookEventService,
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
@@ -135,7 +135,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
       connectorProgress: {},
     });
 
-    this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
+    this.workbookEventService.sendWorkbookEvent(data.workbookId, {
       type: 'sync-status-changed',
       data: {
         source: 'user',
@@ -256,8 +256,8 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
             }
             totalFilesPublished += count;
 
-            this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
-              type: 'snapshot-updated',
+            this.workbookEventService.sendWorkbookEvent(data.workbookId, {
+              type: 'workbook-updated',
               data: {
                 tableId: dataFolder.id,
                 source: 'user',
@@ -312,8 +312,8 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
           },
         });
 
-        this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
-          type: 'snapshot-updated',
+        this.workbookEventService.sendWorkbookEvent(data.workbookId, {
+          type: 'workbook-updated',
           data: {
             source: 'user',
             tableId: dataFolder.id,
@@ -330,7 +330,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
           data: { lock: null },
         });
 
-        this.snapshotEventService.sendSnapshotEvent(data.workbookId, {
+        this.workbookEventService.sendWorkbookEvent(data.workbookId, {
           type: 'sync-status-changed',
           data: {
             source: 'user',

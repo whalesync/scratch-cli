@@ -15,14 +15,14 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { Actor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
-import { SnapshotEventService } from './snapshot-event.service';
+import { WorkbookEventService } from './workbook-event.service';
 
 @Injectable()
 export class WorkbookService {
   constructor(
     private readonly db: DbService,
     private readonly configService: ScratchpadConfigService,
-    private readonly snapshotEventService: SnapshotEventService,
+    private readonly workbookEventService: WorkbookEventService,
     private readonly posthogService: PostHogService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
@@ -178,7 +178,7 @@ export class WorkbookService {
       include: WorkbookCluster._validator.include,
     });
 
-    this.snapshotEventService.sendSnapshotEvent(id, { type: 'snapshot-updated', data: { source: 'user' } });
+    this.workbookEventService.sendWorkbookEvent(id, { type: 'workbook-updated', data: { source: 'user' } });
 
     await this.auditLogService.logEvent({
       actor,
