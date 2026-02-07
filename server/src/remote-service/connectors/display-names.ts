@@ -3,6 +3,7 @@ import { AirtableConnector } from './library/airtable/airtable-connector';
 import { AudiencefulConnector } from './library/audienceful/audienceful-connector';
 import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { PostgresConnector } from './library/postgres/postgres-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
 import { WordPressConnector } from './library/wordpress/wordpress-connector';
@@ -22,7 +23,7 @@ export function getServiceDisplayName(service: Service): string {
     case Service.CSV:
       return 'CSV';
     case Service.POSTGRES:
-      return 'PostgreSQL';
+      return PostgresConnector.displayName;
     case Service.YOUTUBE:
       return YouTubeConnector.displayName;
     case Service.WORDPRESS:

@@ -39,6 +39,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [domain, setDomain] = useState('');
+  const [connectionString, setConnectionString] = useState('');
   const [newService, setNewService] = useState<Service | null>(null);
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
@@ -71,6 +72,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.WEBFLOW,
         Service.AUDIENCEFUL,
         Service.MOCO,
+        Service.POSTGRES,
       ];
       if (oauthSupportedServices.includes(service)) {
         return 'oauth';
@@ -98,6 +100,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.WEBFLOW,
         Service.AUDIENCEFUL,
         Service.MOCO,
+        Service.POSTGRES,
       ];
       const methods: AuthMethod[] = [];
       if (oauthSupportedServices.includes(service)) {
@@ -129,6 +132,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     setPassword('');
     setEndpoint('');
     setDomain('');
+    setConnectionString('');
     setNewService(null);
     setNewModifier(null);
     setNewDisplayName(null);
@@ -181,9 +185,14 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       newService !== Service.CSV &&
       newService !== Service.WORDPRESS &&
       newService !== Service.MOCO &&
+      newService !== Service.POSTGRES &&
       !newApiKey
     ) {
       setError('API key is required for this service.');
+      return;
+    }
+    if (authMethod === 'user_provided_params' && newService === Service.POSTGRES && !connectionString) {
+      setError('Connection string is required for PostgreSQL.');
       return;
     }
     if (
@@ -196,11 +205,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       setError('Username, password, and endpoint are required for this service.');
       return;
     }
-    if (
-      authMethod === 'user_provided_params' &&
-      newService === Service.MOCO &&
-      (!domain || !newApiKey)
-    ) {
+    if (authMethod === 'user_provided_params' && newService === Service.MOCO && (!domain || !newApiKey)) {
       setError('Domain and API key are required for Moco.');
       return;
     }
@@ -221,7 +226,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               ? { username, password, endpoint }
               : newService === Service.MOCO
                 ? { domain, apiKey: newApiKey }
-                : { apiKey: newApiKey },
+                : newService === Service.POSTGRES
+                  ? { connectionString }
+                  : { apiKey: newApiKey },
         modifier: newModifier || undefined,
         displayName: newDisplayName || undefined,
       });
@@ -409,6 +416,15 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               />
             </Stack>
           )}
+          {authMethod === 'user_provided_params' && newService === Service.POSTGRES && (
+            <TextInput
+              label="Connection String"
+              placeholder="postgres://user:password@host:5432/database"
+              value={connectionString}
+              onChange={(e) => setConnectionString(e.currentTarget.value)}
+              type="password"
+            />
+          )}
           {newService === Service.CSV && (
             <Alert color="blue" title="CSV Connection">
               CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
@@ -418,6 +434,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
             newService !== Service.CSV &&
             newService !== Service.WORDPRESS &&
             newService !== Service.MOCO &&
+            newService !== Service.POSTGRES &&
             getSupportedAuthMethods(newService).includes('user_provided_params') &&
             authMethod === 'user_provided_params' && (
               <TextInput

@@ -8,6 +8,8 @@ export interface DecryptedCredentials {
   endpoint?: string;
   // Moco specific
   domain?: string;
+  // PostgreSQL specific
+  connectionString?: string;
 
   oauthAccessToken?: string;
   oauthRefreshToken?: string;

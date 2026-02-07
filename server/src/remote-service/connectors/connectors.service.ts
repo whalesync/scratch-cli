@@ -9,6 +9,7 @@ import { AirtableConnector } from './library/airtable/airtable-connector';
 import { AudiencefulConnector } from './library/audienceful/audienceful-connector';
 import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
+import { PostgresConnector } from './library/postgres/postgres-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
 import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
@@ -138,6 +139,14 @@ export class ConnectorsService {
           throw new ConnectorInstantiationError('API key is required for Moco', service);
         }
         return new MocoConnector({ domain: decryptedCredentials.domain, apiKey: decryptedCredentials.apiKey });
+      case Service.POSTGRES:
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for PostgreSQL', service);
+        }
+        if (!decryptedCredentials?.connectionString) {
+          throw new ConnectorInstantiationError('Connection string is required for PostgreSQL', service);
+        }
+        return new PostgresConnector({ connectionString: decryptedCredentials.connectionString });
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }

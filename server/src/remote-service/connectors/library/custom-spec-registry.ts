@@ -3,6 +3,7 @@ import { AirtableColumnSpecExtras, AirtableTableSpecExtras } from './airtable/ai
 import { AudiencefulColumnSpecExtras, AudiencefulTableSpecExtras } from './audienceful/audienceful-spec-types';
 import { MocoColumnSpecExtras, MocoTableSpecExtras } from './moco/moco-spec-types';
 import { NotionColumnSpecExtras, NotionTableSpecExtras } from './notion/notion-spec-types';
+import { PostgresColumnSpecExtras, PostgresTableSpecExtras } from './postgres/postgres-spec-types';
 import { WebflowColumnSpecExtras, WebflowTableSpecExtras } from './webflow/webflow-spec-types';
 import { WixBlogColumnSpecExtras, WixBlogTableSpecExtras } from './wix/wix-blog/wix-blog-spec-types';
 import { WordPressColumnSpecExtras, WordPressTableSpecExtras } from './wordpress/wordpress-spec-types';
@@ -34,6 +35,9 @@ export type AudiencefulTableSpec = BaseTableSpec<AudiencefulColumnSpec> & Audien
 export type MocoColumnSpec = BaseColumnSpec & MocoColumnSpecExtras;
 export type MocoTableSpec = BaseTableSpec<MocoColumnSpec> & MocoTableSpecExtras;
 
+export type PostgresColumnSpec = BaseColumnSpec & PostgresColumnSpecExtras;
+export type PostgresTableSpec = BaseTableSpec<PostgresColumnSpec> & PostgresTableSpecExtras;
+
 export type AnyTableSpec = TableSpecs[keyof TableSpecs] & { columns: AnyColumnSpec[] };
 export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
@@ -44,7 +48,7 @@ export interface TableSpecs {
   WORDPRESS: WordPressTableSpec;
   WEBFLOW: WebflowTableSpec;
   WIX_BLOG: WixBlogTableSpec;
-  POSTGRES: BaseTableSpec<BaseColumnSpec>; // TODO - change to PostgresTableSpec once we implement the connector
+  POSTGRES: PostgresTableSpec;
   AUDIENCEFUL: AudiencefulTableSpec;
   MOCO: MocoTableSpec;
 }
@@ -59,7 +63,7 @@ export interface ColumnSpecs {
   WORDPRESS: WordPressColumnSpec;
   WEBFLOW: WebflowColumnSpec;
   WIX_BLOG: WixBlogColumnSpec;
-  POSTGRES: BaseColumnSpec; // TODO - change to PostgresColumnSpec once we implement the connector
+  POSTGRES: PostgresColumnSpec;
   AUDIENCEFUL: AudiencefulColumnSpec;
   MOCO: MocoColumnSpec;
 }
