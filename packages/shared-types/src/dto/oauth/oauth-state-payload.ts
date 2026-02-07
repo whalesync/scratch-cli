@@ -2,6 +2,7 @@ export type OAuthStatePayload = {
   redirectPrefix: string;
   userId: string;
   organizationId: string;
+  workbookId: string;
   service: string;
   connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
   customClientId?: string;

@@ -258,7 +258,7 @@ export class DataFolderService {
 
     if (connectorAccountId && dto.tableId && dto.tableId.length > 0) {
       // Case 1: Connected folder with connector account and table IDs
-      const connectorAccount = await this.connectorAccountService.findOne(connectorAccountId, actor);
+      const connectorAccount = await this.connectorAccountService.findOneById(connectorAccountId, actor);
       if (!connectorAccount) {
         throw new NotFoundException('Connector account not found');
       }
@@ -577,7 +577,7 @@ export class DataFolderService {
     }
 
     if (dataFolder.connectorAccountId && dataFolder.connectorService) {
-      const connectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, actor);
+      const connectorAccount = await this.connectorAccountService.findOneById(dataFolder.connectorAccountId, actor);
       if (!connectorAccount) {
         throw new NotFoundException('Connector account not found');
       }
@@ -683,7 +683,7 @@ export class DataFolderService {
       return null;
     }
 
-    const connectorAccount = await this.connectorAccountService.findOne(folder.connectorAccountId, actor);
+    const connectorAccount = await this.connectorAccountService.findOneById(folder.connectorAccountId, actor);
     if (!connectorAccount) {
       return null;
     }

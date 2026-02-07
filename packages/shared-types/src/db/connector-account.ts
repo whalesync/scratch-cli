@@ -10,6 +10,7 @@ export interface ConnectorAccount {
   createdAt: string; // DateTime
   updatedAt: string; // DateTime
   userId: string; // Uuid
+  workbookId: string; // WorkbookId
   service: Service;
   displayName: string;
   encryptedCredentials: Record<string, string>;

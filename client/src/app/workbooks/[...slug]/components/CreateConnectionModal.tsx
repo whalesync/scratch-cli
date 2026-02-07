@@ -27,11 +27,12 @@ import { useCallback, useState } from 'react';
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
 export type CreateConnectionModalProps = ModalProps & {
+  workbookId: string;
   returnUrl?: string;
 };
 
 export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
-  const { returnUrl, ...modalProps } = props;
+  const { workbookId, returnUrl, ...modalProps } = props;
   const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
@@ -52,7 +53,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const { user, isAdmin } = useScratchPadUser();
   const { canCreateDataSource } = useSubscription();
 
-  const { createConnectorAccount } = useConnectorAccounts();
+  const { createConnectorAccount } = useConnectorAccounts(workbookId);
 
   const getDefaultAuthMethod = useCallback(
     (service: Service): AuthMethod => {
@@ -155,6 +156,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       await initiateOAuth(newService as OAuthService, {
         // (http|https)://<host, e.g. test.scratch.md>
         redirectPrefix: `${window.location.protocol}//${window.location.host}`,
+        workbookId: workbookId,
         connectionMethod: isCustom ? 'OAUTH_CUSTOM' : 'OAUTH_SYSTEM',
         customClientId: isCustom ? customClientId : undefined,
         customClientSecret: isCustom ? customClientSecret : undefined,

@@ -49,7 +49,7 @@ export class WebflowCustomActionsService {
     }
 
     // Verify the connector account exists and user has access
-    const connectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, actor);
+    const connectorAccount = await this.connectorAccountService.findOneById(dataFolder.connectorAccountId, actor);
 
     // Verify it's a Webflow connector
     this.validateWebflowService({ service: connectorAccount.service as Service });

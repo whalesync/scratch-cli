@@ -7,7 +7,7 @@ export type ConnectorAccount = Pick<
   | 'createdAt'
   | 'updatedAt'
   | 'userId'
-  | 'organizationId'
+  | 'workbookId'
   | 'service'
   | 'displayName'
   | 'authType'

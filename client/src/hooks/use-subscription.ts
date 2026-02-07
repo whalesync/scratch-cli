@@ -1,6 +1,5 @@
 import { ScratchPlanType, Service, SubscriptionInfo } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
-import { useConnectorAccounts } from './use-connector-account';
 import { useScratchPadUser } from './useScratchpadUser';
 
 export interface UseSubscriptionReturn {
@@ -54,7 +53,6 @@ const UNKNOWN_SUBSCRIPTION_STATUS: UseSubscriptionReturn = {
  */
 export function useSubscription(): UseSubscriptionReturn {
   const { user } = useScratchPadUser();
-  const { connectorAccounts } = useConnectorAccounts();
 
   const canPublishWorkbook = useMemo(() => {
     if (!user) return false;
@@ -74,27 +72,25 @@ export function useSubscription(): UseSubscriptionReturn {
     return monthlyPublishCount < limit;
   }, [user]);
 
+  /**
+   * Check if the subscription allows creating data sources for a given service.
+   * The actual per-workbook limit enforcement is done server-side when creating the connection.
+   */
   const canCreateDataSource = useCallback(
-    (service: Service) => {
+    // Service parameter kept for API compatibility - limit checking happens server-side
+    (service: Service): boolean => {
+      void service; // Acknowledge parameter for future use
       if (!user) return false;
-      if (!connectorAccounts) return false;
       if (!user.subscription) return false;
 
       if (user.subscription.status !== 'valid') {
         return false;
       }
 
-      const limit = user.subscription.features.dataSourcePerServiceLimit ?? 1;
-
-      if (limit === 0) {
-        // no limit, so always allow
-        return true;
-      }
-
-      const dataSourcesForService = connectorAccounts.filter((ca) => ca.service === service).length ?? 0;
-      return dataSourcesForService < limit;
+      // Return true if subscription allows data sources; server enforces actual limits
+      return user.subscription.features.dataSourcePerServiceLimit !== undefined;
     },
-    [user, connectorAccounts],
+    [user],
   );
 
   const canCreateCredentials = useMemo(() => {

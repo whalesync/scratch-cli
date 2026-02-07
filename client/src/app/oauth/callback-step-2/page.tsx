@@ -83,10 +83,10 @@ export default function OAuthCallbackPage() {
           connectorAccountId: result.connectorAccountId,
         });
 
-        // Redirect to returnPage (if specified) or connections page after a short delay
+        // Redirect to returnPage (if specified) or workbooks page after a short delay
         const returnPage = extractReturnPageFromState();
         setTimeout(() => {
-          router.push(returnPage || RouteUrls.dataSourcesPageUrl);
+          router.push(returnPage || RouteUrls.workbooksPageUrl);
         }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -188,8 +188,8 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
-                Back to Data Sources
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
+                Back to Workbooks
               </ButtonSecondaryOutline>
             </Group>
           </>

@@ -60,15 +60,19 @@ export class CliLinkedController {
   }
 
   /**
-   * List available tables across all connections (or a specific connection).
+   * List available tables from connections in a specific workbook.
    */
-  @Get('linked/available')
-  async listAvailableTables(@Req() req: RequestWithUser, @Query() query: AvailableTablesQueryDto) {
+  @Get('workbooks/:workbookId/connections/all-tables')
+  async listAvailableTables(
+    @Req() req: RequestWithUser,
+    @Param('workbookId') workbookId: string,
+    @Query() query: AvailableTablesQueryDto,
+  ) {
     const actor = userToActor(req.user);
 
     if (query.connectionId) {
       // List tables for a specific connection
-      const account = await this.connectorAccountService.findOne(query.connectionId, actor);
+      const account = await this.connectorAccountService.findOne(workbookId as WorkbookId, query.connectionId, actor);
       if (!account) {
         throw new NotFoundException('Connection not found');
       }
@@ -83,7 +87,7 @@ export class CliLinkedController {
       ];
     }
 
-    return await this.connectorAccountService.listAllUserTables(actor);
+    return await this.connectorAccountService.listAllUserTables(workbookId as WorkbookId, actor);
   }
 
   /**

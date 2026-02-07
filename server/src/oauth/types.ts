@@ -1,10 +1,11 @@
 /**
- * NOTE: Keep in sync with spinner/server/src/oauth/oauth-initiate-options.dto.ts:OAuthStatePayload.
+ * NOTE: Keep in sync with packages/shared-types/src/dto/oauth/oauth-state-payload.ts:OAuthStatePayload.
  */
 export type OAuthStatePayload = {
   redirectPrefix: string;
   userId: string;
   organizationId: string;
+  workbookId: string;
   service: string;
   connectionMethod: 'OAUTH_SYSTEM' | 'OAUTH_CUSTOM';
   customClientId?: string;

@@ -12,7 +12,6 @@ export class RouteUrls {
 
   // Authenticated Routes & Route Generators
   static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
-  static dataSourcesPageUrl = '/data-sources';
   static healthPageUrl = '/health';
   static workbookScratchSyncPageUrl = (id: string) => `/workbooks/${id}`;
   static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
@@ -50,7 +49,6 @@ export class RouteUrls {
 
   static subscriptionRoutePatterns = [
     `^\/$`, // root path
-    RouteUrls.dataSourcesPageUrl,
     RouteUrls.workbooksPageUrl,
     '/workbooks',
   ];

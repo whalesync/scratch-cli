@@ -7,7 +7,6 @@ import { RouteUrls } from '@/utils/route-urls';
 import { UserButton } from '@clerk/nextjs';
 import { Box, Center, Stack, useMantineColorScheme } from '@mantine/core';
 import {
-  BlocksIcon,
   BugIcon,
   ChevronDown,
   CpuIcon,
@@ -37,12 +36,6 @@ const upperMenuItems: MenuItem[] = [
     href: RouteUrls.workbooksPageUrl,
     label: 'Workbooks',
     icon: Table2Icon,
-  },
-  {
-    type: 'link',
-    href: RouteUrls.dataSourcesPageUrl,
-    label: 'Data sources',
-    icon: BlocksIcon,
   },
 ];
 

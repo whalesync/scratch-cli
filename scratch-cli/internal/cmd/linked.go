@@ -33,15 +33,16 @@ Commands:
 
 var linkedAvailableCmd = &cobra.Command{
 	Use:   "available [connection-id]",
-	Short: "List available tables from connections",
-	Long: `List tables available from all connected services, or from a specific connection.
+	Short: "List available tables from connections in the current workbook",
+	Long: `List tables available from connections in the current workbook.
 
-This command does not require a workbook context — it shows tables available
-at the account level across all connector accounts.
+This command requires a workbook context — run from inside a workbook directory
+or use the --workbook flag.
 
 Examples:
   scratchmd linked available
-  scratchmd linked available conn_abc123`,
+  scratchmd linked available conn_abc123
+  scratchmd linked available --workbook wb_abc123`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runLinkedAvailable,
 }
@@ -304,12 +305,17 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	workbookID, err := resolveWorkbookContext(cmd)
+	if err != nil {
+		return err
+	}
+
 	connectionID := ""
 	if len(args) > 0 {
 		connectionID = args[0]
 	}
 
-	groups, err := client.ListAvailableTables(connectionID)
+	groups, err := client.ListAvailableTables(workbookID, connectionID)
 	if err != nil {
 		return fmt.Errorf("failed to list available tables: %w", err)
 	}
@@ -321,9 +327,9 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(groups) == 0 {
-		fmt.Println("No connections found.")
+		fmt.Println("No connections found in this workbook.")
 		fmt.Println()
-		fmt.Println("Connect a service at https://app.scratch.md to see available tables.")
+		fmt.Println("Add a connection in your workbook at https://app.scratch.md to see available tables.")
 		return nil
 	}
 
@@ -451,13 +457,13 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Interactive mode
-	groups, err := client.ListAvailableTables("")
+	groups, err := client.ListAvailableTables(workbookID, "")
 	if err != nil {
 		return fmt.Errorf("failed to list available tables: %w", err)
 	}
 
 	if len(groups) == 0 {
-		return fmt.Errorf("no connections found. Connect a service at https://app.scratch.md first")
+		return fmt.Errorf("no connections found in this workbook. Add a connection in your workbook at https://app.scratch.md first")
 	}
 
 	// Step 1: Select connection

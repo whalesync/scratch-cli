@@ -36,7 +36,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
     } as unknown as jest.Mocked<ConnectorsService>;
 
     mockConnectorAccountService = {
-      findOne: jest.fn(),
+      findOneById: jest.fn(),
     } as unknown as jest.Mocked<ConnectorAccountService>;
 
     mockSnapshotEventService = {
@@ -420,7 +420,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       // Simulate connector pulling files
@@ -466,7 +466,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       // Simulate two batches of files by calling callback twice within pullRecordFiles
@@ -517,7 +517,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       // Simulate pulling only one file
@@ -559,7 +559,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(null);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(null);
 
       await expect(handler.run(params)).rejects.toThrow('Connector account');
     });
@@ -579,7 +579,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
@@ -610,7 +610,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       // Simulate connector error during pull
@@ -637,7 +637,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {
@@ -677,7 +677,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       const params = createMockParams();
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
-      (mockConnectorAccountService.findOne as jest.Mock).mockResolvedValue(connectorAccount);
+      (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(connectorAccount);
       (mockConnectorService.getConnector as jest.Mock).mockResolvedValue(mockConnector);
 
       mockConnector.pullRecordFiles.mockImplementation(async (spec, callback) => {

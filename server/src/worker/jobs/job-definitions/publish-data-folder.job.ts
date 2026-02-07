@@ -210,9 +210,9 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
       // Get connector for this folder
       const service = dataFolder.connectorService;
 
-      let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOne>> | null = null;
+      let decryptedConnectorAccount: Awaited<ReturnType<typeof this.connectorAccountService.findOneById>> | null = null;
       if (dataFolder.connectorAccountId) {
-        decryptedConnectorAccount = await this.connectorAccountService.findOne(dataFolder.connectorAccountId, {
+        decryptedConnectorAccount = await this.connectorAccountService.findOneById(dataFolder.connectorAccountId, {
           userId: data.userId,
           organizationId: data.organizationId,
         });

@@ -3,9 +3,9 @@ import { Arguments } from 'swr';
 
 export const SWR_KEYS = {
   connectorAccounts: {
-    list: () => ['connector-accounts'],
-    detail: (id: string) => ['connector-accounts', 'detail', id],
-    allTables: () => ['connector-accounts', 'all-tables'],
+    list: (workbookId: string) => ['connector-accounts', 'list', workbookId],
+    detail: (workbookId: string, id: string) => ['connector-accounts', 'detail', workbookId, id],
+    allTables: (workbookId: string) => ['connector-accounts', 'all-tables', workbookId],
   },
   workbook: {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],

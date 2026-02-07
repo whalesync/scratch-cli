@@ -6,6 +6,7 @@ import {
   Service,
   UpdateConnectorAccountDto,
   ValidatedCreateConnectorAccountDto,
+  WorkbookId,
 } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -45,8 +46,20 @@ export class ConnectorAccountService {
     };
   }
 
-  async create(createDto: ValidatedCreateConnectorAccountDto, actor: Actor): Promise<ConnectorAccount> {
-    if (!canCreateDataSource(actor.subscriptionStatus, await this.countForType(createDto.service, actor))) {
+  async create(
+    workbookId: WorkbookId,
+    createDto: ValidatedCreateConnectorAccountDto,
+    actor: Actor,
+  ): Promise<ConnectorAccount> {
+    // Verify workbook access
+    const workbook = await this.db.client.workbook.findFirst({
+      where: { id: workbookId, organizationId: actor.organizationId },
+    });
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    if (!canCreateDataSource(actor.subscriptionStatus, await this.countForType(createDto.service, workbookId, actor))) {
       throw new ForbiddenException(
         `You have reached the maximum number of ${getServiceDisplayName(createDto.service)} data sources for your subscription`,
       );
@@ -67,7 +80,7 @@ export class ConnectorAccountService {
       data: {
         id: createConnectorAccountId(),
         userId: actor.userId,
-        organizationId: actor.organizationId,
+        workbookId: workbookId,
         service: createDto.service,
         displayName: createDto.displayName ?? `${_.startCase(createDto.service.toLowerCase())}`,
         authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
@@ -77,7 +90,7 @@ export class ConnectorAccountService {
       },
     });
 
-    const testResult = await this.testConnection(connectorAccount.id, actor);
+    const testResult = await this.testConnection(workbookId, connectorAccount.id, actor);
 
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor.userId, {
       service: createDto.service,
@@ -99,21 +112,52 @@ export class ConnectorAccountService {
     return connectorAccount;
   }
 
-  async findAll(actor: Actor): Promise<ConnectorAccount[]> {
+  async findAll(workbookId: WorkbookId, actor: Actor): Promise<ConnectorAccount[]> {
+    // Workbook ownership verified in controller; workbookId provides scoping
+    void actor;
     return this.db.client.connectorAccount.findMany({
-      where: { organizationId: actor.organizationId },
+      where: { workbookId },
     });
   }
 
-  async countForType(type: Service, actor: Actor): Promise<number> {
+  /**
+   * Find all connector accounts for an organization (admin purposes).
+   * Queries through workbook relation since ConnectorAccount no longer has organizationId.
+   */
+  async findAllForOrganization(actor: Actor): Promise<ConnectorAccount[]> {
+    return this.db.client.connectorAccount.findMany({
+      where: { workbook: { organizationId: actor.organizationId } },
+    });
+  }
+
+  async countForType(type: Service, workbookId: WorkbookId, actor: Actor): Promise<number> {
+    // Workbook ownership verified in controller; workbookId provides scoping
+    void actor;
     return this.db.client.connectorAccount.count({
-      where: { organizationId: actor.organizationId, service: type },
+      where: { workbookId, service: type },
     });
   }
 
-  async findOne(id: string, actor: Actor): Promise<ConnectorAccount & DecryptedCredentials> {
+  async findOne(workbookId: WorkbookId, id: string, actor: Actor): Promise<ConnectorAccount & DecryptedCredentials> {
+    // Workbook ownership verified in controller; workbookId provides scoping
+    void actor;
     const connectorAccount = await this.db.client.connectorAccount.findUnique({
-      where: { id, organizationId: actor.organizationId },
+      where: { id, workbookId },
+    });
+    if (!connectorAccount) {
+      throw new NotFoundException('ConnectorAccount not found');
+    }
+    return this.getDecryptedAccount(connectorAccount);
+  }
+
+  /**
+   * Find a connector account by ID only, without workbook context.
+   * Used for internal operations like OAuth callback where we need to look up an account.
+   * Organization check is done via the workbook relation.
+   */
+  async findOneById(id: string, actor: Actor): Promise<ConnectorAccount & DecryptedCredentials> {
+    const connectorAccount = await this.db.client.connectorAccount.findFirst({
+      where: { id, workbook: { organizationId: actor.organizationId } },
     });
     if (!connectorAccount) {
       throw new NotFoundException('ConnectorAccount not found');
@@ -122,13 +166,17 @@ export class ConnectorAccountService {
   }
 
   async update(
+    workbookId: WorkbookId,
     id: string,
     updateDto: UpdateConnectorAccountDto,
     actor: Actor,
   ): Promise<ConnectorAccount & DecryptedCredentials> {
+    // Workbook ownership verified in controller; workbookId provides scoping
+    void actor;
+
     // Get current account to decrypt existing credentials
     const currentAccount = await this.db.client.connectorAccount.findUnique({
-      where: { id, organizationId: actor.organizationId },
+      where: { id, workbookId },
     });
     if (!currentAccount) {
       throw new NotFoundException('ConnectorAccount not found');
@@ -147,7 +195,7 @@ export class ConnectorAccountService {
     const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(decryptedCredentials);
 
     const account = await this.db.client.connectorAccount.update({
-      where: { id, organizationId: actor.organizationId },
+      where: { id, workbookId },
       data: {
         displayName: updateDto.displayName,
         encryptedCredentials: encryptedCredentials as Record<string, any>,
@@ -173,13 +221,13 @@ export class ConnectorAccountService {
     return this.getDecryptedAccount(account);
   }
 
-  async remove(id: string, actor: Actor): Promise<void> {
-    const account = await this.findOne(id, actor);
+  async remove(workbookId: WorkbookId, id: string, actor: Actor): Promise<void> {
+    const account = await this.findOne(workbookId, id, actor);
     if (!account) {
       throw new NotFoundException('ConnectorAccount not found');
     }
     await this.db.client.connectorAccount.delete({
-      where: { id, organizationId: actor.organizationId },
+      where: { id, workbookId },
     });
     this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, actor.userId, {
       service: account.service as Service,
@@ -193,9 +241,11 @@ export class ConnectorAccountService {
     });
   }
 
-  async listAllUserTables(actor: Actor): Promise<TableGroup[]> {
+  async listAllUserTables(workbookId: WorkbookId, actor: Actor): Promise<TableGroup[]> {
+    // Workbook ownership verified in controller; workbookId provides scoping
+    void actor;
     const allAccounts = await this.db.client.connectorAccount.findMany({
-      where: { organizationId: actor.organizationId },
+      where: { workbookId },
     });
 
     // Fetch tables from all connector accounts in parallel
@@ -232,7 +282,8 @@ export class ConnectorAccountService {
     let account: (ConnectorAccount & DecryptedCredentials) | null = null;
 
     if (connectorAccountId !== null) {
-      account = await this.findOne(connectorAccountId, actor);
+      // Use findOneById since we don't have workbook context here
+      account = await this.findOneById(connectorAccountId, actor);
     }
 
     let connector: Connector<Service, any>;
@@ -282,8 +333,8 @@ export class ConnectorAccountService {
     }
   }
 
-  async testConnection(id: string, actor: Actor): Promise<TestConnectionResponse> {
-    const account = await this.findOne(id, actor);
+  async testConnection(workbookId: WorkbookId, id: string, actor: Actor): Promise<TestConnectionResponse> {
+    const account = await this.findOne(workbookId, id, actor);
     try {
       const connector = await this.connectorsService.getConnector({
         service: account.service as Service,

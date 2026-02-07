@@ -132,8 +132,8 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text13Regular>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
-                Back to Data Sources
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
+                Back to Workbooks
               </ButtonSecondaryOutline>
             </Group>
           </>
@@ -143,12 +143,12 @@ export default function OAuthCallbackPage() {
             <StyledLucideIcon Icon={InfoIcon} size={64} c="var(--mantine-color-gray-6)" />
             <TextTitle2>Connection Cancelled</TextTitle2>
             <Alert color="gray">
-              You cancelled the process of creating a new connection. If this was unintended, please go back to data
-              sources and create a new connection.
+              You cancelled the process of creating a new connection. If this was unintended, please go back to your
+              workbook and create a new connection.
             </Alert>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.dataSourcesPageUrl)}>
-                Back to Data Sources
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
+                Back to Workbooks
               </ButtonSecondaryOutline>
             </Group>
           </>

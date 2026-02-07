@@ -8,37 +8,52 @@ import useSWR, { useSWRConfig } from 'swr';
 import { ScratchpadNotifications } from '../app/components/ScratchpadNotifications';
 import { serviceName } from '../service-naming-conventions';
 
-export const useConnectorAccounts = () => {
+export const useConnectorAccounts = (workbookId: string | undefined) => {
   const { mutate } = useSWRConfig();
   const {
     data,
     error,
     isLoading,
     mutate: mutateConnectorAccounts,
-  } = useSWR(SWR_KEYS.connectorAccounts.list(), connectorAccountsApi.list);
+  } = useSWR(
+    workbookId ? SWR_KEYS.connectorAccounts.list(workbookId) : null,
+    () => (workbookId ? connectorAccountsApi.list(workbookId) : null),
+  );
 
   const createConnectorAccount = async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
-    const newAccount = await connectorAccountsApi.create(dto);
-    mutate(SWR_KEYS.connectorAccounts.list());
-    mutate(SWR_KEYS.connectorAccounts.allTables());
+    if (!workbookId) {
+      throw new Error('Workbook ID is required to create a connector account');
+    }
+    const newAccount = await connectorAccountsApi.create(workbookId, dto);
+    mutate(SWR_KEYS.connectorAccounts.list(workbookId));
+    mutate(SWR_KEYS.connectorAccounts.allTables(workbookId));
     return newAccount;
   };
 
   const updateConnectorAccount = async (id: string, dto: UpdateConnectorAccountDto) => {
-    await connectorAccountsApi.update(id, dto);
-    mutate(SWR_KEYS.connectorAccounts.list());
+    if (!workbookId) {
+      throw new Error('Workbook ID is required to update a connector account');
+    }
+    await connectorAccountsApi.update(workbookId, id, dto);
+    mutate(SWR_KEYS.connectorAccounts.list(workbookId));
   };
 
   const deleteConnectorAccount = async (id: string) => {
-    await connectorAccountsApi.delete(id);
-    mutate(SWR_KEYS.connectorAccounts.list());
+    if (!workbookId) {
+      throw new Error('Workbook ID is required to delete a connector account');
+    }
+    await connectorAccountsApi.delete(workbookId, id);
+    mutate(SWR_KEYS.connectorAccounts.list(workbookId));
   };
 
   const testConnection = async (con: ConnectorAccount): Promise<TestConnectionResponse> => {
+    if (!workbookId) {
+      throw new Error('Workbook ID is required to test a connection');
+    }
     try {
-      const r = await connectorAccountsApi.test(con.id);
-      mutate(SWR_KEYS.connectorAccounts.detail(con.id));
-      mutate(SWR_KEYS.connectorAccounts.list());
+      const r = await connectorAccountsApi.test(workbookId, con.id);
+      mutate(SWR_KEYS.connectorAccounts.detail(workbookId, con.id));
+      mutate(SWR_KEYS.connectorAccounts.list(workbookId));
       if (r.health == 'ok') {
         ScratchpadNotifications.success({
           title: 'Connection healthy',
@@ -69,7 +84,7 @@ export const useConnectorAccounts = () => {
   }, [error]);
 
   return {
-    connectorAccounts: data,
+    connectorAccounts: data ?? undefined,
     isLoading,
     error: displayError,
     createConnectorAccount,
@@ -80,9 +95,10 @@ export const useConnectorAccounts = () => {
   };
 };
 
-export const useConnectorAccount = (id?: string) => {
-  const { data, error, isLoading } = useSWR(id ? SWR_KEYS.connectorAccounts.detail(id) : null, () =>
-    id ? connectorAccountsApi.detail(id) : null,
+export const useConnectorAccount = (workbookId: string | undefined, id?: string) => {
+  const { data, error, isLoading } = useSWR(
+    workbookId && id ? SWR_KEYS.connectorAccounts.detail(workbookId, id) : null,
+    () => (workbookId && id ? connectorAccountsApi.detail(workbookId, id) : null),
   );
 
   return {

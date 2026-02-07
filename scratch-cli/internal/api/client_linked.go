@@ -107,15 +107,15 @@ type JobResponse struct {
 
 // --- Linked Table Methods ---
 
-// ListAvailableTables lists tables available from all connections, or from a specific connection.
-func (c *Client) ListAvailableTables(connectionID string) ([]TableGroup, error) {
+// ListAvailableTables lists tables available from connections in a specific workbook.
+func (c *Client) ListAvailableTables(workbookID string, connectionID string) ([]TableGroup, error) {
 	params := url.Values{}
 	if connectionID != "" {
 		params.Set("connectionId", connectionID)
 	}
 
 	var result []TableGroup
-	if err := c.doRequestWithQuery(http.MethodGet, "linked/available", params, nil, &result); err != nil {
+	if err := c.doRequestWithQuery(http.MethodGet, "workbooks/"+workbookID+"/connections/all-tables", params, nil, &result); err != nil {
 		return nil, err
 	}
 	return result, nil

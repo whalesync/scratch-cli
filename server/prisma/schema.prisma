@@ -149,8 +149,8 @@ model ConnectorAccount {
   updatedAt                 DateTime               @updatedAt
   user                      User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId                    String?
-  organizationId            String
-  organization              Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workbookId                String
+  workbook                  Workbook               @relation(fields: [workbookId], references: [id], onDelete: Cascade)
   service                   Service
   displayName               String
   authType                  AuthType               @default(USER_PROVIDED_PARAMS)
@@ -163,7 +163,7 @@ model ConnectorAccount {
   dataFolders               DataFolder[]
 
   @@index([userId])
-  @@index([organizationId])
+  @@index([workbookId])
 }
 
 ///
@@ -186,7 +186,8 @@ model Workbook {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  dataFolders DataFolder[]
+  dataFolders       DataFolder[]
+  connectorAccounts ConnectorAccount[]
 
   @@index([userId])
   @@index([organizationId])
@@ -424,13 +425,12 @@ model Organization {
   updatedAt DateTime @updatedAt
   name      String
 
-  users             User[]
-  styleGuides       StyleGuide[]
-  connectorAccounts ConnectorAccount[]
-  workbooks         Workbook[]
-  subscriptions     Subscription[]
-  invoiceResults    InvoiceResult[]
-  actions           Action[]
+  users          User[]
+  styleGuides    StyleGuide[]
+  workbooks      Workbook[]
+  subscriptions  Subscription[]
+  invoiceResults InvoiceResult[]
+  actions        Action[]
 }
 
 ///

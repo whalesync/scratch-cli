@@ -4,12 +4,11 @@ import { TableGroup, TableList } from '../../types/server-entities/table-list';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
-// TODO: These all need auth for the current user from middleware. Temoparily faking it on the server.
 export const connectorAccountsApi = {
-  list: async (): Promise<ConnectorAccount[]> => {
+  list: async (workbookId: string): Promise<ConnectorAccount[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<ConnectorAccount[]>('/connector-accounts');
+      const res = await axios.get<ConnectorAccount[]>(`/workbooks/${workbookId}/connections`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch connections');
@@ -17,10 +16,10 @@ export const connectorAccountsApi = {
   },
 
   // GET a single connection
-  detail: async (id: string): Promise<ConnectorAccount> => {
+  detail: async (workbookId: string, id: string): Promise<ConnectorAccount> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<ConnectorAccount>(`/connector-accounts/${id}`);
+      const res = await axios.get<ConnectorAccount>(`/workbooks/${workbookId}/connections/${id}`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch connection');
@@ -28,10 +27,10 @@ export const connectorAccountsApi = {
   },
 
   // POST a new connection
-  create: async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
+  create: async (workbookId: string, dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<ConnectorAccount>('/connector-accounts', dto);
+      const res = await axios.post<ConnectorAccount>(`/workbooks/${workbookId}/connections`, dto);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to create connection');
@@ -39,10 +38,10 @@ export const connectorAccountsApi = {
   },
 
   // PATCH an existing connection
-  update: async (id: string, dto: UpdateConnectorAccountDto): Promise<ConnectorAccount> => {
+  update: async (workbookId: string, id: string, dto: UpdateConnectorAccountDto): Promise<ConnectorAccount> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.patch<ConnectorAccount>(`/connector-accounts/${id}`, dto);
+      const res = await axios.patch<ConnectorAccount>(`/workbooks/${workbookId}/connections/${id}`, dto);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to update connection');
@@ -50,20 +49,20 @@ export const connectorAccountsApi = {
   },
 
   // DELETE a connection
-  delete: async (id: string): Promise<void> => {
+  delete: async (workbookId: string, id: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.delete(`/connector-accounts/${id}`);
+      await axios.delete(`/workbooks/${workbookId}/connections/${id}`);
     } catch (error) {
       handleAxiosError(error, 'Failed to delete connection');
     }
   },
 
-  // GET all tables from all user connections
-  listAllTables: async (): Promise<TableGroup[]> => {
+  // GET all tables from all workbook connections
+  listAllTables: async (workbookId: string): Promise<TableGroup[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<TableGroup[]>('/connector-accounts/all-tables');
+      const res = await axios.get<TableGroup[]>(`/workbooks/${workbookId}/connections/all-tables`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list all tables');
@@ -71,10 +70,13 @@ export const connectorAccountsApi = {
   },
 
   // POST to list tables for a connection or service
-  listTables: async (service: string, connectorAccountId: string | null): Promise<TableList> => {
+  listTables: async (workbookId: string, service: string, connectorAccountId: string | null): Promise<TableList> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<TableList>('/connector-accounts/tables', { service, connectorAccountId });
+      const res = await axios.post<TableList>(`/workbooks/${workbookId}/connections/tables`, {
+        service,
+        connectorAccountId,
+      });
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list tables');
@@ -82,10 +84,10 @@ export const connectorAccountsApi = {
   },
 
   // POST to test a connection
-  test: async (id: string): Promise<TestConnectionResponse> => {
+  test: async (workbookId: string, id: string): Promise<TestConnectionResponse> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<TestConnectionResponse>(`/connector-accounts/${id}/test`);
+      const res = await axios.post<TestConnectionResponse>(`/workbooks/${workbookId}/connections/${id}/test`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to test connection');

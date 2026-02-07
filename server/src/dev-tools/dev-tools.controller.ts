@@ -88,7 +88,7 @@ export class DevToolsController {
 
     const actor = userToActor(targetUser);
     const snapshots = await this.snapshotService.findAllForUser(actor);
-    const connectorAccounts = await this.connectorAccountService.findAll(actor);
+    const connectorAccounts = await this.connectorAccountService.findAllForOrganization(actor);
     const auditLogs = await this.auditLogService.findEventsForUser(actor.userId, 20, undefined);
     return new UserDetail(targetUser, snapshots, connectorAccounts, auditLogs);
   }

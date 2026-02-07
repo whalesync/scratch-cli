@@ -30,7 +30,7 @@ import { ChevronDown, ChevronRight, CloudDownload, PlusIcon, RefreshCwIcon, Sear
 import { useEffect, useMemo, useState } from 'react';
 import { useActiveWorkbook } from '../../../../hooks/use-active-workbook';
 import { DecorativeBoxedIcon } from '../../../components/Icons/DecorativeBoxedIcon';
-import { CreateConnectionModal } from '../../../data-sources/components/CreateConnectionModal';
+import { CreateConnectionModal } from './CreateConnectionModal';
 import styles from './AddLinkedFolderTab.module.css';
 
 // Helper to find matching snapshot table by comparing EntityIds
@@ -45,7 +45,7 @@ function createGroupKey(group: TableGroup) {
 
 export const AddLinkedFolderTab = () => {
   const { workbook, addLinkedDataFolder } = useActiveWorkbook();
-  const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables();
+  const { tables: tableGroups, isLoading: loadingTables, mutate: mutateAllTables } = useAllTables(workbook?.id);
   const modalStack = useModalsStack(['create']);
   const openFileTab = useWorkbookEditorUIStore((state) => state.openFileTab);
   const closeFileTab = useWorkbookEditorUIStore((state) => state.closeFileTab);
@@ -341,6 +341,7 @@ export const AddLinkedFolderTab = () => {
     <>
       <CreateConnectionModal
         {...modalStack.register('create')}
+        workbookId={workbook.id}
         returnUrl={RouteUrls.workbookNewTabPageUrl(workbook.id)}
       />
       {isLoading ? (

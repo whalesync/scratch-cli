@@ -39,9 +39,13 @@ export class OAuthInitiateOptionsDto {
   @IsString()
   @IsOptional()
   connectorAccountId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  workbookId?: string;
 }
 
-export type ValidatedOAuthInitiateOptionsDto = Required<Pick<OAuthInitiateOptionsDto, 'redirectPrefix'>> &
+export type ValidatedOAuthInitiateOptionsDto = Required<Pick<OAuthInitiateOptionsDto, 'redirectPrefix' | 'workbookId'>> &
   Pick<
     OAuthInitiateOptionsDto,
     | 'connectionMethod'

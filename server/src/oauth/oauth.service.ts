@@ -1,6 +1,12 @@
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import { createConnectorAccountId, Service, ValidatedOAuthInitiateOptionsDto } from '@spinner/shared-types';
+import { createConnectorAccountId, Service, ValidatedOAuthInitiateOptionsDto, WorkbookId } from '@spinner/shared-types';
 import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
@@ -68,6 +74,7 @@ export class OAuthService {
       redirectPrefix: options.redirectPrefix,
       userId: actor.userId,
       organizationId: actor.organizationId,
+      workbookId: options.workbookId,
       service,
       connectionMethod: options.connectionMethod ?? 'OAUTH_SYSTEM',
       customClientId: options.customClientId,
@@ -120,6 +127,14 @@ export class OAuthService {
       throw new BadRequestException('Invalid state parameter: invalid organization Id ${statePayload.organizationId}');
     }
 
+    // Validate workbookId
+    const workbook = await this.db.client.workbook.findFirst({
+      where: { id: statePayload.workbookId, organizationId: actor.organizationId },
+    });
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
     let existingConnectorAccount: ConnectorAccount | null = null;
     if (statePayload.connectorAccountId) {
       existingConnectorAccount = await this.db.client.connectorAccount.findUnique({
@@ -148,12 +163,18 @@ export class OAuthService {
       return { connectorAccountId: existingConnectorAccount.id };
     } else {
       // Create new connector account (include connection method and custom client creds for storage)
-      const connectorAccount = await this.createOAuthAccount(service, actor, tokenResponse, {
-        connectionMethod: statePayload.connectionMethod,
-        customClientId: statePayload.customClientId,
-        customClientSecret: statePayload.customClientSecret,
-        connectionName: statePayload.connectionName,
-      });
+      const connectorAccount = await this.createOAuthAccount(
+        service,
+        statePayload.workbookId as WorkbookId,
+        actor,
+        tokenResponse,
+        {
+          connectionMethod: statePayload.connectionMethod,
+          customClientId: statePayload.customClientId,
+          customClientSecret: statePayload.customClientSecret,
+          connectionName: statePayload.connectionName,
+        },
+      );
 
       return { connectorAccountId: connectorAccount.id };
     }
@@ -206,6 +227,7 @@ export class OAuthService {
    */
   private async createOAuthAccount(
     service: string,
+    workbookId: WorkbookId,
     actor: Actor,
     tokenResponse: OAuthTokenResponse,
     connectionInfo?: {
@@ -232,7 +254,7 @@ export class OAuthService {
     const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(credentials);
 
     const numExistingDataSources = await this.db.client.connectorAccount.count({
-      where: { organizationId: actor.organizationId, service: serviceEnum },
+      where: { workbookId, service: serviceEnum },
     });
 
     if (!canCreateDataSource(actor.subscriptionStatus, numExistingDataSources)) {
@@ -246,7 +268,7 @@ export class OAuthService {
       data: {
         id: createConnectorAccountId(),
         userId: actor.userId,
-        organizationId: actor.organizationId,
+        workbookId: workbookId,
         service: serviceEnum,
         displayName:
           connectionInfo?.connectionName ??

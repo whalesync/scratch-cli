@@ -17,6 +17,7 @@ import {
   ListTablesDto,
   UpdateConnectorAccountDto,
   ValidatedListTablesDto,
+  WorkbookId,
   type ValidatedCreateConnectorAccountDto,
 } from '@spinner/shared-types';
 import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
@@ -27,59 +28,80 @@ import { ConnectorAccount } from './entities/connector-account.entity';
 import { TableGroup, TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
-@Controller('connector-accounts')
+@Controller('workbooks/:workbookId/connections')
 @UseGuards(ScratchpadAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class ConnectorAccountController {
   constructor(private readonly service: ConnectorAccountService) {}
 
   @Post()
-  async create(@Body() createDto: CreateConnectorAccountDto, @Req() req: RequestWithUser): Promise<ConnectorAccount> {
+  async create(
+    @Param('workbookId') workbookId: string,
+    @Body() createDto: CreateConnectorAccountDto,
+    @Req() req: RequestWithUser,
+  ): Promise<ConnectorAccount> {
     const dto = createDto as ValidatedCreateConnectorAccountDto;
-    return this.service.create(dto, userToActor(req.user));
+    return this.service.create(workbookId as WorkbookId, dto, userToActor(req.user));
   }
 
   @Get()
-  async findAll(@Req() req: RequestWithUser): Promise<ConnectorAccount[]> {
-    return this.service.findAll(userToActor(req.user));
+  async findAll(@Param('workbookId') workbookId: string, @Req() req: RequestWithUser): Promise<ConnectorAccount[]> {
+    return this.service.findAll(workbookId as WorkbookId, userToActor(req.user));
   }
 
   @Get('all-tables')
-  async listAllTables(@Req() req: RequestWithUser): Promise<TableGroup[]> {
-    const result = await this.service.listAllUserTables(userToActor(req.user));
+  async listAllTables(@Param('workbookId') workbookId: string, @Req() req: RequestWithUser): Promise<TableGroup[]> {
+    const result = await this.service.listAllUserTables(workbookId as WorkbookId, userToActor(req.user));
     return result;
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: RequestWithUser): Promise<ConnectorAccount> {
-    return this.service.findOne(id, userToActor(req.user));
+  async findOne(
+    @Param('workbookId') workbookId: string,
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<ConnectorAccount> {
+    return this.service.findOne(workbookId as WorkbookId, id, userToActor(req.user));
   }
 
   @Post('tables')
-  async listTables(@Body() dtoParam: ListTablesDto, @Req() req: RequestWithUser): Promise<TableList> {
+  async listTables(
+    @Param('workbookId') workbookId: string,
+    @Body() dtoParam: ListTablesDto,
+    @Req() req: RequestWithUser,
+  ): Promise<TableList> {
     const dto = dtoParam as ValidatedListTablesDto;
     const tables = await this.service.listTables(dto.service, dto.connectorAccountId ?? null, userToActor(req.user));
     return { tables };
   }
 
   @Post(':id/test')
-  async testConnection(@Param('id') id: string, @Req() req: RequestWithUser): Promise<TestConnectionResponse> {
-    return this.service.testConnection(id, userToActor(req.user));
+  async testConnection(
+    @Param('workbookId') workbookId: string,
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<TestConnectionResponse> {
+    return this.service.testConnection(workbookId as WorkbookId, id, userToActor(req.user));
   }
 
   @Patch(':id')
   async update(
+    @Param('workbookId') workbookId: string,
     @Param('id') id: string,
     @Body() updateDto: UpdateConnectorAccountDto,
     @Req() req: RequestWithUser,
   ): Promise<ConnectorAccount> {
     const dto = updateDto;
-    return this.service.update(id, dto, userToActor(req.user));
+    return this.service.update(workbookId as WorkbookId, id, dto, userToActor(req.user));
   }
 
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id') id: string, @Req() req: RequestWithUser): Promise<void> {
-    return this.service.remove(id, userToActor(req.user));
+  async remove(
+    @Param('workbookId') workbookId: string,
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    return this.service.remove(workbookId as WorkbookId, id, userToActor(req.user));
   }
 }
