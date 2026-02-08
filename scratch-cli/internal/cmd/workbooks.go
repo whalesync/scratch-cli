@@ -443,7 +443,7 @@ func runWorkbooksInit(cmd *cobra.Command, args []string) error {
 		Auth:          gitAuth,
 		ReferenceName: "refs/heads/dirty", // Clone the dirty branch
 		SingleBranch:  true,
-		Depth:         1, // Shallow clone for faster initial download
+		Depth:         0, // Full clone to allow incremental push
 	})
 	if err != nil {
 		return fmt.Errorf("failed to clone workbook: %w", err)

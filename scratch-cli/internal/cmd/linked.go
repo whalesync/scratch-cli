@@ -258,7 +258,7 @@ func resolveLinkedContext(cmd *cobra.Command, args []string) (workbookID string,
 // It prints progress dots to stderr and returns nil on success, or an error on failure/timeout.
 func pollJobUntilDone(client *api.Client, jobID string) error {
 	const pollInterval = 2 * time.Second
-	const timeout = 5 * time.Minute
+	const timeout = 30 * time.Minute
 
 	deadline := time.Now().Add(timeout)
 

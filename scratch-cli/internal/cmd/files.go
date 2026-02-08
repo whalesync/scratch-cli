@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -196,7 +197,7 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 			"refs/heads/dirty:refs/remotes/origin/dirty",
 		},
 		Auth:  gitAuth,
-		Depth: 1,
+		Depth: 0,
 		Force: true,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
@@ -507,7 +508,7 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 				"refs/heads/dirty:refs/remotes/origin/dirty",
 			},
 			Auth:  gitAuth,
-			Depth: 1,
+			Depth: 0,
 			Force: true,
 		})
 		if err != nil && err != git.NoErrAlreadyUpToDate {
@@ -654,24 +655,10 @@ func runFilesUpload(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		// j. Stage all changes.
-		for relPath := range mergedMap {
-			remoteContent, inRemote := remoteMap[relPath]
-			if inRemote && bytes.Equal(mergedMap[relPath], remoteContent) {
-				continue
-			}
-			if _, err := wt.Add(relPath); err != nil {
-				restoreMarkers(workbookDir, markerStash)
-				return fmt.Errorf("failed to stage %s: %w", relPath, err)
-			}
-		}
-		for relPath := range remoteMap {
-			if _, inMerged := mergedMap[relPath]; !inMerged {
-				if _, err := wt.Add(relPath); err != nil {
-					restoreMarkers(workbookDir, markerStash)
-					return fmt.Errorf("failed to stage deletion of %s: %w", relPath, err)
-				}
-			}
+		// j. Stage all changes in bulk (index is read/written once instead of per-file).
+		if err := wt.AddWithOptions(&git.AddOptions{All: true}); err != nil {
+			restoreMarkers(workbookDir, markerStash)
+			return fmt.Errorf("failed to stage changes: %w", err)
 		}
 
 		// k. Commit.
@@ -840,53 +827,93 @@ func treeToFileMap(repo *git.Repository, commitHash plumbing.Hash) (merge.FileMa
 }
 
 // diskToFileMap reads all files from a directory into a FileMap, skipping
-// .git and .scratchmd entries.
+// .git and .scratchmd entries. Files are read in parallel for performance.
 func diskToFileMap(rootDir string) (merge.FileMap, error) {
-	fm := make(merge.FileMap)
 	absRoot, err := filepath.Abs(rootDir)
 	if err != nil {
 		return nil, err
 	}
 
+	// Pass 1: collect file paths (fast, minimal I/O).
+	type fileEntry struct {
+		absPath string
+		relPath string
+	}
+	var files []fileEntry
+
 	err = filepath.Walk(absRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-
 		name := info.Name()
-
-		// Skip .git directory and .scratchmd marker files.
 		if info.IsDir() && name == ".git" {
 			return filepath.SkipDir
 		}
-		if name == ".scratchmd" {
+		if name == ".scratchmd" || info.IsDir() {
 			return nil
 		}
-		if info.IsDir() {
-			return nil
-		}
-
 		rel, err := filepath.Rel(absRoot, path)
 		if err != nil {
 			return err
 		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		// Normalize CRLF to LF for text files so disk content on Windows
-		// matches LF-only content from git objects.
-		if !merge.IsBinary(data) {
-			data = merge.NormalizeCRLF(data)
-		}
-
-		fm[filepath.ToSlash(rel)] = data
+		files = append(files, fileEntry{absPath: path, relPath: filepath.ToSlash(rel)})
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return fm, err
+	// Pass 2: read files in parallel using a worker pool.
+	type readResult struct {
+		relPath string
+		data    []byte
+		err     error
+	}
+
+	numWorkers := runtime.NumCPU()
+	if numWorkers > len(files) {
+		numWorkers = len(files)
+	}
+	if numWorkers < 1 {
+		numWorkers = 1
+	}
+
+	jobs := make(chan fileEntry, len(files))
+	results := make(chan readResult, len(files))
+
+	for w := 0; w < numWorkers; w++ {
+		go func() {
+			for f := range jobs {
+				data, err := os.ReadFile(f.absPath)
+				if err != nil {
+					results <- readResult{err: err}
+					continue
+				}
+				// Normalize CRLF to LF for text files so disk content on Windows
+				// matches LF-only content from git objects.
+				if !merge.IsBinary(data) {
+					data = merge.NormalizeCRLF(data)
+				}
+				results <- readResult{relPath: f.relPath, data: data}
+			}
+		}()
+	}
+
+	for _, f := range files {
+		jobs <- f
+	}
+	close(jobs)
+
+	fm := make(merge.FileMap, len(files))
+	for range files {
+		r := <-results
+		if r.err != nil {
+			return nil, r.err
+		}
+		fm[r.relPath] = r.data
+	}
+
+	return fm, nil
 }
 
 // mergeFileContent picks the right merge strategy based on file type.
