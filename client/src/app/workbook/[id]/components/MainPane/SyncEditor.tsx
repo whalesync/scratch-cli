@@ -358,7 +358,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
     if (next[pairIndex].fieldMappings.length > 1) {
       next[pairIndex].fieldMappings = next[pairIndex].fieldMappings.filter((_, i) => i !== mappingIndex);
       setFolderPairs(next);
-          }
+    }
   };
 
   const getFolderName = (id: string) => allFolders.find((f) => f.id === id)?.name || 'Unknown';
@@ -424,12 +424,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
               </Button>
             </>
           )}
-          <Button
-            size="compact-xs"
-            onClick={handleSave}
-            loading={saving}
-            disabled={validPairsCount === 0}
-          >
+          <Button size="compact-xs" onClick={handleSave} loading={saving} disabled={validPairsCount === 0}>
             {isNew ? 'Create' : 'Save'}
           </Button>
         </Group>
@@ -445,7 +440,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
             value={syncName}
             onChange={(e) => {
               setSyncName(e.currentTarget.value);
-                          }}
+            }}
           />
 
           {/* Folder Pairs */}
@@ -556,11 +551,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                             rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                           />
                           {pair.fieldMappings.length > 1 && (
-                            <ActionIcon
-                              variant="subtle"
-                              color="gray"
-                              onClick={() => removeFieldMapping(index, mIndex)}
-                            >
+                            <ActionIcon variant="subtle" color="gray" onClick={() => removeFieldMapping(index, mIndex)}>
                               <Trash2 size={14} />
                             </ActionIcon>
                           )}
@@ -577,7 +568,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                     </Stack>
 
                     <Select
-                      label="Matching Field (Optional)"
+                      label="Matching Field (Required)"
                       description="Select the field mapping to use for matching records"
                       placeholder="Select matching pair"
                       data={pair.fieldMappings
@@ -607,7 +598,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
               leftSection={<Plus size={14} />}
               onClick={() => {
                 setFolderPairs([...folderPairs, createPair()]);
-                              }}
+              }}
             >
               Add Folder Pair
             </Button>
@@ -621,7 +612,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
             value={schedule}
             onChange={(val) => {
               setSchedule(val || '');
-                          }}
+            }}
             renderOption={renderScheduleOption}
           />
 
@@ -632,7 +623,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
               checked={autoPublish}
               onChange={(e) => {
                 setAutoPublish(e.currentTarget.checked);
-                              }}
+              }}
             />
             <Checkbox
               label="Validate Mappings"
@@ -640,7 +631,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
               checked={enableValidation}
               onChange={(e) => {
                 setEnableValidation(e.currentTarget.checked);
-                              }}
+              }}
             />
           </Stack>
         </Stack>
