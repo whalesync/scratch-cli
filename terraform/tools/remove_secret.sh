@@ -16,17 +16,14 @@ fi
 name="$1"
 secrets_file=$(realpath "$(dirname "$0")/../secrets.txt")
 
-# Check if the secret name already exists in the secrets file
-if grep -q "^$name$" "$secrets_file"; then
-    echo "Error: Secret '$name' already exists in $secrets_file"
+# Check if the secret name exists in the secrets file
+if ! grep -q "^$name$" "$secrets_file"; then
+    echo "Error: Secret '$name' not found in $secrets_file"
     exit 1
 fi
 
-echo >> "$secrets_file"
-echo "$name" >> "$secrets_file"
-
-# sort the secrets file
-sort "$secrets_file" | uniq > "${secrets_file}.new"
+# Remove the secret from the file
+grep -v "^$name$" "$secrets_file" > "${secrets_file}.new"
 mv "${secrets_file}.new" "$secrets_file"
 
 # delete any blank lines
@@ -35,7 +32,7 @@ awk 'NF' "$secrets_file" > "${secrets_file}.tmp" && mv "${secrets_file}.tmp" "$s
 PAGER='' git diff "$secrets_file"
 
 git add "$secrets_file"
-git commit -m "Added secret $name"
+git commit -m "Removed secret $name"
 
 # Confirm before doing a targeted terraform apply
 read -p "Do you want to apply this locally with Terraform? [y/N] " -r
