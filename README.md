@@ -26,6 +26,37 @@ Full [Documentation](./client/README.md)
 
 **Client-Specific Rules**: See [`client/.clauderules`](./client/.clauderules) for mandatory UI coding standards
 
+## Development with Turborepo
+
+This monorepo uses [Turborepo](https://turbo.build/) for unified build and dev orchestration across all packages. Run these commands from the **root directory**:
+
+```bash
+# Start all dev servers (client, server, scratch-git, shared-types watch)
+yarn dev
+
+# Build all packages with caching and correct dependency ordering
+yarn build
+
+# Run linting across all packages
+yarn lint
+
+# Run tests across all packages
+yarn test
+```
+
+**Key benefits:**
+- **Dependency ordering**: Packages build in the correct order (e.g., `shared-types` builds before `server`)
+- **Caching**: Build outputs are cached, so unchanged packages skip rebuilding
+- **Parallel execution**: Independent tasks run in parallel for faster builds
+
+**Workspaces included:**
+- `client/` - Next.js web app
+- `server/` - NestJS API server
+- `scratch-git/` - Git utilities
+- `packages/*` - Shared packages (e.g., `shared-types`)
+
+You can still run commands in individual packages (e.g., `cd server && yarn test`), but the root commands are recommended for full-stack development.
+
 ### UI Component System
 
 The client uses a standardized UI component library built on Mantine. **All developers and AI agents must follow the UI system guidelines** to maintain design consistency.

@@ -237,12 +237,10 @@ build and test scratch-git:
   interruptible: true
   script:
     - cd scratch-git
-    - . ~/.bashrc
-    - nvm use
-    - npm install
+    - !reference [.use_nvm, script]
+    - yarn build
     # enable this once we have fixed all the linting on the scratch-git project
-    # - npm run lint
-    - npm run build
+    # - yarn run lint
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:

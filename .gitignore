@@ -26,6 +26,9 @@ local
 dist/
 node_modules/
 
+# Turborepo cache.
+.turbo/
+
 # Scratch CLI hidden dir.
 .scratchmd/
 

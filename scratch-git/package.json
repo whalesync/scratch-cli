@@ -7,6 +7,7 @@
     "main": "main.ts",
     "scripts": {
         "start:api": "ts-node git-scratch-api.ts",
+        "dev": "ts-node-dev --respawn git-scratch-api.ts",
         "dev:api": "ts-node-dev --respawn git-scratch-api.ts",
         "start:http-backend": "ts-node git-http-backend.ts",
         "dev:http-backend": "ts-node-dev --respawn git-http-backend.ts",
