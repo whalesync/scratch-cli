@@ -47,10 +47,12 @@ case "$ENVIRONMENT" in
     "eu-test")
         PROJECT="spv1eu-test"
         ZONE="europe-west1-b"
+        DB_NAME="scratchpad"
         ;;
     "eu-production")
         PROJECT="spv1eu-production"
         ZONE="europe-west1-b"
+        DB_NAME="scratchpad"
         ;;
     *)
         echo "Error: Invalid environment '$ENVIRONMENT'"
@@ -60,7 +62,8 @@ case "$ENVIRONMENT" in
 esac
 MIGRATIONS_DB_USER=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_USER)
 MIGRATIONS_DB_PASSWORD=$(gcloud secrets versions access latest --project="${PROJECT}" --secret=MIGRATIONS_DB_PASSWORD)
-DB_NAME=postgres
+# Default DB_NAME if not set by environment-specific case
+DB_NAME=${DB_NAME:-postgres}
 
 # Override the DB_HOST if provided as a second argument
 if [ $# -ge 2 ]; then
