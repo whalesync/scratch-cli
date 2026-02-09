@@ -133,21 +133,36 @@ func runFilesDownload(cmd *cobra.Command, args []string) error {
 	var workbookDir string
 	var marker WorkbookMarker
 
+	// Determine workbook ID from args or --workbook flag (set by linked parent command).
+	var workbookID string
 	if len(args) > 0 {
-		// Workbook ID provided — scan current directory children.
-		dir, err := findExistingWorkbookMarker(".", args[0])
-		if err != nil {
-			return fmt.Errorf("failed to find workbook: %w", err)
+		workbookID = args[0]
+	} else if flag := cmd.Flags().Lookup("workbook"); flag != nil && flag.Value.String() != "" {
+		workbookID = flag.Value.String()
+	}
+
+	if workbookID != "" {
+		// Check if we're already inside this workbook directory.
+		dir, m, err := findWorkbookMarkerUpward(".")
+		if err == nil && dir != "" && m.Workbook.ID == workbookID {
+			workbookDir = dir
+			marker = *m
+		} else {
+			// Scan current directory children.
+			dir, err := findExistingWorkbookMarker(".", workbookID)
+			if err != nil {
+				return fmt.Errorf("failed to find workbook: %w", err)
+			}
+			if dir == "" {
+				return fmt.Errorf("workbook %s not found in current directory. Run 'scratchmd workbooks init %s' first", workbookID, workbookID)
+			}
+			workbookDir = dir
+			m, err := loadWorkbookMarker(workbookDir)
+			if err != nil {
+				return fmt.Errorf("failed to read marker: %w", err)
+			}
+			marker = *m
 		}
-		if dir == "" {
-			return fmt.Errorf("workbook %s not found in current directory. Run 'scratchmd workbooks init %s' first", args[0], args[0])
-		}
-		workbookDir = dir
-		m, err := loadWorkbookMarker(workbookDir)
-		if err != nil {
-			return fmt.Errorf("failed to read marker: %w", err)
-		}
-		marker = *m
 	} else {
 		// Auto-detect from current directory upward.
 		dir, m, err := findWorkbookMarkerUpward(".")

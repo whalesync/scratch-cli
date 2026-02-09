@@ -450,10 +450,10 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
 			fmt.Printf("  ID: %s\n", result.ID)
+			fmt.Println("Downloading files...")
 		}
 
-		fmt.Println("Downloading files...")
-		return runFilesDownload(cmd, nil)
+		return runFilesDownload(cmd, []string{workbookID})
 	}
 
 	// Interactive mode
@@ -551,10 +551,10 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
 		fmt.Printf("  ID: %s\n", result.ID)
+		fmt.Println("Downloading files...")
 	}
 
-	fmt.Println("Downloading files...")
-	return runFilesDownload(cmd, nil)
+	return runFilesDownload(cmd, []string{workbookID})
 }
 
 func runLinkedRemove(cmd *cobra.Command, args []string) error {
@@ -608,10 +608,10 @@ func runLinkedRemove(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		fmt.Printf("Linked table \"%s\" removed successfully.\n", detail.Name)
+		fmt.Println("Downloading files...")
 	}
 
-	fmt.Println("Downloading files...")
-	return runFilesDownload(cmd, nil)
+	return runFilesDownload(cmd, []string{workbookID})
 }
 
 func runLinkedShow(cmd *cobra.Command, args []string) error {
@@ -693,20 +693,18 @@ func runLinkedPull(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to pull linked table: %w", err)
 	}
 
-	if jsonOutput {
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(resp)
+	if !jsonOutput {
+		fmt.Fprintf(os.Stderr, "Pull job started (job ID: %s). Waiting for completion", resp.JobID)
 	}
-
-	fmt.Fprintf(os.Stderr, "Pull job started (job ID: %s). Waiting for completion", resp.JobID)
 
 	if err := pollJobUntilDone(client, resp.JobID); err != nil {
 		return err
 	}
 
-	fmt.Println("Pull completed. Downloading files...")
-	return runFilesDownload(cmd, nil)
+	if !jsonOutput {
+		fmt.Println("Pull completed. Downloading files...")
+	}
+	return runFilesDownload(cmd, []string{workbookID})
 }
 
 func runLinkedPublish(cmd *cobra.Command, args []string) error {
@@ -727,18 +725,16 @@ func runLinkedPublish(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to publish linked table: %w", err)
 	}
 
-	if jsonOutput {
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(resp)
+	if !jsonOutput {
+		fmt.Fprintf(os.Stderr, "Publish job started (job ID: %s). Waiting for completion", resp.JobID)
 	}
-
-	fmt.Fprintf(os.Stderr, "Publish job started (job ID: %s). Waiting for completion", resp.JobID)
 
 	if err := pollJobUntilDone(client, resp.JobID); err != nil {
 		return err
 	}
 
-	fmt.Println("Publish completed. Downloading files...")
-	return runFilesDownload(cmd, nil)
+	if !jsonOutput {
+		fmt.Println("Publish completed. Downloading files...")
+	}
+	return runFilesDownload(cmd, []string{workbookID})
 }
