@@ -3,8 +3,38 @@ import { MergeView } from '@codemirror/merge';
 import { Extension } from '@codemirror/state';
 import { EditorView, lineNumbers } from '@codemirror/view';
 import { useMantineColorScheme } from '@mantine/core';
-// import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
 import { useEffect, useRef } from 'react';
+
+// Simple dark theme for CodeMirror using CSS variables
+const darkTheme = EditorView.theme(
+  {
+    '&': {
+      backgroundColor: 'var(--bg-base)',
+      color: 'var(--fg-primary)',
+    },
+    '.cm-content': {
+      caretColor: 'var(--fg-primary)',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: 'var(--fg-primary)',
+    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+      backgroundColor: 'var(--mantine-color-gray-7)',
+    },
+    '.cm-gutters': {
+      backgroundColor: 'var(--bg-panel)',
+      color: 'var(--fg-muted)',
+      borderRight: '1px solid var(--fg-divider)',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: 'var(--bg-selected)',
+    },
+    '.cm-activeLine': {
+      backgroundColor: 'var(--bg-selected)',
+    },
+  },
+  { dark: true },
+);
 
 interface MergeEditorProps {
   original: string;
@@ -22,7 +52,7 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // const themeExtension = colorScheme === 'dark' ? githubDark : githubLight;
+    const themeExtension = colorScheme === 'dark' ? darkTheme : [];
 
     console.log('[MergeEditor] Initializing MergeView', {
       originalLength: original?.length,
@@ -34,7 +64,14 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
     const view = new MergeView({
       a: {
         doc: original,
-        extensions: [markdown(), EditorView.editable.of(false), EditorView.lineWrapping, lineNumbers(), ...extensions],
+        extensions: [
+          markdown(),
+          EditorView.editable.of(false),
+          EditorView.lineWrapping,
+          lineNumbers(),
+          themeExtension,
+          ...extensions,
+        ],
       },
       b: {
         doc: modified,
@@ -42,7 +79,7 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
           markdown(),
           EditorView.lineWrapping,
           lineNumbers(),
-          // themeExtension,
+          themeExtension,
           EditorView.updateListener.of((update) => {
             if (update.docChanged && onModifiedChange) {
               onModifiedChange(update.state.doc.toString());
@@ -61,7 +98,7 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
       view.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, [colorScheme]); // Recreate when color scheme changes
 
   // Sync original content
   useEffect(() => {
@@ -89,21 +126,6 @@ export function MergeEditor({ original, modified, onModifiedChange, extensions =
       });
     }
   }, [modified]);
-
-  // Sync theme
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    // const themeExtension = colorScheme === 'dark' ? githubDark : githubLight;
-
-    // We can't easily reconfigure the root theme of the merge view strictly via standard dispatch
-    // without reconfiguration effects, but we can try dispatching effects to both editors if we structured it that way.
-    // However, recreating on theme change is often safer/easier for complex setups unless we use a compartmentalized theme.
-    // For now, let's just let it be or force re-mount if needed.
-    // Actually, let's try to simple Compartment approach if we want to be fancy,
-    // but simply re-mounting on theme change via key in parent is easier.
-  }, [colorScheme]);
 
   return (
     <div

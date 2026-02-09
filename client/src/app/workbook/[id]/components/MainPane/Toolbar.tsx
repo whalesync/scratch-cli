@@ -1,10 +1,12 @@
 'use client';
 
+import { IconButtonToolbar } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
-import { Box, Breadcrumbs, Group } from '@mantine/core';
+import { trackToggleDisplayMode } from '@/lib/posthog';
+import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import type { Workbook } from '@spinner/shared-types';
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon, MoonIcon, SunIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -16,10 +18,21 @@ interface ToolbarProps {
 export function Toolbar({ workbook }: ToolbarProps) {
   const params = useParams<{ id: string; path?: string[] }>();
   const pathname = usePathname();
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const isReviewPage = pathname.includes('/review');
 
+  const toggleColorScheme = () => {
+    const newScheme = colorScheme === 'light' ? 'dark' : 'light';
+    setColorScheme(newScheme);
+    trackToggleDisplayMode(newScheme);
+  };
+
   // Build breadcrumb from URL path
+  // Path structure: TableName/file.json
+  // - Workbook root links to /files or /review
+  // - Table name (1st segment) links to folder page
+  // - File name (2nd segment) links to the file
   const breadcrumbs = useMemo(() => {
     const items: { label: string; href: string }[] = [];
 
@@ -33,12 +46,13 @@ export function Toolbar({ workbook }: ToolbarProps) {
     // Parse the path from URL if present
     if (params.path && params.path.length > 0) {
       const pathParts = params.path;
-      let currentPath = '';
 
-      pathParts.forEach((part) => {
-        currentPath += (currentPath ? '/' : '') + part;
+      pathParts.forEach((part, index) => {
+        const decodedPart = decodeURIComponent(part);
+        const currentPath = pathParts.slice(0, index + 1).join('/');
+
         items.push({
-          label: decodeURIComponent(part),
+          label: decodedPart,
           href: `/workbook/${params.id}/${basePath}/${currentPath}`,
         });
       });
@@ -96,9 +110,13 @@ export function Toolbar({ workbook }: ToolbarProps) {
         </Breadcrumbs>
       </Group>
 
-      {/* Right: Action buttons (contextual based on selection) */}
+      {/* Right: Action buttons */}
       <Group gap="xs">
-        {/* Buttons moved to sidebar */}
+        <Tooltip label={colorScheme === 'light' ? 'Dark mode' : 'Light mode'} position="bottom">
+          <IconButtonToolbar onClick={toggleColorScheme} aria-label="Toggle color scheme">
+            <StyledLucideIcon Icon={colorScheme === 'light' ? MoonIcon : SunIcon} size="sm" />
+          </IconButtonToolbar>
+        </Tooltip>
       </Group>
     </Box>
   );

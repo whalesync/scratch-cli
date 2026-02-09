@@ -1,6 +1,6 @@
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { DataFolder, DataFolderGroup, DataFolderId } from '@spinner/shared-types';
+import { DataFolder, DataFolderGroup, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { dataFolderApi } from '../lib/api/data-folder';
@@ -18,10 +18,12 @@ export interface UseDataFoldersReturn {
 /**
  * Hook for fetching data folders for the active workbook.
  * Uses SWR for caching and automatic revalidation.
+ *
+ * @param overrideWorkbookId - Optional workbook ID to use instead of the active workbook from the store
  */
-export const useDataFolders = (): UseDataFoldersReturn => {
+export const useDataFolders = (overrideWorkbookId?: WorkbookId): UseDataFoldersReturn => {
   const { workbook } = useActiveWorkbook();
-  const workbookId = workbook?.id ?? null;
+  const workbookId = overrideWorkbookId ?? workbook?.id ?? null;
 
   const { data, error, isLoading, mutate } = useSWR(
     workbookId ? SWR_KEYS.dataFolders.list(workbookId) : null,

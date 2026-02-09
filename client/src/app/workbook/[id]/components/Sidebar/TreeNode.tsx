@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   FilePlusIcon,
   FolderIcon,
   MoreHorizontalIcon,
@@ -378,16 +379,28 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
             c="var(--fg-secondary)"
           />
           <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
-          <Text12Regular c="var(--fg-primary)" truncate>
+          <Text12Regular c="var(--fg-primary)" truncate style={{ flex: 1 }}>
             {folder.name}
           </Text12Regular>
 
           {/* Dirty badge when collapsed */}
           {!isExpanded && dirtyCount > 0 && (
-            <Badge size="xs" variant="filled" color="yellow" ml="auto">
+            <Badge size="xs" variant="filled" color="yellow">
               {dirtyCount}
             </Badge>
           )}
+
+          {/* Folder details link */}
+          <Link
+            href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', alignItems: 'center', opacity: 0.4 }}
+            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.4'; }}
+            title="View all files"
+          >
+            <ExternalLinkIcon size={12} color="var(--fg-muted)" />
+          </Link>
         </Group>
       </UnstyledButton>
 
@@ -424,10 +437,14 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
             <FileNode key={file.id} file={file} mode={mode} />
           ))}
 
-          {/* Hidden count indicator */}
+          {/* Hidden count indicator - links to folder view */}
           {hiddenCount > 0 && (
             <Box ml={INDENT_PX} py={4}>
-              <Text12Regular c="dimmed">{hiddenCount} more...</Text12Regular>
+              <Link href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`} style={{ textDecoration: 'none' }}>
+                <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
+                  {hiddenCount} more...
+                </Text12Regular>
+              </Link>
             </Box>
           )}
 
@@ -501,7 +518,7 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
   const href = `/workbook/${params.id}/${routeBase}/${encodedPath}`;
 
   // Check if this file is currently selected
-  const isSelected = pathname.includes(`/files/${encodedPath}`);
+  const isSelected = pathname.includes(`/${routeBase}/${encodedPath}`);
 
   // Determine if file is dirty (modified)
   const isDirty = file.status === 'modified' || file.status === 'created';
@@ -518,7 +535,7 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
           width: '100%',
           marginLeft: INDENT_PX,
           backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
-          borderLeft: isSelected ? '3px solid var(--mantine-color-yellow-6)' : '3px solid transparent',
+          borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
         }}
         __vars={{
           '--hover-bg': 'var(--mantine-color-gray-1)',

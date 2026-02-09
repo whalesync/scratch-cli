@@ -109,6 +109,31 @@ export const IconButtonInline = Button.withProps({
   classNames: { root: styles.IconButtonInline },
 });
 
+export const IconButtonToolbar = Button.withProps({
+  variant: 'outline',
+  size: 'compact-xs',
+  classNames: { root: styles.IconButtonToolbar },
+});
+
+// Compact buttons for toolbars and sidebars
+export const ButtonCompactPrimary = Button.withProps({
+  variant: 'light',
+  size: 'compact-xs',
+  classNames: { root: styles.ButtonCompactPrimary },
+});
+
+export const ButtonCompactDanger = Button.withProps({
+  variant: 'light',
+  size: 'compact-xs',
+  classNames: { root: styles.ButtonCompactDanger },
+});
+
+export const ButtonCompactSecondary = Button.withProps({
+  variant: 'light',
+  size: 'compact-xs',
+  classNames: { root: styles.ButtonCompactSecondary },
+});
+
 export const DevToolButton = Button.withProps({
   variant: 'outline',
   c: 'devTool',

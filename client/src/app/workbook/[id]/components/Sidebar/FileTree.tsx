@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Regular } from '@/app/components/base/text';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
@@ -7,10 +8,10 @@ import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { workbookApi } from '@/lib/api/workbook';
-import { Box, Button, Group, ScrollArea, Stack, UnstyledButton } from '@mantine/core';
+import { Box, Group, ScrollArea, Stack, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, Workbook } from '@spinner/shared-types';
-import { CloudUploadIcon, DownloadIcon, PlusIcon, RotateCcwIcon } from 'lucide-react';
+import { CloudUploadIcon, DownloadIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ConnectionNode, EmptyConnectionNode } from './TreeNode';
@@ -30,7 +31,7 @@ export interface DirtyFile {
 const SCRATCH_GROUP_NAME = 'Scratch';
 
 export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
-  const { dataFolderGroups, isLoading, refresh: refreshDataFolders } = useDataFolders();
+  const { dataFolderGroups, isLoading, refresh: refreshDataFolders } = useDataFolders(workbook.id);
   const { connectorAccounts, refreshConnectorAccounts } = useConnectorAccounts(workbook.id);
   const expandAll = useNewWorkbookUIStore((state) => state.expandAll);
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
@@ -221,62 +222,61 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
         <Stack gap={0} py="xs">
           {/* Section title */}
           <Box px="sm" py={4} mb={4}>
-            <Text12Regular c="var(--fg-muted)" style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.5px' }}>
-              {mode === 'review' ? 'Edited files' : 'All files'}
-            </Text12Regular>
+            <Group justify="space-between" align="center">
+              <Text12Regular c="var(--fg-muted)" style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.5px' }}>
+                {mode === 'review' ? 'Edited files' : 'All files'}
+              </Text12Regular>
+              <UnstyledButton
+                onClick={() => {
+                  if (mode === 'review') {
+                    fetchDirtyFiles();
+                  } else {
+                    refreshDataFolders();
+                  }
+                }}
+                style={{ opacity: 0.4, padding: 2 }}
+                title="Refresh"
+              >
+                <RefreshCwIcon size={12} />
+              </UnstyledButton>
+            </Group>
 
             {/* Publish/Discard buttons for review mode */}
             {mode === 'review' && dirtyFiles.length > 0 && (
               <Group gap={6} mt={8}>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="blue"
+                <ButtonCompactPrimary
                   leftSection={<CloudUploadIcon size={10} />}
                   onClick={handlePublishAll}
                   loading={isPublishing}
-                  styles={{ root: { height: 22, fontSize: 11 } }}
                 >
                   Publish all
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="red"
+                </ButtonCompactPrimary>
+                <ButtonCompactDanger
                   leftSection={<RotateCcwIcon size={10} />}
                   onClick={handleDiscardAll}
                   loading={isDiscarding}
-                  styles={{ root: { height: 22, fontSize: 11 } }}
                 >
                   Discard all
-                </Button>
+                </ButtonCompactDanger>
               </Group>
             )}
 
             {/* Connect new service and Pull all buttons for files mode */}
             {mode === 'files' && (
               <Group gap={6} mt={8}>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="blue"
+                <ButtonCompactSecondary
                   leftSection={<PlusIcon size={10} />}
                   onClick={openConnectionModal}
-                  styles={{ root: { height: 22, fontSize: 11 } }}
                 >
                   Connect new service
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="gray"
+                </ButtonCompactSecondary>
+                <ButtonCompactSecondary
                   leftSection={<DownloadIcon size={10} />}
                   onClick={handlePullAll}
                   loading={isPulling}
-                  styles={{ root: { height: 22, fontSize: 11 } }}
                 >
                   Pull all
-                </Button>
+                </ButtonCompactSecondary>
               </Group>
             )}
           </Box>

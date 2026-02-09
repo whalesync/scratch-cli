@@ -4,7 +4,7 @@ import { Text13Regular, TextMono12Regular } from '@/app/components/base/text';
 import { useFileByPath } from '@/hooks/use-file-path';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
-import { Badge, Box, Button, Group, Stack } from '@mantine/core';
+import { Badge, Box, Button, Group, Stack, useMantineColorScheme } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
 import { SaveIcon } from 'lucide-react';
@@ -18,6 +18,7 @@ interface FileViewerProps {
 
 export function FileViewer({ workbookId, filePath }: FileViewerProps) {
   const { file: fileResponse, isLoading, updateFile } = useFileByPath(workbookId, filePath);
+  const { colorScheme } = useMantineColorScheme();
 
   // Editor content states
   const [content, setContent] = useState<string>('');
@@ -168,6 +169,7 @@ export function FileViewer({ workbookId, filePath }: FileViewerProps) {
           value={content}
           onChange={handleContentChange}
           extensions={extensions}
+          theme={colorScheme === 'dark' ? 'dark' : 'light'}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLineGutter: true,

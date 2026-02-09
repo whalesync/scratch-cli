@@ -47,6 +47,9 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { ActionIconThreeDots } from '../../components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
 import {
+  ButtonCompactDanger,
+  ButtonCompactPrimary,
+  ButtonCompactSecondary,
   ButtonDangerLight,
   ButtonPrimaryLight,
   ButtonPrimarySolid,
@@ -58,6 +61,7 @@ import {
   IconButtonGhost,
   IconButtonInline,
   IconButtonOutline,
+  IconButtonToolbar,
 } from '../../components/base/buttons';
 import {
   Text12Book,
@@ -323,6 +327,15 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="ButtonDangerLight">
             <ButtonDangerLight leftSection={<Plus />}>Click</ButtonDangerLight>
           </GalleryItem>
+          <GalleryItem label="ButtonCompactPrimary" notes="Small button for toolbars/sidebars. Use for primary actions like Publish.">
+            <ButtonCompactPrimary leftSection={<Plus />}>Publish</ButtonCompactPrimary>
+          </GalleryItem>
+          <GalleryItem label="ButtonCompactDanger" notes="Small button for toolbars/sidebars. Use for destructive actions like Discard.">
+            <ButtonCompactDanger leftSection={<Trash2 />}>Discard</ButtonCompactDanger>
+          </GalleryItem>
+          <GalleryItem label="ButtonCompactSecondary" notes="Small button for toolbars/sidebars. Use for secondary actions.">
+            <ButtonCompactSecondary leftSection={<Plus />}>Connect</ButtonCompactSecondary>
+          </GalleryItem>
           <GalleryItem label="IconButtonOutline">
             <IconButtonOutline>
               <CircleCheckBigIcon />
@@ -337,6 +350,11 @@ export default function DevComponentGalleryPage() {
             <IconButtonInline>
               <CircleCheckBigIcon />
             </IconButtonInline>
+          </GalleryItem>
+          <GalleryItem label="IconButtonToolbar" notes="Compact 24x24 icon button for toolbars.">
+            <IconButtonToolbar>
+              <StyledLucideIcon Icon={Settings} size="sm" />
+            </IconButtonToolbar>
           </GalleryItem>
           <GalleryItem label="CloseButtonInline">
             <CloseButtonInline />

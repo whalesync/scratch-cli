@@ -5,7 +5,7 @@ import { Text12Medium, Text12Regular } from '@/app/components/base/text';
 import { useSyncStore } from '@/stores/sync-store';
 import { Box, Group, ScrollArea, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import type { Sync, WorkbookId } from '@spinner/shared-types';
-import { ClockIcon, PlusIcon, RefreshCwIcon } from 'lucide-react';
+import { ClockIcon, PlayIcon, PlusIcon, RefreshCwIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -93,7 +93,16 @@ interface SyncItemProps {
 }
 
 function SyncItem({ sync, workbookId, isActive, isRunning }: SyncItemProps) {
+  const runSync = useSyncStore((state) => state.runSync);
   const href = `/workbook/${workbookId}/syncs/${sync.id}`;
+
+  const handleRunSync = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isRunning) {
+      runSync(workbookId, sync.id);
+    }
+  };
 
   return (
     <Link href={href} style={{ textDecoration: 'none' }}>
@@ -103,20 +112,39 @@ function SyncItem({ sync, workbookId, isActive, isRunning }: SyncItemProps) {
         style={{
           width: '100%',
           backgroundColor: isActive ? 'var(--bg-selected)' : 'transparent',
-          borderLeft: isActive ? '3px solid var(--mantine-color-blue-6)' : '3px solid transparent',
+          borderLeft: isActive ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
         }}
       >
         <Group gap={8} wrap="nowrap" justify="space-between">
+          {/* Play button */}
+          <Tooltip label="Run now" position="top">
+            <Box
+              onClick={handleRunSync}
+              style={{
+                padding: 2,
+                cursor: isRunning ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: isRunning ? 0.5 : 0.6,
+                flexShrink: 0,
+              }}
+              onMouseOver={(e) => { if (!isRunning) (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = isRunning ? '0.5' : '0.6'; }}
+            >
+              {isRunning ? (
+                <RefreshCwIcon
+                  size={12}
+                  style={{ animation: 'spin 1s linear infinite' }}
+                  color="var(--mantine-color-blue-6)"
+                />
+              ) : (
+                <PlayIcon size={12} color="var(--fg-muted)" />
+              )}
+            </Box>
+          </Tooltip>
+
           <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-            {isRunning ? (
-              <RefreshCwIcon
-                size={14}
-                style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}
-                color="var(--mantine-color-blue-6)"
-              />
-            ) : (
-              <StyledLucideIcon Icon={RefreshCwIcon} size="sm" c="var(--fg-secondary)" />
-            )}
+            <StyledLucideIcon Icon={RefreshCwIcon} size="sm" c="var(--fg-secondary)" />
             <Text12Medium c="var(--fg-primary)" truncate style={{ flex: 1 }}>
               {sync.displayName}
             </Text12Medium>

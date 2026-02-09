@@ -1,12 +1,13 @@
 'use client';
 
+import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { MergeEditor } from '../shared/MergeEditor';
 import { useFileByPath } from '@/hooks/use-file-path';
 import { filesApi } from '@/lib/api/files';
 import { workbookApi } from '@/lib/api/workbook';
 import { json } from '@codemirror/lang-json';
 import { unifiedMergeView } from '@codemirror/merge';
-import { Box, Button, Group, SegmentedControl, Text } from '@mantine/core';
+import { Box, Group, SegmentedControl, Text, useMantineColorScheme } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
 import { CloudUploadIcon, RotateCcwIcon, SaveIcon } from 'lucide-react';
@@ -23,6 +24,7 @@ interface ReviewFileViewerProps {
 export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps) {
   const router = useRouter();
   const { file: fileResponse, isLoading, updateFile, refreshFile } = useFileByPath(workbookId, filePath);
+  const { colorScheme } = useMantineColorScheme();
 
   // Editor content states
   const [content, setContent] = useState<string>('');
@@ -201,30 +203,24 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
           />
         </Group>
         <Group gap="xs">
-          <Button
-            size="compact-xs"
-            variant="light"
-            color="blue"
+          <ButtonCompactPrimary
             leftSection={<CloudUploadIcon size={12} />}
             onClick={handlePublish}
             loading={isPublishing}
           >
             Publish this file
-          </Button>
-          <Button
-            size="compact-xs"
-            variant="light"
-            color="red"
+          </ButtonCompactPrimary>
+          <ButtonCompactDanger
             leftSection={<RotateCcwIcon size={12} />}
             onClick={handleDiscard}
             loading={isDiscarding}
           >
             Discard
-          </Button>
+          </ButtonCompactDanger>
           {hasChanges && (
-            <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
+            <ButtonCompactSecondary leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
               Save
-            </Button>
+            </ButtonCompactSecondary>
           )}
         </Group>
       </Group>
@@ -244,6 +240,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
             value={content}
             onChange={handleContentChange}
             extensions={extensions}
+            theme={colorScheme === 'dark' ? 'dark' : 'light'}
             basicSetup={{
               lineNumbers: true,
               highlightActiveLineGutter: true,

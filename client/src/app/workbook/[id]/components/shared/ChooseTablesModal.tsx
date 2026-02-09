@@ -72,9 +72,8 @@ export function ChooseTablesModal({
     if (opened) {
       const linked = new Set<string>();
       linkedFolders.forEach((folder) => {
-        // Use the first tableId as the key (remoteId)
         if (folder.tableId.length > 0) {
-          linked.add(folder.tableId[0]);
+          linked.add(folder.tableId.join('/'));
         }
       });
       setSelectedTableIds(linked);
@@ -82,7 +81,7 @@ export function ChooseTablesModal({
   }, [opened, linkedFolders]);
 
   const handleToggleTable = (table: TablePreview) => {
-    const tableKey = table.id.remoteId[0];
+    const tableKey = table.id.remoteId.join('/');
     setSelectedTableIds((prev) => {
       const next = new Set(prev);
       if (next.has(tableKey)) {
@@ -97,18 +96,19 @@ export function ChooseTablesModal({
   const handleSave = async () => {
     // Determine which tables to add and which to remove
     const currentlyLinkedKeys = new Set(
-      linkedFolders.flatMap((f) => f.tableId)
+      linkedFolders.map((f) => f.tableId.join('/'))
     );
 
     // Tables to add: selected but not currently linked
     const tablesToAdd = availableTables.filter((table) => {
-      const tableKey = table.id.remoteId[0];
+      const tableKey = table.id.remoteId.join('/');
       return selectedTableIds.has(tableKey) && !currentlyLinkedKeys.has(tableKey);
     });
 
     // Tables to remove: currently linked but not selected
     const pendingFoldersToRemove = linkedFolders.filter((folder) => {
-      return !folder.tableId.some((id) => selectedTableIds.has(id));
+      const folderKey = folder.tableId.join('/');
+      return !selectedTableIds.has(folderKey);
     });
 
     // If there are folders to remove, check for dirty files and show confirmation
@@ -229,14 +229,12 @@ export function ChooseTablesModal({
             <ScrollArea.Autosize mah={400}>
               <Stack gap="xs">
                 {availableTables.map((table) => {
-                  // Use full remoteId path for uniqueness, but first element for selection tracking
-                  const uniqueKey = table.id.remoteId.join('-');
-                  const tableKey = table.id.remoteId[0];
+                  const tableKey = table.id.remoteId.join('/');
                   const isChecked = selectedTableIds.has(tableKey);
 
                   return (
                     <Checkbox
-                      key={uniqueKey}
+                      key={tableKey}
                       label={<Text13Regular>{table.displayName}</Text13Regular>}
                       checked={isChecked}
                       onChange={() => handleToggleTable(table)}
