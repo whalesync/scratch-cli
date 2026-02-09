@@ -9,7 +9,6 @@ export enum PostHogEvents {
   CLICK_NEW_PLAN_CHECKOUT = 'click_new_plan_checkout',
   ACCEPT_SUGGESTIONS = 'accept_suggestions',
   REJECT_SUGGESTIONS = 'reject_suggestions',
-  START_AGENT_SESSION = 'start_agent_session',
   SEND_AGENT_MESSAGE = 'send_agent_message',
   TOGGLE_DISPLAY_MODE = 'toggle_display_mode',
   CLICK_DOWNLOAD_RESOURCE = 'click_download_resource',
@@ -82,10 +81,6 @@ export function trackRejectChanges(items: { wsId: string; columnId: string }[], 
 }
 
 /** Agent / Chat events  */
-export function trackStartAgentSession(snapshot: Workbook | undefined): void {
-  captureEvent(PostHogEvents.START_AGENT_SESSION, { ...snapshotProperties(snapshot) });
-}
-
 export function trackChangeAgentModel(model: string, snapshot: Workbook | undefined): void {
   captureEvent(PostHogEvents.CHANGE_AGENT_MODEL, { model, ...snapshotProperties(snapshot) });
 }

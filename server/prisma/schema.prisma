@@ -290,20 +290,6 @@ model InvoiceResult {
   @@index([invoiceId])
 }
 
-// DEPRECATED. We no longer have a pydantic agent.
-model AgentSession {
-  id         String   @id // The session ID used by the pydantic agent
-  userId     String // User ID for the session
-  workbookId String // Workbook ID for the session
-  data       Json // JSON data containing the session state
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([userId])
-  @@index([workbookId])
-  @@index([userId, workbookId])
-}
-
 model DbJob {
   id        String  @id // type: JobId
   bullJobId String? // BullMQ job ID for tracking

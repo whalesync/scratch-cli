@@ -245,7 +245,6 @@ The server is organized into focused modules, each with its own README:
 
 - **[ai](src/ai/)**: Google Gemini integration for AI-powered features
 - **[ai-agent-token-usage](src/ai-agent-token-usage/)**: AI token consumption tracking
-- **[agent-session](src/agent-session/)**: Persistent agent session management
 - **[openrouter](src/openrouter/)**: OpenRouter API key provisioning and management
 - **[posthog](src/posthog/)**: Product analytics and event tracking
 - **[experiments](src/experiments/)**: Feature flag management with OpenFeature
