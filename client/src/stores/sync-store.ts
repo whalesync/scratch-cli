@@ -11,6 +11,7 @@ interface SyncStoreState {
   activeJobs: Record<SyncId, string>; // Maps SyncId to JobId
   jobStatuses: Record<string, JobEntity>; // Maps JobId to JobEntity
   isPolling: boolean;
+  isLoading: boolean;
   workbookId: WorkbookId | null;
 
   // Actions
@@ -25,15 +26,17 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
   activeJobs: {},
   jobStatuses: {},
   isPolling: false,
+  isLoading: false,
   workbookId: null, // Initial state for workbookId
 
   fetchSyncs: async (workbookId: WorkbookId) => {
     try {
-      set({ workbookId }); // Verify we have it
+      set({ workbookId, isLoading: true }); // Verify we have it
       const syncs = await syncApi.list(workbookId);
-      set({ syncs });
+      set({ syncs, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch syncs:', error);
+      set({ isLoading: false });
     }
   },
 

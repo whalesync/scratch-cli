@@ -139,6 +139,13 @@ export class FilesService {
     const mainResponse = await this.scratchGitService.getRepoFile(workbookId, MAIN_BRANCH, path);
     const dirtyResponse = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, path);
 
+    // Check if file is dirty by comparing main and dirty branches
+    const folderPath = path.substring(0, path.lastIndexOf('/')) || '.';
+    const diffs = await this.scratchGitService.getFolderDiff(workbookId, folderPath);
+    const fileDiff = diffs.find((d) => d.path === path);
+    const isDirty = !!fileDiff;
+    const status = fileDiff?.status;
+
     return {
       file: {
         ref: {
@@ -147,6 +154,8 @@ export class FilesService {
           name: extractFilenameFromPath(path),
           parentFolderId: null,
           path: path,
+          dirty: isDirty,
+          status: status,
         },
         content: dirtyResponse?.content ?? null,
         originalContent: mainResponse?.content ?? null,

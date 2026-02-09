@@ -1,0 +1,283 @@
+'use client';
+
+import { MergeEditor } from '@/app/workbooks/[...slug]/components/MergeEditor';
+import { useFileByPath } from '@/hooks/use-file-path';
+import { filesApi } from '@/lib/api/files';
+import { workbookApi } from '@/lib/api/workbook';
+import { json } from '@codemirror/lang-json';
+import { unifiedMergeView } from '@codemirror/merge';
+import { Box, Button, Group, SegmentedControl, Text } from '@mantine/core';
+import type { WorkbookId } from '@spinner/shared-types';
+import CodeMirror from '@uiw/react-codemirror';
+import { CloudUploadIcon, RotateCcwIcon, SaveIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+type ViewMode = 'split' | 'unified';
+
+interface ReviewFileViewerProps {
+  workbookId: WorkbookId;
+  filePath: string | null;
+}
+
+export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps) {
+  const router = useRouter();
+  const { file: fileResponse, isLoading, updateFile, refreshFile } = useFileByPath(workbookId, filePath);
+
+  // Editor content states
+  const [content, setContent] = useState<string>('');
+  const [savedContent, setSavedContent] = useState<string>('');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // View mode state - default to split (side-by-side)
+  const [viewMode, setViewMode] = useState<ViewMode>('split');
+
+  const originalContent = fileResponse?.file?.originalContent ?? '';
+
+  // Initialize content from file response
+  const [isContentInitialized, setIsContentInitialized] = useState(false);
+  const [initialContentLength, setInitialContentLength] = useState<number>(0);
+
+  useEffect(() => {
+    if (fileResponse?.file?.content !== undefined) {
+      const fileContent = fileResponse.file.content ?? '';
+      setContent(fileContent);
+      setSavedContent(fileContent);
+      setHasChanges(false);
+      setInitialContentLength(fileContent.length);
+      setIsContentInitialized(true);
+    }
+  }, [fileResponse]);
+
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      setContent(newContent);
+      setHasChanges(newContent !== savedContent);
+    },
+    [savedContent],
+  );
+
+  const handleSave = useCallback(async () => {
+    if (!filePath || !hasChanges) return;
+
+    setIsSaving(true);
+    try {
+      await updateFile({ content });
+      setSavedContent(content);
+      setHasChanges(false);
+    } catch (error) {
+      console.debug('Failed to save file:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [filePath, hasChanges, content, updateFile]);
+
+  const handleDiscard = useCallback(async () => {
+    if (!filePath) return;
+    if (!confirm(`Are you sure you want to discard changes to this file? This cannot be undone.`)) return;
+
+    setIsDiscarding(true);
+    try {
+      await workbookApi.discardChanges(workbookId, filePath);
+      // Refresh the file data
+      await refreshFile();
+      // Navigate back to review page since this file is no longer modified
+      router.push(`/n/workbooks/${workbookId}/review`);
+    } catch (error) {
+      console.debug('Failed to discard changes:', error);
+    } finally {
+      setIsDiscarding(false);
+    }
+  }, [filePath, workbookId, refreshFile, router]);
+
+  const handlePublish = useCallback(async () => {
+    if (!filePath) return;
+
+    setIsPublishing(true);
+    try {
+      await filesApi.publishFile(workbookId, filePath);
+      // Refresh the file data
+      await refreshFile();
+      // Navigate back to review page since this file is now published
+      router.push(`/n/workbooks/${workbookId}/review`);
+    } catch (error) {
+      console.debug('Failed to publish file:', error);
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [filePath, workbookId, refreshFile, router]);
+
+  // Keyboard shortcut: Cmd+S / Ctrl+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
+
+  const viewModeOptions = [
+    { value: 'split', label: 'Side-by-side' },
+    { value: 'unified', label: 'Inline' },
+  ];
+
+  const extensions = useMemo(() => {
+    if (viewMode === 'unified') {
+      return [
+        json(),
+        unifiedMergeView({
+          original: originalContent,
+          mergeControls: false,
+          highlightChanges: true,
+        }),
+      ];
+    }
+    return [json()];
+  }, [viewMode, originalContent]);
+
+  // Force re-mount when switching modes
+  const editorKey = useMemo(() => {
+    return `${viewMode}-${filePath}`;
+  }, [viewMode, filePath]);
+
+  if (!filePath) {
+    return (
+      <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Text c="dimmed">Select a modified file to review changes</Text>
+      </Box>
+    );
+  }
+
+  if (isLoading && !fileResponse && !isSaving) {
+    return (
+      <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Text c="dimmed">Loading file...</Text>
+      </Box>
+    );
+  }
+
+  if ((!fileResponse && !isSaving) || !isContentInitialized) {
+    if (!isContentInitialized && isLoading) {
+      return (
+        <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Text c="dimmed">Loading file...</Text>
+        </Box>
+      );
+    }
+    if (!fileResponse && !isSaving && !isLoading) {
+      return (
+        <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <Text c="dimmed">File not found</Text>
+        </Box>
+      );
+    }
+  }
+
+  return (
+    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Toolbar */}
+      <Group
+        h={40}
+        px="sm"
+        justify="space-between"
+        style={{
+          borderBottom: '0.5px solid var(--fg-divider)',
+          flexShrink: 0,
+        }}
+      >
+        <Group gap="xs">
+          <SegmentedControl
+            size="xs"
+            value={viewMode}
+            onChange={(value) => setViewMode(value as ViewMode)}
+            data={viewModeOptions}
+          />
+        </Group>
+        <Group gap="xs">
+          <Button
+            size="compact-xs"
+            variant="light"
+            color="blue"
+            leftSection={<CloudUploadIcon size={12} />}
+            onClick={handlePublish}
+            loading={isPublishing}
+          >
+            Publish this file
+          </Button>
+          <Button
+            size="compact-xs"
+            variant="light"
+            color="red"
+            leftSection={<RotateCcwIcon size={12} />}
+            onClick={handleDiscard}
+            loading={isDiscarding}
+          >
+            Discard
+          </Button>
+          {hasChanges && (
+            <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
+              Save
+            </Button>
+          )}
+        </Group>
+      </Group>
+
+      {/* Diff Editor */}
+      <Box style={{ flex: 1, overflow: 'auto' }}>
+        {viewMode === 'split' ? (
+          <MergeEditor
+            key={`split-${originalContent?.length ?? 0}-${initialContentLength}`}
+            original={originalContent}
+            modified={content}
+            onModifiedChange={handleContentChange}
+          />
+        ) : (
+          <CodeMirror
+            key={editorKey}
+            value={content}
+            onChange={handleContentChange}
+            extensions={extensions}
+            basicSetup={{
+              lineNumbers: true,
+              highlightActiveLineGutter: true,
+              highlightSpecialChars: true,
+              history: true,
+              foldGutter: true,
+              drawSelection: true,
+              dropCursor: true,
+              allowMultipleSelections: true,
+              indentOnInput: true,
+              syntaxHighlighting: true,
+              bracketMatching: true,
+              closeBrackets: true,
+              autocompletion: true,
+              rectangularSelection: true,
+              crosshairCursor: true,
+              highlightActiveLine: true,
+              highlightSelectionMatches: true,
+              closeBracketsKeymap: true,
+              defaultKeymap: true,
+              searchKeymap: true,
+              historyKeymap: true,
+              foldKeymap: true,
+              completionKeymap: true,
+              lintKeymap: true,
+            }}
+            style={{
+              fontSize: '14px',
+              height: '100%',
+              border: 'none',
+            }}
+          />
+        )}
+      </Box>
+    </Box>
+  );
+}
