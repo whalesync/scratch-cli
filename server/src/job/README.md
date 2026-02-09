@@ -10,7 +10,7 @@ This module functions as an intermediary between user-facing HTTP requests and t
 
 ## Endpoints
 
-All endpoints are protected by `ScratchpadAuthGuard`:
+All endpoints are protected by `ScratchAuthGuard`:
 
 ### `GET /jobs`
 

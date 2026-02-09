@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import IORedis from 'ioredis';
 import { Observable } from 'rxjs';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 
 @Injectable()
 export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
@@ -9,7 +9,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
   private subscriber?: IORedis;
   private channelCallbacks: Map<string, Set<(message: string) => void>> = new Map();
 
-  constructor(private readonly configService: ScratchpadConfigService) {}
+  constructor(private readonly configService: ScratchConfigService) {}
 
   onModuleInit() {
     const redisConfig = {

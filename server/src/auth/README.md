@@ -30,7 +30,7 @@ This module provides unified authentication and authorization mechanisms to acco
 
 ## Guards
 
-### ScratchpadAuthGuard
+### ScratchAuthGuard
 
 - Controller-level guard for HTTP endpoints
 - Attempts authentication in sequence:

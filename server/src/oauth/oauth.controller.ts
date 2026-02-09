@@ -9,14 +9,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { OAuthInitiateOptionsDto, ValidatedOAuthInitiateOptionsDto } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
 import type { OAuthCallbackRequest, OAuthInitiateResponse } from './oauth.service';
 import { OAuthService } from './oauth.service';
 
 @Controller('oauth')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class OAuthController {
   constructor(private readonly oauthService: OAuthService) {}

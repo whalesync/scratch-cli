@@ -3,7 +3,7 @@ import { verifyToken } from '@clerk/backend';
 import { TokenVerificationError } from '@clerk/backend/errors';
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
 import { AuthenticatedUser, SocketWithUser } from './types';
@@ -13,7 +13,7 @@ export class WebSocketAuthGuard implements CanActivate {
   constructor(
     @Inject('ClerkClient')
     private readonly clerkClient: ClerkClient,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly userService: UsersService,
   ) {}
 

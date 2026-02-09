@@ -5,12 +5,12 @@ import { TokenVerificationError, TokenVerificationErrorReason } from '@clerk/bac
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
 import { ClerkStrategy } from './clerk.strategy';
-import { ScratchpadJwtPayload } from './types';
+import { ScratchJwtPayload } from './types';
 
 // Mock the @clerk/backend module
 jest.mock('@clerk/backend', () => ({
@@ -20,12 +20,12 @@ jest.mock('@clerk/backend', () => ({
 describe('ClerkStrategy', () => {
   let strategy: ClerkStrategy;
   let usersService: jest.Mocked<UsersService>;
-  let configService: jest.Mocked<ScratchpadConfigService>;
+  let configService: jest.Mocked<ScratchConfigService>;
   let loggerErrorSpy: jest.SpyInstance;
 
   const CLERK_SECRET = 'test_clerk_secret_key';
 
-  const mockJwtPayload: ScratchpadJwtPayload = {
+  const mockJwtPayload: ScratchJwtPayload = {
     sub: 'clerk_user_123',
     fullName: 'John Doe',
     primaryEmail: 'john@example.com',
@@ -61,7 +61,7 @@ describe('ClerkStrategy', () => {
           useValue: mockUsersService,
         },
         {
-          provide: ScratchpadConfigService,
+          provide: ScratchConfigService,
           useValue: mockConfigService,
         },
         {
@@ -73,7 +73,7 @@ describe('ClerkStrategy', () => {
 
     strategy = module.get<ClerkStrategy>(ClerkStrategy);
     usersService = module.get(UsersService);
-    configService = module.get(ScratchpadConfigService);
+    configService = module.get(ScratchConfigService);
 
     // Clear mocks
     jest.clearAllMocks();
@@ -221,7 +221,7 @@ describe('ClerkStrategy', () => {
         },
       } as Request;
 
-      const minimalPayload: ScratchpadJwtPayload = {
+      const minimalPayload: ScratchJwtPayload = {
         sub: 'clerk_user_123',
       };
 
@@ -358,7 +358,7 @@ describe('ClerkStrategy', () => {
         },
       } as Request;
 
-      const specialPayload: ScratchpadJwtPayload = {
+      const specialPayload: ScratchJwtPayload = {
         sub: 'clerk_user_123',
         fullName: "O'Brien-Smith, Jr. 李明",
         primaryEmail: 'user+test@example.co.uk',

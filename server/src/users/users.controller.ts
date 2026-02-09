@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { BillableActions, UpdateSettingsDto, ValidatedUpdateSettingsDto } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ExperimentsService } from 'src/experiments/experiments.service';
 import { User } from './entities/user.entity';
@@ -21,7 +21,7 @@ import { SubscriptionService } from './subscription.service';
 import { UsersService } from './users.service';
 
 @Controller('users')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class UsersController {
   constructor(

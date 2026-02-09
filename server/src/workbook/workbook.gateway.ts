@@ -14,7 +14,7 @@ import type { WorkbookId } from '@spinner/shared-types';
 import { Server } from 'socket.io';
 import type { SocketWithUser } from 'src/auth/types';
 import { WebSocketAuthGuard } from 'src/auth/websocket-auth-guard';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 import { userToActor } from 'src/users/types';
 import { WorkbookEventService } from './workbook-event.service';
@@ -37,7 +37,7 @@ export class WorkbookDataGateway implements OnGatewayInit, OnGatewayConnection, 
   server?: Server;
 
   constructor(
-    readonly configService: ScratchpadConfigService,
+    readonly configService: ScratchConfigService,
     readonly workbookEventService: WorkbookEventService,
     readonly workbookService: WorkbookService,
   ) {}

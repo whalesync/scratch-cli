@@ -20,7 +20,7 @@ import {
   WorkbookId,
   type ValidatedCreateConnectorAccountDto,
 } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { userToActor } from '../../users/types';
 import { ConnectorAccountService } from './connector-account.service';
@@ -29,7 +29,7 @@ import { TableGroup, TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('workbooks/:workbookId/connections')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class ConnectorAccountController {
   constructor(private readonly service: ConnectorAccountService) {}

@@ -12,7 +12,7 @@ import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
 const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
 
 /**
- * This component just makes sure the Scratchpad user is loaded from the server and that authentication is fully complete before loading protected pages
+ * This component just makes sure the Scratch user is loaded from the server and that authentication is fully complete before loading protected pages
  */
 export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const scratchPadUser = useScratchPadUser();
@@ -31,7 +31,7 @@ export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): J
 };
 
 /**
- * This provider handles combining Clerk auth with Scratchpad auth.
+ * This provider handles combining Clerk auth with Scratch auth.
  * It refreshes the JWT token periodically and sets the value into the API_CONFIG so all API calls can be authenticated
  */
 export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.Element => {

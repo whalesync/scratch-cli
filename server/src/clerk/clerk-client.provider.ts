@@ -1,13 +1,13 @@
 import { createClerkClient } from '@clerk/backend';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 
 export const ClerkClientProvider = {
   provide: 'ClerkClient',
-  useFactory: (configService: ScratchpadConfigService) => {
+  useFactory: (configService: ScratchConfigService) => {
     return createClerkClient({
       publishableKey: configService.getClerkPublishableKey(),
       secretKey: configService.getClerkSecretKey(),
     });
   },
-  inject: [ScratchpadConfigService],
+  inject: [ScratchConfigService],
 };

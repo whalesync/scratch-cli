@@ -6,7 +6,7 @@ import { SyncService } from 'src/sync/sync.service';
 import { DataFolderPublishingService } from 'src/workbook/data-folder-publishing.service';
 import { WorkbookEventService } from 'src/workbook/workbook-event.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
-import { ScratchpadConfigService } from '../config/scratchpad-config.service';
+import { ScratchConfigService } from '../config/scratch-config.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
@@ -19,7 +19,7 @@ import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
 export class JobHandlerService {
   constructor(
     private readonly connectorService: ConnectorsService,
-    private readonly config: ScratchpadConfigService,
+    private readonly config: ScratchConfigService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly workbookEventService: WorkbookEventService,
     private readonly scratchGitService: ScratchGitService,

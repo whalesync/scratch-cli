@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { ScratchPlanType } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
@@ -25,7 +25,7 @@ const VALID_TEST_PRO_PLAN_PRICE_ID =
 const mockConfigService = {
   getStripeApiKey: jest.fn().mockReturnValue('sk_test_mock_key'),
   getStripeWebhookSecret: jest.fn().mockReturnValue('whsec_mock_secret'),
-  getScratchpadEnvironment: jest.fn().mockReturnValue('test'),
+  getScratchEnvironment: jest.fn().mockReturnValue('test'),
   getTrialRequirePaymentMethod: jest.fn().mockReturnValue(false),
   isProductionEnvironment: jest.fn().mockReturnValue(false),
 };
@@ -86,7 +86,7 @@ describe('StripePaymentService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Set APP_ENV for tests that access ScratchpadConfigService.getClientBaseUrl()
+    // Set APP_ENV for tests that access scratchConfigService.getClientBaseUrl()
     process.env.APP_ENV = 'test';
 
     // Suppress WSLogger output during tests
@@ -96,7 +96,7 @@ describe('StripePaymentService', () => {
     jest.spyOn(WSLogger, 'warn').mockImplementation(() => {});
 
     service = new StripePaymentService(
-      mockConfigService as unknown as ScratchpadConfigService,
+      mockConfigService as unknown as ScratchConfigService,
       mockDbService,
       mockPostHogService,
       mockSlackNotificationService,
@@ -198,7 +198,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial123',
         status: 'trialing',
         customer: 'cus_existing123',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -221,7 +221,7 @@ describe('StripePaymentService', () => {
           customer: 'cus_existing123',
           trial_period_days: 7,
           metadata: expect.objectContaining({
-            application: 'scratchpad',
+            application: 'scratch',
             planType: ScratchPlanType.PRO_PLAN,
             environment: 'test',
           }),
@@ -237,7 +237,7 @@ describe('StripePaymentService', () => {
         id: 'sub_trial456',
         status: 'trialing',
         customer: 'cus_newCustomer789',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN },
         items: {
           data: [
             {
@@ -294,7 +294,7 @@ describe('StripePaymentService', () => {
       } as Stripe.Checkout.Session;
 
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
-      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+      jest.spyOn(ScratchConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
       const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, true);
 
@@ -323,7 +323,7 @@ describe('StripePaymentService', () => {
               }),
             }),
             metadata: expect.objectContaining({
-              application: 'scratchpad',
+              application: 'scratch',
               planType: ScratchPlanType.PRO_PLAN,
               environment: 'test',
             }),
@@ -352,7 +352,7 @@ describe('StripePaymentService', () => {
       } as Stripe.Checkout.Session;
 
       mockStripeInstance.checkout.sessions.create = jest.fn().mockResolvedValue(mockSession);
-      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+      jest.spyOn(ScratchConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
       const result = await service.generateCheckoutUrl(user, ScratchPlanType.PRO_PLAN, false);
 
@@ -375,7 +375,7 @@ describe('StripePaymentService', () => {
             trial_period_days: undefined,
             trial_settings: undefined,
             metadata: expect.objectContaining({
-              application: 'scratchpad',
+              application: 'scratch',
               planType: ScratchPlanType.PRO_PLAN,
               environment: 'test',
             }),
@@ -489,7 +489,7 @@ describe('StripePaymentService', () => {
       } as Stripe.BillingPortal.Session;
 
       mockStripeInstance.billingPortal.sessions.create = jest.fn().mockResolvedValue(mockPortalSession);
-      jest.spyOn(ScratchpadConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
+      jest.spyOn(ScratchConfigService, 'getClientBaseUrl').mockReturnValue('https://app.scratch.md');
 
       const result = await service.createCustomerPortalUrl(user, {});
 
@@ -565,7 +565,7 @@ describe('StripePaymentService', () => {
             id: 'sub_webhook123',
             customer: 'cus_webhook123',
             status: 'active',
-            metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN },
+            metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN },
             items: {
               data: [
                 {
@@ -647,7 +647,7 @@ describe('StripePaymentService', () => {
         id: 'sub_checkout123',
         customer: 'cus_checkout123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -681,7 +681,7 @@ describe('StripePaymentService', () => {
             lines: {
               data: [
                 {
-                  metadata: { application: 'scratchpad' },
+                  metadata: { application: 'scratch' },
                   parent: {
                     type: 'subscription_item_details',
                     subscription_item_details: {
@@ -700,7 +700,7 @@ describe('StripePaymentService', () => {
         id: 'sub_paid123',
         customer: 'cus_paid123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -749,7 +749,7 @@ describe('StripePaymentService', () => {
         id: 'sub_failed123',
         customer: 'cus_failed123',
         status: 'past_due',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -806,7 +806,7 @@ describe('StripePaymentService', () => {
         id: 'sub_upsert123',
         customer: 'cus_upsert123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -849,7 +849,7 @@ describe('StripePaymentService', () => {
       );
     });
 
-    it('should ignore non-scratchpad subscriptions', async () => {
+    it('should ignore non-scratch subscriptions', async () => {
       const mockSubscription = {
         id: 'sub_other123',
         customer: 'cus_other123',
@@ -880,7 +880,7 @@ describe('StripePaymentService', () => {
         id: 'sub_nouser123',
         customer: 'cus_nouser123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -896,7 +896,7 @@ describe('StripePaymentService', () => {
 
       const result = await service.upsertSubscription('sub_nouser123', undefined, mockSubscription);
 
-      // Since priceId matches test plans, subscription is considered scratchpad
+      // Since priceId matches test plans, subscription is considered scratch
       // However user lookup fails, which should return error
       // But in test/staging environments, unknown users return "ignored" to avoid webhook failures
       expect(isOk(result)).toBe(true);
@@ -910,7 +910,7 @@ describe('StripePaymentService', () => {
         id: 'sub_noorg123',
         customer: 'cus_noorg123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -942,7 +942,7 @@ describe('StripePaymentService', () => {
         id: 'sub_dberror123',
         customer: 'cus_dberror123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {
@@ -974,7 +974,7 @@ describe('StripePaymentService', () => {
         id: 'sub_fetch123',
         customer: 'cus_fetch123',
         status: 'active',
-        metadata: { application: 'scratchpad', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
+        metadata: { application: 'scratch', planType: ScratchPlanType.PRO_PLAN, environment: 'test' },
         items: {
           data: [
             {

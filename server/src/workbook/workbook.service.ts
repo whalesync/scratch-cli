@@ -7,7 +7,7 @@ import {
   WorkbookId,
 } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WorkbookCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -21,7 +21,7 @@ import { WorkbookEventService } from './workbook-event.service';
 export class WorkbookService {
   constructor(
     private readonly db: DbService,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly workbookEventService: WorkbookEventService,
     private readonly posthogService: PostHogService,
     private readonly bullEnqueuerService: BullEnqueuerService,

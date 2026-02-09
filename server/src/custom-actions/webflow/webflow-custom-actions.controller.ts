@@ -8,12 +8,12 @@ import {
   WebflowValidateFilesDto,
 } from '@spinner/shared-types';
 import { userToActor } from 'src/users/types';
-import { ScratchpadAuthGuard } from '../../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../../auth/types';
 import { WebflowCustomActionsService } from './webflow-custom-actions.service';
 
 @Controller('custom-actions/webflow')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class WebflowCustomActionsController {
   constructor(private readonly service: WebflowCustomActionsService) {}

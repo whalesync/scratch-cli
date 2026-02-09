@@ -1,5 +1,5 @@
 import { ScratchPlanType } from '@spinner/shared-types';
-import { ScratchpadConfigService, ScratchpadEnvironment } from '../config/scratchpad-config.service';
+import { ScratchConfigService, ScratchEnvironment } from '../config/scratch-config.service';
 import {
   getPlan,
   getPlans,
@@ -38,7 +38,7 @@ describe('plans', () => {
 
   describe('getPlans', () => {
     it('should return production plans for production environment', () => {
-      const plans = getPlans('production' as ScratchpadEnvironment);
+      const plans = getPlans('production' as ScratchEnvironment);
       expect(plans).toBe(PRODUCTION_PLANS);
       expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
@@ -47,7 +47,7 @@ describe('plans', () => {
     });
 
     it('should return staging plans for staging environment', () => {
-      const plans = getPlans('staging' as ScratchpadEnvironment);
+      const plans = getPlans('staging' as ScratchEnvironment);
       expect(plans).toBe(STAGING_SANDBOX_PLANS);
       expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
@@ -56,7 +56,7 @@ describe('plans', () => {
     });
 
     it('should return test plans for test environment', () => {
-      const plans = getPlans('test' as ScratchpadEnvironment);
+      const plans = getPlans('test' as ScratchEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
       expect(plans).toHaveLength(3);
       expect(plans.find((p) => p.planType === ScratchPlanType.FREE_PLAN)).toBeDefined();
@@ -65,13 +65,13 @@ describe('plans', () => {
     });
 
     it('should return test plans for local environment', () => {
-      const plans = getPlans('local' as ScratchpadEnvironment);
+      const plans = getPlans('local' as ScratchEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
       expect(plans).toHaveLength(3);
     });
 
     it('should return test plans for any other environment', () => {
-      const plans = getPlans('unknown' as ScratchpadEnvironment);
+      const plans = getPlans('unknown' as ScratchEnvironment);
       expect(plans).toBe(TEST_SANDBOX_PLANS);
     });
   });
@@ -79,7 +79,7 @@ describe('plans', () => {
   describe('getPlan', () => {
     beforeEach(() => {
       // Mock the static method to return test environment
-      jest.spyOn(ScratchpadConfigService, 'getScratchpadEnvironment').mockReturnValue('test');
+      jest.spyOn(ScratchConfigService, 'getScratchEnvironment').mockReturnValue('test');
     });
 
     afterEach(() => {

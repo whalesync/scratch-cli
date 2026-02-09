@@ -23,7 +23,7 @@ import {
   UpdateFileDto,
   ValidatedCreateFileDto,
 } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { WSLogger } from '../logger';
 import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
@@ -31,7 +31,7 @@ import { userToActor } from '../users/types';
 import { FilesService } from './files.service';
 
 @Controller('workbooks/:workbookId/files')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class FilesController {
   constructor(

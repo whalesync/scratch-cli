@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from 'src/audit/audit-log.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
@@ -13,7 +13,7 @@ import { DevToolsService } from './dev-tools.service';
 @Module({
   providers: [DevToolsService],
   imports: [
-    ScratchpadConfigModule,
+    ScratchConfigModule,
     DbModule,
     UserModule,
     PaymentModule,

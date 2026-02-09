@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateBugReportDto } from '@spinner/shared-types';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { getSubscriptionPlanType } from 'src/payment/helpers';
 import { LinearService } from './linear.service';
@@ -8,7 +8,7 @@ import { LinearService } from './linear.service';
 @Injectable()
 export class BugReportService {
   constructor(
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly linearService: LinearService,
   ) {}
 
@@ -21,7 +21,7 @@ export class BugReportService {
     const userDashboardUrl = `${this.configService.getScratchApplicationUrl()}/dev/users?q=${user.id}`;
 
     let description = '';
-    description += `**Env**: ${this.configService.getScratchpadEnvironment()}\n`;
+    description += `**Env**: ${this.configService.getScratchEnvironment()}\n`;
     if (createBugReportDto.bugType) {
       description += `**Bug Type**: ${createBugReportDto.bugType}\n`;
     }

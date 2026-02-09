@@ -17,7 +17,7 @@ This module enables users to connect their accounts with external services (Noti
 
 ## Endpoints
 
-All endpoints require `ScratchpadAuthGuard` authentication:
+All endpoints require `ScratchAuthGuard` authentication:
 
 ### `POST /oauth/:service/initiate`
 

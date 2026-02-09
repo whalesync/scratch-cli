@@ -19,7 +19,7 @@ export interface PublishDraftPostsResponse {
  * Wix custom actions for publishing draft blog posts.
  *
  * This class provides methods to interact with Wix's Blog API to publish
- * draft posts that have been synced from the Scratchpad workspace.
+ * draft posts that have been synced from the Scratch workspace.
  */
 export class WixCustomActions {
   private readonly wixClient: ReturnType<

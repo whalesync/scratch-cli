@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { WSLogger } from 'src/logger';
-import { ScratchpadConfigService } from '../config/scratchpad-config.service';
+import { ScratchConfigService } from '../config/scratch-config.service';
 import { DbService } from '../db/db.service';
 
 @Injectable()
 export class ExampleCronService {
   constructor(
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly dbService: DbService,
   ) {}
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TokenType } from '@prisma/client';
 import { createApiTokenId, createAuthorizationCodeId } from '@spinner/shared-types';
 import { customAlphabet } from 'nanoid';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { generateApiToken } from 'src/users/tokens';
@@ -26,7 +26,7 @@ const POLL_INTERVAL_SECONDS = 5;
 export class CliAuthService {
   constructor(
     private readonly db: DbService,
-    private readonly config: ScratchpadConfigService,
+    private readonly config: ScratchConfigService,
   ) {}
 
   /**

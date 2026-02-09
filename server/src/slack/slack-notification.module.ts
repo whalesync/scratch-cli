@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { SlackNotificationService } from './slack-notification.service';
 
 @Module({
-  imports: [ScratchpadConfigModule],
+  imports: [ScratchConfigModule],
   providers: [SlackNotificationService],
   exports: [SlackNotificationService],
 })

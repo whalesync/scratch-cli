@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TokenType, UserRole } from '@prisma/client';
 import { createApiTokenId, createOrganizationId, createUserId, UpdateSettingsDto } from '@spinner/shared-types';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { PostHogService } from 'src/posthog/posthog.service';
 import { SlackFormatters } from 'src/slack/slack-formatters';
@@ -15,7 +15,7 @@ export class UsersService {
   constructor(
     private readonly db: DbService,
     private readonly postHogService: PostHogService,
-    private readonly scratchpadConfigService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly slackNotificationService: SlackNotificationService,
   ) {}
 

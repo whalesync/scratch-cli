@@ -5,18 +5,18 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { Strategy } from 'passport-custom';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 import { UsersService } from 'src/users/users.service';
-import { AuthenticatedUser, ScratchpadJwtPayload } from './types';
+import { AuthenticatedUser, ScratchJwtPayload } from './types';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   constructor(
     @Inject('ClerkClient')
     private readonly clerkClient: ClerkClient,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly userService: UsersService,
   ) {
     super();
@@ -33,12 +33,12 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       throw new UnauthorizedException('No token provided');
     }
 
-    let scratchpadPayload: ScratchpadJwtPayload;
+    let scratchPayload: ScratchJwtPayload;
     try {
       const jwtPayload = await verifyToken(token, {
         secretKey: this.configService.getClerkSecretKey(),
       });
-      scratchpadPayload = jwtPayload as ScratchpadJwtPayload;
+      scratchPayload = jwtPayload as ScratchJwtPayload;
     } catch (error) {
       if (error instanceof TokenVerificationError) {
         WSLogger.error({
@@ -61,9 +61,9 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
     let user: UserCluster.User | null = null;
     try {
       user = await this.userService.getOrCreateUserFromClerk(
-        scratchpadPayload.sub,
-        scratchpadPayload.fullName,
-        scratchpadPayload.primaryEmail,
+        scratchPayload.sub,
+        scratchPayload.fullName,
+        scratchPayload.primaryEmail,
       );
     } catch (error) {
       WSLogger.error({

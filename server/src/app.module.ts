@@ -5,8 +5,8 @@ import { BugReportModule } from './bug-report/bug-report.module';
 import { ClerkModule } from './clerk/clerk.module';
 import { CliModule } from './cli/cli.module';
 import { CodeMigrationsModule } from './code-migrations/code-migrations.module';
-import { ScratchpadConfigModule } from './config/scratchpad-config.module';
-import { ScratchpadConfigService } from './config/scratchpad-config.service';
+import { ScratchConfigModule } from './config/scratch-config.module';
+import { ScratchConfigService } from './config/scratch-config.service';
 import { CronModule } from './cron/cron.module';
 import { WebflowCustomActionsModule } from './custom-actions/webflow/webflow-custom-actions.module';
 import { WixCustomActionsModule } from './custom-actions/wix/wix-custom-actions.module';
@@ -31,7 +31,7 @@ import { WorkerModule } from './worker/workers.module';
 
 @Module({
   imports: [
-    ScratchpadConfigModule, // Load first so static environment variables are available
+    ScratchConfigModule, // Load first so static environment variables are available
     PosthogModule,
     AuditLogModule,
     ExperimentsModule,
@@ -53,8 +53,8 @@ import { WorkerModule } from './worker/workers.module';
     SlackNotificationModule,
     WorkerEnqueuerModule,
     CodeMigrationsModule,
-    ...(ScratchpadConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
-    ...(ScratchpadConfigService.isCronService() ? [CronModule] : []),
+    ...(ScratchConfigService.isTaskWorkerService() ? [WorkerModule, JobModule] : []),
+    ...(ScratchConfigService.isCronService() ? [CronModule] : []),
     DevToolsModule,
     BugReportModule,
   ],

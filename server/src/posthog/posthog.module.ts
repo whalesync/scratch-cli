@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { PostHogService } from './posthog.service';
 
 @Module({
   providers: [PostHogService],
-  imports: [ScratchpadConfigModule],
+  imports: [ScratchConfigModule],
   exports: [PostHogService], //export this service to use in other modules
   controllers: [],
 })

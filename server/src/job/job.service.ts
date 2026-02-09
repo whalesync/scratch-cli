@@ -3,7 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DbJob } from '@prisma/client';
 import { createJobId } from '@spinner/shared-types';
 import IORedis from 'ioredis';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
 import { DbJobStatus, JobEntity } from './entities/job.entity';
@@ -14,7 +14,7 @@ export class JobService {
 
   constructor(
     private readonly db: DbService,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
   ) {}
 
   private getRedis(): IORedis {

@@ -17,9 +17,9 @@ import {
   CreateCustomerPortalUrlResponse,
   CreatePortalDto,
 } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { isErr } from 'src/types/results';
 import { getPlanTypeFromString } from './plans';
 import { StripePaymentService } from './stripe-payment.service';
@@ -28,12 +28,12 @@ const STRIPE_PAGE_ERROR_USER_FACING_MESSAGE =
   'There was a problem navigating to the payment page. Please contact support.';
 
 @Controller('payment')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class StripePaymentController {
   constructor(
     private readonly stripePaymentService: StripePaymentService,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
   ) {}
 
   /**

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from 'src/audit/audit-log.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
 import { ScratchGitModule } from 'src/scratch-git/scratch-git.module';
 import { WorkbookModule } from 'src/workbook/workbook.module';
@@ -9,7 +9,7 @@ import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
 
 @Module({
-  imports: [AuditLogModule, DbModule, ScratchGitModule, WorkbookModule, ScratchpadConfigModule, WorkerEnqueuerModule],
+  imports: [AuditLogModule, DbModule, ScratchGitModule, WorkbookModule, ScratchConfigModule, WorkerEnqueuerModule],
   controllers: [SyncController],
   providers: [SyncService],
   exports: [SyncService],

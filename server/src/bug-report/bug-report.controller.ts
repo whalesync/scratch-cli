@@ -10,13 +10,13 @@ import {
 } from '@nestjs/common';
 import { CreateBugReportDto, ValidatedCreateBugReportDto } from '@spinner/shared-types';
 import type { RequestWithUser } from 'src/auth/types';
-import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import { ExperimentsService } from '../experiments/experiments.service';
 import { UserFlag } from '../experiments/flags';
 import { BugReportService } from './bug-report.service';
 
 @Controller('bugs')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class BugReportController {
   constructor(

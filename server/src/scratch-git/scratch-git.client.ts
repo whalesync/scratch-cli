@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 
 @Injectable()
 export class ScratchGitClient {
   private readonly gitApiUrl: string;
 
-  constructor(private readonly configService: ScratchpadConfigService) {
+  constructor(private readonly configService: ScratchConfigService) {
     this.gitApiUrl = this.configService.getScratchGitApiUrl();
   }
 

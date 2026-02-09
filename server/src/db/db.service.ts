@@ -1,14 +1,14 @@
 import { Injectable, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import knex, { Knex } from 'knex';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 
 @Injectable()
 export class DbService implements OnModuleInit, OnApplicationShutdown {
   private _client: PrismaClient;
 
-  constructor(private readonly config: ScratchpadConfigService) {
+  constructor(private readonly config: ScratchConfigService) {
     this._client = new PrismaClient({
       datasources: { db: { url: this.config.getDatabaseUrl() } },
     });

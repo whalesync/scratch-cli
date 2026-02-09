@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import type { SyncId, WorkbookId } from '@spinner/shared-types';
 import { CreateSyncDto, UpdateSyncDto } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { SyncService } from 'src/sync/sync.service';
@@ -29,7 +29,7 @@ import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
  */
 @Controller('cli/v1/workbooks/:workbookId')
 @UseInterceptors(ClassSerializerInterceptor)
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 export class CliSyncController {
   constructor(
     private readonly syncService: SyncService,

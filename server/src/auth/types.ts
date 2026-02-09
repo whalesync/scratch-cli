@@ -27,7 +27,7 @@ export interface SocketWithUser extends Socket {
 /**
  * Extension to the Clerk JwtPayload type with our custom session fields
  */
-export interface ScratchpadJwtPayload {
+export interface ScratchJwtPayload {
   sub: string; // clerk user id
   fullName?: string;
   primaryEmail?: string;

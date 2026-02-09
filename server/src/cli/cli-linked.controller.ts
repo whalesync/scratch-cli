@@ -14,7 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { DataFolderId, Service, WorkbookId } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { JobEntity } from 'src/job/entities/job.entity';
@@ -39,7 +39,7 @@ import {
  */
 @Controller('cli/v1')
 @UseInterceptors(ClassSerializerInterceptor)
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 export class CliLinkedController {
   constructor(
     private readonly connectorAccountService: ConnectorAccountService,

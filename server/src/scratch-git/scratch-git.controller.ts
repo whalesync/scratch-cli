@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import { ScratchGitService } from './scratch-git.service';
 
 @Controller('scratch-git')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 export class ScratchGitController {
   constructor(private readonly scratchGitService: ScratchGitService) {}
 

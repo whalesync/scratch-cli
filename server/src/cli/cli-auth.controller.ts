@@ -9,7 +9,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { CliAuthGuard } from 'src/auth/cli-auth.guard';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { CliAuthService } from './cli-auth.service';
 import {
@@ -65,10 +65,10 @@ export class CliAuthController {
   /**
    * Verify user code and approve authorization.
    * Called from web UI by logged-in user.
-   * Protected by Scratchpad auth guard (requires Clerk JWT).
+   * Protected by Scratch auth guard (requires Clerk JWT).
    */
   @Post('verify')
-  @UseGuards(ScratchpadAuthGuard)
+  @UseGuards(ScratchAuthGuard)
   async verifyAuth(@Req() req: RequestWithUser, @Body() dto: AuthVerifyRequestDto): Promise<AuthVerifyResponseDto> {
     if (!dto.userCode) {
       throw new BadRequestException('User code is required');

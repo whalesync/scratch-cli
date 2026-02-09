@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from 'src/audit/audit-log.module';
 import { ClerkModule } from 'src/clerk/clerk.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
 import { RedisModule } from 'src/redis/redis.module';
@@ -26,7 +26,7 @@ import { DataFolderService } from './data-folder.service';
   imports: [
     DbModule,
     ConnectorsModule,
-    ScratchpadConfigModule,
+    ScratchConfigModule,
     ClerkModule,
     UserModule,
     PosthogModule,

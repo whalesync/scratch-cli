@@ -2,7 +2,7 @@
 
 ## Overview
 
-The config module is a centralized configuration management system for the Scratchpad application built with NestJS, providing typed access to environment variables and configuration settings.
+The config module is a centralized configuration management system for the Scratch application built with NestJS, providing typed access to environment variables and configuration settings.
 
 ## Purpose
 

@@ -7,7 +7,7 @@ import { stringToEnum } from 'src/utils/helpers';
 export type NodeEnvironment = 'development' | 'test' | 'staging' | 'production';
 
 /** This should be used for checking the deployment flavor. */
-export type ScratchpadEnvironment = 'development' | 'test' | 'staging' | 'production';
+export type ScratchEnvironment = 'development' | 'test' | 'staging' | 'production';
 
 /**
  * The current type of this microservice. This same binary is used to run multiple kinds of microservices, and the
@@ -19,22 +19,22 @@ export enum MicroserviceType {
   WORKER = 'worker',
   // Runs cron tasks
   CRON = 'cron',
-  // ONLY used for local development. This is essentially *all* microservice types in one.
+  // Generally used for local development. Combines *all* microservice types in one server.
   MONOLITH = 'monolith',
 }
 
 @Injectable()
-export class ScratchpadConfigService {
+export class ScratchConfigService {
   private readonly databaseUrl: string;
-  private readonly environment: ScratchpadEnvironment;
+  private readonly environment: ScratchEnvironment;
   private readonly serviceType: MicroserviceType;
   private readonly runningInCloudRun: boolean;
 
   constructor(private readonly configService: ConfigService) {
     this.databaseUrl = this.getEnvVariable('DATABASE_URL');
     this.runningInCloudRun = this.getOptionalFlagVariable('RUNNING_IN_CLOUD', false);
-    this.environment = ScratchpadConfigService.getScratchpadEnvironment();
-    this.serviceType = ScratchpadConfigService.getScratchpadServiceType();
+    this.environment = ScratchConfigService.getScratchEnvironment();
+    this.serviceType = ScratchConfigService.getScratchpadServiceType();
 
     if (process.env.LOG_LEVEL) {
       WSLogger.info({
@@ -46,7 +46,7 @@ export class ScratchpadConfigService {
     }
   }
 
-  getScratchpadEnvironment(): ScratchpadEnvironment {
+  getScratchEnvironment(): ScratchEnvironment {
     return this.environment;
   }
 
@@ -76,7 +76,7 @@ export class ScratchpadConfigService {
 
   isPosthogAnaltyicsEnabled(): boolean {
     // default to true for deployed environments
-    return this.getOptionalFlagVariable('POSTHOG_ANALYTICS_ENABLED', this.getScratchpadEnvironment() !== 'development');
+    return this.getOptionalFlagVariable('POSTHOG_ANALYTICS_ENABLED', this.getScratchEnvironment() !== 'development');
   }
 
   getPostHogApiKey(): string | undefined {
@@ -128,7 +128,7 @@ export class ScratchpadConfigService {
   }
 
   getScratchApplicationUrl(): string {
-    const env = ScratchpadConfigService.getScratchpadEnvironment();
+    const env = ScratchConfigService.getScratchEnvironment();
     if (env === 'development') {
       return `http://localhost:3000`;
     }
@@ -180,14 +180,14 @@ export class ScratchpadConfigService {
    * STATIC METHODS
    */
 
-  public static getScratchpadEnvironment(): ScratchpadEnvironment {
+  public static getScratchEnvironment(): ScratchEnvironment {
     return checkIsString(process.env.APP_ENV, 'APP_ENV', [
       'development',
       'test',
       'staging',
       'production',
       'automated_test',
-    ]) as ScratchpadEnvironment;
+    ]) as ScratchEnvironment;
   }
 
   public static isRunningInCloudRun(): boolean {
@@ -195,14 +195,14 @@ export class ScratchpadConfigService {
   }
 
   public static getClientBaseUrl(): string {
-    const env = ScratchpadConfigService.getScratchpadEnvironment();
+    const env = ScratchConfigService.getScratchEnvironment();
     if (env === 'development') {
       return `http://localhost:3000`;
     }
 
     if (env === 'production') {
       // Need to check this because we have two different production environments until we fully migrate to the new domain.
-      return ScratchpadConfigService.isRunningInCloudRun() ? 'https://app.scratch.md' : 'https://app.scratchpaper.ai';
+      return ScratchConfigService.isRunningInCloudRun() ? 'https://app.scratch.md' : 'https://app.scratchpaper.ai';
     }
 
     // Otherwise, test or staging

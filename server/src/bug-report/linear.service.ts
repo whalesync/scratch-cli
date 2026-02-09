@@ -1,6 +1,6 @@
 import { LinearClient } from '@linear/sdk';
 import { Injectable } from '@nestjs/common';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 
 const LINEAR_DEV_TEAM_ID = 'b4e2b7f8-c4c2-4aaa-848c-e306f07c1a8f';
@@ -10,7 +10,7 @@ const LINEAR_BUG_TEMPLATE_ID = '0ea48d97-193a-4b0d-96f2-14fd868376de';
 @Injectable()
 export class LinearService {
   private linearClient: LinearClient | undefined;
-  constructor(private readonly configService: ScratchpadConfigService) {
+  constructor(private readonly configService: ScratchConfigService) {
     // initialize the linear client
     if (configService.getLinearApiKey()) {
       this.linearClient = new LinearClient({

@@ -10,7 +10,7 @@ This module offers comprehensive administrative tools for developers and support
 
 ## Endpoints
 
-All endpoints are protected by `ScratchpadAuthGuard` and require `hasAdminToolsPermission()` authorization (ADMIN role only):
+All endpoints are protected by `ScratchAuthGuard` and require `hasAdminToolsPermission()` authorization (ADMIN role only):
 
 ### `GET /dev-tools/users/search?query=<string>`
 
@@ -44,7 +44,7 @@ The module orchestrates calls across multiple services:
 
 Access is restricted to administrators only through:
 
-1. `ScratchpadAuthGuard`: Ensures user is authenticated
+1. `ScratchAuthGuard`: Ensures user is authenticated
 2. `hasAdminToolsPermission()`: Checks for ADMIN role
 
 ## Integration

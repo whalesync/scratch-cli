@@ -3,7 +3,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
-import { ScratchpadConfigService } from '../../config/scratchpad-config.service';
+import { ScratchConfigService } from '../../config/scratch-config.service';
 import { WorkerPoolService } from '../piscina/worker-pool.service';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class QueueTestService implements OnModuleDestroy {
 
   constructor(
     private readonly workerPool: WorkerPoolService,
-    private readonly config: ScratchpadConfigService,
+    private readonly config: ScratchConfigService,
   ) {}
 
   private getRedis(): IORedis {

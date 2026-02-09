@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import type { DataFolderId, SyncId, WorkbookId } from '@spinner/shared-types';
 import { CreateSyncDto, UpdateSyncDto, ValidateMappingDto } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { userToActor } from 'src/users/types';
@@ -22,7 +22,7 @@ import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { SyncService } from './sync.service';
 
 @Controller('workbooks/:workbookId/syncs')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class SyncController {
   constructor(

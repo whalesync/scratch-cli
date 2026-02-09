@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 import { JobService } from '../job/job.service';
 import { JobHandlerService } from './job-handler.service';
@@ -19,7 +19,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     // private readonly workerPool: WorkerPoolService,
     private readonly jobHandlerService: JobHandlerService,
     private readonly jobService: JobService,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
   ) {}
 
   private getRedis(): IORedis {

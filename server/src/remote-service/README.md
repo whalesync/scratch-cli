@@ -28,7 +28,7 @@ This module provides a unified interface for integrating with multiple third-par
 
 ## Endpoints
 
-All endpoints protected by `ScratchpadAuthGuard`:
+All endpoints protected by `ScratchAuthGuard`:
 
 ### `POST /connector-accounts`
 

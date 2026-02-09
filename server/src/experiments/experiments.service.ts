@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Client, EvaluationContext, InMemoryProvider, JsonValue, OpenFeature } from '@openfeature/server-sdk';
 import { User, UserRole } from '@prisma/client';
 import { PostHogProvider } from '@tapico/node-openfeature-posthog';
-import { ScratchpadConfigService } from '../config/scratchpad-config.service';
+import { ScratchConfigService } from '../config/scratch-config.service';
 import { AllFeatureFlags, ClientUserFlags, SystemFeatureFlag, UserFlag } from './flags';
 import { ExperimentFlagVariantValue, FlagDataType } from './types';
 
@@ -67,7 +67,7 @@ const IN_MEMORY_FLAGS = {
 @Injectable()
 export class ExperimentsService {
   private client: Client;
-  constructor(private readonly config: ScratchpadConfigService) {
+  constructor(private readonly config: ScratchConfigService) {
     if (config.getPostHogApiKey() && config.getPosthogFeatureFlagApiKey()) {
       OpenFeature.setProvider(
         new PostHogProvider({

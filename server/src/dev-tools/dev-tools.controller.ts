@@ -26,9 +26,9 @@ import {
 } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
-import { ScratchpadAuthGuard } from 'src/auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { DbService } from 'src/db/db.service';
 import { getLastestExpiringSubscription } from 'src/payment/helpers';
 import { getPlanTypeFromString } from 'src/payment/plans';
@@ -50,11 +50,11 @@ interface SyncDataFoldersRequestBody {
  * Controller for special case dev tools
  */
 @Controller('dev-tools')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class DevToolsController {
   constructor(
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly dbService: DbService,
     private readonly usersService: UsersService,
     private readonly snapshotService: WorkbookService,

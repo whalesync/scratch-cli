@@ -9,7 +9,7 @@ import {
 } from '@spinner/shared-types';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { UserCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -49,9 +49,8 @@ const DEFAULT_CANCEL_PATH = '/billing';
 // Client path that we redirect to if the user clicks the "Manage Subscription" button in the settings page.
 const PORTAL_RETURN_PATH = '/billing';
 
-// Attached to all subscriptions created by Scratchpad. IF you change this you have to change the StripePaymentService in Whalesync so that
-// the value matches. That is how Whalesync knows which webhooks to ignore.
-const METADATA_APPLICATION_NAME = 'scratchpad';
+// Attached to all subscriptions created by Scratch.
+const METADATA_APPLICATION_NAME = 'scratch';
 
 @Injectable()
 export class StripePaymentService {
@@ -59,7 +58,7 @@ export class StripePaymentService {
   private stripeWebhookSecret: string;
 
   constructor(
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly dbService: DbService,
     private readonly postHogService: PostHogService,
     private readonly slackNotificationService: SlackNotificationService,
@@ -86,7 +85,7 @@ export class StripePaymentService {
         metadata: {
           source: 'scratch', // used to identify new users created from Scratch vs Whalesync
           internal_id: user.id,
-          environment: this.configService.getScratchpadEnvironment(),
+          environment: this.configService.getScratchEnvironment(),
         },
       });
       WSLogger.info({
@@ -133,7 +132,7 @@ export class StripePaymentService {
         metadata: {
           application: METADATA_APPLICATION_NAME,
           planType: planType,
-          environment: this.configService.getScratchpadEnvironment(),
+          environment: this.configService.getScratchEnvironment(),
         },
         trial_settings: {
           end_behavior: {
@@ -180,7 +179,7 @@ export class StripePaymentService {
 
     const portalSessionConfig: Stripe.BillingPortal.SessionCreateParams = {
       customer: stripeCustomerId.v,
-      return_url: `${ScratchpadConfigService.getClientBaseUrl()}${PORTAL_RETURN_PATH}`,
+      return_url: `${ScratchConfigService.getClientBaseUrl()}${PORTAL_RETURN_PATH}`,
     };
 
     if (dto.portalType === 'update_subscription') {
@@ -265,9 +264,9 @@ export class StripePaymentService {
       return stripeCustomerId;
     }
 
-    const clientBaseUrl = ScratchpadConfigService.getClientBaseUrl();
+    const clientBaseUrl = ScratchConfigService.getClientBaseUrl();
 
-    const automaticTaxEnabled = this.configService.getScratchpadEnvironment() === 'production';
+    const automaticTaxEnabled = this.configService.getScratchEnvironment() === 'production';
     try {
       const session = await this.stripe.checkout.sessions.create(
         {
@@ -285,7 +284,7 @@ export class StripePaymentService {
             metadata: {
               application: METADATA_APPLICATION_NAME,
               planType: planType,
-              environment: this.configService.getScratchpadEnvironment(),
+              environment: this.configService.getScratchEnvironment(),
             },
             trial_settings: createTrialSubscription
               ? {
@@ -650,7 +649,7 @@ export class StripePaymentService {
   }
 
   private isCurrentScratchEnvironment(subscription: Stripe.Subscription): boolean {
-    const appEnv = this.configService.getScratchpadEnvironment();
+    const appEnv = this.configService.getScratchEnvironment();
     return subscription.metadata.environment === appEnv;
   }
 
@@ -861,7 +860,7 @@ export class StripePaymentService {
   }
 
   private getDefaultPriceId(planType: ScratchPlanType): string | null {
-    const plans = getPlans(this.configService.getScratchpadEnvironment());
+    const plans = getPlans(this.configService.getScratchEnvironment());
 
     for (const plan of plans) {
       if (plan.planType === planType) {
@@ -873,7 +872,7 @@ export class StripePaymentService {
   }
 
   private getPlanTypeFromPriceId(priceId: string): ScratchPlanType | null {
-    const plans = getPlans(this.configService.getScratchpadEnvironment());
+    const plans = getPlans(this.configService.getScratchEnvironment());
 
     for (const plan of plans) {
       if (plan.stripePriceId === priceId) {

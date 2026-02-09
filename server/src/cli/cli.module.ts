@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
 import { JobModule } from 'src/job/job.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
@@ -17,7 +17,7 @@ import { CliWorkbookController } from './cli-workbook.controller';
 
 @Module({
   imports: [
-    ScratchpadConfigModule,
+    ScratchConfigModule,
     AuthModule,
     DbModule,
     JobModule,

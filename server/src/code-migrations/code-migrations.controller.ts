@@ -19,14 +19,14 @@ import type {
   ValidatedRunMigrationDto,
 } from '@spinner/shared-types';
 import { hasAdminToolsPermission } from 'src/auth/permissions';
-import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
 
 const AVAILABLE_MIGRATIONS: string[] = [];
 
 @Controller('code-migrations')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class CodeMigrationsController {
   private readonly logger = new Logger(CodeMigrationsController.name);

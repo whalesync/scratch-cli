@@ -1,6 +1,6 @@
 import { ClassSerializerInterceptor, Controller, Get, UseInterceptors } from '@nestjs/common';
 import IORedis from 'ioredis';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { BUILD_VERSION } from 'src/version';
 
 interface ConnectionTestResult {
@@ -24,12 +24,12 @@ interface ConnectionTestResponse {
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class HealthController {
-  constructor(private readonly configService: ScratchpadConfigService) {}
+  constructor(private readonly configService: ScratchConfigService) {}
 
   @Get()
   getRoot() {
     return {
-      server: 'Scratchpad API',
+      server: 'Scratch API',
       build_version: BUILD_VERSION,
     };
   }
@@ -39,11 +39,11 @@ export class HealthController {
     return {
       status: 'alive',
       timestamp: new Date().toISOString(),
-      service: 'scratchpad-api',
+      service: 'scratch-api',
       build_version: BUILD_VERSION,
-      in_cloud: ScratchpadConfigService.isRunningInCloudRun(),
-      app_url: ScratchpadConfigService.getClientBaseUrl(),
-      apptype: ScratchpadConfigService.getScratchpadServiceType(),
+      in_cloud: ScratchConfigService.isRunningInCloudRun(),
+      app_url: ScratchConfigService.getClientBaseUrl(),
+      apptype: ScratchConfigService.getScratchpadServiceType(),
     };
   }
 

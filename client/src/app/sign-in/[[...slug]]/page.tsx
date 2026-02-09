@@ -20,7 +20,7 @@ export default function SignInPage() {
   const signInProps = redirect_url ? { forceRedirectUrl: redirect_url, signUpUrl: signUpUrlWithRedirect } : {};
 
   return (
-    <AuthLayout title="Sign in - Scratchpad">
+    <AuthLayout title="Sign in - Scratch">
       <SignIn appearance={appearance} routing="hash" {...signInProps} />
     </AuthLayout>
   );

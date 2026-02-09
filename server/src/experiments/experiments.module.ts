@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { ExperimentsService } from './experiments.service';
 
 @Module({
-  imports: [ScratchpadConfigModule],
+  imports: [ScratchConfigModule],
   controllers: [],
   providers: [ExperimentsService],
   exports: [ExperimentsService],

@@ -10,7 +10,7 @@ import {
   WorkbookId,
 } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { DataFolderCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
@@ -34,7 +34,7 @@ export class DataFolderService {
     private readonly db: DbService,
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly connectorService: ConnectorsService,
-    private readonly configService: ScratchpadConfigService,
+    private readonly configService: ScratchConfigService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly scratchGitService: ScratchGitService,

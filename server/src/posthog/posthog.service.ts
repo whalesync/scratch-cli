@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { AiAgentCredential, User } from '@prisma/client';
 import { ScratchPlanType } from '@spinner/shared-types';
 import { PostHog } from 'posthog-node';
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WorkbookCluster } from 'src/db/cluster-types';
 import { WSLogger } from 'src/logger';
 
@@ -12,7 +12,7 @@ type PostHogEventProperties = Record<string, unknown>;
 export class PostHogService implements OnModuleDestroy {
   private postHog: PostHog | undefined;
 
-  constructor(private readonly configService: ScratchpadConfigService) {
+  constructor(private readonly configService: ScratchConfigService) {
     const apiKey = configService.getPostHogApiKey();
     const host = configService.getPostHogHost();
 

@@ -23,7 +23,7 @@ import type {
   WorkbookId,
 } from '@spinner/shared-types';
 import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@spinner/shared-types';
-import { ScratchpadAuthGuard } from '../auth/scratchpad-auth.guard';
+import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
@@ -37,7 +37,7 @@ import { DataFolderService } from './data-folder.service';
 import { WorkbookService } from './workbook.service';
 
 @Controller('data-folder')
-@UseGuards(ScratchpadAuthGuard)
+@UseGuards(ScratchAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class DataFolderController {
   constructor(

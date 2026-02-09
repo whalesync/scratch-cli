@@ -2,7 +2,7 @@
 
 ## Overview
 
-The payment module is a NestJS-based Stripe integration service that handles subscription billing and payment management for the Scratchpad application.
+The payment module is a NestJS-based Stripe integration service that handles subscription billing and payment management for the Scratch application.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ This module encapsulates all payment processing logic within a dedicated domain 
 
 ### `POST /payment/portal`
 
-**Auth Required**: Yes (`ScratchpadAuthGuard`)
+**Auth Required**: Yes (`ScratchAuthGuard`)
 
 Creates a Stripe Billing Portal URL for authenticated users to manage existing subscriptions.
 
@@ -20,7 +20,7 @@ Creates a Stripe Billing Portal URL for authenticated users to manage existing s
 
 ### `POST /payment/checkout/:planType`
 
-**Auth Required**: Yes (`ScratchpadAuthGuard`)
+**Auth Required**: Yes (`ScratchAuthGuard`)
 
 Generates a checkout session URL for initiating new subscriptions with a specific plan type.
 
@@ -60,7 +60,7 @@ Handles authenticated user endpoints:
 - `POST /payment/portal` - Customer portal URL generation
 - `POST /payment/checkout/:planType` - Checkout session creation
 
-**Security**: All endpoints are protected with `ScratchpadAuthGuard` at the controller level.
+**Security**: All endpoints are protected with `ScratchAuthGuard` at the controller level.
 
 ### StripePaymentWebhookController
 
@@ -108,7 +108,7 @@ The module integrates with:
 
 Subscription validation uses metadata:
 
-- Filters for Scratchpad-specific subscriptions
+- Filters for Scratch-specific subscriptions
 - Prevents cross-contamination in shared Stripe accounts
 - Enables multi-tenant support
 

@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { DbModule } from '../db/db.module';
 
 import { AuditLogModule } from 'src/audit/audit-log.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { ExperimentsModule } from 'src/experiments/experiments.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { PosthogModule } from 'src/posthog/posthog.module';
@@ -18,7 +18,7 @@ import { UsersService } from './users.service';
   imports: [
     DbModule,
     PosthogModule,
-    ScratchpadConfigModule,
+    ScratchConfigModule,
     ExperimentsModule,
     PaymentModule,
     SlackNotificationModule,

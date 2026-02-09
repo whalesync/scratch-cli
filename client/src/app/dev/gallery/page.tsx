@@ -557,7 +557,7 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="Error Info Panel with retry">
             <ErrorInfo
               title="Failed to upload CSV file"
-              description="Unable to upload the scratchpad CSV file. Please try again."
+              description="Unable to upload the scratch CSV file. Please try again."
               error={new Error('A network error occurred while uploading the file.')}
               retry={() => console.debug('Retry clicked')}
             />

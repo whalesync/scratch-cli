@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { ClerkModule } from 'src/clerk/clerk.module';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
 import { UserModule } from 'src/users/users.module';
 import { APITokenStrategy } from './api-token.strategy';
@@ -11,7 +11,7 @@ import { CliStrategy } from './cli.strategy';
 import { WebSocketAuthGuard } from './websocket-auth-guard';
 
 @Module({
-  imports: [PassportModule, ScratchpadConfigModule, ClerkModule, DbModule, UserModule],
+  imports: [PassportModule, ScratchConfigModule, ClerkModule, DbModule, UserModule],
   providers: [ClerkStrategy, APITokenStrategy, WebSocketAuthGuard, CliStrategy, CliAuthGuard],
   exports: [PassportModule, CliAuthGuard],
 })

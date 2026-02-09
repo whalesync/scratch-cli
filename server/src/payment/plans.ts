@@ -1,5 +1,5 @@
 import { ScratchPlanType } from '@spinner/shared-types';
-import { ScratchpadConfigService, ScratchpadEnvironment } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService, ScratchEnvironment } from 'src/config/scratch-config.service';
 import { assertIsDefined } from 'src/utils/asserts';
 
 export function getPlanTypeFromString(typeString: string): ScratchPlanType | undefined {
@@ -131,7 +131,7 @@ export const PRODUCTION_PLANS: Plan[] = [
   { ...MAX_PLAN, stripeProductId: 'prod_TVXUCHtF58Bzd2', stripePriceId: 'price_1SYWPuBuGFTHqsGmOtGqjM6E' },
 ];
 
-export function getPlans(environment: ScratchpadEnvironment): Plan[] {
+export function getPlans(environment: ScratchEnvironment): Plan[] {
   if (environment === 'production') {
     return PRODUCTION_PLANS;
   } else if (environment === 'staging') {
@@ -141,7 +141,7 @@ export function getPlans(environment: ScratchpadEnvironment): Plan[] {
 }
 
 export function getPlan(planType: ScratchPlanType): Plan | undefined {
-  return getPlans(ScratchpadConfigService.getScratchpadEnvironment()).find((p) => p.planType === planType);
+  return getPlans(ScratchConfigService.getScratchEnvironment()).find((p) => p.planType === planType);
 }
 
 export function getFreePlan(): Plan {

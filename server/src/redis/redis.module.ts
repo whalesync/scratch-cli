@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { RedisPubSubService } from './redis-pubsub.service';
 
 @Module({
-  imports: [ScratchpadConfigModule],
+  imports: [ScratchConfigModule],
   providers: [RedisPubSubService],
   exports: [RedisPubSubService],
 })

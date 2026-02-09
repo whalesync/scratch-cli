@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cron module provides scheduled task execution capabilities for the Scratchpad application using NestJS's `@nestjs/schedule` library.
+The cron module provides scheduled task execution capabilities for the Scratch application using NestJS's `@nestjs/schedule` library.
 
 ## Purpose
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The health module provides basic system health and metadata endpoints for the Scratchpad API. It serves as a lightweight, foundational component for deployment monitoring, load balancer health checks, and CI/CD pipeline verification.
+The health module provides basic system health and metadata endpoints for the Scratch API. It serves as a lightweight, foundational component for deployment monitoring, load balancer health checks, and CI/CD pipeline verification.
 
 ## Purpose
 
@@ -14,7 +14,7 @@ This module exposes two essential HTTP endpoints that provide server information
 
 Returns server information including:
 
-- Application name: "Scratchpad API"
+- Application name: "Scratch API"
 - Build version
 
 ### `GET /health`

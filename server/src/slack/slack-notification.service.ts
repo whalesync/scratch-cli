@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
-import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
+import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 import { AsyncVoidResult, ErrorCode, errResult, ok } from 'src/types/results';
 
@@ -14,7 +14,7 @@ import { AsyncVoidResult, ErrorCode, errResult, ok } from 'src/types/results';
 @Injectable()
 export class SlackNotificationService {
   private readonly webhookUrl: string | undefined;
-  constructor(private readonly scratchpadConfigService: ScratchpadConfigService) {
+  constructor(private readonly scratchpadConfigService: ScratchConfigService) {
     this.webhookUrl = this.scratchpadConfigService.getSlackNotificationWebhookUrl();
   }
 

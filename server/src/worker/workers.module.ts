@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ScratchpadConfigModule } from 'src/config/scratchpad-config.module';
+import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { SyncModule } from 'src/sync/sync.module';
@@ -16,7 +16,7 @@ import { WorkersController } from './test/workers.controller';
 
 @Module({
   imports: [
-    ScratchpadConfigModule,
+    ScratchConfigModule,
     WorkerEnqueuerModule,
     ConnectorsModule,
     WorkbookModule,
