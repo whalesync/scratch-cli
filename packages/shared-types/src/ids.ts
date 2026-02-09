@@ -15,7 +15,6 @@ export enum IdPrefixes {
   CONNECTOR_ACCOUNT = 'coa_',
   WORKBOOK = 'wkb_',
   SNAPSHOT_RECORD = 'sre_',
-  STYLE_GUIDE = 'sgd_',
   CSV_FILE_RECORD = 'cfr_', // Record in CSV upload table
   CSV_SNAPSHOT_RECORD = 'csr_', // Record in snapshot created from CSV
   VIEW = 'vew_',
@@ -127,17 +126,6 @@ export function isSnapshotRecordId(id: unknown): id is SnapshotRecordId {
  */
 export function createSnapshotRecordId(): SnapshotRecordId {
   return createId(IdPrefixes.SNAPSHOT_RECORD) as SnapshotRecordId;
-}
-
-// ------- StyleGuide -------
-export type StyleGuideId = PrefixedId<IdPrefixes.STYLE_GUIDE>;
-
-export function isStyleGuideId(id: unknown): id is StyleGuideId {
-  return isId(id, IdPrefixes.STYLE_GUIDE);
-}
-
-export function createStyleGuideId(): StyleGuideId {
-  return createId(IdPrefixes.STYLE_GUIDE) as StyleGuideId;
 }
 
 // ------- AiAgentCredential -------

@@ -25,12 +25,6 @@ export namespace WorkbookCluster {
   });
 }
 
-export namespace StyleGuideCluster {
-  export type StyleGuide = Prisma.StyleGuideGetPayload<typeof _validator>;
-
-  export const _validator = Prisma.validator<Prisma.StyleGuideDefaultArgs>()({});
-}
-
 export namespace DataFolderCluster {
   export type DataFolder = Prisma.DataFolderGetPayload<typeof _validator>;
 

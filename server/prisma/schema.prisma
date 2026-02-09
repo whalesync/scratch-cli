@@ -96,7 +96,6 @@ model User {
   settings                Json?                    @default("{}") // UserSettings object
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
-  styleGuides             StyleGuide[]
   aiAgentCredentials      AiAgentCredential[]
   aiAgentTokenUsageEvents AiAgentTokenUsageEvent[]
   subscriptions           Subscription[]
@@ -188,35 +187,6 @@ model Workbook {
 
   dataFolders       DataFolder[]
   connectorAccounts ConnectorAccount[]
-
-  @@index([userId])
-  @@index([organizationId])
-}
-
-///
-/// End "keep in sync" section
-///
-
-///
-/// NOTE: Keep this in sync with packages/shared-types/src/db/style-guide.ts
-/// Begin "keep in sync" section
-///
-
-model StyleGuide {
-  id               String       @id // type: StyleGuideId
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  name             String
-  body             String // Markdown content
-  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId           String?
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  autoInclude      Boolean      @default(false) // Whether to automatically include this style guide in conversations
-  sourceUrl        String? // URL of where this resource an be download from
-  contentType      String       @default("markdown") // "markdown" | "json" | "text"
-  lastDownloadedAt DateTime? // When the resource was last downloaded
-  tags             String[] // User defined tags for the resource
 
   @@index([userId])
   @@index([organizationId])
@@ -412,7 +382,6 @@ model Organization {
   name      String
 
   users          User[]
-  styleGuides    StyleGuide[]
   workbooks      Workbook[]
   subscriptions  Subscription[]
   invoiceResults InvoiceResult[]

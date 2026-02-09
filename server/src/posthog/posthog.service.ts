@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { AiAgentCredential, StyleGuide, User } from '@prisma/client';
+import { AiAgentCredential, User } from '@prisma/client';
 import { ScratchPlanType } from '@spinner/shared-types';
 import { PostHog } from 'posthog-node';
 import { ScratchpadConfigService } from 'src/config/scratchpad-config.service';
@@ -127,24 +127,6 @@ export class PostHogService implements OnModuleDestroy {
     });
   }
 
-  trackCreateResource(userId: string, resource: StyleGuide): void {
-    this.captureEvent(PostHogEventName.RESOURCE_CREATED, userId, {
-      resourceId: resource.id,
-      organizationId: resource.organizationId,
-      isExternal: !!resource.sourceUrl,
-      resourceType: resource.contentType,
-    });
-  }
-
-  trackRemoveResource(userId: string, resource: StyleGuide): void {
-    this.captureEvent(PostHogEventName.RESOURCE_REMOVED, userId, {
-      resourceId: resource.id,
-      organizationId: resource.organizationId,
-      isExternal: !!resource.sourceUrl,
-      resourceType: resource.contentType,
-    });
-  }
-
   trackCreateAgentCredential(userId: string, credential: AiAgentCredential): void {
     this.captureEvent(PostHogEventName.AGENT_CREDENTIAL_CREATED, userId, {
       credentialId: credential.id,
@@ -182,8 +164,6 @@ export enum PostHogEventName {
   WORKBOOK_CREATED = 'workbook_created',
   WORKBOOK_REMOVED = 'workbook_deleted',
   WORKBOOK_PUBLISHED = 'workbook_published',
-  RESOURCE_CREATED = 'resource_created',
-  RESOURCE_REMOVED = 'resource_deleted',
   AGENT_CREDENTIAL_CREATED = 'agent_credential_created',
   AGENT_CREDENTIAL_DELETED = 'agent_credential_deleted',
   TRIAL_STARTED = 'trial_started',
