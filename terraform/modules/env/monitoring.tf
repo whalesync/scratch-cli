@@ -74,19 +74,6 @@ resource "google_monitoring_service" "client_service_monitoring_service" {
   }
 }
 
-resource "google_monitoring_service" "agent_service_monitoring_service" {
-  service_id   = "${google_cloud_run_v2_service.agent_service.name}-monitoring"
-  display_name = google_cloud_run_v2_service.agent_service.name
-
-  basic_service {
-    service_type = "CLOUD_RUN"
-    service_labels = {
-      service_name = google_cloud_run_v2_service.agent_service.name
-      location     = google_cloud_run_v2_service.agent_service.location
-    }
-  }
-}
-
 ## ---------------------------------------------------------------------------------------------------------------------
 ## SQL PROXY VM Alerts
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -455,46 +442,6 @@ resource "google_monitoring_alert_policy" "api_frontend_high_5xx_error_count" {
       comparison      = "COMPARISON_GT"
       duration        = "0s"
       filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_v2_service.api_service.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
-      threshold_value = 50
-      trigger {
-        count = 1
-      }
-    }
-  }
-
-  alert_strategy {
-    notification_channel_strategy {
-      renotify_interval = local.renotify_interval
-    }
-  }
-
-  notification_channels = local.notification_channels
-  severity              = "ERROR"
-}
-
-## ---------------------------------------------------------------------------------------------------------------------
-## Agent Service Alerts
-## ---------------------------------------------------------------------------------------------------------------------
-
-
-resource "google_monitoring_alert_policy" "agent_service_high_5xx_error_count" {
-  display_name = "${local.display_env} Agent Service - 5xx Errors"
-  count        = var.enable_alerts ? 1 : 0
-  documentation {
-    subject = "${local.display_env} Agent Service - 5xx Errors"
-    content = "Ops Playbook: ${local.playbook_link}"
-  }
-  combiner = "OR"
-  conditions {
-    display_name = "Agent Service Cloud Run - 5xx Request Count"
-    condition_threshold {
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_SUM"
-      }
-      comparison      = "COMPARISON_GT"
-      duration        = "0s"
-      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_v2_service.agent_service.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
       threshold_value = 50
       trigger {
         count = 1

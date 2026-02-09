@@ -185,7 +185,6 @@ resource "google_cloud_run_v2_service" "api_service" {
             "REDIS_PORT" : module.redis.port,
             "REQUIRE_SUBSCRIPTION" : "true",
             "RUNNING_IN_CLOUD" : "true",
-            "SCRATCHPAD_AGENT_JWT_EXPIRES_IN" : "6h",
             "SERVICE_TYPE" : "monolith",
             "SLACK_NOTIFICATION_ENABLED" : "true",
             "TRIAL_REQUIRE_PAYMENT_METHOD" : "false",
@@ -221,8 +220,6 @@ resource "google_cloud_run_v2_service" "api_service" {
           "POSTHOG_API_KEY",
           "POSTHOG_FEATURE_FLAG_API_KEY",
           "REDIS_PASSWORD",
-          "SCRATCHPAD_AGENT_AUTH_TOKEN",
-          "SCRATCHPAD_AGENT_JWT_SECRET",
           "SLACK_NOTIFICATION_WEBHOOK_URL",
           "STRIPE_API_KEY",
           "STRIPE_WEBHOOK_SECRET",
@@ -299,140 +296,3 @@ module "api_lb" {
 
 #endregion
 
-#region agent_service
-
-resource "google_cloud_run_v2_service" "agent_service" {
-  name     = "agent-service"
-  location = var.gcp_region
-
-  deletion_protection = false
-
-  template {
-    # Use gen1 environment for faster cold starts.
-    execution_environment = "EXECUTION_ENVIRONMENT_GEN1"
-
-    # Increase timeout for long-lived websocket connections (max 3600 seconds)
-    timeout = "3600s"
-
-    scaling {
-      min_instance_count = var.agent_service_min_instance_count
-      max_instance_count = var.agent_service_max_instance_count
-    }
-    service_account = module.iam-sa.service_accounts["cloudrun-service-account"].email
-    vpc_access {
-      egress = "ALL_TRAFFIC"
-      network_interfaces {
-        network    = module.vpc.network_id
-        subnetwork = module.vpc.subnets_id[0]
-      }
-    }
-
-    containers {
-      image = "${local.artifact_registry_url}/spinner-agent:latest"
-      ports {
-        container_port = 8000
-      }
-
-      resources {
-        limits = {
-          cpu    = var.agent_service_cpu_limit
-          memory = var.agent_service_memory_limit
-        }
-        # Keep CPU allocated for websocket connections to prevent disconnections
-        cpu_idle          = false
-        startup_cpu_boost = true
-      }
-
-      dynamic "env" {
-        for_each = {
-          "APP_ENV" : var.app_env != null ? var.app_env : var.env_name,
-          "GCP_PROJECT_NUMBER" : var.gcp_project_number,
-          "LOGFIRE_ENABLE_FULL_INSTRUMENTATION" : var.agent_enable_full_logfire_instrumentation ? "true" : "false",
-          "LOGFIRE_ENVIRONMENT" : var.env_name,
-          "MODEL_NAME" : "openai/gpt-4o-mini",
-          "RUNNING_IN_CLOUD" : "true",
-          "SCRATCHPAD_SERVER_URL" : "https://${var.api_domain}",
-        }
-        content {
-          name  = env.key
-          value = env.value
-        }
-      }
-
-      # Inject the following secrets into the container as env vars
-      dynamic "env" {
-        for_each = [
-          "GEMINI_API_KEY",
-          "LOGFIRE_TOKEN",
-          "SCRATCHPAD_AGENT_AUTH_TOKEN",
-          "SCRATCHPAD_AGENT_JWT_SECRET",
-        ]
-        content {
-          name = env.value
-          value_source {
-            secret_key_ref {
-              secret  = env.value
-              version = "latest"
-            }
-          }
-        }
-      }
-      dynamic "env" {
-        for_each = var.force_reload_services ? [1] : []
-        content {
-          name  = "FORCE_RELOAD"
-          value = local.force_reload_uuid
-        }
-      }
-
-      startup_probe {
-        http_get {
-          path = "/health"
-        }
-        initial_delay_seconds = 10
-        timeout_seconds       = 3
-        period_seconds        = 3
-        failure_threshold     = 3
-      }
-
-      liveness_probe {
-        http_get {
-          path = "/health"
-        }
-        initial_delay_seconds = 3
-        timeout_seconds       = 3
-      }
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [
-      template[0].containers[0].image, # Ignore changes to the image version after initial creation
-      client,
-      client_version,
-    ]
-  }
-}
-
-resource "google_cloud_run_service_iam_member" "agent_service_public" {
-  service  = google_cloud_run_v2_service.agent_service.name
-  location = google_cloud_run_v2_service.agent_service.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-
-module "agent_lb" {
-  source = "../../modules/cloudrun_lb"
-
-  name                   = "${var.env_name}-agent"
-  region                 = var.gcp_region
-  cloud_run_service_name = google_cloud_run_v2_service.agent_service.name
-  domains                = [var.agent_domain]
-  enable_cdn             = false
-  enable_http_redirect   = true
-  log_sample_rate        = 1.0
-  # Use session affinity to maintain websocket connections on the same backend
-  session_affinity = "CLIENT_IP"
-}
-
-#endregion

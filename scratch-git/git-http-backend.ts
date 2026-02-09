@@ -14,6 +14,21 @@ app.use(cors());
 // IMPORTANT: Do NOT use express.json() or body-parser here.
 // It consumes streams that need to go to git-http-backend.
 
+const buildVersion = process.env.BUILD_VERSION || '0.0.0-local';
+const reposDir = process.env.GIT_REPOS_DIR || 'repos';
+
+// Health check
+app.get('/health', (_, res) =>
+  res.json({
+    status: 'alive',
+    service: 'git-http-backend',
+    build_version: buildVersion,
+    reposDir,
+    reposDirExists: fs.existsSync(reposDir),
+    timestamp: new Date().toISOString(),
+  }),
+);
+
 // Logging middleware
 app.use((req, res, next) => {
   console.log(`[GIT] ${req.method} ${req.path}`);

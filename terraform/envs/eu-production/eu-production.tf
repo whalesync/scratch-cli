@@ -17,7 +17,6 @@ module "eu_production" {
   client_domain               = "app.scratch.md"
   enable_client_cdn           = true
   api_domain                  = "api.scratch.md"
-  agent_domain                = "agent.scratch.md"
 
   # Monitoring
   enable_alerts                  = true

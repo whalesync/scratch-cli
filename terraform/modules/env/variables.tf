@@ -227,47 +227,6 @@ variable "api_domain" {
   description = "Domain name for the api service (e.g., 'api.scratch.md')."
 }
 
-variable "agent_service_min_instance_count" {
-  type        = number
-  default     = 1
-  description = "Minimum number of instances for the agent service."
-}
-
-variable "agent_service_max_instance_count" {
-  type        = number
-  default     = 1
-  description = "Maximum number of instances for the agent service."
-}
-
-variable "agent_service_cpu_limit" {
-  type        = string
-  default     = "1"
-  description = "CPU limit for the agent service (e.g., '1', '2', '4')."
-}
-
-variable "agent_service_memory_limit" {
-  type        = string
-  default     = "2Gi"
-  description = "Memory limit for the agent service (e.g., '512Mi', '1Gi', '2Gi')."
-}
-
-variable "agent_service_node_options" {
-  type        = string
-  default     = ""
-  description = "Node.js options for the agent service (e.g., '--max-old-space-size=512')."
-}
-
-variable "agent_domain" {
-  type        = string
-  description = "Domain name for the agent service (e.g., 'agent.scratch.md')."
-}
-
-variable "agent_enable_full_logfire_instrumentation" {
-  type        = bool
-  default     = true
-  description = "Whether to enable full Logfire instrumentation for the agent service."
-}
-
 variable "enable_scratch_git" {
   type        = bool
   default     = false

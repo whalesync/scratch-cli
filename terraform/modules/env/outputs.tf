@@ -4,7 +4,6 @@ output "cloud_run_environment" {
     for service in [
       google_cloud_run_v2_service.client_service,
       google_cloud_run_v2_service.api_service,
-      google_cloud_run_v2_service.agent_service,
     ] :
     service.name => {
       for env in service.template[0].containers[0].env[*] :

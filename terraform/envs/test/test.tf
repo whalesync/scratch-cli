@@ -16,7 +16,6 @@ module "test" {
   client_domain               = "test.scratch.md"
   enable_client_cdn           = true
   api_domain                  = "test-api.scratch.md"
-  agent_domain                = "test-agent.scratch.md"
 
   # Database
   db_disk_size         = 10
