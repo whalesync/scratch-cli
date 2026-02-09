@@ -876,4 +876,106 @@ describe('SyncService - syncTableMapping', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].error).toContain('Source record missing match key field: external_ref');
   });
+
+  it('should format JSON content with Prettier formatting (newlines and proper structure)', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "email": "john@example.com", "name": "John"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    // Verify that written files have properly formatted JSON
+    expect(writtenFiles).toHaveLength(1);
+    const content = writtenFiles[0].content;
+
+    // Check that JSON is formatted (contains newlines and proper indentation)
+    expect(content).toContain('\n');
+    expect(content).toMatch(/^\{\n/); // Should start with { followed by newline
+    expect(content.endsWith('\n')).toBe(true); // Should end with newline
+
+    // Verify JSON is still valid
+    const parsed = JSON.parse(content);
+    expect(parsed.email).toBe('john@example.com');
+  });
+
+  it('should maintain Prettier formatting consistency across multiple records', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "email": "john@example.com", "name": "John", "company": "Acme"}',
+      },
+      {
+        folderId: sourceFolderId,
+        path: 'src/file2.json',
+        content: '{"id": "rec2", "email": "jane@example.com", "name": "Jane", "role": "Manager"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
+      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    // All files should have consistent formatting
+    expect(writtenFiles).toHaveLength(2);
+    for (const file of writtenFiles) {
+      expect(file.content).toContain('\n'); // All should have newlines
+      expect(file.content).toMatch(/^\{\n/); // All should start with { and newline
+      expect(file.content.endsWith('\n')).toBe(true); // All should end with newline
+      expect(JSON.parse(file.content)).toBeDefined(); // All should be valid JSON
+    }
+  });
 });

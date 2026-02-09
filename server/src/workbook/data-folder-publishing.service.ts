@@ -7,6 +7,7 @@ import type { Connector } from '../remote-service/connectors/connector';
 import type { AnyJsonTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import type { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
+import { formatJsonWithPrettier } from '../utils/json-formatter';
 import { deduplicateFileName, resolveBaseFileName } from './util';
 
 /**
@@ -247,7 +248,7 @@ export class DataFolderPublishingService {
 
           filesToCommit.push({
             path: newPath,
-            content: JSON.stringify(updatedContent, null, 2),
+            content: formatJsonWithPrettier(updatedContent),
           });
 
           WSLogger.debug({

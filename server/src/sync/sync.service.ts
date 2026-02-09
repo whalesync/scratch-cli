@@ -22,6 +22,7 @@ import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connector
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { validateSchemaMapping } from 'src/sync/schema-validator';
 import { Actor } from 'src/users/types';
+import { formatJsonWithPrettier } from 'src/utils/json-formatter';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -928,8 +929,8 @@ function transformRecord(sourceRecord: ConnectorRecord, columnMappings: AnyColum
  * TODO: Update this to handle metadata correctly.
  *
  * @param fields - The fields to serialize
- * @returns JSON string
+ * @returns JSON string formatted with Prettier
  */
 function serializeRecord(fields: Record<string, unknown>): string {
-  return JSON.stringify(fields);
+  return formatJsonWithPrettier(fields);
 }

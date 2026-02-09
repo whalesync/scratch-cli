@@ -244,33 +244,30 @@ describe('PullLinkedFolderFilesJobHandler', () => {
     });
 
     describe('content serialization', () => {
-      it('should serialize record as JSON with 2-space indentation', () => {
+      it('should serialize record as JSON formatted with Prettier', () => {
         const tableSpec = createMockTableSpec();
         const records: ConnectorFile[] = [
           {
-            id: 'rec1',
             name: 'Test',
             nested: {
               field: 'value',
             },
+            id: 'rec1',
           },
         ];
 
         const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
 
-        expect(result[0].content).toBe(
-          JSON.stringify(
-            {
-              id: 'rec1',
-              name: 'Test',
-              nested: {
-                field: 'value',
-              },
-            },
-            null,
-            2,
-          ),
-        );
+        expect(result[0].content).toEqual(`{
+  "id": "rec1",
+  "name": "Test",
+  "nested": {
+    "field": "value"
+  }
+}\n`);
+        // Verify it's properly formatted (contains newlines, indentation)
+        expect(result[0].content).toContain('\n');
+        expect(result[0].content).toMatch(/^\{\n/);
       });
 
       it('should preserve all record properties in content', () => {
@@ -288,6 +285,30 @@ describe('PullLinkedFolderFilesJobHandler', () => {
 
         const parsedContent = JSON.parse(result[0].content);
         expect(parsedContent).toEqual(testRecord);
+      });
+
+      it('should format JSON consistently with Prettier formatting rules', () => {
+        const tableSpec = createMockTableSpec();
+        const records: ConnectorFile[] = [
+          {
+            id: 'rec1',
+            data: {
+              email: 'test@example.com',
+              longFieldName: 'this is a very long value that should be formatted nicely',
+            },
+          },
+        ];
+
+        const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
+
+        // Verify JSON is valid and can be parsed
+        const parsed = JSON.parse(result[0].content);
+        expect(parsed.id).toBe('rec1');
+        expect(parsed.data.email).toBe('test@example.com');
+
+        // Verify formatting (has newlines and proper structure)
+        expect(result[0].content).toContain('\n');
+        expect(result[0].content.endsWith('\n')).toBe(true);
       });
     });
 

@@ -10,6 +10,7 @@ import _ from 'lodash';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
+import { formatJsonWithPrettier } from 'src/utils/json-formatter';
 import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WSLogger } from '../../../logger';
 import { WorkbookEventService } from '../../../workbook/workbook-event.service';
@@ -64,7 +65,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
     const processedFiles: { path: string; content: string }[] = [];
 
     for (const record of records) {
-      const content = JSON.stringify(record, null, 2);
+      const content = formatJsonWithPrettier(record as Record<string, unknown>);
       const recordId = String(record[idColumnRemoteId]);
 
       // Resolve filename: slug > title > id
