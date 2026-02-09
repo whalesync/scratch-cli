@@ -1,4 +1,4 @@
-import { execSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
@@ -43,7 +43,9 @@ app.all('/:repoId.git/*', (req, res) => {
     return;
   }
 
-  console.log(`[GIT] Proxying to repo: ${repoPath}, GIT_PROJECT_ROOT: ${path.dirname(repoPath)}, PATH_INFO: ${req.path}`);
+  console.log(
+    `[GIT] Proxying to repo: ${repoPath}, GIT_PROJECT_ROOT: ${path.dirname(repoPath)}, PATH_INFO: ${req.path}`,
+  );
 
   // env vars for git http-backend
   const env = Object.assign({}, process.env, {
@@ -101,7 +103,9 @@ app.all('/:repoId.git/*', (req, res) => {
 
   gitProc.on('exit', (code) => {
     if (code !== 0) {
-      console.error(`[GIT] git http-backend exited with code ${code} for repo ${repoId}, path: ${req.path}, stderr: ${stderrBuffer}`);
+      console.error(
+        `[GIT] git http-backend exited with code ${code} for repo ${repoId}, path: ${req.path}, stderr: ${stderrBuffer}`,
+      );
       if (!res.headersSent) {
         res.status(500).send(`Git backend error (code ${code}): ${stderrBuffer}`);
       }

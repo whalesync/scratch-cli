@@ -14,6 +14,7 @@ interface ConnectionTestResponse {
   timestamp: string;
   redis: ConnectionTestResult;
   scratch_git: ConnectionTestResult;
+  scratch_git_http: ConnectionTestResult;
 }
 
 /**
@@ -49,12 +50,17 @@ export class HealthController {
 
   @Get('connection-test')
   async getConnectionTest(): Promise<ConnectionTestResponse> {
-    const [redis, scratchGit] = await Promise.all([this.testRedis(), this.testScratchGit()]);
+    const [redis, scratchGit, scratchGitHttp] = await Promise.all([
+      this.testRedis(),
+      this.testScratchGit(),
+      this.testScratchGitHttp(),
+    ]);
 
     return {
       timestamp: new Date().toISOString(),
       redis,
       scratch_git: scratchGit,
+      scratch_git_http: scratchGitHttp,
     };
   }
 
@@ -114,7 +120,7 @@ export class HealthController {
   }
 
   private async testScratchGit(): Promise<ConnectionTestResult> {
-    const scratchGitUrl = process.env.SCRATCH_GIT_URL;
+    const scratchGitUrl = this.configService.getScratchGitApiUrl();
     if (!scratchGitUrl) {
       return { status: 'not_enabled' };
     }
@@ -132,6 +138,29 @@ export class HealthController {
       return { status: 'error', url: scratchGitUrl, error: `HTTP ${response.status}: ${await response.text()}` };
     } catch (err) {
       return { status: 'error', url: scratchGitUrl, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * The git-http-backend is a raw git CGI proxy with no /health endpoint.
+   * We verify it's reachable by hitting the root URL — any HTTP response (even 404) means the server is up.
+   * A network-level error (ECONNREFUSED, timeout) means it's down.
+   */
+  private async testScratchGitHttp(): Promise<ConnectionTestResult> {
+    const backendUrl = this.configService.getScratchGitBackendUrl();
+    if (!backendUrl) {
+      return { status: 'not_enabled' };
+    }
+
+    try {
+      await fetch(backendUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      // Any HTTP response means the server is reachable (it has no health endpoint, so 404 is expected)
+      return { status: 'ok', url: backendUrl };
+    } catch (err) {
+      return { status: 'error', url: backendUrl, error: err instanceof Error ? err.message : String(err) };
     }
   }
 }

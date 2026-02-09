@@ -607,6 +607,72 @@ resource "google_monitoring_alert_policy" "scratch_git_cpu_too_high" {
   severity              = "WARNING"
 }
 
+resource "google_monitoring_alert_policy" "scratch_git_memory_too_high" {
+  display_name = "${local.display_env} Scratch Git Memory > 85%"
+  count        = var.enable_alerts && var.enable_scratch_git ? 1 : 0
+  documentation {
+    subject = "${local.display_env} Scratch Git Memory Utilization > 85%"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "VM Instance - Memory utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"gce_instance\" AND metric.type = \"agent.googleapis.com/memory/percent_used\" AND metadata.system_labels.name = \"${module.scratch_git_gce[0].instance_name}\""
+      threshold_value = 85
+      trigger {
+        count = 3
+      }
+    }
+  }
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.renotify_interval
+    }
+  }
+  notification_channels = local.warning_notification_channels
+  severity              = "WARNING"
+}
+
+resource "google_monitoring_alert_policy" "scratch_git_disk_usage_too_high" {
+  display_name = "${local.display_env} Scratch Git Disk > 80%"
+  count        = var.enable_alerts && var.enable_scratch_git ? 1 : 0
+  documentation {
+    subject = "${local.display_env} Scratch Git Disk Utilization > 80%"
+    content = "Ops Playbook: ${local.playbook_link}"
+  }
+  combiner = "OR"
+  conditions {
+    display_name = "VM Instance - Disk utilization"
+    condition_threshold {
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      comparison      = "COMPARISON_GT"
+      duration        = "0s"
+      filter          = "resource.type = \"gce_instance\" AND metric.type = \"agent.googleapis.com/disk/percent_used\" AND metadata.system_labels.name = \"${module.scratch_git_gce[0].instance_name}\" AND metric.labels.device = starts_with(\"/dev/disk\")"
+      threshold_value = 80
+      trigger {
+        count = 1
+      }
+    }
+  }
+  alert_strategy {
+    notification_channel_strategy {
+      renotify_interval = local.extended_renotify_interval
+    }
+  }
+  notification_channels = local.warning_notification_channels
+  severity              = "WARNING"
+}
+
 resource "google_cloud_ids_endpoint" "intrusion_detection_system_endpoint" {
   count      = var.enable_intrusion_detection && var.intrusion_detection_external_url == null ? 1 : 0
   name       = "ids-endpoint"

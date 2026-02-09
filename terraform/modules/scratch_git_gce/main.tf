@@ -1,7 +1,7 @@
 /**
   * Scratch Git Module
   *
-  * Provisions a GCE instance running the scratch-git Docker image on Container-Optimized OS
+  * Provisions a GCE instance running the scratch-git Docker image on Debian 12
   * with a persistent data disk. Accessible within the VPC to CloudRun services and the SQL Proxy VM.
 */
 
@@ -35,7 +35,7 @@ resource "google_compute_address" "internal" {
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
-## GCE Instance (Container-Optimized OS)
+## GCE Instance (Debian 12)
 ## ---------------------------------------------------------------------------------------------------------------------
 
 resource "google_compute_instance" "scratch_git" {
@@ -50,7 +50,8 @@ resource "google_compute_instance" "scratch_git" {
 
   boot_disk {
     initialize_params {
-      image = "cos-cloud/cos-stable"
+      image = "debian-cloud/debian-12"
+      size  = 20
     }
   }
 
@@ -87,6 +88,13 @@ resource "google_compute_instance" "scratch_git" {
     DEVICE="/dev/disk/by-id/google-data-disk"
     MOUNT_POINT="/mnt/disks/data"
 
+    # Wait for the persistent disk device to appear (up to 60s)
+    for i in $(seq 1 30); do
+      [ -e "$DEVICE" ] && break
+      echo "Waiting for $DEVICE ... ($i)"
+      sleep 2
+    done
+
     # Format the disk if it has no filesystem
     if ! blkid "$DEVICE"; then
       mkfs.ext4 -F "$DEVICE"
@@ -96,12 +104,30 @@ resource "google_compute_instance" "scratch_git" {
     mkdir -p "$MOUNT_POINT"
     mountpoint -q "$MOUNT_POINT" || mount "$DEVICE" "$MOUNT_POINT"
 
-    # COS root filesystem is read-only; point HOME to a writable location
-    export HOME=/var/lib/docker-home
-    mkdir -p "$HOME"
+    # Install Docker if not already present
+    if ! command -v docker &>/dev/null; then
+      apt-get update -y
+      apt-get install -y ca-certificates curl gnupg
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      chmod a+r /etc/apt/keyrings/docker.gpg
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+      apt-get update -y
+      apt-get install -y docker-ce docker-ce-cli containerd.io
+      systemctl enable --now docker
+    fi
+
+    # Install the Ops Agent for memory/disk monitoring metrics
+    if ! systemctl is-active --quiet google-cloud-ops-agent; then
+      curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+      bash add-google-cloud-ops-agent-repo.sh --also-install
+      rm -f add-google-cloud-ops-agent-repo.sh
+    fi
 
     # Authenticate Docker with Artifact Registry
-    docker-credential-gcr configure-docker --registries=${split("/", var.docker_image)[0]}
+    gcloud auth configure-docker ${split("/", var.docker_image)[0]} --quiet
 
     # Pull the latest image
     docker pull ${var.docker_image}

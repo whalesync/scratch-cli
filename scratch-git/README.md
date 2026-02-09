@@ -82,11 +82,19 @@ docker run -p 3100:3100 -p 3101:3101 \
   scratch-git
 ```
 
+## Git Client Usage
+
+To clone a repository hosted on this service:
+
+```bash
+git clone http://localhost:3101/my-project.git
+```
+
 ## Deployment
 
 Docker images are built automatically by the GitLab CI/CD pipeline and pushed to Artifact Registry as `spinner-scratch-git:latest`.
 
-The scratch-git service runs on a GCE instance (Container-Optimized OS) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to **Test** (`spv1eu-test`) and **Production** (`spv1eu-production`) in the EU region.
+The scratch-git service runs on a GCE instance (Debian 12) managed by Terraform in `terraform/modules/scratch_git_gce/`. It is deployed to **Test** (`spv1eu-test`) and **Production** (`spv1eu-production`) in the EU region.
 
 ### Deploy via gcloud
 
@@ -182,10 +190,49 @@ Container logs are sent to GCP Cloud Logging. Filter by label in the Logs Explor
 labels.service="scratch-git"
 ```
 
-## Git Client Usage
+## DevOps Playbook
 
-To clone a repository hosted on this service:
+### Resizing the ScratchGit Persistent Data Disk
+
+The persistent disk can be expanded online without data loss or downtime. GCP only supports **increasing** disk size, never decreasing.
+
+**1. Update the Terraform variable**
+
+Pass `disk_size_gb` to the `scratch_git_gce` module in `terraform/modules/env/main.tf`, or update the default in `terraform/modules/scratch_git_gce/variables.tf`. For example, to increase from 50 GB to 100 GB:
+
+```hcl
+module "scratch_git_gce" {
+  # ...existing config...
+  disk_size_gb = 100
+}
+```
+
+**2. Plan and apply**
 
 ```bash
-git clone http://localhost:3101/my-project.git
+terraform plan   # Verify it shows "update in-place", NOT "must be replaced"
+terraform apply
 ```
+
+**3. Expand the filesystem on the VM**
+
+GCP resizes the block device automatically, but the ext4 filesystem still sees the old size. SSH into the instance and run:
+
+```bash
+# SSH into the instance
+gcloud compute ssh scratch-git \
+  --project <PROJECT_ID> \
+  --zone europe-west1-b \
+  --tunnel-through-iap
+
+# Verify the OS sees the new disk size
+sudo lsblk
+
+# Resize the ext4 filesystem (online, no unmount needed)
+sudo resize2fs /dev/disk/by-id/google-data-disk
+
+# Verify the filesystem reflects the new size
+sudo df -h /mnt/disks/data
+```
+
+The `resize2fs` command is non-destructive and runs online — no need to stop the container or unmount the disk.
