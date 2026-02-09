@@ -14,7 +14,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
-  ExternalLinkIcon,
   FilePlusIcon,
   FolderIcon,
   MoreHorizontalIcon,
@@ -288,6 +287,8 @@ interface TableNodeProps {
 }
 
 function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: TableNodeProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const tableFilters = useNewWorkbookUIStore((state) => state.tableFilters);
@@ -297,6 +298,11 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
   const filter = tableFilters[folder.id] ?? '';
+
+  // Check if this folder is currently selected (showing in the right panel)
+  const routeBase = mode === 'review' ? 'review' : 'files';
+  const folderPath = `/workbook/${workbookId}/${routeBase}/${encodeURIComponent(folder.name)}`;
+  const isSelected = pathname === folderPath;
 
   const { files, isLoading } = useFolderFileList(workbookId, folder.id);
 
@@ -340,8 +346,20 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const handleToggle = () => {
+  // Chevron click: just toggle expand/collapse
+  const handleChevronClick = (e: MouseEvent) => {
+    e.stopPropagation();
     toggleNode(nodeId);
+  };
+
+  // Row click (folder name): navigate to folder detail AND expand if collapsed
+  const handleRowClick = () => {
+    const routeBase = mode === 'review' ? 'review' : 'files';
+    router.push(`/workbook/${workbookId}/${routeBase}/${encodeURIComponent(folder.name)}`);
+    // Also expand if not already expanded
+    if (!isExpanded) {
+      toggleNode(nodeId);
+    }
   };
 
   // In review mode, hide tables with no dirty files
@@ -352,14 +370,15 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   return (
     <>
       <UnstyledButton
-        onClick={handleToggle}
+        onClick={handleRowClick}
         onContextMenu={mode === 'files' ? handleContextMenu : undefined}
         px="sm"
         py={4}
         style={{
           width: '100%',
           marginLeft: INDENT_PX,
-          backgroundColor: 'transparent',
+          backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
+          borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
         }}
         __vars={{
           '--hover-bg': 'var(--mantine-color-gray-1)',
@@ -367,17 +386,33 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         styles={{
           root: {
             '&:hover': {
-              backgroundColor: 'var(--hover-bg)',
+              backgroundColor: isSelected ? 'var(--bg-selected)' : 'var(--hover-bg)',
             },
           },
         }}
       >
         <Group gap={6} wrap="nowrap">
-          <StyledLucideIcon
-            Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
-            size="sm"
-            c="var(--fg-secondary)"
-          />
+          {/* Chevron: separate click target for expand/collapse only */}
+          <Box
+            onClick={handleChevronClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 20,
+              height: 20,
+              marginLeft: -4,
+              marginRight: -4,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <StyledLucideIcon
+              Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
+              size="sm"
+              c="var(--fg-secondary)"
+            />
+          </Box>
           <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
           <Text12Regular c="var(--fg-primary)" truncate style={{ flex: 1 }}>
             {folder.name}
@@ -389,18 +424,6 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
               {dirtyCount}
             </Badge>
           )}
-
-          {/* Folder details link */}
-          <Link
-            href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`}
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: 'flex', alignItems: 'center', opacity: 0.4 }}
-            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.4'; }}
-            title="View all files"
-          >
-            <ExternalLinkIcon size={12} color="var(--fg-muted)" />
-          </Link>
         </Group>
       </UnstyledButton>
 

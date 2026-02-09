@@ -130,6 +130,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       type: jobData.type,
       data: jobData,
       bullJobId: job.id?.toString(),
+      workbookId: (jobData as Record<string, unknown>).workbookId as string | undefined,
     });
 
     await this.jobService.updateJobStatus({

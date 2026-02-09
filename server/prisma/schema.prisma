@@ -272,6 +272,7 @@ model DbJob {
   progress    Json? // Job progress data
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
+  workbookId  String? // Optional workbook association for filtering
   status      String
   type        String
   data        Json // Job-specific data
@@ -281,6 +282,7 @@ model DbJob {
   finishedOn  DateTime? // When job completed (success or failure)
 
   @@index([userId])
+  @@index([workbookId])
   @@index([status])
   @@index([type])
   @@map("Job")

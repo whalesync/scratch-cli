@@ -2,6 +2,8 @@
 
 import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
+import { IconButtonToolbar } from '@/app/components/base/buttons';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Regular, Text13Medium } from '@/app/components/base/text';
 import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';
@@ -19,7 +21,9 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
-import { AlertCircleIcon, ClockIcon } from 'lucide-react';
+import type { WorkbookId } from '@spinner/shared-types';
+import { AlertCircleIcon, ClockIcon, RefreshCwIcon } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type JobType = 'sync' | 'publish' | 'pull' | 'unknown';
@@ -148,7 +152,9 @@ const formatDuration = (processedOn?: Date | null, finishedOn?: Date | null): st
 };
 
 export function RunsView() {
-  const { jobs, error, isLoading } = useJobs(50);
+  const params = useParams<{ id: string }>();
+  const workbookId = params.id as WorkbookId;
+  const { jobs, error, isLoading, mutate } = useJobs(50, 0, workbookId);
   const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);
   const [viewRawJobId, setViewRawJobId] = useState<string | null>(null);
 
@@ -199,7 +205,12 @@ export function RunsView() {
         }}
       >
         <Text13Medium>Recent Runs</Text13Medium>
-        <Text12Regular c="dimmed">{jobs.length} jobs</Text12Regular>
+        <Group gap="xs">
+          <Text12Regular c="dimmed">{jobs.length} jobs</Text12Regular>
+          <IconButtonToolbar onClick={() => mutate()} title="Refresh">
+            <StyledLucideIcon Icon={RefreshCwIcon} size="sm" c="var(--fg-secondary)" />
+          </IconButtonToolbar>
+        </Group>
       </Group>
 
       {/* Table */}

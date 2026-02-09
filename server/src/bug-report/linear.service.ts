@@ -4,7 +4,7 @@ import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
 
 const LINEAR_DEV_TEAM_ID = 'b4e2b7f8-c4c2-4aaa-848c-e306f07c1a8f';
-const LINEAR_SCRATCH_PROJECT_ID = '28999d63-a6a4-41ab-9ce9-ba55027f5aae';
+const LINEAR_SCRATCH_PROJECT_ID = '41604a71-549f-4794-ab01-1b7f3b82d2dc';
 const LINEAR_BUG_TEMPLATE_ID = '0ea48d97-193a-4b0d-96f2-14fd868376de';
 
 @Injectable()

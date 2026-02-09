@@ -6,7 +6,7 @@ let nextConfig: NextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: true,
   devIndicators: {
-    position: 'bottom-left',
+    position: 'bottom-right',
   },
 };
 

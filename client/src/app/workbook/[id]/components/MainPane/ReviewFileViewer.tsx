@@ -2,8 +2,9 @@
 
 import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { MergeEditor } from '../shared/MergeEditor';
+import { useDataFolders } from '@/hooks/use-data-folders';
 import { useFileByPath } from '@/hooks/use-file-path';
-import { filesApi } from '@/lib/api/files';
+import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
 import { json } from '@codemirror/lang-json';
 import { unifiedMergeView } from '@codemirror/merge';
@@ -24,6 +25,7 @@ interface ReviewFileViewerProps {
 export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps) {
   const router = useRouter();
   const { file: fileResponse, isLoading, updateFile, refreshFile } = useFileByPath(workbookId, filePath);
+  const { folders } = useDataFolders(workbookId);
   const { colorScheme } = useMantineColorScheme();
 
   // Editor content states
@@ -100,7 +102,18 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
 
     setIsPublishing(true);
     try {
-      await filesApi.publishFile(workbookId, filePath);
+      // Find the dataFolderId from the file path (folder name is first segment)
+      const folderName = filePath.split('/')[0];
+      const folder = folders.find((f) => f.name === folderName);
+
+      if (!folder) {
+        console.debug('Could not find data folder for file:', filePath);
+        return;
+      }
+
+      // Publish via the data folder API which creates a job
+      await dataFolderApi.publish([folder.id], workbookId);
+
       // Refresh the file data
       await refreshFile();
       // Navigate back to review page since this file is now published
@@ -110,7 +123,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
     } finally {
       setIsPublishing(false);
     }
-  }, [filePath, workbookId, refreshFile, router]);
+  }, [filePath, workbookId, refreshFile, router, folders]);
 
   // Keyboard shortcut: Cmd+S / Ctrl+S to save
   useEffect(() => {

@@ -3,10 +3,12 @@
 import { IconButtonToolbar } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
+import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import type { Workbook } from '@spinner/shared-types';
-import { ChevronRightIcon, MoonIcon, SunIcon } from 'lucide-react';
+import { BugIcon, ChevronRightIcon, MoonIcon, SunIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -19,8 +21,11 @@ export function Toolbar({ workbook }: ToolbarProps) {
   const params = useParams<{ id: string; path?: string[] }>();
   const pathname = usePathname();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
+  const { user } = useScratchPadUser();
+  const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
 
   const isReviewPage = pathname.includes('/review');
+  const showBugReport = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT;
 
   const toggleColorScheme = () => {
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';
@@ -112,6 +117,13 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
       {/* Right: Action buttons */}
       <Group gap="xs">
+        {showBugReport && (
+          <Tooltip label="Report a bug" position="bottom">
+            <IconButtonToolbar onClick={openReportABugModal} aria-label="Report a bug">
+              <StyledLucideIcon Icon={BugIcon} size="sm" />
+            </IconButtonToolbar>
+          </Tooltip>
+        )}
         <Tooltip label={colorScheme === 'light' ? 'Dark mode' : 'Light mode'} position="bottom">
           <IconButtonToolbar onClick={toggleColorScheme} aria-label="Toggle color scheme">
             <StyledLucideIcon Icon={colorScheme === 'light' ? MoonIcon : SunIcon} size="sm" />

@@ -26,12 +26,13 @@ export class JobController {
     @Req() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('workbookId') workbookId?: string,
   ): Promise<JobEntity[]> {
     const userId = req.user.id;
     const limitNum = limit ? parseInt(limit, 10) : 50;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
-    const dbJobs = await this.jobService.getJobsByUserId(userId, limitNum, offsetNum);
+    const dbJobs = await this.jobService.getJobsByUserId(userId, limitNum, offsetNum, workbookId);
     return dbJobs.map(dbJobToJobEntity);
   }
 

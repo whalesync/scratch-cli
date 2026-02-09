@@ -1,21 +1,9 @@
 'use client';
 
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { trackToggleDisplayMode } from '@/lib/posthog';
-import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { RouteUrls } from '@/utils/route-urls';
 import { UserButton } from '@clerk/nextjs';
-import { Box, Center, Stack, useMantineColorScheme } from '@mantine/core';
-import {
-  BugIcon,
-  ChevronDown,
-  CpuIcon,
-  CreditCardIcon,
-  LucideIcon,
-  MoonIcon,
-  SettingsIcon,
-  SunIcon,
-} from 'lucide-react';
+import { Box, Center, Stack } from '@mantine/core';
+import { ChevronDown, CpuIcon, CreditCardIcon, LucideIcon, SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDevTools } from '../../hooks/use-dev-tools';
@@ -64,34 +52,10 @@ const lowerMenuItems: MenuItem[] = [
 
 export function NavMenu() {
   const pathname = usePathname();
-  const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
-  const { user } = useScratchPadUser();
   const { isDevToolsEnabled } = useDevTools();
-  const { colorScheme, setColorScheme } = useMantineColorScheme();
-  const colorModeItem: MenuItem = {
-    type: 'button',
-    onClick: () => {
-      const newScheme = colorScheme === 'light' ? 'dark' : 'light';
-      setColorScheme(newScheme);
-      trackToggleDisplayMode(newScheme);
-    },
-    label: colorScheme === 'light' ? 'Dark mode' : 'Light mode',
-    icon: colorScheme === 'light' ? MoonIcon : SunIcon,
-  };
 
   const upperSectionMenuItems: MenuItem[] = upperMenuItems;
-
-  const lowerSectionMenuItems: MenuItem[] = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT
-    ? [
-        {
-          type: 'button',
-          onClick: openReportABugModal,
-          label: 'Report a Bug',
-          icon: BugIcon,
-        },
-        ...lowerMenuItems,
-      ]
-    : lowerMenuItems;
+  const lowerSectionMenuItems: MenuItem[] = lowerMenuItems;
 
   return (
     <Stack h="100%" p="10px 8px" gap="10px" bg="var(--bg-panel)">
@@ -105,8 +69,6 @@ export function NavMenu() {
           })}
       </Stack>
       <Stack gap="2px" justify="flex-start" w="100%" mt="auto">
-        <NavMenuItem item={colorModeItem} isActive={false} />
-
         {lowerSectionMenuItems
           .filter((item) => isDevToolsEnabled || !item.isDevTool)
           .map((item) => {

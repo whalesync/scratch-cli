@@ -34,11 +34,13 @@ export class JobService {
     type: string;
     data: Record<string, unknown>;
     bullJobId?: string;
+    workbookId?: string;
   }): Promise<DbJob> {
     const job = await this.db.client.dbJob.create({
       data: {
         id: createJobId(),
         userId: params.userId,
+        workbookId: params.workbookId,
         type: params.type,
         data: params.data as any,
         bullJobId: params.bullJobId,
@@ -71,9 +73,12 @@ export class JobService {
     return job;
   }
 
-  async getJobsByUserId(userId: string, limit = 50, offset = 0): Promise<DbJob[]> {
+  async getJobsByUserId(userId: string, limit = 50, offset = 0, workbookId?: string): Promise<DbJob[]> {
     const jobs = await this.db.client.dbJob.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(workbookId && { workbookId }),
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,

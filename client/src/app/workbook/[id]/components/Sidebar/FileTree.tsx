@@ -7,10 +7,11 @@ import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
+import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
 import { Box, Group, ScrollArea, Stack, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ConnectorAccount, Workbook } from '@spinner/shared-types';
+import type { ConnectorAccount, DataFolderId, Workbook } from '@spinner/shared-types';
 import { CloudUploadIcon, DownloadIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useCallback } from 'react';
@@ -73,14 +74,36 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
 
     setIsPublishing(true);
     try {
-      await workbookApi.backupWorkbookToRepo(workbook.id);
+      // Get unique folder names from dirty files
+      const dirtyFolderNames = new Set<string>();
+      dirtyFiles.forEach((file) => {
+        const folderName = file.path.split('/')[0];
+        if (folderName) {
+          dirtyFolderNames.add(folderName);
+        }
+      });
+
+      // Find dataFolderIds for dirty folders
+      const dataFolderIds: DataFolderId[] = [];
+      dataFolderGroups.forEach((group) => {
+        group.dataFolders.forEach((folder) => {
+          if (dirtyFolderNames.has(folder.name)) {
+            dataFolderIds.push(folder.id);
+          }
+        });
+      });
+
+      if (dataFolderIds.length > 0) {
+        await dataFolderApi.publish(dataFolderIds, workbook.id);
+      }
+
       router.refresh();
     } catch (error) {
       console.debug('Failed to publish changes:', error);
     } finally {
       setIsPublishing(false);
     }
-  }, [workbook.id, router]);
+  }, [workbook.id, router, dirtyFiles, dataFolderGroups]);
 
   const handleDiscardAll = useCallback(async () => {
     if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;

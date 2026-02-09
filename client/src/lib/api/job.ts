@@ -3,11 +3,11 @@ import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
 export const jobApi = {
-  getJobs: async (limit?: number, offset?: number): Promise<JobEntity[]> => {
+  getJobs: async (limit?: number, offset?: number, workbookId?: string): Promise<JobEntity[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
       const res = await axios.get<JobEntity[]>('/jobs', {
-        params: { limit, offset },
+        params: { limit, offset, workbookId },
       });
       return res.data;
     } catch (error) {
