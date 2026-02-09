@@ -70,4 +70,14 @@ export class UsersController {
     const apiToken = await this.usersService.generateUserApiToken(req.user.id);
     return { apiToken };
   }
+
+  @Patch('current/last-workbook')
+  @HttpCode(204)
+  async updateLastWorkbook(@Req() req: RequestWithUser, @Body() body: { workbookId: string | null }): Promise<void> {
+    if (!req.user) {
+      throw new UnauthorizedException();
+    }
+
+    await this.usersService.updateLastWorkbook(req.user.id, body.workbookId);
+  }
 }

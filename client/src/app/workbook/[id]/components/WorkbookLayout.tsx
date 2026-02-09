@@ -1,0 +1,134 @@
+'use client';
+
+import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
+import { Box, Stack } from '@mantine/core';
+import type { Workbook } from '@spinner/shared-types';
+import { usePathname } from 'next/navigation';
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { FileTree, type FileTreeMode } from './Sidebar/FileTree';
+import { NavTabs } from './Sidebar/NavTabs';
+import { ProjectSwitcher } from './Sidebar/ProjectSwitcher';
+import { SidebarFooter } from './Sidebar/SidebarFooter';
+import { SyncsList } from './Sidebar/SyncsList';
+import { Toolbar } from './MainPane/Toolbar';
+import { ResizeHandle } from './shared/ResizeHandle';
+
+interface WorkbookLayoutProps {
+  workbook: Workbook;
+  children: ReactNode;
+}
+
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 500;
+
+export function WorkbookLayout({ workbook, children }: WorkbookLayoutProps) {
+  const pathname = usePathname();
+  const sidebarWidth = useNewWorkbookUIStore((state) => state.sidebarWidth);
+  const setSidebarWidth = useNewWorkbookUIStore((state) => state.setSidebarWidth);
+
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Determine sidebar mode from pathname
+  const sidebarMode = useMemo(() => {
+    if (pathname.includes('/syncs')) {
+      return 'syncs';
+    }
+    if (pathname.includes('/review')) {
+      return 'review';
+    }
+    if (pathname.includes('/runs')) {
+      return 'runs';
+    }
+    return 'files';
+  }, [pathname]);
+
+  // File tree mode (only for files/review)
+  const fileTreeMode: FileTreeMode = sidebarMode === 'review' ? 'review' : 'files';
+
+  const handleResizeStart = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleResize = useCallback(
+    (deltaX: number) => {
+      setSidebarWidth(sidebarWidth + deltaX);
+    },
+    [sidebarWidth, setSidebarWidth],
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  return (
+    <Box
+      ref={containerRef}
+      h="100vh"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-panel)',
+        userSelect: isResizing ? 'none' : 'auto',
+      }}
+    >
+      {/* Main content area with sidebar and main pane */}
+      <Box style={{ display: 'flex', flex: 1, minHeight: 0, padding: 6 }}>
+        {/* Sidebar */}
+        <Stack
+          gap={0}
+          style={{
+            width: sidebarWidth,
+            minWidth: MIN_SIDEBAR_WIDTH,
+            maxWidth: MAX_SIDEBAR_WIDTH,
+            backgroundColor: 'var(--bg-base)',
+            border: '0.5px solid var(--fg-divider)',
+            borderRadius: 4,
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          {/* Project Switcher */}
+          <ProjectSwitcher currentWorkbook={workbook} />
+
+          {/* Navigation Tabs */}
+          <NavTabs />
+
+          {/* Sidebar Content */}
+          <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            {sidebarMode === 'syncs' && <SyncsList workbookId={workbook.id} />}
+            {(sidebarMode === 'files' || sidebarMode === 'review') && (
+              <FileTree workbook={workbook} mode={fileTreeMode} />
+            )}
+            {/* Runs mode has no sidebar content */}
+          </Box>
+
+          {/* Sidebar Footer */}
+          <SidebarFooter />
+        </Stack>
+
+        {/* Resize Handle */}
+        <ResizeHandle onResizeStart={handleResizeStart} onResize={handleResize} onResizeEnd={handleResizeEnd} />
+
+        {/* Main Pane */}
+        <Stack
+          gap={0}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            backgroundColor: 'var(--bg-base)',
+            border: '0.5px solid var(--fg-divider)',
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Toolbar */}
+          <Toolbar workbook={workbook} />
+
+          {/* Content */}
+          <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{children}</Box>
+        </Stack>
+      </Box>
+    </Box>
+  );
+}

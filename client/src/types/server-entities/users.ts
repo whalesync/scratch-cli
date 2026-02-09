@@ -15,6 +15,7 @@ export interface User {
   stripeCustomerId?: string;
   organization?: Organization;
   settings?: Record<string, string | number | boolean>;
+  lastWorkbookId?: string;
 }
 
 export type { SubscriptionInfo } from '@spinner/shared-types';

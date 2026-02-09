@@ -74,7 +74,7 @@ export const useWorkbooks = (options: UseWorkbooksOptions = {}): UseWorkbooksRet
   }, [error]);
 
   const getWorkbookPageUrl = (id: WorkbookId) => {
-    return RouteUrls.workbookScratchSyncPageUrl(id);
+    return RouteUrls.workbookFilesPageUrl(id);
   };
   return {
     workbooks: data,

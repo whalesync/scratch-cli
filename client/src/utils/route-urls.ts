@@ -11,16 +11,13 @@ export class RouteUrls {
   static signUpPageWithRedirect = (redirect_url: string) => `${this.signUpPageUrl}?redirect_url=${redirect_url}`;
 
   // Authenticated Routes & Route Generators
-  static homePageUrl = '/workbooks'; // NOTE! Root is redirected to this page.
+  static homePageUrl = '/'; // Root page handles redirect to workbook
   static healthPageUrl = '/health';
-  static workbookScratchSyncPageUrl = (id: string) => `/workbooks/${id}`;
-  static workbookNewTabPageUrl = (id: string) => `/workbooks/${id}/new`;
-  static workbookTablePage = (id: string, tableId: string) => `/workbooks/${id}/${tableId}`;
-  static workbookRecordView = (id: string, tableId: string, recordId: string) =>
-    `/workbooks/${id}/${tableId}/${recordId}`;
-  static workbookColumnView = (id: string, tableId: string, recordId: string, columnId: string) =>
-    `/workbooks/${id}/${tableId}/${recordId}/${columnId}`;
-  static workbooksPageUrl = '/workbooks';
+  static workbookPageUrl = (id: string) => `/workbook/${id}`;
+  static workbookFilesPageUrl = (id: string) => `/workbook/${id}/files`;
+  static workbookReviewPageUrl = (id: string) => `/workbook/${id}/review`;
+  static workbookSyncsPageUrl = (id: string) => `/workbook/${id}/syncs`;
+  static workbookRunsPageUrl = (id: string) => `/workbook/${id}/runs`;
   static settingsPageUrl = '/settings';
   static billingPageUrl = '/billing';
   static productCheckoutPage = (planType: string, returnPath?: string) =>
@@ -49,8 +46,7 @@ export class RouteUrls {
 
   static subscriptionRoutePatterns = [
     `^\/$`, // root path
-    RouteUrls.workbooksPageUrl,
-    '/workbooks',
+    '/workbook',
   ];
 
   /** Routes that require an active subscription or free trial to access*/
@@ -59,38 +55,13 @@ export class RouteUrls {
   }
 
   /**
-   * Updates the current path without triggering a rerender of the page
-   * @param workbookId - The ID of the workbook
-   * @param tableId - The ID of the table. If undefined, the table id will be removed from the path.
-   * @param recordId - The ID or name of the file. If undefined, the record id will be removed from the path.
-   */
-  static updateWorkbookPath = (workbookId: string, tableId?: string, recordId?: string) => {
-    const base = '/workbooks';
-
-    let url = `${base}/${workbookId}`;
-
-    // Don't include transient new-tab IDs in the URL
-    const isNewTab = tableId?.startsWith('new-tab') || tableId === 'new';
-    if (tableId && !isNewTab) {
-      url += `/${tableId}`;
-      if (recordId) {
-        url += `/${recordId}`;
-      }
-    }
-
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(null, '', url);
-    }
-  };
-
-  /**
    * Updates the URL path for file-based workbook views.
    * @param workbookId - The ID of the workbook
    * @param viewType - The view type: 'files' or 'review'
    * @param filePath - The file path (optional)
    */
   static updateWorkbookFilePath = (workbookId: string, viewType?: 'files' | 'review', filePath?: string) => {
-    let url = `/workbooks/${workbookId}`;
+    let url = `/workbook/${workbookId}`;
 
     if (viewType) {
       url += `/${viewType}`;

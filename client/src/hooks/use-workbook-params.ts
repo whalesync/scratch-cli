@@ -11,7 +11,7 @@ export function useWorkbookParams() {
 
   const workbookId = slugArray[0] as WorkbookId;
 
-  // URL structure: /workbooks/{workbookId}/{viewType}/{filePath...}
+  // URL structure: /workbook/{workbookId}/{viewType}/{filePath...}
   // viewType can be 'files', 'review', or a dataFolderId
   const secondSegment = slugArray[1];
   const isFileView = secondSegment === 'files' || secondSegment === 'review';
@@ -29,7 +29,7 @@ export function useWorkbookParams() {
     };
   }
 
-  // Table/folder page params: /workbooks/{workbookId}/{dataFolderId}/{recordId}/{columnId}
+  // Table/folder page params: /workbook/{workbookId}/{dataFolderId}/{recordId}/{columnId}
   const dataFolderId = slugArray[1] as DataFolderId | undefined;
 
   return {

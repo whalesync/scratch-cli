@@ -22,15 +22,15 @@ test.describe('Example Test Suite', () => {
     expect(page.url()).toContain('localhost:3000');
   });
 
-  test('should navigate to workbooks page', async ({ page }) => {
-    // Navigate to workbooks page
-    await page.goto('/workbooks');
+  test('should navigate to workbook page', async ({ page }) => {
+    // Navigate to workbook page - this will redirect to a specific workbook
+    await page.goto('/workbook');
 
     // Wait for DOM to be loaded
     await page.waitForLoadState('domcontentloaded');
 
-    // Check that we're on the workbooks page
-    expect(page.url()).toContain('/workbooks');
+    // Check that we're on a workbook page
+    expect(page.url()).toContain('/workbook');
   });
 
   test('should navigate to data sources page', async ({ page }) => {

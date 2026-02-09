@@ -94,6 +94,8 @@ model User {
   organizationId          String?
   organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   settings                Json?                    @default("{}") // UserSettings object
+  lastWorkbookId          String?
+  lastWorkbook            Workbook?                @relation("UserLastWorkbook", fields: [lastWorkbookId], references: [id], onDelete: SetNull)
   apiTokens               APIToken[]
   connectorAccounts       ConnectorAccount[]
   aiAgentCredentials      AiAgentCredential[]
@@ -185,8 +187,9 @@ model Workbook {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  dataFolders       DataFolder[]
-  connectorAccounts ConnectorAccount[]
+  dataFolders        DataFolder[]
+  connectorAccounts  ConnectorAccount[]
+  usersWithAsDefault User[]             @relation("UserLastWorkbook")
 
   @@index([userId])
   @@index([organizationId])

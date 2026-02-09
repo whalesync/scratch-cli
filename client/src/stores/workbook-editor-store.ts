@@ -141,22 +141,18 @@ export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get)
   },
   setActiveTab: (activeTab: TabId) => {
     set({ activeTab });
-    RouteUrls.updateWorkbookPath(get().workbookId ?? '', activeTab);
   },
   openNewBlankTab: () => {
     const newTab = newBlankTab();
     set({ tabs: [...get().tabs, newTab], activeTab: newTab.id });
-    RouteUrls.updateWorkbookPath(get().workbookId ?? '', newTab.id);
   },
   closeTab: (id: TabId) => {
     const fixedTabs = closeTabAndFixActiveTab(id, get().tabs, get().activeTab);
     set({ ...fixedTabs });
-    RouteUrls.updateWorkbookPath(get().workbookId ?? '', fixedTabs.activeTab || undefined);
   },
   closeNewTabs: () => {
     const tabs = get().tabs.filter((tab) => tab.type !== 'new-tab');
     set({ tabs });
-    RouteUrls.updateWorkbookPath(get().workbookId ?? '', tabs.length > 0 ? tabs[0].id : undefined);
   },
 
   openFileTab: (tab: FileTab) => {
@@ -345,8 +341,6 @@ function reconcileOpenTabs(
   // Ensure there is a valid active tab.
   if (!result.activeTab || !result.tabs.find((tab) => tab.id === result.activeTab)) {
     result.activeTab = result.tabs[0]?.id ?? null;
-    // set the path to the first tab
-    RouteUrls.updateWorkbookPath(workbookId, result.activeTab || undefined);
   }
 
   return result;

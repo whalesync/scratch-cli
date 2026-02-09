@@ -195,4 +195,11 @@ export class UsersService {
       data: { settings: updatedSettings },
     });
   }
+
+  public async updateLastWorkbook(userId: string, workbookId: string | null): Promise<void> {
+    await this.db.client.user.update({
+      where: { id: userId },
+      data: { lastWorkbookId: workbookId },
+    });
+  }
 }

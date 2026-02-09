@@ -31,4 +31,13 @@ export const usersApi = {
       handleAxiosError(error, 'Failed to generate API token');
     }
   },
+
+  updateLastWorkbook: async (workbookId: string | null): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.patch('/users/current/last-workbook', { workbookId });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update last workbook');
+    }
+  },
 };

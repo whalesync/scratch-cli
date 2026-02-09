@@ -34,6 +34,9 @@ export class User {
 
   settings?: Record<string, string | number | boolean>;
 
+  // The ID of the last workbook the user was viewing (for quick redirect on home page)
+  lastWorkbookId?: string;
+
   constructor(user: UserCluster.User, experiments?: UserFlagValues, billableActions?: BillableActions) {
     this.id = user.id;
     this.createdAt = user.createdAt;
@@ -43,6 +46,7 @@ export class User {
     this.name = user.name || undefined;
     this.email = user.email || undefined;
     this.stripeCustomerId = user.stripeCustomerId || null;
+    this.lastWorkbookId = user.lastWorkbookId || undefined;
 
     if (user.apiTokens) {
       this.websocketToken = findValidToken(user, TokenType.WEBSOCKET);

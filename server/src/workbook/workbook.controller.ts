@@ -18,6 +18,7 @@ import { CreateWorkbookDto, PullFilesDto, UpdateWorkbookDto } from '@spinner/sha
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { userToActor } from '../users/types';
+import { UsersService } from '../users/users.service';
 import { DataFolderService } from './data-folder.service';
 import { Workbook } from './entities';
 
@@ -30,12 +31,18 @@ export class WorkbookController {
   constructor(
     private readonly service: WorkbookService,
     private readonly dataFolderService: DataFolderService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Post()
   async create(@Body() createWorkbookDto: CreateWorkbookDto, @Req() req: RequestWithUser): Promise<Workbook> {
     const dto = createWorkbookDto;
-    return new Workbook(await this.service.create(dto, userToActor(req.user)));
+    const workbook = await this.service.create(dto, userToActor(req.user));
+
+    // Set this as the user's last workbook
+    await this.usersService.updateLastWorkbook(req.user.id, workbook.id);
+
+    return new Workbook(workbook);
   }
 
   @Get()

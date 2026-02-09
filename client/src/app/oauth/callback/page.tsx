@@ -132,8 +132,8 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text13Regular>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
-                Back to Workbooks
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.homePageUrl)}>
+                Back to Home
               </ButtonSecondaryOutline>
             </Group>
           </>
@@ -147,8 +147,8 @@ export default function OAuthCallbackPage() {
               workbook and create a new connection.
             </Alert>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
-                Back to Workbooks
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.homePageUrl)}>
+                Back to Home
               </ButtonSecondaryOutline>
             </Group>
           </>

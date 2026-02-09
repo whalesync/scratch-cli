@@ -86,7 +86,7 @@ export default function OAuthCallbackPage() {
         // Redirect to returnPage (if specified) or workbooks page after a short delay
         const returnPage = extractReturnPageFromState();
         setTimeout(() => {
-          router.push(returnPage || RouteUrls.workbooksPageUrl);
+          router.push(returnPage || RouteUrls.homePageUrl);
         }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
@@ -188,8 +188,8 @@ export default function OAuthCallbackPage() {
               You can try again or contact support if the problem persists.
             </Text>
             <Group gap="sm" mt="md">
-              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.workbooksPageUrl)}>
-                Back to Workbooks
+              <ButtonSecondaryOutline onClick={() => router.push(RouteUrls.homePageUrl)}>
+                Back to Home
               </ButtonSecondaryOutline>
             </Group>
           </>

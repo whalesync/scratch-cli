@@ -15,7 +15,6 @@ import {
   MoonIcon,
   SettingsIcon,
   SunIcon,
-  Table2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,14 +29,7 @@ type MenuItem = {
   isDevTool?: boolean;
 } & ({ type: 'link'; href: string; newTab?: boolean } | { type: 'button'; onClick: () => void });
 
-const upperMenuItems: MenuItem[] = [
-  {
-    type: 'link',
-    href: RouteUrls.workbooksPageUrl,
-    label: 'Workbooks',
-    icon: Table2Icon,
-  },
-];
+const upperMenuItems: MenuItem[] = [];
 
 const lowerMenuItems: MenuItem[] = [
   {
