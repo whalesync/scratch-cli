@@ -11,10 +11,7 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: `ipify returned ${response.status}` },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: `ipify returned ${response.status}` }, { status: 502 });
     }
 
     const data = (await response.json()) as { ip: string };
@@ -25,9 +22,6 @@ export async function GET() {
       service: 'client',
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
-import { SWR_KEYS } from '@/lib/api/keys';
 import { dataFolderApi } from '@/lib/api/data-folder';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { DataFolder, DataFolderId } from '@spinner/shared-types';
 import { useCallback } from 'react';
 import useSWR from 'swr';

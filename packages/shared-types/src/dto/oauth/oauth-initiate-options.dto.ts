@@ -45,7 +45,9 @@ export class OAuthInitiateOptionsDto {
   workbookId?: string;
 }
 
-export type ValidatedOAuthInitiateOptionsDto = Required<Pick<OAuthInitiateOptionsDto, 'redirectPrefix' | 'workbookId'>> &
+export type ValidatedOAuthInitiateOptionsDto = Required<
+  Pick<OAuthInitiateOptionsDto, 'redirectPrefix' | 'workbookId'>
+> &
   Pick<
     OAuthInitiateOptionsDto,
     | 'connectionMethod'

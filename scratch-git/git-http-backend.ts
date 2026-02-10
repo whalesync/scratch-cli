@@ -124,9 +124,9 @@ app.all('/:repoId.git/*', (req, res) => {
     }
   });
 
-  gitProc.stderr.on('data', (data) => {
+  gitProc.stderr.on('data', (data: Buffer) => {
     stderrBuffer += data.toString();
-    console.error(`[GIT] stderr for ${repoId}: ${data}`);
+    console.error(`[GIT] stderr for ${repoId}: ${data.toString()}`);
   });
 
   gitProc.on('exit', (code) => {

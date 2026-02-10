@@ -3,16 +3,16 @@
  * This file is sometimes copied from mackeres repo and is not used.
  * It is used just as a reference.
  */
-import fs from "node:fs";
-import path from "node:path";
-import git from "isomorphic-git";
-import { diff3Merge } from "node-diff3";
+import git from 'isomorphic-git';
+import { diff3Merge } from 'node-diff3';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Base directory for git repos (local development)
-const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || ".scratch-repos";
+const REPOS_BASE_DIR = process.env.GIT_REPOS_DIR || '.scratch-repos';
 
 // Default author for commits
-const DEFAULT_AUTHOR = { name: "Scratch", email: "scratch@example.com" };
+const DEFAULT_AUTHOR = { name: 'Scratch', email: 'scratch@example.com' };
 
 // Lock mechanism for serializing writes to the same branch
 // Maps "gitBucket:ref" to the last promise in the queue
@@ -23,11 +23,7 @@ const writeLocks = new Map<string, Promise<unknown>>();
  * This ensures concurrent writes to the same branch are executed sequentially.
  * Each new write waits for ALL previous writes to complete.
  */
-async function withWriteLock<T>(
-  gitBucket: string,
-  ref: string,
-  operation: () => Promise<T>,
-): Promise<T> {
+async function withWriteLock<T>(gitBucket: string, ref: string, operation: () => Promise<T>): Promise<T> {
   const lockKey = `${gitBucket}:${ref}`;
 
   // Get the current tail of the queue (if any)
@@ -68,7 +64,7 @@ async function withWriteLock<T>(
 export interface FileChange {
   path: string;
   content?: string; // Required for add/modify, not used for delete
-  type: "add" | "modify" | "delete";
+  type: 'add' | 'modify' | 'delete';
 }
 
 // =============================================================================
@@ -92,7 +88,7 @@ interface TreeEntry {
   mode: string;
   path: string;
   oid: string;
-  type: "blob" | "tree" | "commit";
+  type: 'blob' | 'tree' | 'commit';
 }
 
 /**
@@ -128,7 +124,7 @@ export async function commitChangesToRef(
     dir,
     currentTree,
     changes,
-    "", // root path prefix
+    '', // root path prefix
   );
 
   // Create commit pointing to new tree
@@ -163,7 +159,7 @@ export async function commitChangesToRef(
 
   // If we're committing to main, sync the index to match
   // This keeps the index in sync with HEAD (which points to main)
-  if (ref === "main") {
+  if (ref === 'main') {
     await syncIndexForChanges(dir, changes);
   }
 
@@ -174,14 +170,11 @@ export async function commitChangesToRef(
  * Sync the git index and working directory for a set of file changes.
  * This ensures both match HEAD after we update main.
  */
-async function syncIndexForChanges(
-  dir: string,
-  changes: FileChange[],
-): Promise<void> {
+async function syncIndexForChanges(dir: string, changes: FileChange[]): Promise<void> {
   for (const change of changes) {
     const filePath = path.join(dir, change.path);
 
-    if (change.type === "delete") {
+    if (change.type === 'delete') {
       // Remove the file from the index and working directory
       await git.resetIndex({ fs, dir, filepath: change.path });
       try {
@@ -195,7 +188,7 @@ async function syncIndexForChanges(
       // Write the content to the working directory
       const parentDir = path.dirname(filePath);
       await fs.promises.mkdir(parentDir, { recursive: true });
-      await fs.promises.writeFile(filePath, change.content || "");
+      await fs.promises.writeFile(filePath, change.content || '');
     }
   }
 }
@@ -216,11 +209,9 @@ async function applyChangesToTree(
 
   for (const change of changes) {
     // Get the path relative to current tree level
-    const relativePath = pathPrefix
-      ? change.path.slice(pathPrefix.length + 1)
-      : change.path;
+    const relativePath = pathPrefix ? change.path.slice(pathPrefix.length + 1) : change.path;
 
-    const slashIndex = relativePath.indexOf("/");
+    const slashIndex = relativePath.indexOf('/');
     if (slashIndex === -1) {
       // This change is for a file directly in this tree
       directChanges.push({ ...change, path: relativePath });
@@ -243,7 +234,7 @@ async function applyChangesToTree(
     const subtreeChange = subtreeChanges.get(entry.path);
 
     if (directChange) {
-      if (directChange.type === "delete") {
+      if (directChange.type === 'delete') {
         // Skip this entry (delete it)
         continue;
       }
@@ -251,15 +242,15 @@ async function applyChangesToTree(
       const newBlobOid = await git.writeBlob({
         fs,
         dir,
-        blob: Buffer.from(directChange.content || ""),
+        blob: Buffer.from(directChange.content || ''),
       });
       newEntries.push({
-        mode: "100644",
+        mode: '100644',
         path: entry.path,
         oid: newBlobOid,
-        type: "blob",
+        type: 'blob',
       });
-    } else if (subtreeChange && entry.type === "tree") {
+    } else if (subtreeChange && entry.type === 'tree') {
       // Recursively process subtree
       const { tree: subtreeEntries } = await git.readTree({
         fs,
@@ -276,7 +267,7 @@ async function applyChangesToTree(
         mode: entry.mode,
         path: entry.path,
         oid: newSubtreeOid,
-        type: "tree",
+        type: 'tree',
       });
       subtreeChanges.delete(entry.path);
     } else {
@@ -288,20 +279,17 @@ async function applyChangesToTree(
   // Add new files (not replacing existing)
   // Both "add" and "modify" types can create new files
   for (const change of directChanges) {
-    if (
-      (change.type === "add" || change.type === "modify") &&
-      !currentEntries.some((e) => e.path === change.path)
-    ) {
+    if ((change.type === 'add' || change.type === 'modify') && !currentEntries.some((e) => e.path === change.path)) {
       const newBlobOid = await git.writeBlob({
         fs,
         dir,
-        blob: Buffer.from(change.content || ""),
+        blob: Buffer.from(change.content || ''),
       });
       newEntries.push({
-        mode: "100644",
+        mode: '100644',
         path: change.path,
         oid: newBlobOid,
-        type: "blob",
+        type: 'blob',
       });
     }
   }
@@ -317,10 +305,10 @@ async function applyChangesToTree(
         pathPrefix ? `${pathPrefix}/${subtreeName}` : subtreeName,
       );
       newEntries.push({
-        mode: "040000",
+        mode: '040000',
         path: subtreeName,
         oid: newSubtreeOid,
-        type: "tree",
+        type: 'tree',
       });
     }
   }
@@ -328,8 +316,8 @@ async function applyChangesToTree(
   // Sort entries (git requires sorted tree entries)
   newEntries.sort((a, b) => {
     // Git sorts directories with a trailing slash for comparison purposes
-    const aName = a.type === "tree" ? `${a.path}/` : a.path;
-    const bName = b.type === "tree" ? `${b.path}/` : b.path;
+    const aName = a.type === 'tree' ? `${a.path}/` : a.path;
+    const bName = b.type === 'tree' ? `${b.path}/` : b.path;
     return aName.localeCompare(bName);
   });
 
@@ -354,11 +342,7 @@ async function applyChangesToTree(
  * Check if a file exists on a specific branch.
  * Uses git objects directly - no working directory required.
  */
-export async function fileExistsOnBranch(
-  gitBucket: string,
-  branchName: string,
-  filePath: string,
-): Promise<boolean> {
+export async function fileExistsOnBranch(gitBucket: string, branchName: string, filePath: string): Promise<boolean> {
   const dir = getRepoPath(gitBucket);
 
   try {
@@ -378,22 +362,15 @@ export async function fileExistsOnBranch(
 /**
  * Check if a file exists on the main branch.
  */
-export async function fileExistsOnMain(
-  gitBucket: string,
-  filePath: string,
-): Promise<boolean> {
-  return fileExistsOnBranch(gitBucket, "main", filePath);
+export async function fileExistsOnMain(gitBucket: string, filePath: string): Promise<boolean> {
+  return fileExistsOnBranch(gitBucket, 'main', filePath);
 }
 
 /**
  * Check if a file exists on a user's dirty branch.
  * Falls back to main if dirty branch doesn't exist.
  */
-export async function fileExistsOnDirtyBranch(
-  gitBucket: string,
-  userId: string,
-  filePath: string,
-): Promise<boolean> {
+export async function fileExistsOnDirtyBranch(gitBucket: string, userId: string, filePath: string): Promise<boolean> {
   const branchName = getDirtyBranchName(userId);
 
   // Try dirty branch first, fall back to main if branch doesn't exist
@@ -406,11 +383,8 @@ export async function fileExistsOnDirtyBranch(
 /**
  * Read file content from the main branch.
  */
-export async function readFileFromMain(
-  gitBucket: string,
-  filePath: string,
-): Promise<GitFileContent | null> {
-  const content = await readFileFromBranch(gitBucket, "main", filePath);
+export async function readFileFromMain(gitBucket: string, filePath: string): Promise<GitFileContent | null> {
+  const content = await readFileFromBranch(gitBucket, 'main', filePath);
   if (content === null) {
     return null;
   }
@@ -433,9 +407,7 @@ export async function readFileFromDirtyBranch(
   const branchName = getDirtyBranchName(userId);
 
   // Fall back to main if dirty branch doesn't exist
-  const targetBranch = (await branchExists(gitBucket, branchName))
-    ? branchName
-    : "main";
+  const targetBranch = (await branchExists(gitBucket, branchName)) ? branchName : 'main';
 
   const content = await readFileFromBranch(gitBucket, targetBranch, filePath);
   if (content === null) {
@@ -452,17 +424,11 @@ export async function readFileFromDirtyBranch(
  * List files in a directory from a user's dirty branch.
  * Falls back to main if dirty branch doesn't exist.
  */
-export async function listFilesFromDirtyBranch(
-  gitBucket: string,
-  userId: string,
-  dirPath: string,
-): Promise<GitFile[]> {
+export async function listFilesFromDirtyBranch(gitBucket: string, userId: string, dirPath: string): Promise<GitFile[]> {
   const branchName = getDirtyBranchName(userId);
 
   // Fall back to main if dirty branch doesn't exist
-  const targetBranch = (await branchExists(gitBucket, branchName))
-    ? branchName
-    : "main";
+  const targetBranch = (await branchExists(gitBucket, branchName)) ? branchName : 'main';
 
   return listFilesFromBranch(gitBucket, targetBranch, dirPath);
 }
@@ -481,13 +447,13 @@ export async function writeFilesToMain(
   files: Array<{ path: string; content: string }>,
   message: string,
 ): Promise<string> {
-  return withWriteLock(gitBucket, "main", async () => {
+  return withWriteLock(gitBucket, 'main', async () => {
     const changes: FileChange[] = files.map((f) => ({
       path: f.path,
       content: f.content,
-      type: "modify", // Works for both new and existing files
+      type: 'modify', // Works for both new and existing files
     }));
-    return commitChangesToRef(gitBucket, "main", changes, message);
+    return commitChangesToRef(gitBucket, 'main', changes, message);
   });
 }
 
@@ -496,17 +462,13 @@ export async function writeFilesToMain(
  * Uses direct object manipulation - no checkout required.
  * Concurrent deletes are serialized to prevent race conditions.
  */
-export async function deleteFilesFromMain(
-  gitBucket: string,
-  filePaths: string[],
-  message: string,
-): Promise<string> {
-  return withWriteLock(gitBucket, "main", async () => {
+export async function deleteFilesFromMain(gitBucket: string, filePaths: string[], message: string): Promise<string> {
+  return withWriteLock(gitBucket, 'main', async () => {
     const changes: FileChange[] = filePaths.map((path) => ({
       path,
-      type: "delete",
+      type: 'delete',
     }));
-    return commitChangesToRef(gitBucket, "main", changes, message);
+    return commitChangesToRef(gitBucket, 'main', changes, message);
   });
 }
 
@@ -518,10 +480,7 @@ export async function deleteFilesFromMain(
  * Ensure a dirty branch exists for a user. Creates it from main if it doesn't exist.
  * This is the only function that creates dirty branches.
  */
-export async function ensureDirtyBranchExists(
-  gitBucket: string,
-  userId: string,
-): Promise<void> {
+export async function ensureDirtyBranchExists(gitBucket: string, userId: string): Promise<void> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -532,7 +491,7 @@ export async function ensureDirtyBranchExists(
   }
 
   // Create branch from main's current commit
-  const mainCommit = await git.resolveRef({ fs, dir, ref: "main" });
+  const mainCommit = await git.resolveRef({ fs, dir, ref: 'main' });
   await git.writeRef({
     fs,
     dir,
@@ -558,7 +517,7 @@ export async function writeFilesToDirtyBranch(
   const changes: FileChange[] = files.map((f) => ({
     path: f.path,
     content: f.content,
-    type: "modify",
+    type: 'modify',
   }));
   return commitChangesToRef(gitBucket, branchName, changes, message);
 }
@@ -577,7 +536,7 @@ export async function deleteFilesFromDirtyBranch(
   const branchName = getDirtyBranchName(userId);
   const changes: FileChange[] = filePaths.map((path) => ({
     path,
-    type: "delete",
+    type: 'delete',
   }));
   return commitChangesToRef(gitBucket, branchName, changes, message);
 }
@@ -585,7 +544,7 @@ export async function deleteFilesFromDirtyBranch(
 export interface GitFile {
   name: string;
   path: string;
-  type: "file" | "directory";
+  type: 'file' | 'directory';
 }
 
 export interface GitFileContent {
@@ -596,10 +555,10 @@ export interface GitFileContent {
 
 export interface DirtyFile {
   path: string;
-  status: "added" | "modified" | "deleted";
+  status: 'added' | 'modified' | 'deleted';
 }
 
-export type DirtyFileStatus = DirtyFile["status"];
+export type DirtyFileStatus = DirtyFile['status'];
 
 /**
  * Get the filesystem path for a workspace's git repo
@@ -621,19 +580,19 @@ export async function initRepo(gitBucket: string): Promise<void> {
   // Create directory if it doesn't exist
   await fs.promises.mkdir(dir, { recursive: true });
 
-  const gitDir = path.join(dir, ".git");
+  const gitDir = path.join(dir, '.git');
 
   // Check if already initialized by looking for .git directory
   if (fs.existsSync(gitDir)) {
     // Check if HEAD exists (has initial commit)
     try {
-      await git.resolveRef({ fs, dir, ref: "HEAD" });
+      await git.resolveRef({ fs, dir, ref: 'HEAD' });
       return; // Already initialized with commits
     } catch {
       // HEAD doesn't exist, need to create initial commit
     }
   } else {
-    await git.init({ fs, dir, defaultBranch: "main" });
+    await git.init({ fs, dir, defaultBranch: 'main' });
 
     // Verify .git was created
     if (!fs.existsSync(gitDir)) {
@@ -642,15 +601,15 @@ export async function initRepo(gitBucket: string): Promise<void> {
   }
 
   // Create initial commit with empty .gitkeep
-  const gitkeepPath = path.join(dir, ".gitkeep");
-  await fs.promises.writeFile(gitkeepPath, "");
+  const gitkeepPath = path.join(dir, '.gitkeep');
+  await fs.promises.writeFile(gitkeepPath, '');
 
-  await git.add({ fs, dir, filepath: ".gitkeep" });
+  await git.add({ fs, dir, filepath: '.gitkeep' });
   await git.commit({
     fs,
     dir,
-    message: "Initial commit",
-    author: { name: "Scratch", email: "scratch@example.com" },
+    message: 'Initial commit',
+    author: { name: 'Scratch', email: 'scratch@example.com' },
   });
 }
 
@@ -676,10 +635,7 @@ export async function listBranches(gitBucket: string): Promise<string[]> {
 /**
  * Check if a branch exists
  */
-export async function branchExists(
-  gitBucket: string,
-  branchName: string,
-): Promise<boolean> {
+export async function branchExists(gitBucket: string, branchName: string): Promise<boolean> {
   const dir = getRepoPath(gitBucket);
   try {
     await git.resolveRef({ fs, dir, ref: branchName });
@@ -693,10 +649,7 @@ export async function branchExists(
  * Create a dirty branch for a user, branching from main
  * If the branch already exists, this does nothing
  */
-export async function createDirtyBranch(
-  gitBucket: string,
-  userId: string,
-): Promise<void> {
+export async function createDirtyBranch(gitBucket: string, userId: string): Promise<void> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -712,11 +665,7 @@ export async function createDirtyBranch(
 /**
  * Compare two commits and return list of changed files
  */
-async function compareCommits(
-  gitBucket: string,
-  commitA: string,
-  commitB: string,
-): Promise<DirtyFile[]> {
+async function compareCommits(gitBucket: string, commitA: string, commitB: string): Promise<DirtyFile[]> {
   const dirtyFiles: DirtyFile[] = [];
 
   // Build a map of files in each tree (recursively)
@@ -727,16 +676,16 @@ async function compareCommits(
   for (const [filePath, oidB] of filesB) {
     const oidA = filesA.get(filePath);
     if (!oidA) {
-      dirtyFiles.push({ path: filePath, status: "added" });
+      dirtyFiles.push({ path: filePath, status: 'added' });
     } else if (oidA !== oidB) {
-      dirtyFiles.push({ path: filePath, status: "modified" });
+      dirtyFiles.push({ path: filePath, status: 'modified' });
     }
   }
 
   // Find deleted files (in A but not B)
   for (const [filePath] of filesA) {
     if (!filesB.has(filePath)) {
-      dirtyFiles.push({ path: filePath, status: "deleted" });
+      dirtyFiles.push({ path: filePath, status: 'deleted' });
     }
   }
 
@@ -746,10 +695,7 @@ async function compareCommits(
 /**
  * Recursively get all files in a tree with their OIDs
  */
-async function getTreeFiles(
-  gitBucket: string,
-  commitOid: string,
-): Promise<Map<string, string>> {
+async function getTreeFiles(gitBucket: string, commitOid: string): Promise<Map<string, string>> {
   const dir = getRepoPath(gitBucket);
   const files = new Map<string, string>();
 
@@ -763,15 +709,15 @@ async function getTreeFiles(
       if (!entry) return;
 
       const type = await entry.type();
-      if (type === "blob") {
+      if (type === 'blob') {
         const oid = await entry.oid();
         // Skip hidden files
-        if (!filepath.split("/").some((part) => part.startsWith("."))) {
+        if (!filepath.split('/').some((part) => part.startsWith('.'))) {
           files.set(filepath, oid);
         }
       }
       // Return true for directories to recurse into them
-      return type === "tree" ? true : undefined;
+      return type === 'tree' ? true : undefined;
     },
   });
 
@@ -786,10 +732,7 @@ async function getTreeFiles(
  * when main moves forward, we still only show the user's actual edits - not the
  * pulled content that hasn't been rebased yet.
  */
-export async function getDirtyFiles(
-  gitBucket: string,
-  userId: string,
-): Promise<DirtyFile[]> {
+export async function getDirtyFiles(gitBucket: string, userId: string): Promise<DirtyFile[]> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -800,7 +743,7 @@ export async function getDirtyFiles(
 
   // Get the commit SHAs for both branches
   const [mainCommit, dirtyCommit] = await Promise.all([
-    git.resolveRef({ fs, dir, ref: "main" }),
+    git.resolveRef({ fs, dir, ref: 'main' }),
     git.resolveRef({ fs, dir, ref: branchName }),
   ]);
 
@@ -832,10 +775,7 @@ export async function getDirtyFiles(
 /**
  * Check if user has any dirty files
  */
-export async function hasDirtyFiles(
-  gitBucket: string,
-  userId: string,
-): Promise<boolean> {
+export async function hasDirtyFiles(gitBucket: string, userId: string): Promise<boolean> {
   const dirtyFiles = await getDirtyFiles(gitBucket, userId);
   return dirtyFiles.length > 0;
 }
@@ -845,10 +785,7 @@ export async function hasDirtyFiles(
  *
  * Uses direct ref manipulation - no checkout required.
  */
-export async function discardAllChanges(
-  gitBucket: string,
-  userId: string,
-): Promise<number> {
+export async function discardAllChanges(gitBucket: string, userId: string): Promise<number> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -861,7 +798,7 @@ export async function discardAllChanges(
   }
 
   // Get main's commit
-  const mainCommit = await git.resolveRef({ fs, dir, ref: "main" });
+  const mainCommit = await git.resolveRef({ fs, dir, ref: 'main' });
 
   // Point the dirty branch ref directly to main's commit
   // No checkout needed - just update the ref
@@ -881,39 +818,23 @@ export async function discardAllChanges(
  *
  * Uses direct object manipulation - no checkout required.
  */
-export async function discardFileChanges(
-  gitBucket: string,
-  userId: string,
-  filePath: string,
-): Promise<boolean> {
+export async function discardFileChanges(gitBucket: string, userId: string, filePath: string): Promise<boolean> {
   // Ensure dirty branch exists
   await ensureDirtyBranchExists(gitBucket, userId);
   const branchName = getDirtyBranchName(userId);
 
   // Try to read the file from main
-  const mainContent = await readFileFromBranch(gitBucket, "main", filePath);
+  const mainContent = await readFileFromBranch(gitBucket, 'main', filePath);
 
   try {
     if (mainContent !== null) {
       // File exists in main, restore it by writing to dirty branch
-      const changes: FileChange[] = [
-        { path: filePath, content: mainContent, type: "modify" },
-      ];
-      await commitChangesToRef(
-        gitBucket,
-        branchName,
-        changes,
-        `Discard changes to ${path.basename(filePath)}`,
-      );
+      const changes: FileChange[] = [{ path: filePath, content: mainContent, type: 'modify' }];
+      await commitChangesToRef(gitBucket, branchName, changes, `Discard changes to ${path.basename(filePath)}`);
     } else {
       // File doesn't exist in main - it's a new file, delete it from dirty branch
-      const changes: FileChange[] = [{ path: filePath, type: "delete" }];
-      await commitChangesToRef(
-        gitBucket,
-        branchName,
-        changes,
-        `Discard new file ${path.basename(filePath)}`,
-      );
+      const changes: FileChange[] = [{ path: filePath, type: 'delete' }];
+      await commitChangesToRef(gitBucket, branchName, changes, `Discard new file ${path.basename(filePath)}`);
     }
     return true;
   } catch {
@@ -983,11 +904,7 @@ export async function readFileFromCommit(
  * This ensures users never see merge conflicts while preserving as many
  * upstream changes as possible (e.g., refreshed image URLs).
  */
-export function mergeFileContents(
-  base: string,
-  ours: string,
-  theirs: string,
-): string {
+export function mergeFileContents(base: string, ours: string, theirs: string): string {
   // If ours equals base, user made no changes - take theirs entirely
   if (ours === base) {
     return theirs;
@@ -1004,9 +921,9 @@ export function mergeFileContents(
   }
 
   // Perform 3-way merge at line level
-  const baseLines = base.split("\n");
-  const oursLines = ours.split("\n");
-  const theirsLines = theirs.split("\n");
+  const baseLines = base.split('\n');
+  const oursLines = ours.split('\n');
+  const theirsLines = theirs.split('\n');
 
   const result = diff3Merge(oursLines, baseLines, theirsLines);
 
@@ -1022,7 +939,7 @@ export function mergeFileContents(
     }
   }
 
-  return mergedLines.join("\n");
+  return mergedLines.join('\n');
 }
 
 /**
@@ -1032,10 +949,7 @@ export function mergeFileContents(
  *
  * Uses direct ref manipulation - no checkout required.
  */
-export async function resetDirtyBranchToMain(
-  gitBucket: string,
-  userId: string,
-): Promise<void> {
+export async function resetDirtyBranchToMain(gitBucket: string, userId: string): Promise<void> {
   const dir = getRepoPath(gitBucket);
   const branchName = getDirtyBranchName(userId);
 
@@ -1045,7 +959,7 @@ export async function resetDirtyBranchToMain(
   }
 
   // Get main's commit
-  const mainCommit = await git.resolveRef({ fs, dir, ref: "main" });
+  const mainCommit = await git.resolveRef({ fs, dir, ref: 'main' });
 
   // Point the dirty branch ref directly to main's commit
   // No checkout needed - just update the ref
@@ -1092,7 +1006,7 @@ export async function rebaseDirtyBranchOntoMain(
 
   // Get commit SHAs
   const [mainCommit, dirtyCommit] = await Promise.all([
-    git.resolveRef({ fs, dir, ref: "main" }),
+    git.resolveRef({ fs, dir, ref: 'main' }),
     git.resolveRef({ fs, dir, ref: branchName }),
   ]);
 
@@ -1131,30 +1045,26 @@ export async function rebaseDirtyBranchOntoMain(
   // For modified files, also save the base content for 3-way merge
   const savedEdits: Array<{
     path: string;
-    status: "added" | "modified" | "deleted";
+    status: 'added' | 'modified' | 'deleted';
     content: string | null;
     baseContent: string | null; // Content at merge-base for 3-way merge
   }> = [];
 
   for (const file of userChanges) {
-    if (file.status === "deleted") {
+    if (file.status === 'deleted') {
       savedEdits.push({
         path: file.path,
-        status: "deleted",
+        status: 'deleted',
         content: null,
         baseContent: null,
       });
     } else {
       // Read content from dirty branch
-      const content = await readFileFromBranch(
-        gitBucket,
-        branchName,
-        file.path,
-      );
+      const content = await readFileFromBranch(gitBucket, branchName, file.path);
 
       // For modified files, also read base content for 3-way merge
       let baseContent: string | null = null;
-      if (file.status === "modified") {
+      if (file.status === 'modified') {
         baseContent = await readFileFromCommit(gitBucket, mergeBase, file.path);
       }
 
@@ -1182,41 +1092,26 @@ export async function rebaseDirtyBranchOntoMain(
 
   for (const edit of savedEdits) {
     try {
-      if (edit.status === "deleted") {
+      if (edit.status === 'deleted') {
         // User deleted this file - check if it exists on main before deleting
         const existsOnMain = await fileExistsOnMain(gitBucket, edit.path);
         if (existsOnMain) {
-          changes.push({ path: edit.path, type: "delete" });
+          changes.push({ path: edit.path, type: 'delete' });
         }
         // If file doesn't exist on main, nothing to do
       } else if (edit.content !== null) {
         // User added or modified this file
-        const mainContent = await readFileFromBranch(
-          gitBucket,
-          "main",
-          edit.path,
-        );
+        const mainContent = await readFileFromBranch(gitBucket, 'main', edit.path);
 
         let finalContent: string;
 
-        if (
-          edit.status === "modified" &&
-          edit.baseContent !== null &&
-          mainContent !== null
-        ) {
+        if (edit.status === 'modified' && edit.baseContent !== null && mainContent !== null) {
           // 3-way merge: combine user's changes with main's changes
           // User's changes win for any conflicting lines
-          finalContent = mergeFileContents(
-            edit.baseContent,
-            edit.content,
-            mainContent,
-          );
+          finalContent = mergeFileContents(edit.baseContent, edit.content, mainContent);
 
           // Track if there were overlapping changes (informational only)
-          if (
-            mainContent !== edit.baseContent &&
-            finalContent !== mainContent
-          ) {
+          if (mainContent !== edit.baseContent && finalContent !== mainContent) {
             conflicts.push(edit.path);
           }
         } else {
@@ -1229,7 +1124,7 @@ export async function rebaseDirtyBranchOntoMain(
           changes.push({
             path: edit.path,
             content: finalContent,
-            type: "modify",
+            type: 'modify',
           });
         }
       }
@@ -1240,7 +1135,7 @@ export async function rebaseDirtyBranchOntoMain(
         changes.push({
           path: edit.path,
           content: edit.content,
-          type: "modify",
+          type: 'modify',
         });
       }
     }
@@ -1248,12 +1143,7 @@ export async function rebaseDirtyBranchOntoMain(
 
   // Commit the re-applied edits if there are any changes
   if (changes.length > 0) {
-    await commitChangesToRef(
-      gitBucket,
-      branchName,
-      changes,
-      "Rebase: Re-apply user edits after pull",
-    );
+    await commitChangesToRef(gitBucket, branchName, changes, 'Rebase: Re-apply user edits after pull');
   }
 
   return { rebased: true, conflicts };
@@ -1279,11 +1169,7 @@ export async function writeFileToMain(
  * Uses direct object manipulation - no checkout required.
  * For batch operations, prefer deleteFilesFromMain.
  */
-export async function deleteFileFromMain(
-  gitBucket: string,
-  filePath: string,
-  commitMessage?: string,
-): Promise<void> {
+export async function deleteFileFromMain(gitBucket: string, filePath: string, commitMessage?: string): Promise<void> {
   const message = commitMessage || `Delete ${path.basename(filePath)}`;
   await deleteFilesFromMain(gitBucket, [filePath], message);
 }
@@ -1299,23 +1185,21 @@ export async function renameFileOnMain(
   newPath: string,
   commitMessage?: string,
 ): Promise<void> {
-  return withWriteLock(gitBucket, "main", async () => {
+  return withWriteLock(gitBucket, 'main', async () => {
     // Read the file content first
-    const content = await readFileFromBranch(gitBucket, "main", oldPath);
+    const content = await readFileFromBranch(gitBucket, 'main', oldPath);
     if (content === null) {
       throw new Error(`File not found: ${oldPath}`);
     }
 
-    const message =
-      commitMessage ||
-      `Rename ${path.basename(oldPath)} to ${path.basename(newPath)}`;
+    const message = commitMessage || `Rename ${path.basename(oldPath)} to ${path.basename(newPath)}`;
 
     // Use commitChangesToRef to do both operations in one commit
     const changes: FileChange[] = [
-      { path: oldPath, type: "delete" },
-      { path: newPath, content, type: "add" },
+      { path: oldPath, type: 'delete' },
+      { path: newPath, content, type: 'add' },
     ];
-    await commitChangesToRef(gitBucket, "main", changes, message);
+    await commitChangesToRef(gitBucket, 'main', changes, message);
   });
 }
 
@@ -1323,21 +1207,14 @@ export async function renameFileOnMain(
  * Ensure a directory exists on the main branch (used during pull operations)
  * Uses direct object manipulation - no checkout required.
  */
-export async function ensureDirOnMain(
-  gitBucket: string,
-  dirPath: string,
-): Promise<void> {
+export async function ensureDirOnMain(gitBucket: string, dirPath: string): Promise<void> {
   // Check if .gitkeep already exists in the directory on main
-  const gitkeepPath = path.join(dirPath, ".gitkeep");
+  const gitkeepPath = path.join(dirPath, '.gitkeep');
   const exists = await fileExistsOnMain(gitBucket, gitkeepPath);
 
   if (!exists) {
     // Create .gitkeep file to track the directory
-    await writeFilesToMain(
-      gitBucket,
-      [{ path: gitkeepPath, content: "" }],
-      `Create directory ${dirPath}`,
-    );
+    await writeFilesToMain(gitBucket, [{ path: gitkeepPath, content: '' }], `Create directory ${dirPath}`);
   }
 }
 
@@ -1348,8 +1225,8 @@ export async function ensureDirOnMain(
 export async function listFilesFromMain(
   gitBucket: string,
   dirPath: string,
-): Promise<Array<{ name: string; type: "file" | "directory" }>> {
-  const files = await listFilesFromBranch(gitBucket, "main", dirPath);
+): Promise<Array<{ name: string; type: 'file' | 'directory' }>> {
+  const files = await listFilesFromBranch(gitBucket, 'main', dirPath);
   return files.map((f) => ({
     name: f.name,
     type: f.type,
@@ -1369,22 +1246,13 @@ export async function writeFileToDirtyBranch(
   commitMessage?: string,
 ): Promise<void> {
   const message = commitMessage || `Update ${path.basename(filePath)}`;
-  await writeFilesToDirtyBranch(
-    gitBucket,
-    userId,
-    [{ path: filePath, content }],
-    message,
-  );
+  await writeFilesToDirtyBranch(gitBucket, userId, [{ path: filePath, content }], message);
 }
 
 /**
  * List files in a directory from a specific branch (without affecting working directory)
  */
-export async function listFilesFromBranch(
-  gitBucket: string,
-  branchName: string,
-  dirPath: string,
-): Promise<GitFile[]> {
+export async function listFilesFromBranch(gitBucket: string, branchName: string, dirPath: string): Promise<GitFile[]> {
   const dir = getRepoPath(gitBucket);
   const files: GitFile[] = [];
 
@@ -1403,20 +1271,20 @@ export async function listFilesFromBranch(
         if (!filepath.startsWith(`${dirPath}/`)) return;
         const relativePath = filepath.slice(dirPath.length + 1);
         // Skip if it's in a subdirectory or hidden
-        if (relativePath.includes("/") || relativePath.startsWith(".")) return;
+        if (relativePath.includes('/') || relativePath.startsWith('.')) return;
 
         const type = await entry.type();
-        if (type === "blob") {
+        if (type === 'blob') {
           files.push({
             name: relativePath,
             path: filepath,
-            type: "file",
+            type: 'file',
           });
-        } else if (type === "tree") {
+        } else if (type === 'tree') {
           files.push({
             name: relativePath,
             path: filepath,
-            type: "directory",
+            type: 'directory',
           });
         }
         return undefined;
@@ -1425,7 +1293,7 @@ export async function listFilesFromBranch(
 
     return files.sort((a, b) => {
       if (a.type !== b.type) {
-        return a.type === "directory" ? -1 : 1;
+        return a.type === 'directory' ? -1 : 1;
       }
       return a.name.localeCompare(b.name);
     });
@@ -1468,17 +1336,15 @@ export async function renameFileOnDirtyBranch(
     throw new Error(`File not found: ${oldPath}`);
   }
 
-  const message =
-    commitMessage ||
-    `Rename ${path.basename(oldPath)} to ${path.basename(newPath)}`;
+  const message = commitMessage || `Rename ${path.basename(oldPath)} to ${path.basename(newPath)}`;
 
   // Ensure dirty branch exists
   await ensureDirtyBranchExists(gitBucket, userId);
 
   // Use commitChangesToRef to do both operations in one commit
   const changes: FileChange[] = [
-    { path: oldPath, type: "delete" },
-    { path: newPath, content, type: "add" },
+    { path: oldPath, type: 'delete' },
+    { path: newPath, content, type: 'add' },
   ];
   await commitChangesToRef(gitBucket, branchName, changes, message);
 }
@@ -1501,7 +1367,7 @@ export async function getFileDiff(
 
   // Get both commit SHAs
   const [mainCommit, dirtyCommit] = await Promise.all([
-    git.resolveRef({ fs, dir, ref: "main" }),
+    git.resolveRef({ fs, dir, ref: 'main' }),
     git.resolveRef({ fs, dir, ref: branchName }),
   ]);
 

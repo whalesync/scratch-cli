@@ -15,9 +15,8 @@ export const useConnectorAccounts = (workbookId: string | undefined) => {
     error,
     isLoading,
     mutate: mutateConnectorAccounts,
-  } = useSWR(
-    workbookId ? SWR_KEYS.connectorAccounts.list(workbookId) : null,
-    () => (workbookId ? connectorAccountsApi.list(workbookId) : null),
+  } = useSWR(workbookId ? SWR_KEYS.connectorAccounts.list(workbookId) : null, () =>
+    workbookId ? connectorAccountsApi.list(workbookId) : null,
   );
 
   const createConnectorAccount = async (dto: CreateConnectorAccountDto): Promise<ConnectorAccount> => {

@@ -13,7 +13,9 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "test": "turbo test"
+    "format": "turbo format",
+    "test": "turbo test",
+    "test:integration": "turbo test:integration"
   },
   "engines": {
     "node": ">=22.0.0"

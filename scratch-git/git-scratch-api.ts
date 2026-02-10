@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import cors from 'cors';
 import express from 'express';
 import fs from 'node:fs';

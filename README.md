@@ -40,16 +40,22 @@ yarn build
 # Run linting across all packages
 yarn lint
 
+# Reformat code across all packages
+yarn format
+
 # Run tests across all packages
 yarn test
+yarn test:integration
 ```
 
 **Key benefits:**
+
 - **Dependency ordering**: Packages build in the correct order (e.g., `shared-types` builds before `server`)
 - **Caching**: Build outputs are cached, so unchanged packages skip rebuilding
 - **Parallel execution**: Independent tasks run in parallel for faster builds
 
 **Workspaces included:**
+
 - `client/` - Next.js web app
 - `server/` - NestJS API server
 - `scratch-git/` - Git utilities
