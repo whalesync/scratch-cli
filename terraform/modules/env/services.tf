@@ -216,7 +216,6 @@ resource "google_cloud_run_v2_service" "api_service" {
           "LINEAR_API_KEY",
           "NOTION_CLIENT_ID",
           "NOTION_CLIENT_SECRET",
-          "OPENROUTER_PROVISIONING_KEY",
           "POSTHOG_API_KEY",
           "POSTHOG_FEATURE_FLAG_API_KEY",
           "REDIS_PASSWORD",
