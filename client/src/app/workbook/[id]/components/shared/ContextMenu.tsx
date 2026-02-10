@@ -58,7 +58,6 @@ export function ContextMenu({ opened, onClose, position, items }: ContextMenuPro
             <Menu.Item
               key={index}
               leftSection={renderIcon(item.icon)}
-              color={item.delete ? 'red' : item.color}
               disabled={item.disabled}
               data-delete={item.delete || undefined}
               onClick={() => {

@@ -1,14 +1,13 @@
 'use client';
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { Text13Regular } from '@/app/components/base/text';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { workbookApi } from '@/lib/api/workbook';
+import { ActionIcon, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { ActionIcon, Menu, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
-import { EllipsisVertical, FileCode, GitGraph, Trash2 } from 'lucide-react';
+import { EllipsisVertical, FileCodeIcon, GitGraphIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { GitFileBrowserModal } from '../modals/GitFileBrowserModal';
 import { GitGraphModal } from '../modals/GitGraphModal';
@@ -18,7 +17,7 @@ interface DebugMenuProps {
 }
 
 export function DebugMenu({ workbookId }: DebugMenuProps) {
-  const { isAdmin } = useScratchPadUser();
+  const { isDevToolsEnabled } = useDevTools();
   const [gitGraphOpen, setGitGraphOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
@@ -26,8 +25,7 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
   const handleResetWorkbook = () => {
     openConfirmDialog({
       title: 'Reset Workbook',
-      message:
-        'Are you sure you want to reset this workbook? This will delete all data folders and reset the git repository. This action cannot be undone.',
+      message: 'This will remove all data folders. Any unpublished changes will be lost. This action cannot be undone.',
       confirmLabel: 'Reset',
       variant: 'danger',
       onConfirm: async () => {
@@ -56,29 +54,19 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
         </Menu.Target>
 
         <Menu.Dropdown>
-          <Menu.Label>Debug Tools</Menu.Label>
-          <Menu.Item leftSection={<StyledLucideIcon Icon={GitGraph} size="sm" />} onClick={() => setGitGraphOpen(true)}>
-            <Text13Regular>Git Graph</Text13Regular>
-          </Menu.Item>
-          <Menu.Item
-            leftSection={<StyledLucideIcon Icon={FileCode} size="sm" />}
-            onClick={() => setFileBrowserOpen(true)}
-          >
-            <Text13Regular>Git File Browser</Text13Regular>
+          <Menu.Item data-delete leftSection={<Trash2Icon size={16} />} onClick={handleResetWorkbook}>
+            Reset Workbook
           </Menu.Item>
 
-          {isAdmin && (
+          {isDevToolsEnabled && (
             <>
               <Menu.Divider />
-              <Menu.Label>Admin</Menu.Label>
-              <Menu.Item
-                color="red"
-                leftSection={<StyledLucideIcon Icon={Trash2} size="sm" />}
-                onClick={handleResetWorkbook}
-              >
-                <Text size="xs" fw={500}>
-                  Reset Workbook
-                </Text>
+              <Menu.Label>Debug Tools</Menu.Label>
+              <Menu.Item data-devtool leftSection={<GitGraphIcon size={16} />} onClick={() => setGitGraphOpen(true)}>
+                Git Graph
+              </Menu.Item>
+              <Menu.Item data-devtool leftSection={<FileCodeIcon size={16} />} onClick={() => setFileBrowserOpen(true)}>
+                Git File Browser
               </Menu.Item>
             </>
           )}

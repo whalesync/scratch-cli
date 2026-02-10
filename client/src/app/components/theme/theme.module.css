@@ -132,6 +132,14 @@
       color: var(--mantine-color-green-8);
     }
   }
+
+  &[data-devtool] {
+    color: var(--mantine-color-devTool-8);
+
+    .menuItemSection {
+      color: var(--mantine-color-devTool-8);
+    }
+  }
 }
 
 .menuLabel {

@@ -9,6 +9,7 @@ import { workbookApi } from '@/lib/api/workbook';
 import { useSyncStore } from '@/stores/sync-store';
 import {
   ActionIcon,
+  Anchor,
   Autocomplete,
   Badge,
   Box,
@@ -22,6 +23,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
+import { DocsUrls } from '@/utils/docs-urls';
 import { notifications } from '@mantine/notifications';
 import type { SyncId, WorkbookId } from '@spinner/shared-types';
 import {
@@ -579,8 +581,15 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                     </Stack>
 
                     <Select
-                      label="Matching Field (Required)"
-                      description="Select the field mapping to use for matching records"
+                      label={
+                        <>
+                          Record matching{' '}
+                          <Anchor href={DocsUrls.recordMatching} target="_blank" size="xs" fw="normal">
+                            How does this work?
+                          </Anchor>
+                        </>
+                      }
+                      description="Select a field that is unique, so we know which record to sync changes to."
                       placeholder="Select matching pair"
                       data={pair.fieldMappings
                         .filter((m) => m.sourceField && m.destField)
