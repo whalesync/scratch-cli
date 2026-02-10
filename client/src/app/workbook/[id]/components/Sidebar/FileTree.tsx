@@ -1,20 +1,16 @@
 'use client';
 
-import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Regular } from '@/app/components/base/text';
-import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
-import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
-import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
-import { Box, Group, ScrollArea, Stack, UnstyledButton } from '@mantine/core';
+import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
+import { Box, Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ConnectorAccount, DataFolderId, Workbook } from '@spinner/shared-types';
-import { CloudUploadIcon, DownloadIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import type { ConnectorAccount, Workbook } from '@spinner/shared-types';
+import { RefreshCwIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { ConnectionNode, EmptyConnectionNode } from './TreeNode';
 
 export type FileTreeMode = 'files' | 'review';
@@ -33,91 +29,16 @@ const SCRATCH_GROUP_NAME = 'Scratch';
 
 export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
   const { dataFolderGroups, isLoading, refresh: refreshDataFolders } = useDataFolders(workbook.id);
-  const { connectorAccounts, refreshConnectorAccounts } = useConnectorAccounts(workbook.id);
+  const { connectorAccounts } = useConnectorAccounts(workbook.id);
   const expandAll = useNewWorkbookUIStore((state) => state.expandAll);
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
-  const router = useRouter();
 
-  // New connection modal
+  // Connection modal for empty state
   const [connectionModalOpened, { open: openConnectionModal, close: closeConnectionModal }] = useDisclosure(false);
-
-  const handleConnectionModalClose = useCallback(() => {
-    closeConnectionModal();
-    // Refresh both data folders and connector accounts after modal closes
-    refreshDataFolders();
-    refreshConnectorAccounts();
-  }, [closeConnectionModal, refreshDataFolders, refreshConnectorAccounts]);
 
   // For review mode, fetch dirty files
   const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
   const [dirtyFilesLoading, setDirtyFilesLoading] = useState(false);
-
-  // Publish/Discard/Pull state
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isDiscarding, setIsDiscarding] = useState(false);
-  const [isPulling, setIsPulling] = useState(false);
-
-  const handlePullAll = useCallback(async () => {
-    setIsPulling(true);
-    try {
-      await workbookApi.pullFiles(workbook.id);
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to pull files:', error);
-    } finally {
-      setIsPulling(false);
-    }
-  }, [workbook.id, router]);
-
-  const handlePublishAll = useCallback(async () => {
-    if (!confirm('Are you sure you want to publish all changes?')) return;
-
-    setIsPublishing(true);
-    try {
-      // Get unique folder names from dirty files
-      const dirtyFolderNames = new Set<string>();
-      dirtyFiles.forEach((file) => {
-        const folderName = file.path.split('/')[0];
-        if (folderName) {
-          dirtyFolderNames.add(folderName);
-        }
-      });
-
-      // Find dataFolderIds for dirty folders
-      const dataFolderIds: DataFolderId[] = [];
-      dataFolderGroups.forEach((group) => {
-        group.dataFolders.forEach((folder) => {
-          if (dirtyFolderNames.has(folder.name)) {
-            dataFolderIds.push(folder.id);
-          }
-        });
-      });
-
-      if (dataFolderIds.length > 0) {
-        await dataFolderApi.publish(dataFolderIds, workbook.id);
-      }
-
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to publish changes:', error);
-    } finally {
-      setIsPublishing(false);
-    }
-  }, [workbook.id, router, dirtyFiles, dataFolderGroups]);
-
-  const handleDiscardAll = useCallback(async () => {
-    if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;
-
-    setIsDiscarding(true);
-    try {
-      await workbookApi.discardChanges(workbook.id);
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to discard changes:', error);
-    } finally {
-      setIsDiscarding(false);
-    }
-  }, [workbook.id, router]);
 
   const fetchDirtyFiles = useCallback(async () => {
     if (mode !== 'review') return;
@@ -206,21 +127,15 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
     return (
       <>
         <Box p="md">
-          <Box c="dimmed" fz="sm">
-            No connections yet
-          </Box>
-          <UnstyledButton
-            onClick={openConnectionModal}
-            mt="sm"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <StyledLucideIcon Icon={PlusIcon} size="sm" c="var(--mantine-color-blue-6)" />
-            <Text12Regular c="var(--mantine-color-blue-6)">New Connection</Text12Regular>
+          <UnstyledButton onClick={openConnectionModal}>
+            <Text size="sm" c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
+              Connect to your first service
+            </Text>
           </UnstyledButton>
         </Box>
         <CreateConnectionModal
           opened={connectionModalOpened}
-          onClose={handleConnectionModalClose}
+          onClose={closeConnectionModal}
           workbookId={workbook.id}
           returnUrl={`/workbook/${workbook.id}/files`}
         />
@@ -232,21 +147,25 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
   if (mode === 'review' && !dirtyFilesLoading && dirtyFiles.length === 0) {
     return (
       <Box p="md">
-        <Box c="dimmed" fz="sm">
-          No unpublished changes
-        </Box>
+        <Text size="sm">No changes to review</Text>
+        <Text size="sm" c="dimmed">
+          Edits you make in Files will appear here
+        </Text>
       </Box>
     );
   }
 
   return (
     <>
-      <ScrollArea h="100%" type="auto" offsetScrollbars>
+      <ScrollArea h="100%" type="auto">
         <Stack gap={0} py="xs">
           {/* Section title */}
           <Box px="sm" py={4} mb={4}>
             <Group justify="space-between" align="center">
-              <Text12Regular c="var(--fg-muted)" style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.5px' }}>
+              <Text12Regular
+                c="var(--fg-muted)"
+                style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.5px' }}
+              >
                 {mode === 'review' ? 'Edited files' : 'All files'}
               </Text12Regular>
               <UnstyledButton
@@ -263,45 +182,6 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
                 <RefreshCwIcon size={12} />
               </UnstyledButton>
             </Group>
-
-            {/* Publish/Discard buttons for review mode */}
-            {mode === 'review' && dirtyFiles.length > 0 && (
-              <Group gap={6} mt={8}>
-                <ButtonCompactPrimary
-                  leftSection={<CloudUploadIcon size={10} />}
-                  onClick={handlePublishAll}
-                  loading={isPublishing}
-                >
-                  Publish all
-                </ButtonCompactPrimary>
-                <ButtonCompactDanger
-                  leftSection={<RotateCcwIcon size={10} />}
-                  onClick={handleDiscardAll}
-                  loading={isDiscarding}
-                >
-                  Discard all
-                </ButtonCompactDanger>
-              </Group>
-            )}
-
-            {/* Connect new service and Pull all buttons for files mode */}
-            {mode === 'files' && (
-              <Group gap={6} mt={8}>
-                <ButtonCompactSecondary
-                  leftSection={<PlusIcon size={10} />}
-                  onClick={openConnectionModal}
-                >
-                  Connect new service
-                </ButtonCompactSecondary>
-                <ButtonCompactSecondary
-                  leftSection={<DownloadIcon size={10} />}
-                  onClick={handlePullAll}
-                  loading={isPulling}
-                >
-                  Pull all
-                </ButtonCompactSecondary>
-              </Group>
-            )}
           </Box>
 
           {/* Data folder groups (connections with tables) */}
@@ -325,22 +205,10 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
           {/* Empty connector accounts (connections without tables yet) */}
           {mode === 'files' &&
             emptyConnectorAccounts.map((account) => (
-              <EmptyConnectionNode
-                key={account.id}
-                connectorAccount={account}
-                workbookId={workbook.id}
-              />
+              <EmptyConnectionNode key={account.id} connectorAccount={account} workbookId={workbook.id} />
             ))}
         </Stack>
       </ScrollArea>
-
-      {/* Create Connection Modal */}
-      <CreateConnectionModal
-        opened={connectionModalOpened}
-        onClose={handleConnectionModalClose}
-        workbookId={workbook.id}
-        returnUrl={`/workbook/${workbook.id}/files`}
-      />
     </>
   );
 }

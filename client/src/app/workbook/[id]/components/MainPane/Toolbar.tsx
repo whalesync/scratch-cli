@@ -1,31 +1,137 @@
 'use client';
 
-import { IconButtonToolbar } from '@/app/components/base/buttons';
+import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary, IconButtonToolbar } from '@/app/components/base/buttons';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
+import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
+import { CreateConnectionModal } from '../shared/CreateConnectionModal';
+import { useDataFolders } from '@/hooks/use-data-folders';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
+import { dataFolderApi } from '@/lib/api/data-folder';
+import { workbookApi } from '@/lib/api/workbook';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
-import type { Workbook } from '@spinner/shared-types';
-import { BugIcon, ChevronRightIcon, MoonIcon, SunIcon } from 'lucide-react';
+import { useDisclosure } from '@mantine/hooks';
+import type { DataFolderId, Workbook } from '@spinner/shared-types';
+import { BugIcon, ChevronRightIcon, CloudUploadIcon, DownloadIcon, MoonIcon, PlusIcon, RotateCcwIcon, SunIcon, TerminalIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface ToolbarProps {
   workbook: Workbook;
 }
 
+interface DirtyFile {
+  path: string;
+  status: 'added' | 'modified' | 'deleted';
+}
+
 export function Toolbar({ workbook }: ToolbarProps) {
   const params = useParams<{ id: string; path?: string[] }>();
   const pathname = usePathname();
+  const router = useRouter();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const { user } = useScratchPadUser();
   const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
+  const { dataFolderGroups } = useDataFolders(workbook.id);
 
   const isReviewPage = pathname.includes('/review');
+  const isFilesPage = pathname.includes('/files');
   const showBugReport = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT;
+
+  // Connection modal state
+  const [connectionModalOpened, { open: openConnectionModal, close: closeConnectionModal }] = useDisclosure(false);
+
+  // CLI modal state
+  const [cliModalOpened, { open: openCLIModal, close: closeCLIModal }] = useDisclosure(false);
+
+  // Action states
+  const [isPulling, setIsPulling] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
+
+  // Dirty files for review mode
+  const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
+
+  // Fetch dirty files when in review mode
+  useEffect(() => {
+    if (!isReviewPage) return;
+
+    const fetchDirtyFiles = async () => {
+      try {
+        const data = (await workbookApi.getStatus(workbook.id)) as DirtyFile[];
+        setDirtyFiles(data || []);
+      } catch (error) {
+        console.debug('Failed to fetch dirty files:', error);
+      }
+    };
+
+    fetchDirtyFiles();
+  }, [isReviewPage, workbook.id]);
+
+  const handlePullAll = useCallback(async () => {
+    setIsPulling(true);
+    try {
+      await workbookApi.pullFiles(workbook.id);
+      router.refresh();
+    } catch (error) {
+      console.debug('Failed to pull files:', error);
+    } finally {
+      setIsPulling(false);
+    }
+  }, [workbook.id, router]);
+
+  const handlePublishAll = useCallback(async () => {
+    if (!confirm('Are you sure you want to publish all changes?')) return;
+
+    setIsPublishing(true);
+    try {
+      // Get unique folder names from dirty files
+      const dirtyFolderNames = new Set<string>();
+      dirtyFiles.forEach((file) => {
+        const folderName = file.path.split('/')[0];
+        if (folderName) {
+          dirtyFolderNames.add(folderName);
+        }
+      });
+
+      // Find dataFolderIds for dirty folders
+      const dataFolderIds: DataFolderId[] = [];
+      dataFolderGroups.forEach((group) => {
+        group.dataFolders.forEach((folder) => {
+          if (dirtyFolderNames.has(folder.name)) {
+            dataFolderIds.push(folder.id);
+          }
+        });
+      });
+
+      if (dataFolderIds.length > 0) {
+        await dataFolderApi.publish(dataFolderIds, workbook.id);
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.debug('Failed to publish changes:', error);
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [workbook.id, router, dirtyFiles, dataFolderGroups]);
+
+  const handleDiscardAll = useCallback(async () => {
+    if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;
+
+    setIsDiscarding(true);
+    try {
+      await workbookApi.discardChanges(workbook.id);
+      router.refresh();
+    } catch (error) {
+      console.debug('Failed to discard changes:', error);
+    } finally {
+      setIsDiscarding(false);
+    }
+  }, [workbook.id, router]);
 
   const toggleColorScheme = () => {
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';
@@ -117,6 +223,50 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
       {/* Right: Action buttons */}
       <Group gap="xs">
+        {/* Files mode buttons */}
+        {isFilesPage && (
+          <>
+            <ButtonCompactSecondary
+              leftSection={<PlusIcon size={12} />}
+              onClick={openConnectionModal}
+            >
+              Connect service
+            </ButtonCompactSecondary>
+            <ButtonCompactSecondary
+              leftSection={<DownloadIcon size={12} />}
+              onClick={handlePullAll}
+              loading={isPulling}
+            >
+              Pull all
+            </ButtonCompactSecondary>
+          </>
+        )}
+
+        {/* Review mode buttons */}
+        {isReviewPage && dirtyFiles.length > 0 && (
+          <>
+            <ButtonCompactPrimary
+              leftSection={<CloudUploadIcon size={12} />}
+              onClick={handlePublishAll}
+              loading={isPublishing}
+            >
+              Publish all
+            </ButtonCompactPrimary>
+            <ButtonCompactDanger
+              leftSection={<RotateCcwIcon size={12} />}
+              onClick={handleDiscardAll}
+              loading={isDiscarding}
+            >
+              Discard all
+            </ButtonCompactDanger>
+          </>
+        )}
+
+        <Tooltip label="Connect to CLI" position="bottom">
+          <IconButtonToolbar onClick={openCLIModal} aria-label="Connect to CLI">
+            <StyledLucideIcon Icon={TerminalIcon} size="sm" />
+          </IconButtonToolbar>
+        </Tooltip>
         {showBugReport && (
           <Tooltip label="Report a bug" position="bottom">
             <IconButtonToolbar onClick={openReportABugModal} aria-label="Report a bug">
@@ -130,6 +280,17 @@ export function Toolbar({ workbook }: ToolbarProps) {
           </IconButtonToolbar>
         </Tooltip>
       </Group>
+
+      {/* Connection Modal */}
+      <CreateConnectionModal
+        opened={connectionModalOpened}
+        onClose={closeConnectionModal}
+        workbookId={workbook.id}
+        returnUrl={`/workbook/${workbook.id}/files`}
+      />
+
+      {/* CLI Modal */}
+      <ConnectToCLIModal opened={cliModalOpened} onClose={closeCLIModal} workbookId={workbook.id} />
     </Box>
   );
 }

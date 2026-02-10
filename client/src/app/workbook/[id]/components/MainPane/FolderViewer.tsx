@@ -136,7 +136,7 @@ function FileCard({ file, workbookId, mode = 'files' }: FileCardProps) {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                backgroundColor: 'var(--mantine-color-yellow-6)',
+                backgroundColor: 'var(--mantine-color-orange-6)',
                 flexShrink: 0,
               }}
             />
@@ -144,7 +144,7 @@ function FileCard({ file, workbookId, mode = 'files' }: FileCardProps) {
             <FileIcon size={12} color="var(--fg-muted)" style={{ flexShrink: 0 }} />
           )}
           <TextMono12Regular
-            c={isDirty ? 'var(--mantine-color-yellow-6)' : 'var(--fg-primary)'}
+            c="var(--fg-primary)"
             truncate
             style={{ flex: 1 }}
           >

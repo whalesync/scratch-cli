@@ -11,6 +11,7 @@ export interface ContextMenuItem {
   color?: string;
   disabled?: boolean;
   icon?: LucideIcon | React.ReactNode;
+  delete?: boolean;
 }
 
 interface ContextMenuProps {
@@ -57,8 +58,9 @@ export function ContextMenu({ opened, onClose, position, items }: ContextMenuPro
             <Menu.Item
               key={index}
               leftSection={renderIcon(item.icon)}
-              color={item.color}
+              color={item.delete ? 'red' : item.color}
               disabled={item.disabled}
+              data-delete={item.delete || undefined}
               onClick={() => {
                 item.onClick?.();
                 onClose();

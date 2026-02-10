@@ -137,8 +137,8 @@ export function FileViewer({ workbookId, filePath }: FileViewerProps) {
               href={`/workbook/${workbookId}/review/${filePath}`}
               style={{ textDecoration: 'none' }}
             >
-              <Badge size="xs" variant="light" color="yellow" style={{ cursor: 'pointer' }}>
-                Edited
+              <Badge size="xs" variant="light" color="orange" style={{ cursor: 'pointer' }}>
+                Unpublished changes
               </Badge>
             </Link>
           )}

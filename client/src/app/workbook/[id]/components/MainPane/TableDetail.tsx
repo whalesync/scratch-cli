@@ -59,8 +59,8 @@ export function TableDetail({ folder, workbookId }: TableDetailProps) {
           </Group>
 
           <Group justify="space-between">
-            <Text13Regular c="var(--fg-secondary)">Modified</Text13Regular>
-            <TextMono12Regular c={stats.dirtyCount > 0 ? 'var(--mantine-color-yellow-6)' : undefined}>
+            <Text13Regular c="var(--fg-secondary)">Changed</Text13Regular>
+            <TextMono12Regular c={stats.dirtyCount > 0 ? 'var(--mantine-color-orange-6)' : undefined}>
               {isLoading ? '...' : stats.dirtyCount}
             </TextMono12Regular>
           </Group>

@@ -3,11 +3,10 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular, TextMono12Regular } from '@/app/components/base/text';
-import { useDataFolders } from '@/hooks/use-data-folders';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
 import { workbookApi } from '@/lib/api/workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
-import { Badge, Box, Collapse, Group, Stack, TextInput, Tooltip, UnstyledButton } from '@mantine/core';
+import { Badge, Box, Collapse, Group, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, DataFolder, DataFolderGroup, FileRefEntity, WorkbookId } from '@spinner/shared-types';
 import {
@@ -17,7 +16,6 @@ import {
   FilePlusIcon,
   FolderIcon,
   MoreHorizontalIcon,
-  SearchIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -26,9 +24,9 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
-import { DeleteFolderModal } from '../shared/DeleteFolderModal';
 import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
+import { RemoveTableModal } from '../shared/RemoveTableModal';
 import type { FileTreeMode } from './FileTree';
 
 const SCRATCH_GROUP_NAME = 'Scratch';
@@ -146,69 +144,71 @@ export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'fi
           },
         }}
       >
-        <Group gap={6} wrap="nowrap">
-          <StyledLucideIcon
-            Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
-            size="sm"
-            c="var(--fg-secondary)"
-          />
+        <Group gap={6} wrap="nowrap" justify="space-between">
+          <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            <StyledLucideIcon
+              Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
+              size="sm"
+              c="var(--fg-secondary)"
+            />
 
-          {/* Icon */}
-          {isScratch ? (
-            <StyledLucideIcon Icon={StickyNoteIcon} size="sm" c="var(--fg-secondary)" />
-          ) : group.service ? (
-            <ConnectorIcon connector={group.service} size={16} p={0} />
-          ) : (
-            <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
-          )}
+            {/* Icon */}
+            {isScratch ? (
+              <StyledLucideIcon Icon={StickyNoteIcon} size="sm" c="var(--fg-secondary)" />
+            ) : group.service ? (
+              <ConnectorIcon connector={group.service} size={16} p={0} />
+            ) : (
+              <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
+            )}
 
-          {/* Name */}
-          <Text12Medium c="var(--fg-primary)" truncate style={{ fontWeight: 600 }}>
-            {group.name}
-          </Text12Medium>
+            {/* Name */}
+            <Text12Medium c="var(--fg-primary)" truncate style={{ fontWeight: 600 }}>
+              {group.name}
+            </Text12Medium>
 
-          {/* Status dot - only on files page, immediately after name */}
-          {mode === 'files' && !isScratch && (
-            <Tooltip label={isConnected ? 'Connected' : 'Disconnected'} position="right">
+            {/* Status dot - only on files page, immediately after name */}
+            {mode === 'files' && !isScratch && (
+              <Tooltip label={isConnected ? 'Connected' : 'Disconnected'} position="right">
+                <Box
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: isConnected ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-red-6)',
+                    flexShrink: 0,
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Group>
+
+          {/* Right side items */}
+          <Group gap={6} wrap="nowrap">
+            {/* Dirty badge when collapsed */}
+            {!isExpanded && totalDirtyCount > 0 && (
+              <Badge size="xs" variant="filled" color="orange">
+                {totalDirtyCount}
+              </Badge>
+            )}
+
+            {/* Three dots menu - only in files mode and for non-Scratch connections */}
+            {mode === 'files' && !isScratch && connectorAccount && (
               <Box
+                onClick={handleThreeDotsClick}
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: isConnected ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-red-6)',
-                  flexShrink: 0,
+                  padding: 2,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.5,
                 }}
-              />
-            </Tooltip>
-          )}
-
-          {/* Spacer */}
-          <Box style={{ flex: 1 }} />
-
-          {/* Dirty badge when collapsed */}
-          {!isExpanded && totalDirtyCount > 0 && (
-            <Badge size="xs" variant="filled" color="yellow" ml="auto">
-              {totalDirtyCount}
-            </Badge>
-          )}
-
-          {/* Three dots menu - only in files mode and for non-Scratch connections */}
-          {mode === 'files' && !isScratch && connectorAccount && (
-            <Box
-              onClick={handleThreeDotsClick}
-              style={{
-                padding: 2,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                opacity: 0.5,
-              }}
-              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.5'; }}
-            >
-              <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
-            </Box>
-          )}
+                onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.5'; }}
+              >
+                <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
+              </Box>
+            )}
+          </Group>
         </Group>
       </UnstyledButton>
 
@@ -248,7 +248,7 @@ export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'fi
           ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
           { type: 'divider' as const },
           { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
-          ...(connectorAccount && !isScratch ? [{ label: 'Remove', onClick: openRemoveModal, color: 'red' }] : []),
+          ...(connectorAccount && !isScratch ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }] : []),
         ]}
       />
 
@@ -291,13 +291,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const pathname = usePathname();
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
-  const tableFilters = useNewWorkbookUIStore((state) => state.tableFilters);
-  const setTableFilter = useNewWorkbookUIStore((state) => state.setTableFilter);
-  const { deleteFolder } = useDataFolders();
 
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
-  const filter = tableFilters[folder.id] ?? '';
 
   // Check if this folder is currently selected (showing in the right panel)
   const routeBase = mode === 'review' ? 'review' : 'files';
@@ -307,13 +303,22 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const { files, isLoading } = useFolderFileList(workbookId, folder.id);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [showFilter, setShowFilter] = useState(false);
 
   // Modal states
   const [newFileModalOpened, { open: openNewFileModal, close: closeNewFileModal }] = useDisclosure(false);
-  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
 
-  // Filter and limit files
+  // Pull handler for this table
+  const handlePullTable = async () => {
+    try {
+      await workbookApi.pullFiles(workbookId, [folder.id]);
+      router.refresh();
+    } catch (error) {
+      console.debug('Failed to pull table:', error);
+    }
+  };
+
+  // Limit files for display
   const { displayedFiles, hiddenCount, dirtyCount, hasAnyDirtyFiles } = useMemo(() => {
     let fileItems = files.filter((f): f is FileRefEntity => f.type === 'file');
 
@@ -322,16 +327,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       fileItems = fileItems.filter((f) => dirtyFilePaths.has(f.path));
     }
 
-    let filtered = fileItems;
-
-    if (filter) {
-      const lowerFilter = filter.toLowerCase();
-      filtered = fileItems.filter((f) => f.name.toLowerCase().includes(lowerFilter));
-    }
-
     const dirty = fileItems.filter((f) => f.status === 'modified' || f.status === 'created').length;
-    const limited = filtered.slice(0, FILE_LIMIT);
-    const hidden = Math.max(0, filtered.length - FILE_LIMIT);
+    const limited = fileItems.slice(0, FILE_LIMIT);
+    const hidden = Math.max(0, fileItems.length - FILE_LIMIT);
 
     return {
       displayedFiles: limited,
@@ -339,7 +337,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       dirtyCount: dirty,
       hasAnyDirtyFiles: fileItems.length > 0,
     };
-  }, [files, filter, mode, dirtyFilePaths]);
+  }, [files, mode, dirtyFilePaths]);
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -375,7 +373,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         px="sm"
         py={4}
         style={{
-          width: '100%',
+          width: `calc(100% - ${INDENT_PX}px)`,
           marginLeft: INDENT_PX,
           backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
           borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
@@ -391,36 +389,38 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
           },
         }}
       >
-        <Group gap={6} wrap="nowrap">
-          {/* Chevron: separate click target for expand/collapse only */}
-          <Box
-            onClick={handleChevronClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 20,
-              height: 20,
-              marginLeft: -4,
-              marginRight: -4,
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            <StyledLucideIcon
-              Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
-              size="sm"
-              c="var(--fg-secondary)"
-            />
-          </Box>
-          <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
-          <Text12Regular c="var(--fg-primary)" truncate style={{ flex: 1 }}>
-            {folder.name}
-          </Text12Regular>
+        <Group gap={6} wrap="nowrap" justify="space-between">
+          <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            {/* Chevron: separate click target for expand/collapse only */}
+            <Box
+              onClick={handleChevronClick}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 20,
+                height: 20,
+                marginLeft: -4,
+                marginRight: -4,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <StyledLucideIcon
+                Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
+                size="sm"
+                c="var(--fg-secondary)"
+              />
+            </Box>
+            <StyledLucideIcon Icon={FolderIcon} size="sm" c="var(--fg-secondary)" />
+            <Text12Regular c="var(--fg-primary)" truncate>
+              {folder.name}
+            </Text12Regular>
+          </Group>
 
           {/* Dirty badge when collapsed */}
           {!isExpanded && dirtyCount > 0 && (
-            <Badge size="xs" variant="filled" color="yellow">
+            <Badge size="xs" variant="filled" color="orange">
               {dirtyCount}
             </Badge>
           )}
@@ -429,25 +429,6 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 
       <Collapse in={isExpanded}>
         <Stack gap={0} pl={INDENT_PX * 2} pr="sm">
-          {/* Inline filter */}
-          {(showFilter || filter) && (
-            <TextInput
-              size="xs"
-              placeholder="Filter files..."
-              value={filter}
-              onChange={(e) => setTableFilter(folder.id, e.currentTarget.value)}
-              ml={INDENT_PX}
-              my={4}
-              styles={{
-                input: {
-                  fontSize: 11,
-                  height: 24,
-                  minHeight: 24,
-                },
-              }}
-            />
-          )}
-
           {/* Loading state */}
           {isLoading && files.length === 0 && (
             <Box ml={INDENT_PX} py={4}>
@@ -474,7 +455,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
           {/* Empty state */}
           {!isLoading && displayedFiles.length === 0 && (
             <Box ml={INDENT_PX} py={4}>
-              <Text12Regular c="dimmed">{filter ? 'No matching files' : 'No files'}</Text12Regular>
+              <Text12Regular c="dimmed">No files</Text12Regular>
             </Box>
           )}
         </Stack>
@@ -486,11 +467,10 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         onClose={() => setContextMenu(null)}
         position={contextMenu ?? { x: 0, y: 0 }}
         items={[
+          { label: 'Pull this table', icon: DownloadIcon, onClick: handlePullTable },
           { label: 'New File', icon: FilePlusIcon, onClick: () => { openNewFileModal(); setContextMenu(null); } },
-          { label: 'Filter', icon: SearchIcon, onClick: () => { setShowFilter(true); setContextMenu(null); } },
           { type: 'divider' },
-          { label: 'Download', icon: DownloadIcon, onClick: () => console.debug('Download'), disabled: true },
-          { label: 'Delete', icon: Trash2Icon, onClick: () => { openDeleteModal(); setContextMenu(null); }, color: 'red' },
+          { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
         ]}
       />
 
@@ -502,15 +482,12 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         workbookId={workbookId}
       />
 
-      {/* Delete Folder Modal */}
-      <DeleteFolderModal
-        opened={deleteModalOpened}
-        onClose={closeDeleteModal}
+      {/* Remove Table Modal */}
+      <RemoveTableModal
+        opened={removeModalOpened}
+        onClose={closeRemoveModal}
         folder={folder}
-        onConfirm={async () => {
-          await deleteFolder(folder.id);
-          closeDeleteModal();
-        }}
+        workbookId={workbookId}
       />
     </>
   );
@@ -546,8 +523,8 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
   // Determine if file is dirty (modified)
   const isDirty = file.status === 'modified' || file.status === 'created';
 
-  // Text color: yellow for dirty files, primary otherwise
-  const textColor = isDirty ? 'var(--mantine-color-yellow-6)' : 'var(--fg-primary)';
+  // Text color: always primary (the dot indicator is enough)
+  const textColor = 'var(--fg-primary)';
 
   return (
     <Link href={href} style={{ textDecoration: 'none' }}>
@@ -555,7 +532,7 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
         px="sm"
         py={4}
         style={{
-          width: '100%',
+          width: `calc(100% - ${INDENT_PX}px)`,
           marginLeft: INDENT_PX,
           backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
           borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
@@ -572,28 +549,16 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
         }}
       >
         <Group gap={6} wrap="nowrap">
-          {/* Dirty indicator dot */}
-          {isDirty ? (
-            <Box
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: 'var(--mantine-color-yellow-6)',
-                flexShrink: 0,
-              }}
-            />
-          ) : (
-            <Box
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                border: '1px solid var(--fg-muted)',
-                flexShrink: 0,
-              }}
-            />
-          )}
+          {/* Dirty indicator dot (or spacer for alignment) */}
+          <Box
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: isDirty ? 'var(--mantine-color-orange-6)' : 'transparent',
+              flexShrink: 0,
+            }}
+          />
 
           <TextMono12Regular c={textColor} truncate style={{ flex: 1 }}>
             {file.name}

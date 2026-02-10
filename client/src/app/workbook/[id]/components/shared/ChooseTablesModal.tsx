@@ -1,6 +1,7 @@
 'use client';
 
 import { Text13Regular } from '@/app/components/base/text';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { useAllTables } from '@/hooks/use-all-tables';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useWorkbook } from '@/hooks/use-workbook';
@@ -171,11 +172,22 @@ export function ChooseTablesModal({
     setDirtyFileCount(0);
   };
 
+  const connectionName = connectorAccount.displayName;
+
+  const modalTitle = showConfirmation ? (
+    'Confirm removal'
+  ) : (
+    <Group gap="xs" align="center">
+      <ConnectorIcon connector={connectorAccount.service} size={20} p={0} />
+      <Text fw={600}>{connectionName}</Text>
+    </Group>
+  );
+
   return (
     <Modal
       opened={opened}
       onClose={onClose}
-      title={showConfirmation ? 'Confirm removal' : 'Choose tables'}
+      title={modalTitle}
       size="md"
       centered
     >
@@ -213,7 +225,7 @@ export function ChooseTablesModal({
       ) : (
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Pick tables to make them available in Scratch.
+            Pick the tables from {connectionName} to make available in Scratch.
           </Text>
 
           {tablesLoading ? (
