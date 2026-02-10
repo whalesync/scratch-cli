@@ -3,7 +3,6 @@
 import { FullPageLoader } from '@/app/components/FullPageLoader';
 import { ErrorInfo, Info } from '@/app/components/InfoPanel';
 import MainContent from '@/app/components/layouts/MainContent';
-import { PageLayout } from '@/app/components/layouts/PageLayout';
 import { useWorkbook } from '@/hooks/use-workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
@@ -48,30 +47,24 @@ export default function NewWorkbookLayout({ children }: LayoutProps) {
 
   if (error || !workbook) {
     return (
-      <PageLayout pageTitle="Unknown Workbook">
-        <MainContent>
-          <MainContent.BasicHeader title="" />
-          <MainContent.Body>
-            <ErrorInfo
-              title="Workbook not found."
-              description="We were unable to find the workbook you are looking for."
-              action={
-                <Info.ActionButton
-                  label="Return home"
-                  Icon={ArrowLeftIcon}
-                  onClick={() => router.push(RouteUrls.homePageUrl)}
-                />
-              }
-            />
-          </MainContent.Body>
-        </MainContent>
-      </PageLayout>
+      <MainContent>
+        <MainContent.BasicHeader title="" />
+        <MainContent.Body>
+          <ErrorInfo
+            title="Workbook not found."
+            description="We were unable to find the workbook you are looking for."
+            action={
+              <Info.ActionButton
+                label="Return home"
+                Icon={ArrowLeftIcon}
+                onClick={() => router.push(RouteUrls.homePageUrl)}
+              />
+            }
+          />
+        </MainContent.Body>
+      </MainContent>
     );
   }
 
-  return (
-    <PageLayout pageTitle={workbook.name ?? 'Workbook'} navVariant="drawer">
-      <WorkbookLayout workbook={workbook}>{children}</WorkbookLayout>
-    </PageLayout>
-  );
+  return <WorkbookLayout workbook={workbook}>{children}</WorkbookLayout>;
 }

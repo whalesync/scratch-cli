@@ -1,6 +1,12 @@
 'use client';
 
 import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
+import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
+import MainContent from '@/app/components/layouts/MainContent';
+import { useJobs } from '@/hooks/use-jobs';
+import { jobApi } from '@/lib/api/job';
+import { JobEntity } from '@/types/server-entities/job';
+import { formatDate, timeAgo } from '@/utils/helpers';
 import {
   ActionIcon,
   Badge,
@@ -16,14 +22,8 @@ import {
   ThemeIcon,
   Tooltip,
 } from '@mantine/core';
-import { Check, Circle, Code, Dot, Eye, X } from 'lucide-react';
+import { BriefcaseIcon, Check, Circle, Code, Dot, Eye, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useJobs } from '../../../hooks/use-jobs';
-import { jobApi } from '../../../lib/api/job';
-import { JobEntity } from '../../../types/server-entities/job';
-import { formatDate, timeAgo } from '../../../utils/helpers';
-import { PublishJobProgressModal } from '../../components/jobs/publish/PublishJobProgressModal';
-import MainContent from '../../components/layouts/MainContent';
 
 const getStatusIcon = (status: JobEntity['state']) => {
   switch (status) {
@@ -78,7 +78,7 @@ const getStatusColor = (status: JobEntity['state']) => {
   }
 };
 
-export default function JobsPage() {
+export default function JobsDevPage() {
   const { jobs, error, isLoading } = useJobs();
   const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);
   const [viewRawJobId, setViewRawJobId] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function JobsPage() {
   if (isLoading) {
     return (
       <MainContent>
-        <MainContent.BasicHeader title="Jobs" />
+        <MainContent.BasicHeader title="Jobs" Icon={BriefcaseIcon} />
         <MainContent.Body>
           <Center h="100%">
             <Group>
@@ -102,7 +102,7 @@ export default function JobsPage() {
   if (error) {
     return (
       <MainContent>
-        <MainContent.BasicHeader title="Jobs" />
+        <MainContent.BasicHeader title="Jobs" Icon={BriefcaseIcon} />
         <MainContent.Body>
           <Center h="100%">
             <Text c="red">Error loading jobs: {error.message}</Text>
@@ -114,7 +114,7 @@ export default function JobsPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Jobs" />
+      <MainContent.BasicHeader title="Jobs" Icon={BriefcaseIcon} />
       <MainContent.Body>
         {jobs.length === 0 ? (
           <Center h="50vh">

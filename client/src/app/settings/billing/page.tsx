@@ -1,18 +1,18 @@
 'use client';
 
+import { ConfigSection } from '@/app/components/ConfigSection';
+import { FullPageLoader } from '@/app/components/FullPageLoader';
+import MainContent from '@/app/components/layouts/MainContent';
+import { usePayments } from '@/hooks/use-payments';
 import { Alert, Divider, SimpleGrid, Stack } from '@mantine/core';
 import { ScratchPlanType } from '@spinner/shared-types';
 import { CreditCardIcon } from 'lucide-react';
 import { useState } from 'react';
-import { usePayments } from '../../hooks/use-payments';
-import { ConfigSection } from '../components/ConfigSection';
-import { FullPageLoader } from '../components/FullPageLoader';
-import MainContent from '../components/layouts/MainContent';
 import { ActiveSubscriptionSection } from './components/ActiveSubscriptionSection';
 import { BillingDevTools } from './components/BillingDevTools';
 import { PlanCard } from './components/PlanCard';
 
-const BillingPage = () => {
+export default function BillingSettingsPage() {
   const { plans, isLoading, error } = usePayments();
   const [planError, setPlanError] = useState<string | null>(null);
 
@@ -45,6 +45,4 @@ const BillingPage = () => {
       </MainContent.Body>
     </MainContent>
   );
-};
-
-export default BillingPage;
+}

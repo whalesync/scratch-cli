@@ -19,18 +19,21 @@ export class RouteUrls {
   static workbookSyncsPageUrl = (id: string) => `/workbook/${id}/syncs`;
   static workbookRunsPageUrl = (id: string) => `/workbook/${id}/runs`;
   static settingsPageUrl = '/settings';
-  static billingPageUrl = '/billing';
+  static settingsUserPageUrl = '/settings/user';
+  static settingsApiKeyPageUrl = '/settings/api-key';
+  static billingPageUrl = '/settings/billing';
   static productCheckoutPage = (planType: string, returnPath?: string) =>
     `/subscription/checkout/${planType}${returnPath ? `?returnPath=${returnPath}` : ''}`;
 
-  // Dev Tools routes
-  static devToolsPageUrl = '/dev';
-  static devToolsGalleryPageUrl = '/dev/gallery';
-  static devToolsGridPageUrl = '/dev/grid';
-  static devToolsJobsPageUrl = '/dev/jobs';
-  static devToolsUsersPageUrl = '/dev/users';
-  static devToolsMigrationsPageUrl = '/dev/migrations';
-  static devToolsSyncDataFoldersPageUrl = '/dev/sync-data-folders';
+  // Dev Tools routes (under settings)
+  static devToolsPageUrl = '/settings/dev/user-info';
+  static devToolsUserInfoPageUrl = '/settings/dev/user-info';
+  static devToolsUsersPageUrl = '/settings/dev/users';
+  static devToolsGalleryPageUrl = '/settings/dev/gallery';
+  static devToolsJobsPageUrl = '/settings/dev/jobs';
+  static devToolsMigrationsPageUrl = '/settings/dev/migrations';
+  static devToolsSyncDataFoldersPageUrl = '/settings/dev/sync-data-folders';
+  static devToolsGridPageUrl = '/settings/dev/grid';
 
   /** Utils */
 

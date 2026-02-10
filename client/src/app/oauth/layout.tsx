@@ -1,5 +1,3 @@
-import { PageLayout } from '@/app/components/layouts/PageLayout';
-
-export default function BasicLayout({ children }: { children: React.ReactNode }) {
-  return <PageLayout>{children}</PageLayout>;
+export default function OAuthLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

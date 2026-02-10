@@ -35,6 +35,7 @@ import {
   CheckIcon,
   CircleCheckBigIcon,
   Home,
+  LayoutGridIcon,
   MessageSquareIcon,
   MoonStar,
   PenLineIcon,
@@ -44,8 +45,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { ActionIconThreeDots } from '../../components/base/action-icons';
-import { Badge, BadgeError, BadgeOK } from '../../components/base/badge';
+import { ActionIconThreeDots } from '@/app/components/base/action-icons';
+import { Badge, BadgeError, BadgeOK } from '@/app/components/base/badge';
 import {
   ButtonCompactDanger,
   ButtonCompactPrimary,
@@ -62,7 +63,7 @@ import {
   IconButtonInline,
   IconButtonOutline,
   IconButtonToolbar,
-} from '../../components/base/buttons';
+} from '@/app/components/base/buttons';
 import {
   Text12Book,
   Text12Medium,
@@ -80,23 +81,23 @@ import {
   TextTitle2,
   TextTitle3,
   TextTitle4,
-} from '../../components/base/text';
-import { CircularProgress } from '../../components/CircularProgress';
-import { CloseButtonInline } from '../../components/CloseButtonInline';
-import { DebouncedTextArea } from '../../components/DebouncedTextArea';
-import { DevToolPopover } from '../../components/DevToolPopover';
-import { DotSpacer } from '../../components/DotSpacer';
-import { ConnectorIcon } from '../../components/Icons/ConnectorIcon';
-import { DecorativeBoxedIcon } from '../../components/Icons/DecorativeBoxedIcon';
-import { StyledLucideIcon } from '../../components/Icons/StyledLucideIcon';
-import { LoaderWithMessage } from '../../components/LoaderWithMessage';
-import { RelativeDate } from '../../components/RelativeDate';
-import { ToolIconButton } from '../../components/ToolIconButton';
+} from '@/app/components/base/text';
+import { CircularProgress } from '@/app/components/CircularProgress';
+import { CloseButtonInline } from '@/app/components/CloseButtonInline';
+import { DebouncedTextArea } from '@/app/components/DebouncedTextArea';
+import { DevToolPopover } from '@/app/components/DevToolPopover';
+import { DotSpacer } from '@/app/components/DotSpacer';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
+import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
+import { RelativeDate } from '@/app/components/RelativeDate';
+import { ToolIconButton } from '@/app/components/ToolIconButton';
 
 export default function DevComponentGalleryPage() {
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Dev tools - Component gallery" />
+      <MainContent.BasicHeader title="Component Gallery" Icon={LayoutGridIcon} />
       <MainContent.Body>
         <Stack w="100%" p="md">
           <Alert color="orange" icon={<BookMarked size={24} />}>

@@ -4,7 +4,7 @@ import { Alert, Box, Center, SimpleGrid, Stack } from '@mantine/core';
 import { CreditCardIcon } from 'lucide-react';
 import { useState } from 'react';
 import { usePayments } from '../../hooks/use-payments';
-import { PlanCard } from '../billing/components/PlanCard';
+import { PlanCard } from '../settings/billing/components/PlanCard';
 import { Text16Regular, TextTitle1 } from '../components/base/text';
 import { FullPageLoader } from '../components/FullPageLoader';
 import MainContent from '../components/layouts/MainContent';

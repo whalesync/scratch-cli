@@ -4,10 +4,10 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { codeMigrationsApi } from '@/lib/api/code-migrations';
 import { Alert, Button, Card, Group, NumberInput, Select, Stack, Text, Textarea, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { AlertCircle, CheckCircle2, Database } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Database, DatabaseIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export default function MigrationsPage() {
+export default function MigrationsDevPage() {
   const [availableMigrations, setAvailableMigrations] = useState<string[]>([]);
   const [isLoadingMigrations, setIsLoadingMigrations] = useState(true);
   const [selectedMigration, setSelectedMigration] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export default function MigrationsPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Database Migrations" />
+      <MainContent.BasicHeader title="Database Migrations" Icon={DatabaseIcon} />
       <MainContent.Body>
         <Stack gap="lg" maw={900}>
           <Alert icon={<AlertCircle size={16} />} color="blue">

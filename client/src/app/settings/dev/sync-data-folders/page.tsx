@@ -4,7 +4,7 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { API_CONFIG } from '@/lib/api/config';
 import { Alert, Button, Card, Code, Group, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { AlertCircle, CheckCircle2, FolderSync, Play } from 'lucide-react';
+import { AlertCircle, CheckCircle2, FolderSync, FolderSyncIcon, Play } from 'lucide-react';
 import { useState } from 'react';
 
 interface JobResult {
@@ -13,7 +13,7 @@ interface JobResult {
   message: string;
 }
 
-export default function SyncDataFoldersPage() {
+export default function SyncDataFoldersDevPage() {
   const [workbookId, setWorkbookId] = useState('');
   const [syncId, setSyncId] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -72,7 +72,7 @@ export default function SyncDataFoldersPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Sync Data Folders Job" />
+      <MainContent.BasicHeader title="Sync Data Folders Job" Icon={FolderSyncIcon} />
       <MainContent.Body>
         <Stack gap="lg" maw={600}>
           <Alert icon={<AlertCircle size={16} />} color="blue">

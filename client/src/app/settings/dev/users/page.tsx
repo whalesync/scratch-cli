@@ -8,13 +8,13 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { useUserDevTools } from '@/hooks/use-user-dev-tools';
 import { getBuildFlavor } from '@/utils/build';
 import { ActionIcon, Alert, Anchor, CopyButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
-import { AlertCircleIcon, CheckIcon, CopyIcon, HatGlassesIcon, Search } from 'lucide-react';
+import { AlertCircleIcon, CheckIcon, CopyIcon, HatGlassesIcon, Search, UsersIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { UserDetailsCard } from './components/UserDetails';
 import { clerkUserUrl } from './utils';
 
-const UsersPage = () => {
+export default function UsersDevPage() {
   const searchParams = useSearchParams();
   const qParam = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +26,7 @@ const UsersPage = () => {
       setSearchQuery(qParam.trim());
       search(qParam.trim());
     }
-  }, [qParam, search, searchQuery]); // Run when query parameter or search function changes
+  }, [qParam, search, searchQuery]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -44,7 +44,6 @@ const UsersPage = () => {
     retrieveUserDetails(userId);
   };
 
-  // sort newest first
   const sortedUsers = useMemo(() => {
     if (!users) return [];
     return users.sort((a, b) => {
@@ -54,7 +53,7 @@ const UsersPage = () => {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="User management" />
+      <MainContent.BasicHeader title="User Management" Icon={UsersIcon} />
       <MainContent.Body>
         <Stack>
           <Text16Regular>Search for users by ID, email, name, or Clerk ID</Text16Regular>
@@ -154,6 +153,4 @@ const UsersPage = () => {
       </MainContent.Body>
     </MainContent>
   );
-};
-
-export default UsersPage;
+}

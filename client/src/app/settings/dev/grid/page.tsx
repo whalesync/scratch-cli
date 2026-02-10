@@ -5,6 +5,7 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { Checkbox, Group, Stack, Text, useMantineColorScheme } from '@mantine/core';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { GridIcon } from 'lucide-react';
 import { useState } from 'react';
 import { GridRow } from './GridRow';
 
@@ -162,7 +163,7 @@ export default function DevGridPage() {
 
   return (
     <MainContent>
-      <MainContent.BasicHeader title="Dev tools - Grid playground" />
+      <MainContent.BasicHeader title="Grid Playground" Icon={GridIcon} />
       <MainContent.Body>
         <Stack w="100%" p="md">
           {/* Display selected cell */}

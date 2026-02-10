@@ -3,17 +3,17 @@ import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text13Book, Text13Medium, Text13Regular, Text16Medium } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import customBordersClasses from '@/app/components/theme/custom-borders.module.css';
+import { usePayments } from '@/hooks/use-payments';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { RouteUrls } from '@/utils/route-urls';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { useAuth } from '@clerk/nextjs';
 import { Box, Center, Group, Stack, Tooltip } from '@mantine/core';
 import { ScratchPlanType, SubscriptionPlan } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
-import { usePayments } from '../../../hooks/use-payments';
-import { useScratchPadUser } from '../../../hooks/useScratchpadUser';
-import { useWorkbookEditorUIStore } from '../../../stores/workbook-editor-store';
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
