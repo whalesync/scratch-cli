@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+// Trigger reload
 import { ScratchConfigService } from 'src/config/scratch-config.service';
 
 @Injectable()
@@ -28,15 +29,15 @@ export class ScratchGitClient {
   }
 
   async initRepo(repoId: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/init`, 'POST');
+    await this.callGitApi(`/api/repo/manage/${repoId}/init`, 'POST');
   }
 
   async deleteRepo(repoId: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}`, 'DELETE');
+    await this.callGitApi(`/api/repo/manage/${repoId}`, 'DELETE');
   }
 
   async resetRepo(repoId: string, path?: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/reset`, 'POST', { path });
+    await this.callGitApi(`/api/repo/manage/${repoId}/reset`, 'POST', { path });
   }
 
   async commitFiles(
@@ -45,7 +46,7 @@ export class ScratchGitClient {
     files: Array<{ path: string; content: string }>,
     message: string,
   ): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'POST', {
+    await this.callGitApi(`/api/repo/write/${repoId}/files?branch=${branch}`, 'POST', {
       files,
       message,
     });
@@ -53,36 +54,43 @@ export class ScratchGitClient {
 
   async deleteFolder(repoId: string, folder: string, message: string, branch?: string): Promise<void> {
     const branchParam = branch ? `&branch=${encodeURIComponent(branch)}` : '';
-    await this.callGitApi(`/api/repo/${repoId}/folder?folder=${encodeURIComponent(folder)}${branchParam}`, 'DELETE', {
-      message,
-    });
+    await this.callGitApi(
+      `/api/repo/write/${repoId}/folder?folder=${encodeURIComponent(folder)}${branchParam}`,
+      'DELETE',
+      {
+        message,
+      },
+    );
   }
 
   async removeDataFolder(repoId: string, folder: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/data-folder`, 'DELETE', { path: folder });
+    await this.callGitApi(`/api/repo/write/${repoId}/data-folder`, 'DELETE', { path: folder });
   }
 
   async deleteFiles(repoId: string, branch: string, files: string[], message: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/files?branch=${branch}`, 'DELETE', {
+    await this.callGitApi(`/api/repo/write/${repoId}/files?branch=${branch}`, 'DELETE', {
       files,
       message,
     });
   }
 
   async publishFile(repoId: string, file: { path: string; content: string }, message: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/publish`, 'POST', {
+    await this.callGitApi(`/api/repo/write/${repoId}/publish`, 'POST', {
       file,
       message,
     });
   }
 
   async rebaseDirty(repoId: string): Promise<{ rebased: boolean; conflicts: string[] }> {
-    return this.callGitApi(`/api/repo/${repoId}/rebase`, 'POST') as Promise<{ rebased: boolean; conflicts: string[] }>;
+    return this.callGitApi(`/api/repo/write/${repoId}/rebase`, 'POST') as Promise<{
+      rebased: boolean;
+      conflicts: string[];
+    }>;
   }
 
   async list(repoId: string, branch: string, folder: string): Promise<any[]> {
     return this.callGitApi(
-      `/api/repo/${repoId}/list?branch=${branch}&folder=${encodeURIComponent(folder)}`,
+      `/api/repo/read/${repoId}/list?branch=${branch}&folder=${encodeURIComponent(folder)}`,
       'GET',
     ) as Promise<any[]>;
   }
@@ -90,7 +98,7 @@ export class ScratchGitClient {
   async getFile(repoId: string, branch: string, path: string): Promise<{ content: string } | null> {
     try {
       const response = await this.callGitApi(
-        `/api/repo/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
+        `/api/repo/read/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
         'GET',
       );
       return response as { content: string };
@@ -101,41 +109,42 @@ export class ScratchGitClient {
   }
 
   async getStatus(repoId: string): Promise<any> {
-    return this.callGitApi(`/api/repo/${repoId}/status`, 'GET');
+    return this.callGitApi(`/api/repo/diff/${repoId}/status`, 'GET');
   }
 
   async getDiff(repoId: string, path: string): Promise<string> {
-    return this.callGitApi(`/api/repo/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
+    return this.callGitApi(`/api/repo/diff/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
   }
 
   async getFolderDiff(
     repoId: string,
     folder: string,
   ): Promise<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>> {
-    return this.callGitApi(`/api/repo/${repoId}/folder-diff?folder=${encodeURIComponent(folder)}`, 'GET') as Promise<
-      Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>
-    >;
+    return this.callGitApi(
+      `/api/repo/diff/${repoId}/folder-diff?folder=${encodeURIComponent(folder)}`,
+      'GET',
+    ) as Promise<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>>;
   }
 
   async getGraph(repoId: string): Promise<any> {
-    return this.callGitApi(`/api/repo/${repoId}/graph`, 'GET');
+    return this.callGitApi(`/api/repo/debug/${repoId}/graph`, 'GET');
   }
 
   async createCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/checkpoint`, 'POST', { name });
+    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint`, 'POST', { name });
   }
 
   async listCheckpoints(repoId: string): Promise<{ name: string; timestamp: number; message: string }[]> {
-    return this.callGitApi(`/api/repo/${repoId}/checkpoints`, 'GET') as Promise<
+    return this.callGitApi(`/api/repo/manage/${repoId}/checkpoints`, 'GET') as Promise<
       { name: string; timestamp: number; message: string }[]
     >;
   }
 
   async revertToCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/checkpoint/revert`, 'POST', { name });
+    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint/revert`, 'POST', { name });
   }
 
   async deleteCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/${repoId}/checkpoint/${encodeURIComponent(name)}`, 'DELETE');
+    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint/${encodeURIComponent(name)}`, 'DELETE');
   }
 }
