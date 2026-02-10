@@ -19,6 +19,7 @@ import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { JobEntity } from 'src/job/entities/job.entity';
 import { JobService } from 'src/job/job.service';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { userToActor } from 'src/users/types';
@@ -46,6 +47,7 @@ export class CliLinkedController {
     private readonly dataFolderService: DataFolderService,
     private readonly workbookService: WorkbookService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly posthogService: PostHogService,
     private readonly scratchGitService: ScratchGitService,
     private readonly db: DbService,
     private readonly jobService: JobService,
@@ -55,8 +57,11 @@ export class CliLinkedController {
    * Get the progress/state of a job by ID.
    */
   @Get('jobs/:jobId/progress')
-  async getJobProgress(@Param('jobId') jobId: string): Promise<JobEntity> {
-    return this.jobService.getJobProgress(jobId);
+  async getJobProgress(@Param('jobId') jobId: string, @Req() req: RequestWithUser): Promise<JobEntity> {
+    const actor = userToActor(req.user);
+    const result = await this.jobService.getJobProgress(jobId);
+    this.posthogService.trackCliGetJobProgress(actor, jobId);
+    return result;
   }
 
   /**
@@ -77,6 +82,7 @@ export class CliLinkedController {
         throw new NotFoundException('Connection not found');
       }
       const tables = await this.connectorAccountService.listTables(account.service as Service, account.id, actor);
+      this.posthogService.trackCliListTables(actor, workbookId, { connectionId: query.connectionId });
       return [
         {
           service: account.service,
@@ -87,7 +93,9 @@ export class CliLinkedController {
       ];
     }
 
-    return await this.connectorAccountService.listAllUserTables(workbookId as WorkbookId, actor);
+    const result = await this.connectorAccountService.listAllUserTables(workbookId as WorkbookId, actor);
+    this.posthogService.trackCliListTables(actor, workbookId);
+    return result;
   }
 
   /**
@@ -96,7 +104,9 @@ export class CliLinkedController {
   @Get('workbooks/:workbookId/linked')
   async listLinkedTables(@Req() req: RequestWithUser, @Param('workbookId') workbookId: string) {
     const actor = userToActor(req.user);
-    return await this.dataFolderService.listGroupedByConnectorBases(workbookId as WorkbookId, actor);
+    const result = await this.dataFolderService.listGroupedByConnectorBases(workbookId as WorkbookId, actor);
+    this.posthogService.trackCliListDataFolders(actor, workbookId, { scope: 'list' });
+    return result;
   }
 
   /**
@@ -171,6 +181,8 @@ export class CliLinkedController {
     if (!dataFolder) {
       throw new NotFoundException('Linked table not found');
     }
+
+    this.posthogService.trackCliListDataFolders(actor, workbookId, { folderId, scope: 'single' });
 
     // Get publish status (change counts) for this specific folder
     let creates = 0;
@@ -260,6 +272,8 @@ export class CliLinkedController {
 
     // Enqueue the publish job
     const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(wbId, actor, [dfId]);
+
+    this.posthogService.trackPublishDataFromWorkbook(actor, workbook, { dataFolderCount: 1 });
 
     return { jobId: job.id ?? '' };
   }

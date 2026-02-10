@@ -15,7 +15,7 @@ import { WSLogger } from 'src/logger';
 import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
-import { PostHogEventName, PostHogService } from '../../posthog/posthog.service';
+import { PostHogService } from '../../posthog/posthog.service';
 import { EncryptedData } from '../../utils/encryption';
 import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';
@@ -92,9 +92,8 @@ export class ConnectorAccountService {
 
     const testResult = await this.testConnection(workbookId, connectorAccount.id, actor);
 
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor.userId, {
-      service: createDto.service,
-      authType: createDto.authType || AuthType.USER_PROVIDED_PARAMS,
+    this.posthogService.trackCreateDataSource(actor, connectorAccount, {
+      authType: createDto.authType ?? connectorAccount.authType,
       healthStatus: testResult.health,
     });
 
@@ -206,6 +205,10 @@ export class ConnectorAccountService {
       },
     });
 
+    this.posthogService.trackUpdateDataSource(actor, account, {
+      changedFields: Object.keys(updateDto),
+    });
+
     await this.auditLogService.logEvent({
       actor,
       eventType: 'update',
@@ -229,9 +232,7 @@ export class ConnectorAccountService {
     await this.db.client.connectorAccount.delete({
       where: { id, workbookId },
     });
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REMOVED, actor.userId, {
-      service: account.service as Service,
-    });
+    this.posthogService.trackRemoveDataSource(actor, account);
 
     await this.auditLogService.logEvent({
       actor,

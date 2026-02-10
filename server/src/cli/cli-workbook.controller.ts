@@ -20,6 +20,7 @@ import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { WSLogger } from 'src/logger';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { Readable } from 'stream';
@@ -45,6 +46,7 @@ export class CliWorkbookController {
   constructor(
     private readonly workbookService: WorkbookService,
     private readonly configService: ScratchConfigService,
+    private readonly posthogService: PostHogService,
   ) {
     this.gitBackendUrl = this.configService.getScratchGitBackendUrl();
   }
@@ -62,6 +64,8 @@ export class CliWorkbookController {
     const sortOrder = query.sortOrder ?? 'desc';
 
     const workbooks = await this.workbookService.findAllForUser(actor, sortBy, sortOrder);
+
+    this.posthogService.trackCliListWorkbooks(actor, { workbookCount: workbooks.length, scope: 'list' });
 
     return {
       workbooks: workbooks.map((wb) => this.toCliResponse(wb)),
@@ -100,6 +104,8 @@ export class CliWorkbookController {
       throw new NotFoundException('Workbook not found');
     }
 
+    this.posthogService.trackCliListWorkbooks(actor, { scope: 'single', workbookId: id });
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     return this.toCliResponse(workbook, baseUrl);
   }
@@ -137,6 +143,8 @@ export class CliWorkbookController {
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
     }
+
+    this.posthogService.trackCliGitOperation(actor, workbookId, { method: req.method });
 
     // Extract the git path (everything after /git/)
     const gitPath = req.url.replace(`/cli/v1/workbooks/${id}/git`, '');

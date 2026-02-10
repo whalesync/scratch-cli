@@ -147,7 +147,7 @@ export class StripePaymentService {
         return result;
       }
 
-      this.postHogService.trackTrialStarted(user.id, planType);
+      this.postHogService.trackTrialStarted(userToActor(user), planType);
 
       return ok('success');
     } catch (err) {
@@ -790,11 +790,16 @@ export class StripePaymentService {
             message: `Switched plans: ${previousPlanType} -> ${plan.planType}!`,
             entityId: updatedDbSubscription.id as SubscriptionId,
           });
+          this.postHogService.trackSubscriptionChanged(
+            userToActor(user),
+            previousPlanType as ScratchPlanType,
+            plan.planType,
+          );
         }
       }
 
       if (cancelAt) {
-        this.postHogService.trackSubscriptionCancelled(user.id, plan.planType);
+        this.postHogService.trackSubscriptionCancelled(userToActor(user), plan.planType);
         await this.slackNotificationService.sendMessage(
           `${SlackFormatters.userIdentifier(user, '😿')} has canceled their subscription for the ${plan.planType}`,
         );

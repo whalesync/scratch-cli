@@ -280,7 +280,7 @@ export class OAuthService {
       },
     });
 
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor.userId, {
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_CREATED, actor, {
       service: serviceEnum,
       authType: AuthType.OAUTH,
       healthStatus: 'OK',
@@ -324,7 +324,7 @@ export class OAuthService {
       },
     });
 
-    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REAUTHORIZED, actor.userId, {
+    this.posthogService.captureEvent(PostHogEventName.CONNECTOR_ACCOUNT_REAUTHORIZED, actor, {
       service: connectorAccount.service,
       authType: AuthType.OAUTH,
       healthStatus: 'OK',

@@ -18,6 +18,7 @@ import { CreateSyncDto, UpdateSyncDto } from '@spinner/shared-types';
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { SyncService } from 'src/sync/sync.service';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
@@ -36,12 +37,16 @@ export class CliSyncController {
     private readonly workbookService: WorkbookService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly db: DbService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   @Get('syncs')
   async listSyncs(@Param('workbookId') workbookId: WorkbookId, @Req() req: RequestWithUser): Promise<unknown> {
+    const actor = userToActor(req.user);
     await this.verifyWorkbookAccess(workbookId, req);
-    return await this.syncService.findAllForWorkbook(workbookId, userToActor(req.user));
+    const result = await this.syncService.findAllForWorkbook(workbookId, actor);
+    this.posthogService.trackCliListSyncs(actor, workbookId, { scope: 'list' });
+    return result;
   }
 
   @Post('syncs')
@@ -60,6 +65,7 @@ export class CliSyncController {
     @Param('syncId') syncId: string,
     @Req() req: RequestWithUser,
   ): Promise<unknown> {
+    const actor = userToActor(req.user);
     await this.verifyWorkbookAccess(workbookId, req);
     const sync = await this.db.client.sync.findUnique({
       where: { id: syncId },
@@ -68,6 +74,7 @@ export class CliSyncController {
     if (!sync) {
       throw new NotFoundException('Sync not found');
     }
+    this.posthogService.trackCliListSyncs(actor, workbookId, { syncId, scope: 'single' });
     return sync;
   }
 
@@ -101,10 +108,27 @@ export class CliSyncController {
   ) {
     const workbook = await this.verifyWorkbookAccess(workbookId, req);
 
+    const sync = await this.db.client.sync.findFirst({
+      where: {
+        id: syncId,
+        syncTablePairs: {
+          some: {
+            sourceDataFolder: { workbookId },
+          },
+        },
+      },
+    });
+
+    if (!sync) {
+      throw new NotFoundException('Sync not found');
+    }
+
     const job = await this.bullEnqueuerService.enqueueSyncDataFoldersJob(workbookId, syncId as SyncId, {
       userId: req.user.id,
       organizationId: req.user.organizationId ?? workbook.organizationId,
     });
+
+    this.posthogService.trackStartSyncRun(userToActor(req.user), sync);
 
     return {
       success: true,

@@ -14,6 +14,7 @@ import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { DataFolderCluster } from 'src/db/cluster-types';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { DecryptedCredentials } from 'src/remote-service/connector-account/types/encrypted-credentials.interface';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
@@ -37,6 +38,7 @@ export class DataFolderService {
     private readonly configService: ScratchConfigService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
+    private readonly posthogService: PostHogService,
     private readonly scratchGitService: ScratchGitService,
     private readonly filesService: FilesService,
   ) {}
@@ -334,6 +336,7 @@ export class DataFolderService {
         },
       });
 
+      this.posthogService.trackAddDataFolder(actor, createdDataFolder);
       return new DataFolderEntity(createdDataFolder);
     } else {
       // Case 2: Scratch folder with no connector
@@ -364,6 +367,7 @@ export class DataFolderService {
         },
       });
 
+      this.posthogService.trackAddDataFolder(actor, createdDataFolder);
       return new DataFolderEntity(createdDataFolder);
     }
   }
@@ -396,6 +400,7 @@ export class DataFolderService {
       where: { id },
     });
 
+    this.posthogService.trackRemoveDataFolder(actor, dataFolder);
     // Log audit event
     await this.auditLogService.logEvent({
       actor,

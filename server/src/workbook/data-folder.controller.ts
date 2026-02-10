@@ -26,6 +26,7 @@ import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@sp
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
+import { PostHogService } from '../posthog/posthog.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { userToActor } from '../users/types';
 import { BullEnqueuerService } from '../worker-enqueuer/bull-enqueuer.service';
@@ -44,6 +45,7 @@ export class DataFolderController {
     private readonly dataFolderService: DataFolderService,
     private readonly workbookService: WorkbookService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly posthogService: PostHogService,
     private readonly scratchGitService: ScratchGitService,
     private readonly db: DbService,
   ) {}
@@ -164,6 +166,10 @@ export class DataFolderController {
       initialPublicProgress,
     );
 
+    this.posthogService.trackPublishDataFromWorkbook(actor, workbook, {
+      dataFolderCount: dataFolderIds.length,
+    });
+
     return { jobId: job.id ?? '' };
   }
 
@@ -250,6 +256,8 @@ export class DataFolderController {
 
     // Enqueue the publish job with single folder as array
     const job = await this.bullEnqueuerService.enqueuePublishDataFolderJob(workbookId, actor, [id]);
+
+    this.posthogService.trackPublishDataFromWorkbook(actor, workbook, { dataFolderCount: 1 });
 
     return { jobId: job.id ?? '' };
   }

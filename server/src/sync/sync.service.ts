@@ -21,6 +21,7 @@ import set from 'lodash/set';
 import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { validateSchemaMapping } from 'src/sync/schema-validator';
@@ -80,6 +81,7 @@ export class SyncService {
   constructor(
     private readonly db: DbService,
     private readonly dataFolderService: DataFolderService,
+    private readonly posthogService: PostHogService,
     private readonly scratchGitService: ScratchGitService,
     private readonly workbookService: WorkbookService,
   ) {}
@@ -161,6 +163,7 @@ export class SyncService {
       },
     });
 
+    this.posthogService.trackCreateSync(actor, sync);
     return sync;
   }
 
@@ -251,6 +254,7 @@ export class SyncService {
       });
     });
 
+    this.posthogService.trackUpdateSync(actor, updated);
     return updated;
   }
 
@@ -302,20 +306,18 @@ export class SyncService {
       throw new NotFoundException('Workbook not found');
     }
 
-    // Verify sync exists and belongs to workbook (via relation)
-    // For now simplistic delete.
-    // We should probably check if sync belongs to workbook.
-    // DB relation: Sync -> SyncTablePairs -> DataFolder -> Workbook.
-    // If we trust the ID or if we want strict check:
-    /*
     const sync = await this.db.client.sync.findFirst({
-        where: { id: syncId, ... }
+      where: { id: syncId, syncTablePairs: { some: { sourceDataFolder: { workbookId } } } },
     });
-    */
+    if (!sync) {
+      throw new NotFoundException('Sync not found');
+    }
 
     await this.db.client.sync.delete({
       where: { id: syncId },
     });
+
+    this.posthogService.trackRemoveSync(actor, sync);
   }
 
   /**

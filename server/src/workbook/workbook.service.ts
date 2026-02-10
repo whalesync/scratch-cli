@@ -50,7 +50,7 @@ export class WorkbookService {
       workbookId: newWorkbook.id,
     });
 
-    this.posthogService.trackCreateWorkbook(actor.userId, newWorkbook);
+    this.posthogService.trackCreateWorkbook(actor, newWorkbook);
     await this.auditLogService.logEvent({
       actor,
       eventType: 'create',
@@ -93,7 +93,7 @@ export class WorkbookService {
       where: { id },
     });
 
-    this.posthogService.trackRemoveWorkbook(actor.userId, workbook);
+    this.posthogService.trackRemoveWorkbook(actor, workbook);
     await this.auditLogService.logEvent({
       actor,
       eventType: 'delete',
@@ -104,8 +104,10 @@ export class WorkbookService {
   }
 
   async discardChanges(workbookId: WorkbookId, actor: Actor, path?: string): Promise<void> {
-    await this.findOneOrThrow(workbookId, actor);
+    const workbook = await this.findOneOrThrow(workbookId, actor);
     await this.scratchGitService.discardChanges(workbookId, path);
+
+    this.posthogService.trackDiscardWorkbookChanges(actor, workbook, path);
 
     // Track event
     await this.auditLogService.logEvent({
@@ -221,6 +223,7 @@ export class WorkbookService {
       include: WorkbookCluster._validator.include,
     });
 
+    this.posthogService.trackUpdateWorkbook(actor, updatedWorkbook);
     this.workbookEventService.sendWorkbookEvent(id, { type: 'workbook-updated', data: { source: 'user' } });
 
     await this.auditLogService.logEvent({
@@ -238,7 +241,7 @@ export class WorkbookService {
 
   async pullFiles(id: WorkbookId, actor: Actor, dataFolderIds?: string[]): Promise<{ jobId: string }> {
     // Verify the workbook exists and the user has access
-    await this.findOneOrThrow(id, actor);
+    const workbook = await this.findOneOrThrow(id, actor);
 
     // Fetch data folders that have connectors (linked folders)
     let foldersToProcess = await this.db.client.dataFolder.findMany({
@@ -282,6 +285,10 @@ export class WorkbookService {
       });
       jobs.push({ id: job.id as string });
     }
+
+    this.posthogService.trackPullFilesForWorkbook(actor, workbook, {
+      dataFolderCount: foldersToProcess.length,
+    });
 
     // Return the first job ID for backward compatibility
     // TODO: Consider returning all job IDs in the future

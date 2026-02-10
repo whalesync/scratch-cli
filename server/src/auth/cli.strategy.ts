@@ -69,7 +69,7 @@ export class CliStrategy extends PassportStrategy(Strategy, 'CLI_STRATEGY') {
         const authenticatedUser: AuthenticatedUser = {
           ...user,
           authType: 'api-token',
-          authSource: 'user',
+          authSource: 'cli',
           apiToken: tokenUsed,
         };
         // Return the user - Passport will set req.user to this value

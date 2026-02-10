@@ -13,6 +13,8 @@ export interface SubscriptionStatus {
   subscriptionId?: SubscriptionId;
 }
 
+export type AuthSource = 'user' | 'agent' | 'cli';
+
 /**
  *
  * An Actor defines the user that is performing and action and the organization they are acting on behalf
@@ -22,6 +24,7 @@ export interface Actor {
   userId: string;
   organizationId: string;
   subscriptionStatus?: SubscriptionStatus;
+  authSource?: AuthSource;
 }
 
 export function userToActor(user: UserCluster.User): Actor {
@@ -64,10 +67,16 @@ export function userToActor(user: UserCluster.User): Actor {
     };
   }
 
+  let authSource: AuthSource = 'user';
+  if ('authSource' in user && typeof user.authSource === 'string') {
+    authSource = user.authSource as AuthSource;
+  }
+
   return {
     userId: user.id,
     organizationId: user.organizationId ?? '<empty org id>',
     subscriptionStatus,
+    authSource,
   };
 }
 

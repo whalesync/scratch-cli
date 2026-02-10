@@ -2,6 +2,7 @@ import { ScratchpadNotifications } from '@/app/components/ScratchpadNotification
 import { SyncDataFoldersPublicProgress } from '@/app/components/jobs/SyncStatus/SyncJobProgress';
 import { jobApi } from '@/lib/api/job';
 import { syncApi } from '@/lib/api/sync';
+import { trackRunSync } from '@/lib/posthog';
 import { JobEntity } from '@/types/server-entities/job';
 import { Sync, SyncId, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
@@ -43,6 +44,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
   runSync: async (workbookId: WorkbookId, syncId: SyncId) => {
     try {
       set({ workbookId }); // Ensure it's set
+      trackRunSync(syncId, workbookId);
       const { jobId } = await syncApi.run(workbookId, syncId);
 
       set((state) => ({

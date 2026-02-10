@@ -7,6 +7,8 @@ import {
   ValidatedCreateFileDto,
   ValidatedUpdateFileDto,
 } from '@spinner/shared-types';
+import { WorkbookCluster } from 'src/db/cluster-types';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { DbService } from '../db/db.service';
 import { DIRTY_BRANCH, MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { Actor } from '../users/types';
@@ -17,22 +19,25 @@ export class FilesService {
   constructor(
     private readonly db: DbService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   /**
-   * Verify that the actor has access to the workbook
+   * Verify that the actor has access to the workbook and return it (with cluster include for tracking).
    */
-  public async verifyWorkbookAccess(workbookId: WorkbookId, actor: Actor): Promise<void> {
+  public async verifyWorkbookAccess(workbookId: WorkbookId, actor: Actor): Promise<WorkbookCluster.Workbook> {
     const workbook = await this.db.client.workbook.findFirst({
       where: {
         id: workbookId,
         organizationId: actor.organizationId,
       },
+      include: WorkbookCluster._validator.include,
     });
 
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
     }
+    return workbook;
   }
 
   /**
@@ -43,7 +48,7 @@ export class FilesService {
     createFileDto: ValidatedCreateFileDto,
     actor: Actor,
   ): Promise<FileRefEntity> {
-    await this.verifyWorkbookAccess(workbookId, actor);
+    const workbook = await this.verifyWorkbookAccess(workbookId, actor);
 
     const content = createFileDto.content ?? '';
 
@@ -69,6 +74,8 @@ export class FilesService {
     const fullPath = (parentPath === '/' ? '' : parentPath) + '/' + createFileDto.name;
 
     await this.scratchGitService.commitFile(workbookId, fullPath, content, `Create file ${createFileDto.name}`);
+
+    this.posthogService.trackRecordCreated(actor, workbook, fullPath);
 
     const fileId = createFileId();
 
@@ -171,7 +178,7 @@ export class FilesService {
    * Used by the file agent's `rm` command.
    */
   async deleteFileByPathGit(workbookId: WorkbookId, path: string, actor: Actor): Promise<void> {
-    await this.verifyWorkbookAccess(workbookId, actor);
+    const workbook = await this.verifyWorkbookAccess(workbookId, actor);
 
     const existingFile = await this.getFileByPathGit(workbookId, path, actor);
 
@@ -179,6 +186,7 @@ export class FilesService {
       throw new NotFoundException(`Unable to find ${path}`);
     }
     await this.scratchGitService.deleteFile(workbookId, [path], `Delete ${path}`);
+    this.posthogService.trackRecordDeleted(actor, workbook, path);
   }
 
   /**
@@ -190,7 +198,7 @@ export class FilesService {
     updateFileDto: ValidatedUpdateFileDto,
     actor: Actor,
   ): Promise<void> {
-    await this.verifyWorkbookAccess(workbookId, actor);
+    const workbook = await this.verifyWorkbookAccess(workbookId, actor);
 
     if (updateFileDto.name) {
       throw new NotImplementedException('move and rename not supported yet');
@@ -198,6 +206,7 @@ export class FilesService {
 
     if (updateFileDto.content !== undefined && updateFileDto.content !== null) {
       await this.scratchGitService.commitFile(workbookId, path, updateFileDto.content, `Update ${path}`);
+      this.posthogService.trackRecordEdited(actor, workbook, path);
     }
   }
 }

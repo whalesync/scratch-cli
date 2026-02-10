@@ -21,6 +21,7 @@ describe('User Type Utilities', () => {
         role: UserRole.USER,
         stripeCustomerId: 'stripe_123',
         settings: {},
+        lastWorkbookId: null,
         apiTokens: [],
         organization: {
           id: 'org_789',
@@ -46,6 +47,7 @@ describe('User Type Utilities', () => {
       expect(actor).toEqual({
         userId: 'user_123',
         organizationId: 'org_789',
+        authSource: 'user',
         subscriptionStatus: {
           planType: 'FREE_PLAN',
           status: 'active',
@@ -68,6 +70,7 @@ describe('User Type Utilities', () => {
         role: UserRole.USER,
         stripeCustomerId: 'stripe_123',
         settings: {},
+        lastWorkbookId: null,
         apiTokens: [],
         organization: null,
       };

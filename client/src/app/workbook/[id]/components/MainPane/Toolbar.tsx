@@ -12,7 +12,7 @@ import { useDataFolders } from '@/hooks/use-data-folders';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
-import { trackToggleDisplayMode } from '@/lib/posthog';
+import { trackDiscardChanges, trackPublishAll, trackPullFiles, trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -90,6 +90,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
   const handlePullAll = useCallback(async () => {
     setIsPulling(true);
+    trackPullFiles(workbook.id);
     try {
       await workbookApi.pullFiles(workbook.id);
       router.refresh();
@@ -124,6 +125,8 @@ export function Toolbar({ workbook }: ToolbarProps) {
         });
       });
 
+      trackPublishAll(workbook.id, dataFolderIds.length);
+
       if (dataFolderIds.length > 0) {
         await dataFolderApi.publish(dataFolderIds, workbook.id);
       }
@@ -140,6 +143,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
     if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;
 
     setIsDiscarding(true);
+    trackDiscardChanges(workbook.id);
     try {
       await workbookApi.discardChanges(workbook.id);
       router.refresh();

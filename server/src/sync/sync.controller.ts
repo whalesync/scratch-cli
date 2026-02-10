@@ -17,6 +17,7 @@ import { CreateSyncDto, UpdateSyncDto, ValidateMappingDto } from '@spinner/share
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { userToActor } from 'src/users/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { SyncService } from './sync.service';
@@ -29,6 +30,7 @@ export class SyncController {
     private readonly syncService: SyncService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly dbService: DbService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   @Post()
@@ -69,10 +71,27 @@ export class SyncController {
       throw new NotFoundException(`Workbook ${workbookId} not found`);
     }
 
+    const sync = await this.dbService.client.sync.findFirst({
+      where: {
+        id: syncId,
+        syncTablePairs: {
+          some: {
+            sourceDataFolder: { workbookId },
+          },
+        },
+      },
+    });
+
+    if (!sync) {
+      throw new NotFoundException(`Sync ${syncId} not found`);
+    }
+
     const job = await this.bullEnqueuerService.enqueueSyncDataFoldersJob(workbookId, syncId, {
       userId: req.user.id,
       organizationId: req.user.organizationId ?? workbook.organizationId,
     });
+
+    this.posthogService.trackStartSyncRun(userToActor(req.user), sync);
 
     return {
       success: true,

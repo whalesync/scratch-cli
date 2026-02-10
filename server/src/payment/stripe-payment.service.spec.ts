@@ -49,6 +49,7 @@ const mockDbService = {
 
 const mockPostHogService = {
   trackTrialStarted: jest.fn(),
+  trackSubscriptionChanged: jest.fn(),
   trackSubscriptionCancelled: jest.fn(),
 } as unknown as PostHogService;
 
@@ -227,7 +228,10 @@ describe('StripePaymentService', () => {
           }),
         }),
       );
-      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith('usr_test123', ScratchPlanType.PRO_PLAN);
+      expect(mockPostHogService.trackTrialStarted).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'usr_test123' }),
+        ScratchPlanType.PRO_PLAN,
+      );
     });
 
     it('should create new customer if user does not have one', async () => {

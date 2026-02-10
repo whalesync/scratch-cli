@@ -10,6 +10,7 @@ import {
   WorkbookId,
 } from '@spinner/shared-types';
 import { DbService } from 'src/db/db.service';
+import { PostHogService } from 'src/posthog/posthog.service';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { SyncService } from 'src/sync/sync.service';
 import { Actor } from 'src/users/types';
@@ -48,7 +49,7 @@ describe('SyncService - fillSyncCaches', () => {
     scratchGitService = {} as unknown as ScratchGitService;
 
     // Create SyncService instance (workbookService not needed for these tests)
-    syncService = new SyncService(dbService, dataFolderService, scratchGitService, {} as never);
+    syncService = new SyncService(dbService, dataFolderService, {} as PostHogService, scratchGitService, {} as never);
 
     // Create test organization
     const org = await prisma.organization.create({
@@ -288,7 +289,7 @@ describe('SyncService - syncTableMapping', () => {
         }),
     } as unknown as ScratchGitService;
 
-    syncService = new SyncService(dbService, dataFolderService, scratchGitService, {} as never);
+    syncService = new SyncService(dbService, dataFolderService, {} as PostHogService, scratchGitService, {} as never);
 
     // Create test organization
     const org = await prisma.organization.create({

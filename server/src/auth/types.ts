@@ -10,7 +10,7 @@ import { UserCluster } from 'src/db/cluster-types';
  */
 export type AuthenticatedUser = UserCluster.User & {
   authType: 'api-token' | 'agent-token' | 'jwt';
-  authSource: 'user' | 'agent';
+  authSource: 'user' | 'agent' | 'cli';
   clerkUser?: ClerkUser;
   apiToken?: APIToken;
 };
