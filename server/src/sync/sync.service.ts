@@ -22,10 +22,10 @@ import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
 import { WSLogger } from 'src/logger';
 import { PostHogService } from 'src/posthog/posthog.service';
-import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connectors/types';
+import { BaseJsonTableSpec } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { validateSchemaMapping } from 'src/sync/schema-validator';
-import { createLookupTools, getTransformer, LookupTools, TransformContext } from 'src/sync/transformers';
+import { createLookupTools, getTransformer, LookupTools, SyncRecord, TransformContext } from 'src/sync/transformers';
 import { Actor } from 'src/users/types';
 import { formatJsonWithPrettier } from 'src/utils/json-formatter';
 import { DataFolderService } from 'src/workbook/data-folder.service';
@@ -341,8 +341,8 @@ export class SyncService {
     workbookId: WorkbookId,
     actor: Actor,
   ): Promise<{
-    sourceRecords: ConnectorRecord[];
-    destinationRecords: ConnectorRecord[];
+    sourceRecords: SyncRecord[];
+    destinationRecords: SyncRecord[];
     destinationIdToFilePath: Map<string, string>;
   }> {
     // Get idColumnRemoteId from schemas
@@ -387,8 +387,8 @@ export class SyncService {
   async fillSyncCaches(
     syncId: SyncId,
     tableMapping: TableMapping,
-    sourceRecords: ConnectorRecord[],
-    destinationRecords: ConnectorRecord[],
+    sourceRecords: SyncRecord[],
+    destinationRecords: SyncRecord[],
   ): Promise<void> {
     // Insert match keys for both sides
     await this.insertSourceMatchKeys(syncId, tableMapping, sourceRecords);
@@ -703,19 +703,19 @@ export class SyncService {
   // ============================================================================
 
   /**
-   * Inserts match keys for a batch of ConnectorRecords.
+   * Inserts match keys for a batch of SyncRecords.
    * Extracts the value from the specified column and stores it as the matchId,
    * along with the record's remote ID for efficient lookup later.
    *
    * @param syncId - The sync ID
    * @param dataFolderId - The DataFolder ID (source or destination)
-   * @param records - The ConnectorRecords to extract match keys from
+   * @param records - The SyncRecords to extract match keys from
    * @param matchColumnId - The column ID to extract match values from
    */
   private async insertMatchKeys(
     syncId: SyncId,
     dataFolderId: DataFolderId,
-    records: ConnectorRecord[],
+    records: SyncRecord[],
     matchColumnId: string,
   ): Promise<void> {
     const matchKeys = records
@@ -750,7 +750,7 @@ export class SyncService {
   private async insertSourceMatchKeys(
     syncId: SyncId,
     tableMapping: TableMapping,
-    records: ConnectorRecord[],
+    records: SyncRecord[],
   ): Promise<void> {
     if (!tableMapping.recordMatching) {
       throw new Error('TableMapping must have recordMatching configured');
@@ -769,7 +769,7 @@ export class SyncService {
   private async insertDestinationMatchKeys(
     syncId: SyncId,
     tableMapping: TableMapping,
-    records: ConnectorRecord[],
+    records: SyncRecord[],
   ): Promise<void> {
     if (!tableMapping.recordMatching) {
       throw new Error('TableMapping must have recordMatching configured');
@@ -885,9 +885,9 @@ export class SyncService {
  *
  * @param file - The file content to parse
  * @param idColumnRemoteId - The column ID to use as the record ID (from schema.idColumnRemoteId)
- * @returns A ConnectorRecord with the ID extracted from the specified column
+ * @returns A SyncRecord with the ID extracted from the specified column
  */
-function parseFileToRecord(file: FileContent, idColumnRemoteId: string): ConnectorRecord {
+function parseFileToRecord(file: FileContent, idColumnRemoteId: string): SyncRecord {
   const fields: Record<string, unknown> = {};
 
   if (file.content) {
@@ -921,7 +921,7 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): Connect
  * @returns Transformed fields for the destination record
  */
 async function transformRecordAsync(
-  sourceRecord: ConnectorRecord,
+  sourceRecord: SyncRecord,
   columnMappings: AnyColumnMapping[],
   lookupTools?: LookupTools,
 ): Promise<Record<string, unknown>> {

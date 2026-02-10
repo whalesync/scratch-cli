@@ -1,13 +1,15 @@
 # Code style
 
 - Do not use `as any` to solve type issues
+- Do not use console.log, etc. to log. Instead, use WSLogger.info|warn|error.
 
 # Workflow
 
-- Be sure to typecheck when you’re done making a series of code changes
-- Run the formatter (i.e. prettier) when you’re done making a series of code changes
-- Regularly run the linter on strict mode for code changes
+- Be sure to test the build with `yarn run build` when you’re done making a series of code changes
+- Run the formatter with `yarn run format` when you’re done making a series of code changes
+- Regularly run the linter with `yarn run lint-strict` for code changes
 - Prefer running single tests, and not the whole test suite, for performance
+- Run the integration tests with `yarn run test:integration` when you're done making a series of code changes.
 
 # Analytics and Tracking
 

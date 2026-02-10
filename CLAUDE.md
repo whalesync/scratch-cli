@@ -57,6 +57,19 @@ server/, client/). You DON'T need to source `~/.nvm/nvm.sh`.
 
 ### Common Commands
 
+This monorepo uses Turborepo. Prefer running commands from the **root directory**:
+
+```bash
+yarn dev              # Start all dev servers (client, server, scratch-git, shared-types watch)
+yarn build            # Build all packages with caching and correct dependency ordering
+yarn lint             # Run linting across all packages
+yarn format           # Reformat code across all packages
+yarn test             # Run tests across all packages
+yarn test:integration # Run integration tests across all packages
+```
+
+You can still run commands in individual packages if needed:
+
 **Client:**
 
 ```bash

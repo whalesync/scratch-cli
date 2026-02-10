@@ -1,10 +1,9 @@
 import { StringToNumberOptions } from '@spinner/shared-types';
-import { ConnectorRecord } from 'src/remote-service/connectors/types';
 import { stringToNumberTransformer } from '../implementations/string-to-number.transformer';
-import { TransformContext } from '../transformer.types';
+import { SyncRecord, TransformContext } from '../transformer.types';
 
 function createContext(sourceValue: unknown, options: StringToNumberOptions = {}): TransformContext {
-  const sourceRecord: ConnectorRecord = { id: 'test', fields: { value: sourceValue } };
+  const sourceRecord: SyncRecord = { id: 'test', fields: { value: sourceValue } };
   return {
     sourceRecord,
     sourceFieldPath: 'value',

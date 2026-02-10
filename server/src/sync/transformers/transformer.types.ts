@@ -1,5 +1,13 @@
 import { DataFolderId, TransformerOptions, TransformerType } from '@spinner/shared-types';
-import { ConnectorRecord } from 'src/remote-service/connectors/types';
+
+/**
+ * A record used within the sync subsystem.
+ * Parsed from JSON files and re-serialized the same way.
+ */
+export interface SyncRecord {
+  id: string;
+  fields: Record<string, unknown>;
+}
 
 /**
  * Tools for looking up related records during transformation.
@@ -37,7 +45,7 @@ export interface LookupTools {
  */
 export interface TransformContext {
   /** The full source record being transformed */
-  sourceRecord: ConnectorRecord;
+  sourceRecord: SyncRecord;
 
   /** Path to the field being transformed (e.g. 'company.name') */
   sourceFieldPath: string;
