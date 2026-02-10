@@ -1,10 +1,10 @@
+import { getTerminalTableStatus } from '@/app/components/jobs/job-utils';
+import { TableStatus } from '@/app/components/jobs/publish/PublishJobProgress';
 import {
   PullProgress,
   isPullFilesProgress,
   isPullLinkedFolderFilesProgress,
 } from '@/app/components/jobs/pull/PullJobProgress';
-import { getTerminalTableStatus } from '@/app/components/jobs/job-utils';
-import { TableStatus } from '@/app/components/jobs/publish/PublishJobProgress';
 import { SyncStatus } from '@/app/components/jobs/SyncStatus/sync-status';
 import { getServiceName } from '@/service-naming-conventions';
 import { JobEntity } from '@/types/server-entities/job';

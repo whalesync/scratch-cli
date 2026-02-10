@@ -1,13 +1,7 @@
 'use client';
 
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
-import {
-  Button,
-  Group,
-  Modal,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import type { ConnectorAccount, WorkbookId } from '@spinner/shared-types';
 import { useState } from 'react';
 
@@ -46,8 +40,8 @@ export function RemoveConnectionModal({
     <Modal opened={opened} onClose={onClose} title="Remove Connection" size="sm" centered>
       <Stack gap="md">
         <Text size="sm">
-          Are you sure you want to remove the connection &quot;{connectorAccount.displayName}&quot;?
-          This will also remove all linked tables and their local data.
+          Are you sure you want to remove the connection &quot;{connectorAccount.displayName}&quot;? This will also
+          remove all linked tables and their local data.
         </Text>
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" color="gray" onClick={onClose}>

@@ -37,9 +37,7 @@ export const DataFolderSelectorModal: FC<Props> = (props) => {
         setSelectedFolderIds(validInitialIds);
       } else {
         // Auto-select all available (non-locked) folders
-        const allAvailableIds = foldersWithChanges
-          .filter((f) => !f.lock)
-          .map((f) => f.folderId);
+        const allAvailableIds = foldersWithChanges.filter((f) => !f.lock).map((f) => f.folderId);
         setSelectedFolderIds(allAvailableIds);
       }
     }

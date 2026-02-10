@@ -4,17 +4,7 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text13Medium, Text13Regular } from '@/app/components/base/text';
 import { useWorkbooks } from '@/hooks/use-workbooks';
 import { usersApi } from '@/lib/api/users';
-import {
-  Box,
-  Button,
-  Group,
-  Menu,
-  Modal,
-  Stack,
-  TextInput,
-  Tooltip,
-  UnstyledButton,
-} from '@mantine/core';
+import { Box, Button, Group, Menu, Modal, Stack, TextInput, Tooltip, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { Workbook, WorkbookId } from '@spinner/shared-types';
 import { CheckIcon, ChevronDownIcon, PencilIcon, PlusIcon } from 'lucide-react';

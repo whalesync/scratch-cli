@@ -7,6 +7,36 @@
 📚 **UI System Guide**: `src/app/components/UI_SYSTEM.md`
 🎨 **Visual Gallery**: http://localhost:3000/dev/gallery (`src/app/dev/gallery/page.tsx`)
 
+## Confirmation Dialogs
+
+**NEVER** use native `confirm()` or `alert()` dialogs. Always use the `ConfirmDialog` component:
+
+```tsx
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
+
+const { open, dialogProps } = useConfirmDialog();
+
+// For destructive actions (delete, discard, reset)
+open({
+  title: 'Delete Item',
+  message: 'Are you sure? This cannot be undone.',
+  confirmLabel: 'Delete',
+  variant: 'danger',
+  onConfirm: async () => { await deleteItem(); },
+});
+
+// For non-destructive confirmations (publish, submit)
+open({
+  title: 'Publish Changes',
+  message: 'Are you sure you want to publish?',
+  confirmLabel: 'Publish',
+  variant: 'primary',
+  onConfirm: async () => { await publish(); },
+});
+
+return <ConfirmDialog {...dialogProps} />;
+```
+
 ## State management
 
 - Server-side entities are stored in the SWR cache. They **must** not be cached anywhere else.

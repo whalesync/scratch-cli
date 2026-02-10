@@ -1,8 +1,8 @@
 'use client';
 
+import type { SyncId, WorkbookId } from '@spinner/shared-types';
 import { useParams } from 'next/navigation';
 import { SyncEditor } from '../../components/MainPane/SyncEditor';
-import type { SyncId, WorkbookId } from '@spinner/shared-types';
 
 export default function SyncDetailPage() {
   const params = useParams<{ id: string; syncId: string }>();

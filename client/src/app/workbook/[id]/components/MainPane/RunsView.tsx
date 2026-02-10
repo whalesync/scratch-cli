@@ -1,26 +1,15 @@
 'use client';
 
-import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
-import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
 import { IconButtonToolbar } from '@/app/components/base/buttons';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Regular, Text13Medium } from '@/app/components/base/text';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
+import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';
 import { JobEntity } from '@/types/server-entities/job';
 import { timeAgo } from '@/utils/helpers';
-import {
-  Center,
-  Group,
-  JsonInput,
-  Loader,
-  Modal,
-  ScrollArea,
-  Stack,
-  Table,
-  Text,
-  UnstyledButton,
-} from '@mantine/core';
+import { Center, Group, JsonInput, Loader, Modal, ScrollArea, Stack, Table, Text, UnstyledButton } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
 import { AlertCircleIcon, ClockIcon, RefreshCwIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -97,9 +86,10 @@ const getStatusLabel = (status: JobEntity['state']): string => {
 
 const getJobDescription = (job: JobEntity): string => {
   const jobType = getJobType(job.type);
-  const progress = (job.publicProgress && typeof job.publicProgress === 'object')
-    ? job.publicProgress as Record<string, unknown>
-    : null;
+  const progress =
+    job.publicProgress && typeof job.publicProgress === 'object'
+      ? (job.publicProgress as Record<string, unknown>)
+      : null;
 
   switch (jobType) {
     case 'sync': {

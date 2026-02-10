@@ -1,7 +1,7 @@
 'use client';
 
 import { Box } from '@mantine/core';
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ResizeHandleProps {
   onResizeStart: () => void;

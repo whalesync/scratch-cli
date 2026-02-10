@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  Button,
-  Group,
-  Modal,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import type { DataFolder } from '@spinner/shared-types';
 import { useState } from 'react';
 
@@ -32,9 +26,7 @@ export function DeleteFolderModal({ opened, onClose, folder, onConfirm }: Delete
   return (
     <Modal opened={opened} onClose={onClose} title="Delete Folder" size="sm" centered>
       <Stack gap="md">
-        <Text size="sm">
-          Are you sure you want to delete &quot;{folder.name}&quot;? This action cannot be undone.
-        </Text>
+        <Text size="sm">Are you sure you want to delete &quot;{folder.name}&quot;? This action cannot be undone.</Text>
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" color="gray" onClick={onClose}>
             Cancel

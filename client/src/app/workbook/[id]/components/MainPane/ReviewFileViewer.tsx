@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
-import { MergeEditor } from '../shared/MergeEditor';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useFileByPath } from '@/hooks/use-file-path';
 import { dataFolderApi } from '@/lib/api/data-folder';
@@ -14,6 +13,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { CloudUploadIcon, RotateCcwIcon, SaveIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
+import { MergeEditor } from '../shared/MergeEditor';
 
 type ViewMode = 'split' | 'unified';
 
@@ -38,6 +39,9 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
 
   // View mode state - default to split (side-by-side)
   const [viewMode, setViewMode] = useState<ViewMode>('split');
+
+  // Confirm dialog
+  const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
 
   const originalContent = fileResponse?.file?.originalContent ?? '';
 
@@ -79,23 +83,30 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
     }
   }, [filePath, hasChanges, content, updateFile]);
 
-  const handleDiscard = useCallback(async () => {
+  const handleDiscard = useCallback(() => {
     if (!filePath) return;
-    if (!confirm(`Are you sure you want to discard changes to this file? This cannot be undone.`)) return;
 
-    setIsDiscarding(true);
-    try {
-      await workbookApi.discardChanges(workbookId, filePath);
-      // Refresh the file data
-      await refreshFile();
-      // Navigate back to review page since this file is no longer modified
-      router.push(`/workbook/${workbookId}/review`);
-    } catch (error) {
-      console.debug('Failed to discard changes:', error);
-    } finally {
-      setIsDiscarding(false);
-    }
-  }, [filePath, workbookId, refreshFile, router]);
+    openConfirmDialog({
+      title: 'Discard Changes',
+      message: 'Are you sure you want to discard changes to this file? This cannot be undone.',
+      confirmLabel: 'Discard',
+      variant: 'danger',
+      onConfirm: async () => {
+        setIsDiscarding(true);
+        try {
+          await workbookApi.discardChanges(workbookId, filePath);
+          // Refresh the file data
+          await refreshFile();
+          // Navigate back to review page since this file is no longer modified
+          router.push(`/workbook/${workbookId}/review`);
+        } catch (error) {
+          console.debug('Failed to discard changes:', error);
+        } finally {
+          setIsDiscarding(false);
+        }
+      },
+    });
+  }, [filePath, workbookId, refreshFile, router, openConfirmDialog]);
 
   const handlePublish = useCallback(async () => {
     if (!filePath) return;
@@ -223,11 +234,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
           >
             Publish this file
           </ButtonCompactPrimary>
-          <ButtonCompactDanger
-            leftSection={<RotateCcwIcon size={12} />}
-            onClick={handleDiscard}
-            loading={isDiscarding}
-          >
+          <ButtonCompactDanger leftSection={<RotateCcwIcon size={12} />} onClick={handleDiscard} loading={isDiscarding}>
             Discard
           </ButtonCompactDanger>
           {hasChanges && (
@@ -288,6 +295,9 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
           />
         )}
       </Box>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </Box>
   );
 }

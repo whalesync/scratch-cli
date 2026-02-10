@@ -3,8 +3,8 @@
 import { ButtonPrimaryLight, ButtonSecondaryOutline } from '@/app/components/base/buttons';
 import { Text13Medium, Text13Regular, TextTitle2 } from '@/app/components/base/text';
 import { FullPageLoader } from '@/app/components/FullPageLoader';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { useWorkbooks } from '@/hooks/use-workbooks';
+import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { usersApi } from '@/lib/api/users';
 import { workbookApi } from '@/lib/api/workbook';
 import { Box, Center, Divider, Group, Stack, TextInput, UnstyledButton } from '@mantine/core';

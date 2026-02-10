@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { DebugMenu } from './DebugMenu';
@@ -72,6 +73,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
   // Dirty files for review mode
   const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
 
+  // Confirm dialog
+  const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
+
   // Fetch dirty files when in review mode
   useEffect(() => {
     if (!isReviewPage) return;
@@ -101,58 +105,70 @@ export function Toolbar({ workbook }: ToolbarProps) {
     }
   }, [workbook.id, router]);
 
-  const handlePublishAll = useCallback(async () => {
-    if (!confirm('Are you sure you want to publish all changes?')) return;
+  const handlePublishAll = useCallback(() => {
+    openConfirmDialog({
+      title: 'Publish All Changes',
+      message: 'Are you sure you want to publish all changes?',
+      confirmLabel: 'Publish',
+      variant: 'primary',
+      onConfirm: async () => {
+        setIsPublishing(true);
+        try {
+          // Get unique folder names from dirty files
+          const dirtyFolderNames = new Set<string>();
+          dirtyFiles.forEach((file) => {
+            const folderName = file.path.split('/')[0];
+            if (folderName) {
+              dirtyFolderNames.add(folderName);
+            }
+          });
 
-    setIsPublishing(true);
-    try {
-      // Get unique folder names from dirty files
-      const dirtyFolderNames = new Set<string>();
-      dirtyFiles.forEach((file) => {
-        const folderName = file.path.split('/')[0];
-        if (folderName) {
-          dirtyFolderNames.add(folderName);
-        }
-      });
+          // Find dataFolderIds for dirty folders
+          const dataFolderIds: DataFolderId[] = [];
+          dataFolderGroups.forEach((group) => {
+            group.dataFolders.forEach((folder) => {
+              if (dirtyFolderNames.has(folder.name)) {
+                dataFolderIds.push(folder.id);
+              }
+            });
+          });
 
-      // Find dataFolderIds for dirty folders
-      const dataFolderIds: DataFolderId[] = [];
-      dataFolderGroups.forEach((group) => {
-        group.dataFolders.forEach((folder) => {
-          if (dirtyFolderNames.has(folder.name)) {
-            dataFolderIds.push(folder.id);
+          trackPublishAll(workbook.id, dataFolderIds.length);
+
+          if (dataFolderIds.length > 0) {
+            await dataFolderApi.publish(dataFolderIds, workbook.id);
           }
-        });
-      });
 
-      trackPublishAll(workbook.id, dataFolderIds.length);
+          router.refresh();
+        } catch (error) {
+          console.debug('Failed to publish changes:', error);
+        } finally {
+          setIsPublishing(false);
+        }
+      },
+    });
+  }, [workbook.id, router, dirtyFiles, dataFolderGroups, openConfirmDialog]);
 
-      if (dataFolderIds.length > 0) {
-        await dataFolderApi.publish(dataFolderIds, workbook.id);
-      }
-
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to publish changes:', error);
-    } finally {
-      setIsPublishing(false);
-    }
-  }, [workbook.id, router, dirtyFiles, dataFolderGroups]);
-
-  const handleDiscardAll = useCallback(async () => {
-    if (!confirm('Are you sure you want to discard all unpublished changes? This cannot be undone.')) return;
-
-    setIsDiscarding(true);
-    trackDiscardChanges(workbook.id);
-    try {
-      await workbookApi.discardChanges(workbook.id);
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to discard changes:', error);
-    } finally {
-      setIsDiscarding(false);
-    }
-  }, [workbook.id, router]);
+  const handleDiscardAll = useCallback(() => {
+    openConfirmDialog({
+      title: 'Discard All Changes',
+      message: 'Are you sure you want to discard all unpublished changes? This cannot be undone.',
+      confirmLabel: 'Discard',
+      variant: 'danger',
+      onConfirm: async () => {
+        setIsDiscarding(true);
+        trackDiscardChanges(workbook.id);
+        try {
+          await workbookApi.discardChanges(workbook.id);
+          router.refresh();
+        } catch (error) {
+          console.debug('Failed to discard changes:', error);
+        } finally {
+          setIsDiscarding(false);
+        }
+      },
+    });
+  }, [workbook.id, router, openConfirmDialog]);
 
   const toggleColorScheme = () => {
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';
@@ -310,6 +326,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
       {/* CLI Modal */}
       <ConnectToCLIModal opened={cliModalOpened} onClose={closeCLIModal} workbookId={workbook.id} />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </Box>
   );
 }

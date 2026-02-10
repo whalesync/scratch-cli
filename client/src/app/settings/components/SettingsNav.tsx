@@ -117,7 +117,10 @@ export function SettingsNav() {
         <>
           <Divider my="sm" color="var(--fg-divider)" />
           <Box px="sm" py={6}>
-            <Text12Medium c="var(--mantine-color-devTool-6)" style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Text12Medium
+              c="var(--mantine-color-devTool-6)"
+              style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}
+            >
               Dev Tools
             </Text12Medium>
           </Box>

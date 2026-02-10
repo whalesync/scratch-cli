@@ -2,14 +2,7 @@
 
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { workbookApi } from '@/lib/api/workbook';
-import {
-  Button,
-  Checkbox,
-  Group,
-  Modal,
-  Stack,
-  TextInput,
-} from '@mantine/core';
+import { Button, Checkbox, Group, Modal, Stack, TextInput } from '@mantine/core';
 import type { DataFolder, WorkbookId } from '@spinner/shared-types';
 import { useEffect, useState } from 'react';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { Box } from '@mantine/core';
 import { Text13Regular } from '@/app/components/base/text';
+import { Box } from '@mantine/core';
 
 export default function ReviewPage() {
   return (

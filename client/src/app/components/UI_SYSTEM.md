@@ -587,6 +587,66 @@ export const ButtonCustomVariant = withProps(Button, { variant: 'outline', color
 
 ---
 
+## Dialogs and Modals
+
+### Confirmation Dialogs
+
+**IMPORTANT**: Never use native `confirm()` or `alert()` dialogs. Always use the `ConfirmDialog` component for user confirmations.
+
+```typescript
+import { ConfirmDialog, useConfirmDialog } from '@/components/modals/ConfirmDialog';
+
+// In your component
+const { open, dialogProps } = useConfirmDialog();
+
+// Primary confirmation (non-destructive action)
+const handlePublish = () => {
+  open({
+    title: 'Publish Changes',
+    message: 'Are you sure you want to publish all changes?',
+    confirmLabel: 'Publish',
+    variant: 'primary',
+    onConfirm: async () => {
+      await publishChanges();
+    },
+  });
+};
+
+// Danger confirmation (destructive action)
+const handleDelete = () => {
+  open({
+    title: 'Delete Item',
+    message: 'Are you sure you want to delete this item? This action cannot be undone.',
+    confirmLabel: 'Delete',
+    variant: 'danger',
+    onConfirm: async () => {
+      await deleteItem();
+    },
+  });
+};
+
+return (
+  <>
+    <Button onClick={handlePublish}>Publish</Button>
+    <Button onClick={handleDelete}>Delete</Button>
+    <ConfirmDialog {...dialogProps} />
+  </>
+);
+```
+
+### ConfirmDialog Props
+
+| Prop           | Type                      | Default     | Description                              |
+| -------------- | ------------------------- | ----------- | ---------------------------------------- |
+| `title`        | `string`                  | required    | Dialog title                             |
+| `message`      | `ReactNode`               | required    | Dialog body content                      |
+| `confirmLabel` | `string`                  | `'Confirm'` | Text for confirm button                  |
+| `cancelLabel`  | `string`                  | `'Cancel'`  | Text for cancel button                   |
+| `variant`      | `'primary'` \| `'danger'` | `'primary'` | Button style (green primary or red danger) |
+| `onConfirm`    | `() => Promise<void>`     | required    | Async action to perform on confirm       |
+
+---
+
 ## Common Scenarios
 
 ### Scenario 1: Creating a Table Page

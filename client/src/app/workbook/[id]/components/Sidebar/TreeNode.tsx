@@ -45,7 +45,13 @@ interface ConnectionNodeProps {
   dirtyFilePaths?: Set<string>;
 }
 
-export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'files', dirtyFilePaths }: ConnectionNodeProps) {
+export function ConnectionNode({
+  group,
+  workbookId,
+  connectorAccount,
+  mode = 'files',
+  dirtyFilePaths,
+}: ConnectionNodeProps) {
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const router = useRouter();
@@ -202,8 +208,12 @@ export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'fi
                   alignItems: 'center',
                   opacity: 0.5,
                 }}
-                onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-                onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.5'; }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '1';
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '0.5';
+                }}
               >
                 <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
               </Box>
@@ -214,27 +224,26 @@ export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'fi
 
       <Collapse in={isExpanded}>
         <Stack gap={0} pl={INDENT_PX}>
-          {group.dataFolders.length === 0 ? (
-            mode === 'files' && connectorAccount && (
-              <Box pl={INDENT_PX + 14} py={4}>
-                <UnstyledButton onClick={openChooseTables}>
-                  <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
-                    Choose tables
-                  </Text12Regular>
-                </UnstyledButton>
-              </Box>
-            )
-          ) : (
-            group.dataFolders.map((folder) => (
-              <TableNode
-                key={folder.id}
-                folder={folder}
-                workbookId={workbookId}
-                mode={mode}
-                dirtyFilePaths={dirtyFilePaths}
-              />
-            ))
-          )}
+          {group.dataFolders.length === 0
+            ? mode === 'files' &&
+              connectorAccount && (
+                <Box pl={INDENT_PX + 14} py={4}>
+                  <UnstyledButton onClick={openChooseTables}>
+                    <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
+                      Choose tables
+                    </Text12Regular>
+                  </UnstyledButton>
+                </Box>
+              )
+            : group.dataFolders.map((folder) => (
+                <TableNode
+                  key={folder.id}
+                  folder={folder}
+                  workbookId={workbookId}
+                  mode={mode}
+                  dirtyFilePaths={dirtyFilePaths}
+                />
+              ))}
         </Stack>
       </Collapse>
 
@@ -248,7 +257,9 @@ export function ConnectionNode({ group, workbookId, connectorAccount, mode = 'fi
           ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
           { type: 'divider' as const },
           { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
-          ...(connectorAccount && !isScratch ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }] : []),
+          ...(connectorAccount && !isScratch
+            ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }]
+            : []),
         ]}
       />
 
@@ -444,7 +455,10 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
           {/* Hidden count indicator - links to folder view */}
           {hiddenCount > 0 && (
             <Box ml={INDENT_PX} py={4}>
-              <Link href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`} style={{ textDecoration: 'none' }}>
+              <Link
+                href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`}
+                style={{ textDecoration: 'none' }}
+              >
                 <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
                   {hiddenCount} more...
                 </Text12Regular>
@@ -468,27 +482,24 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         position={contextMenu ?? { x: 0, y: 0 }}
         items={[
           { label: 'Pull this table', icon: DownloadIcon, onClick: handlePullTable },
-          { label: 'New File', icon: FilePlusIcon, onClick: () => { openNewFileModal(); setContextMenu(null); } },
+          {
+            label: 'New File',
+            icon: FilePlusIcon,
+            onClick: () => {
+              openNewFileModal();
+              setContextMenu(null);
+            },
+          },
           { type: 'divider' },
           { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
         ]}
       />
 
       {/* New File Modal */}
-      <NewFileModal
-        opened={newFileModalOpened}
-        onClose={closeNewFileModal}
-        folder={folder}
-        workbookId={workbookId}
-      />
+      <NewFileModal opened={newFileModalOpened} onClose={closeNewFileModal} folder={folder} workbookId={workbookId} />
 
       {/* Remove Table Modal */}
-      <RemoveTableModal
-        opened={removeModalOpened}
-        onClose={closeRemoveModal}
-        folder={folder}
-        workbookId={workbookId}
-      />
+      <RemoveTableModal opened={removeModalOpened} onClose={closeRemoveModal} folder={folder} workbookId={workbookId} />
     </>
   );
 }
@@ -636,11 +647,7 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
         }}
       >
         <Group gap={6} wrap="nowrap">
-          <StyledLucideIcon
-            Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon}
-            size="sm"
-            c="var(--fg-secondary)"
-          />
+          <StyledLucideIcon Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon} size="sm" c="var(--fg-secondary)" />
 
           {/* Icon */}
           <ConnectorIcon connector={connectorAccount.service} size={16} p={0} />
@@ -676,8 +683,12 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
               alignItems: 'center',
               opacity: 0.5,
             }}
-            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.5'; }}
+            onMouseOver={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = '1';
+            }}
+            onMouseOut={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = '0.5';
+            }}
           >
             <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
           </Box>

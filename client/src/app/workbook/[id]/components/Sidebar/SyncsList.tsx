@@ -59,9 +59,7 @@ export function SyncsList({ workbookId }: SyncsListProps) {
         </UnstyledButton>
 
         {/* Divider */}
-        {syncs.length > 0 && (
-          <Box my="xs" mx="sm" style={{ borderBottom: '1px solid var(--fg-divider)' }} />
-        )}
+        {syncs.length > 0 && <Box my="xs" mx="sm" style={{ borderBottom: '1px solid var(--fg-divider)' }} />}
 
         {/* Sync list */}
         {syncs.map((sync) => (
@@ -128,8 +126,12 @@ function SyncItem({ sync, workbookId, isActive, isRunning }: SyncItemProps) {
                 opacity: isRunning ? 0.5 : 0.6,
                 flexShrink: 0,
               }}
-              onMouseOver={(e) => { if (!isRunning) (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.opacity = isRunning ? '0.5' : '0.6'; }}
+              onMouseOver={(e) => {
+                if (!isRunning) (e.currentTarget as HTMLElement).style.opacity = '1';
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = isRunning ? '0.5' : '0.6';
+              }}
             >
               {isRunning ? (
                 <RefreshCwIcon

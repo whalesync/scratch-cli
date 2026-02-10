@@ -1,50 +1,5 @@
 'use client';
 
-import { ConfigSection } from '@/app/components/ConfigSection';
-import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
-import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
-import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
-import { LabelValuePair } from '@/app/components/LabelValuePair';
-import MainContent from '@/app/components/layouts/MainContent';
-import {
-  Alert,
-  Anchor,
-  Box,
-  Checkbox,
-  Code,
-  ColorSwatch,
-  Divider,
-  Group,
-  Kbd,
-  List,
-  Loader,
-  Menu,
-  Popover,
-  Stack,
-  Tooltip,
-  useComputedColorScheme,
-} from '@mantine/core';
-import { Service } from '@spinner/shared-types';
-import {
-  AlertTriangle,
-  AlignEndHorizontal,
-  Ambulance,
-  Bird,
-  BookMarked,
-  BrainIcon,
-  CheckIcon,
-  CircleCheckBigIcon,
-  Home,
-  LayoutGridIcon,
-  MessageSquareIcon,
-  MoonStar,
-  PenLineIcon,
-  Plus,
-  Settings,
-  Trash2,
-} from 'lucide-react';
-import Image from 'next/image';
-import { ReactNode, useEffect, useRef, useState } from 'react';
 import { ActionIconThreeDots } from '@/app/components/base/action-icons';
 import { Badge, BadgeError, BadgeOK } from '@/app/components/base/badge';
 import {
@@ -84,15 +39,61 @@ import {
 } from '@/app/components/base/text';
 import { CircularProgress } from '@/app/components/CircularProgress';
 import { CloseButtonInline } from '@/app/components/CloseButtonInline';
+import { ConfigSection } from '@/app/components/ConfigSection';
+import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { DebouncedTextArea } from '@/app/components/DebouncedTextArea';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { DevToolPopover } from '@/app/components/DevToolPopover';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { DecorativeBoxedIcon } from '@/app/components/Icons/DecorativeBoxedIcon';
+import { ModelProviderIcon } from '@/app/components/Icons/ModelProvidericon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel';
+import { LabelValuePair } from '@/app/components/LabelValuePair';
+import MainContent from '@/app/components/layouts/MainContent';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
 import { RelativeDate } from '@/app/components/RelativeDate';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
+import {
+  Alert,
+  Anchor,
+  Box,
+  Checkbox,
+  Code,
+  ColorSwatch,
+  Divider,
+  Group,
+  Kbd,
+  List,
+  Loader,
+  Menu,
+  Popover,
+  Stack,
+  Tooltip,
+  useComputedColorScheme,
+} from '@mantine/core';
+import { Service } from '@spinner/shared-types';
+import {
+  AlertTriangle,
+  AlignEndHorizontal,
+  Ambulance,
+  Bird,
+  BookMarked,
+  BrainIcon,
+  CheckIcon,
+  CircleCheckBigIcon,
+  Home,
+  LayoutGridIcon,
+  MessageSquareIcon,
+  MoonStar,
+  PenLineIcon,
+  Plus,
+  Settings,
+  Trash2,
+} from 'lucide-react';
+import Image from 'next/image';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 export default function DevComponentGalleryPage() {
   return (
@@ -151,6 +152,9 @@ export default function DevComponentGalleryPage() {
             </List.Item>
             <List.Item>
               <Anchor href="#patterns">Complete Patterns & Examples</Anchor>
+            </List.Item>
+            <List.Item>
+              <Anchor href="#dialogs">Dialogs</Anchor>
             </List.Item>
           </List>
           <GallerySection id="shades" title="Key shades" />
@@ -328,13 +332,22 @@ export default function DevComponentGalleryPage() {
           <GalleryItem label="ButtonDangerLight">
             <ButtonDangerLight leftSection={<Plus />}>Click</ButtonDangerLight>
           </GalleryItem>
-          <GalleryItem label="ButtonCompactPrimary" notes="Small button for toolbars/sidebars. Use for primary actions like Publish.">
+          <GalleryItem
+            label="ButtonCompactPrimary"
+            notes="Small button for toolbars/sidebars. Use for primary actions like Publish."
+          >
             <ButtonCompactPrimary leftSection={<Plus />}>Publish</ButtonCompactPrimary>
           </GalleryItem>
-          <GalleryItem label="ButtonCompactDanger" notes="Small button for toolbars/sidebars. Use for destructive actions like Discard.">
+          <GalleryItem
+            label="ButtonCompactDanger"
+            notes="Small button for toolbars/sidebars. Use for destructive actions like Discard."
+          >
             <ButtonCompactDanger leftSection={<Trash2 />}>Discard</ButtonCompactDanger>
           </GalleryItem>
-          <GalleryItem label="ButtonCompactSecondary" notes="Small button for toolbars/sidebars. Use for secondary actions.">
+          <GalleryItem
+            label="ButtonCompactSecondary"
+            notes="Small button for toolbars/sidebars. Use for secondary actions."
+          >
             <ButtonCompactSecondary leftSection={<Plus />}>Connect</ButtonCompactSecondary>
           </GalleryItem>
           <GalleryItem label="IconButtonOutline">
@@ -848,9 +861,64 @@ import { Settings } from 'lucide-react'
               </Box>
             </Stack>
           </Box>
+          <GallerySection id="dialogs" title="Dialogs" />
+          <Text12Book c="dimmed" mb="md">
+            Use the ConfirmDialog component for all confirmation dialogs. Never use native confirm() or alert().
+          </Text12Book>
+          <ConfirmDialogDemo />
         </Stack>
       </MainContent.Body>
     </MainContent>
+  );
+}
+
+function ConfirmDialogDemo(): ReactNode {
+  const { open, dialogProps } = useConfirmDialog();
+
+  const handlePrimaryConfirm = () => {
+    open({
+      title: 'Publish Changes',
+      message: 'Are you sure you want to publish all changes?',
+      confirmLabel: 'Publish',
+      variant: 'primary',
+      onConfirm: async () => {
+        // Simulate async action
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.debug('Published!');
+      },
+    });
+  };
+
+  const handleDangerConfirm = () => {
+    open({
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        // Simulate async action
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.debug('Deleted!');
+      },
+    });
+  };
+
+  return (
+    <Box ml="md">
+      <GalleryItem
+        label="ConfirmDialog (primary)"
+        notes="Use for non-destructive confirmations like publish, submit, etc."
+      >
+        <ButtonPrimaryLight onClick={handlePrimaryConfirm}>Show Primary Confirm</ButtonPrimaryLight>
+      </GalleryItem>
+      <GalleryItem
+        label="ConfirmDialog (danger)"
+        notes="Use for destructive actions like delete, discard, reset, etc."
+      >
+        <ButtonDangerLight onClick={handleDangerConfirm}>Show Danger Confirm</ButtonDangerLight>
+      </GalleryItem>
+      <ConfirmDialog {...dialogProps} />
+    </Box>
   );
 }
 

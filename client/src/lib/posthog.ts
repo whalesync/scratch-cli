@@ -95,4 +95,3 @@ export function trackPublishAll(workbookId: string, folderCount: number): void {
 export function trackDiscardChanges(workbookId: string): void {
   captureEvent(PostHogEvents.DISCARD_CHANGES, { workbookId });
 }
-

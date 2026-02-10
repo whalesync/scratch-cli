@@ -2,8 +2,10 @@
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text13Regular } from '@/app/components/base/text';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { workbookApi } from '@/lib/api/workbook';
+import { notifications } from '@mantine/notifications';
 import { ActionIcon, Menu, Text } from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import { EllipsisVertical, FileCode, GitGraph, Trash2 } from 'lucide-react';
@@ -19,21 +21,29 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
   const { isAdmin } = useScratchPadUser();
   const [gitGraphOpen, setGitGraphOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
 
-  const handleResetWorkbook = async () => {
-    if (
-      confirm(
+  const handleResetWorkbook = () => {
+    openConfirmDialog({
+      title: 'Reset Workbook',
+      message:
         'Are you sure you want to reset this workbook? This will delete all data folders and reset the git repository. This action cannot be undone.',
-      )
-    ) {
-      try {
-        await workbookApi.resetWorkbook(workbookId);
-        window.location.reload();
-      } catch (e) {
-        alert('Failed to reset workbook');
-        console.error(e);
-      }
-    }
+      confirmLabel: 'Reset',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await workbookApi.resetWorkbook(workbookId);
+          window.location.reload();
+        } catch (e) {
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to reset workbook',
+            color: 'red',
+          });
+          console.error(e);
+        }
+      },
+    });
   };
 
   return (
@@ -78,6 +88,9 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
       <GitGraphModal opened={gitGraphOpen} onClose={() => setGitGraphOpen(false)} workbookId={workbookId} />
 
       <GitFileBrowserModal opened={fileBrowserOpen} onClose={() => setFileBrowserOpen(false)} workbookId={workbookId} />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </>
   );
 }

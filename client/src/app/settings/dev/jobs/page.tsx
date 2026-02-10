@@ -1,7 +1,7 @@
 'use client';
 
-import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
+import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
 import MainContent from '@/app/components/layouts/MainContent';
 import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';

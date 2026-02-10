@@ -64,14 +64,7 @@ export function SidebarFooter() {
         </UnstyledButton>
 
         {/* Invisible overlay to trigger Clerk UserButton menu */}
-        <Box
-          pos="absolute"
-          top={0}
-          left={0}
-          w="100%"
-          h="100%"
-          style={{ zIndex: 10, opacity: 0, overflow: 'hidden' }}
-        >
+        <Box pos="absolute" top={0} left={0} w="100%" h="100%" style={{ zIndex: 10, opacity: 0, overflow: 'hidden' }}>
           <UserButton
             appearance={{
               elements: {
@@ -99,9 +92,7 @@ export function SidebarFooter() {
               size="sm"
               c={isSettingsActive ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
             />
-            <Text13Regular c={isSettingsActive ? 'var(--fg-primary)' : 'var(--fg-secondary)'}>
-              Settings
-            </Text13Regular>
+            <Text13Regular c={isSettingsActive ? 'var(--fg-primary)' : 'var(--fg-secondary)'}>Settings</Text13Regular>
           </Group>
         </UnstyledButton>
       </Link>

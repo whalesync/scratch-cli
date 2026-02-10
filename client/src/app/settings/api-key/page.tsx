@@ -3,6 +3,7 @@
 import { ButtonPrimarySolid } from '@/app/components/base/buttons';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import MainContent from '@/app/components/layouts/MainContent';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { usersApi } from '@/lib/api/users';
 import { ActionIcon, CopyButton, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
@@ -12,21 +13,29 @@ import { useState } from 'react';
 export default function ApiKeySettingsPage() {
   const { user, refreshCurrentUser } = useScratchPadUser();
   const [isGenerating, setIsGenerating] = useState(false);
+  const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
 
-  const handleGenerateToken = async () => {
-    if (user?.apiToken) {
-      const confirmed = window.confirm(
-        'This will invalidate your existing API key. Any integrations using it will stop working. Continue?',
-      );
-      if (!confirmed) return;
-    }
-
+  const generateToken = async () => {
     setIsGenerating(true);
     try {
       await usersApi.generateApiToken();
       await refreshCurrentUser();
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateToken = () => {
+    if (user?.apiToken) {
+      openConfirmDialog({
+        title: 'Regenerate API Key',
+        message: 'This will invalidate your existing API key. Any integrations using it will stop working. Continue?',
+        confirmLabel: 'Regenerate',
+        variant: 'danger',
+        onConfirm: generateToken,
+      });
+    } else {
+      generateToken();
     }
   };
 
@@ -67,6 +76,9 @@ export default function ApiKeySettingsPage() {
           </ConfigSection>
         </Stack>
       </MainContent.Body>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </MainContent>
   );
 }

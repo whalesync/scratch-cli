@@ -143,11 +143,7 @@ function FileCard({ file, workbookId, mode = 'files' }: FileCardProps) {
           ) : (
             <FileIcon size={12} color="var(--fg-muted)" style={{ flexShrink: 0 }} />
           )}
-          <TextMono12Regular
-            c="var(--fg-primary)"
-            truncate
-            style={{ flex: 1 }}
-          >
+          <TextMono12Regular c="var(--fg-primary)" truncate style={{ flex: 1 }}>
             {file.name}
           </TextMono12Regular>
         </Group>

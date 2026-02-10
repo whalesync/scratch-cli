@@ -2,6 +2,7 @@
 
 import { Text13Medium } from '@/app/components/base/text';
 import { ComingSoonBadge } from '@/app/components/ComingSoonBadge';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { syncApi } from '@/lib/api/sync';
 import { workbookApi } from '@/lib/api/workbook';
@@ -121,6 +122,9 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
   const [saving, setSaving] = useState(false);
   const [schemaCache, setSchemaCache] = useState<Record<string, { path: string; type: string }[]>>({});
+
+  // Confirm dialog
+  const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
 
   // Flatten folders for easy selection
   const allFolders = dataFolderGroups.flatMap((g) => g.dataFolders);
@@ -278,27 +282,34 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (isNew) return;
-    if (!window.confirm(`Are you sure you want to delete "${syncName}"?`)) return;
 
-    try {
-      await syncApi.delete(workbookId, syncId);
-      await fetchSyncs(workbookId);
-      notifications.show({
-        title: 'Sync deleted',
-        message: `"${syncName}" has been deleted`,
-        color: 'green',
-      });
-      router.push(`/workbook/${workbookId}/syncs`);
-    } catch (error) {
-      console.debug('Failed to delete sync:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to delete sync',
-        color: 'red',
-      });
-    }
+    openConfirmDialog({
+      title: 'Delete Sync',
+      message: `Are you sure you want to delete "${syncName}"?`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await syncApi.delete(workbookId, syncId);
+          await fetchSyncs(workbookId);
+          notifications.show({
+            title: 'Sync deleted',
+            message: `"${syncName}" has been deleted`,
+            color: 'green',
+          });
+          router.push(`/workbook/${workbookId}/syncs`);
+        } catch (error) {
+          console.debug('Failed to delete sync:', error);
+          notifications.show({
+            title: 'Error',
+            message: 'Failed to delete sync',
+            color: 'red',
+          });
+        }
+      },
+    });
   };
 
   const handleRunSync = async () => {
@@ -643,6 +654,9 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
           to { transform: rotate(360deg); }
         }
       `}</style>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog {...dialogProps} />
     </Stack>
   );
 }

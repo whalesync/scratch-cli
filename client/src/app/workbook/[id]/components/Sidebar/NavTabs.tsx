@@ -114,11 +114,7 @@ export function NavTabs() {
               }}
             >
               <Box style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <StyledLucideIcon
-                  Icon={tab.icon}
-                  size="sm"
-                  c={active ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
-                />
+                <StyledLucideIcon Icon={tab.icon} size="sm" c={active ? 'var(--fg-primary)' : 'var(--fg-secondary)'} />
                 <Text13Regular c={active ? 'var(--fg-primary)' : 'var(--fg-secondary)'}>{tab.label}</Text13Regular>
               </Box>
               {tab.badge && (

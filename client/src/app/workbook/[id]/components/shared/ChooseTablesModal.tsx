@@ -8,18 +8,7 @@ import { useWorkbook } from '@/hooks/use-workbook';
 import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
 import { TablePreview } from '@/types/server-entities/table-list';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Group,
-  List,
-  Loader,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Alert, Button, Checkbox, Group, List, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import type { ConnectorAccount, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { AlertTriangleIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -31,12 +20,7 @@ interface ChooseTablesModalProps {
   connectorAccount: ConnectorAccount;
 }
 
-export function ChooseTablesModal({
-  opened,
-  onClose,
-  workbookId,
-  connectorAccount,
-}: ChooseTablesModalProps) {
+export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccount }: ChooseTablesModalProps) {
   const { tables: allTableGroups, isLoading: tablesLoading } = useAllTables(workbookId);
   const { dataFolderGroups, refresh: refreshDataFolders } = useDataFolders();
   const { addLinkedDataFolder } = useWorkbook(workbookId);
@@ -49,9 +33,7 @@ export function ChooseTablesModal({
 
   // Get tables for this specific connector account
   const availableTables = useMemo(() => {
-    const group = allTableGroups.find(
-      (g) => g.connectorAccountId === connectorAccount.id
-    );
+    const group = allTableGroups.find((g) => g.connectorAccountId === connectorAccount.id);
     return group?.tables || [];
   }, [allTableGroups, connectorAccount.id]);
 
@@ -96,9 +78,7 @@ export function ChooseTablesModal({
 
   const handleSave = async () => {
     // Determine which tables to add and which to remove
-    const currentlyLinkedKeys = new Set(
-      linkedFolders.map((f) => f.tableId.join('/'))
-    );
+    const currentlyLinkedKeys = new Set(linkedFolders.map((f) => f.tableId.join('/')));
 
     // Tables to add: selected but not currently linked
     const tablesToAdd = availableTables.filter((table) => {
@@ -116,14 +96,14 @@ export function ChooseTablesModal({
     if (pendingFoldersToRemove.length > 0 && !showConfirmation) {
       try {
         // Get dirty files from workbook status
-        const dirtyFiles = await workbookApi.getStatus(workbookId) as { path: string }[];
+        const dirtyFiles = (await workbookApi.getStatus(workbookId)) as { path: string }[];
 
         // Count dirty files in folders being removed
-        const folderNames = new Set(pendingFoldersToRemove.map(f => f.name));
-        const dirtyInRemovedFolders = dirtyFiles.filter(file => {
+        const folderNames = new Set(pendingFoldersToRemove.map((f) => f.name));
+        const dirtyInRemovedFolders = dirtyFiles.filter((file) => {
           // Check if file path starts with any of the folder names
-          return Array.from(folderNames).some(folderName =>
-            file.path.startsWith(`${folderName}/`) || file.path.includes(`/${folderName}/`)
+          return Array.from(folderNames).some(
+            (folderName) => file.path.startsWith(`${folderName}/`) || file.path.includes(`/${folderName}/`),
           );
         });
 
@@ -141,11 +121,7 @@ export function ChooseTablesModal({
     try {
       // Add new tables
       for (const table of tablesToAdd) {
-        await addLinkedDataFolder(
-          table.id.remoteId,
-          table.displayName,
-          connectorAccount.id
-        );
+        await addLinkedDataFolder(table.id.remoteId, table.displayName, connectorAccount.id);
       }
 
       // Remove unselected tables
@@ -184,20 +160,10 @@ export function ChooseTablesModal({
   );
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={modalTitle}
-      size="md"
-      centered
-    >
+    <Modal opened={opened} onClose={onClose} title={modalTitle} size="md" centered>
       {showConfirmation ? (
         <Stack gap="md">
-          <Alert
-            icon={<AlertTriangleIcon size={16} />}
-            color="orange"
-            variant="light"
-          >
+          <Alert icon={<AlertTriangleIcon size={16} />} color="orange" variant="light">
             <Text size="sm" fw={500} mb="xs">
               These folders will no longer be available in Scratch:
             </Text>
@@ -208,7 +174,8 @@ export function ChooseTablesModal({
             </List>
             {dirtyFileCount > 0 && (
               <Text size="sm" c="orange" mt="sm" fw={500}>
-                There {dirtyFileCount === 1 ? 'is' : 'are'} {dirtyFileCount} file{dirtyFileCount === 1 ? '' : 's'} with unpublished changes that will be discarded.
+                There {dirtyFileCount === 1 ? 'is' : 'are'} {dirtyFileCount} file{dirtyFileCount === 1 ? '' : 's'} with
+                unpublished changes that will be discarded.
               </Text>
             )}
           </Alert>
@@ -231,7 +198,9 @@ export function ChooseTablesModal({
           {tablesLoading ? (
             <Group justify="center" py="xl">
               <Loader size="sm" />
-              <Text size="sm" c="dimmed">Loading tables...</Text>
+              <Text size="sm" c="dimmed">
+                Loading tables...
+              </Text>
             </Group>
           ) : availableTables.length === 0 ? (
             <Text size="sm" c="dimmed" ta="center" py="xl">

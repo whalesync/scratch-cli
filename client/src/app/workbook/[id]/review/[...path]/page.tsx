@@ -13,10 +13,7 @@ export default function ReviewFilePage() {
   const { folders } = useDataFolders(workbookId);
 
   // Decode the path segments
-  const pathSegments = useMemo(
-    () => params.path?.map((segment) => decodeURIComponent(segment)) ?? [],
-    [params.path],
-  );
+  const pathSegments = useMemo(() => params.path?.map((segment) => decodeURIComponent(segment)) ?? [], [params.path]);
   const filePath = pathSegments.join('/') || null;
 
   // Check if this path matches a folder (single segment matching a folder name)
@@ -29,7 +26,9 @@ export default function ReviewFilePage() {
 
   // If path matches a folder, show folder viewer in review mode
   if (matchedFolder) {
-    return <FolderViewer workbookId={workbookId} folderId={matchedFolder.id} folderName={matchedFolder.name} mode="review" />;
+    return (
+      <FolderViewer workbookId={workbookId} folderId={matchedFolder.id} folderName={matchedFolder.name} mode="review" />
+    );
   }
 
   return <ReviewFileViewer workbookId={workbookId} filePath={filePath} />;

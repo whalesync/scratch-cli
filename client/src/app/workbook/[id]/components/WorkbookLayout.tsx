@@ -5,13 +5,13 @@ import { Box, Stack } from '@mantine/core';
 import type { Workbook } from '@spinner/shared-types';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { Toolbar } from './MainPane/Toolbar';
+import { ResizeHandle } from './shared/ResizeHandle';
 import { FileTree, type FileTreeMode } from './Sidebar/FileTree';
 import { NavTabs } from './Sidebar/NavTabs';
 import { ProjectSwitcher } from './Sidebar/ProjectSwitcher';
 import { SidebarFooter } from './Sidebar/SidebarFooter';
 import { SyncsList } from './Sidebar/SyncsList';
-import { Toolbar } from './MainPane/Toolbar';
-import { ResizeHandle } from './shared/ResizeHandle';
 
 interface WorkbookLayoutProps {
   workbook: Workbook;

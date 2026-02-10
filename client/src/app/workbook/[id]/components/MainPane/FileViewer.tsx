@@ -133,10 +133,7 @@ export function FileViewer({ workbookId, filePath }: FileViewerProps) {
         <Group gap="sm">
           <TextMono12Regular c="var(--fg-primary)">{fileName}</TextMono12Regular>
           {isModified && (
-            <Link
-              href={`/workbook/${workbookId}/review/${filePath}`}
-              style={{ textDecoration: 'none' }}
-            >
+            <Link href={`/workbook/${workbookId}/review/${filePath}`} style={{ textDecoration: 'none' }}>
               <Badge size="xs" variant="light" color="orange" style={{ cursor: 'pointer' }}>
                 Unpublished changes
               </Badge>
@@ -151,12 +148,7 @@ export function FileViewer({ workbookId, filePath }: FileViewerProps) {
 
         <Group gap="xs">
           {hasChanges && (
-            <Button
-              size="compact-xs"
-              leftSection={<SaveIcon size={12} />}
-              onClick={handleSave}
-              loading={isSaving}
-            >
+            <Button size="compact-xs" leftSection={<SaveIcon size={12} />} onClick={handleSave} loading={isSaving}>
               Save
             </Button>
           )}

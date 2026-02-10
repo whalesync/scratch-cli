@@ -19,10 +19,7 @@ export default function FileDetailPage() {
   const { folders } = useDataFolders(workbookId);
 
   // Decode each path segment and rejoin
-  const pathSegments = useMemo(
-    () => params.path?.map((segment) => decodeURIComponent(segment)) ?? [],
-    [params.path],
-  );
+  const pathSegments = useMemo(() => params.path?.map((segment) => decodeURIComponent(segment)) ?? [], [params.path]);
   const filePath = pathSegments.join('/');
 
   // Check if this path matches a folder (single segment matching a folder name)

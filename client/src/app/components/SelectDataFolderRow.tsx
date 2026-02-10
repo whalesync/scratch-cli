@@ -1,6 +1,6 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { DataFolderPublishStatus } from '@spinner/shared-types';
 import { Box, Checkbox, Group, Text } from '@mantine/core';
+import { DataFolderPublishStatus } from '@spinner/shared-types';
 import { FC, ReactNode } from 'react';
 
 interface Props {
