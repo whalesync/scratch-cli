@@ -4,11 +4,8 @@ import 'dotenv/config';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { GitService } from './lib/GitService';
-
 const app = express();
 const port = process.env.GIT_BACKEND_PORT || 3101;
-const gitService = new GitService();
 
 app.use(cors());
 // IMPORTANT: Do NOT use express.json() or body-parser here.
@@ -56,7 +53,8 @@ app.use((req, res, next) => {
 // Matches /:repo.git/info/refs, /:repo.git/git-upload-pack, etc.
 app.all('/:repoId.git/*', (req, res) => {
   const repoId = req.params.repoId;
-  const repoPath = gitService.getRepoPath(repoId);
+  const absoluteReposDir = path.isAbsolute(reposDir) ? reposDir : path.join(process.cwd(), reposDir);
+  const repoPath = path.join(absoluteReposDir, `${repoId}.git`);
 
   // Check if repo directory exists before spawning git
   if (!fs.existsSync(repoPath)) {

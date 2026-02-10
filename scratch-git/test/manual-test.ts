@@ -1,5 +1,4 @@
-import { GitService } from '../lib/GitService';
-import { checkPort, checkRepoState, pause } from './test-utils';
+import { checkPort, checkRepoState, TestGitService as GitService, pause } from './test-utils';
 
 // TODO: Consider converting this to a proper test suite
 

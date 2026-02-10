@@ -113,7 +113,7 @@ export class ScratchGitClient {
   }
 
   async getDiff(repoId: string, path: string): Promise<string> {
-    return this.callGitApi(`/api/repo/diff/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
+    return this.callGitApi(`/api/repo/read/${repoId}/diff?path=${encodeURIComponent(path)}`, 'GET') as Promise<string>;
   }
 
   async getFolderDiff(
@@ -131,20 +131,20 @@ export class ScratchGitClient {
   }
 
   async createCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint`, 'POST', { name });
+    await this.callGitApi(`/api/repo/checkpoint/${repoId}`, 'POST', { name });
   }
 
   async listCheckpoints(repoId: string): Promise<{ name: string; timestamp: number; message: string }[]> {
-    return this.callGitApi(`/api/repo/manage/${repoId}/checkpoints`, 'GET') as Promise<
+    return this.callGitApi(`/api/repo/checkpoint/${repoId}`, 'GET') as Promise<
       { name: string; timestamp: number; message: string }[]
     >;
   }
 
   async revertToCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint/revert`, 'POST', { name });
+    await this.callGitApi(`/api/repo/checkpoint/${repoId}/revert`, 'POST', { name });
   }
 
   async deleteCheckpoint(repoId: string, name: string): Promise<void> {
-    await this.callGitApi(`/api/repo/manage/${repoId}/checkpoint/${encodeURIComponent(name)}`, 'DELETE');
+    await this.callGitApi(`/api/repo/checkpoint/${repoId}/${encodeURIComponent(name)}`, 'DELETE');
   }
 }

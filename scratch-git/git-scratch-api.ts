@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
+import { repoCheckpointRouter } from './src/routes/repo-checkpoint';
 import { repoDebugRouter } from './src/routes/repo-debug';
 import { repoDiffRouter } from './src/routes/repo-diff';
 import { repoManageRouter } from './src/routes/repo-manage';
@@ -45,6 +46,7 @@ app.use('/api/repo/manage/:id', repoManageRouter);
 app.use('/api/repo/read/:id', repoReadRouter);
 app.use('/api/repo/write/:id', repoWriteRouter);
 app.use('/api/repo/diff/:id', repoDiffRouter);
+app.use('/api/repo/checkpoint/:id', repoCheckpointRouter);
 app.use('/api/repo/debug/:id', repoDebugRouter);
 
 app.listen(port, () => {

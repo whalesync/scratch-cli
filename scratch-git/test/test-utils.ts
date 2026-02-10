@@ -1,8 +1,67 @@
 import assert from 'assert';
 import fs from 'fs';
+import git from 'isomorphic-git';
 import * as net from 'net';
 import * as readline from 'readline';
-import { GitService } from '../lib/GitService';
+import { BaseRepoService } from '../src/services/base-repo.service';
+import { RepoDebugService } from '../src/services/repo-debug.service';
+import { RepoManageService } from '../src/services/repo-manage.service';
+import { RepoWriteService } from '../src/services/repo-write.service';
+
+// Adapter to match the old GitService API for tests
+export class TestGitService {
+  getRepoPath(repoId: string): string {
+    return new BaseRepoService(repoId).getRepoPath();
+  }
+
+  async initRepo(repoId: string): Promise<void> {
+    return new RepoManageService(repoId).initRepo();
+  }
+
+  async commitFiles(
+    repoId: string,
+    branch: string,
+    files: Array<{ path: string; content: string }>,
+    message: string,
+  ): Promise<void> {
+    return new RepoWriteService(repoId).commitFiles(branch, files, message);
+  }
+
+  async deleteFiles(repoId: string, branch: string, filePaths: string[], message: string): Promise<void> {
+    return new RepoWriteService(repoId).deleteFiles(branch, filePaths, message);
+  }
+
+  async rebaseDirty(
+    repoId: string,
+    strategy: 'ours' | 'diff3' = 'diff3',
+  ): Promise<{ rebased: boolean; conflicts: string[] }> {
+    return new RepoWriteService(repoId).rebaseDirty(strategy);
+  }
+
+  async getLog(repoId: string, ref: string, depth?: number): Promise<Array<{ oid: string; parent: string[] }>> {
+    return new RepoDebugService(repoId).getLog(ref, depth);
+  }
+
+  async getFile(repoId: string, branch: string, filePath: string): Promise<string | null> {
+    return new BaseRepoService(repoId).getFileContent(branch, filePath);
+  }
+
+  async getRefOid(repoId: string, ref: string): Promise<string | null> {
+    const service = new BaseRepoService(repoId);
+    // accessing protected method via cast or we can implement it here
+    // simpler to implement here using isomorphic-git directly since BaseRepoService.resolveRef is protected
+    const dir = service.getRepoPath();
+    try {
+      return await git.resolveRef({ fs, dir, gitdir: dir, ref });
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteRepo(repoId: string): Promise<void> {
+    return new RepoManageService(repoId).deleteRepo();
+  }
+}
 
 export const checkPort = (port: number): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -38,7 +97,7 @@ export const pause = (message: string = 'Hit enter to continue...') => {
 
 // --- Visualization Helpers ---
 
-export const printGitGraph = async (service: GitService, repoId: string) => {
+export const printGitGraph = async (service: TestGitService, repoId: string) => {
   try {
     const mainLog = await service.getLog(repoId, 'main', 20);
     const dirtyLog = await service.getLog(repoId, 'dirty', 20);
@@ -135,7 +194,7 @@ export const printGitGraph = async (service: GitService, repoId: string) => {
 };
 
 export const checkRepoState = async (
-  service: GitService,
+  service: TestGitService,
   repoId: string,
   stepName: string,
   expected: {

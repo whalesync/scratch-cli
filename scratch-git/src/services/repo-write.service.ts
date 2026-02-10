@@ -1,0 +1,387 @@
+import git from 'isomorphic-git';
+import { diff3Merge } from 'node-diff3';
+import fs from 'node:fs';
+import { DIRTY_BRANCH, MAIN_BRANCH } from '../../lib/constants';
+import { FileChange, TreeEntry } from '../../lib/types';
+import { BaseRepoService } from './base-repo.service';
+import { withWriteLock } from './git-lock';
+
+const DEFAULT_AUTHOR = { name: 'Scratch', email: 'scratch@example.com' };
+
+export class RepoWriteService extends BaseRepoService {
+  constructor(repoId: string) {
+    super(repoId);
+  }
+
+  async commitFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void> {
+    return withWriteLock(this.repoId, branch, async () => {
+      const changes: FileChange[] = files.map((f) => ({
+        path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
+        content: f.content,
+        type: 'modify',
+      }));
+      await this.commitChangesToRef(branch, changes, message);
+    });
+  }
+
+  async deleteFiles(branch: string, filePaths: string[], message: string): Promise<void> {
+    return withWriteLock(this.repoId, branch, async () => {
+      const changes: FileChange[] = filePaths.map((p) => ({
+        path: p.startsWith('/') ? p.slice(1) : p,
+        type: 'delete',
+      }));
+      await this.commitChangesToRef(branch, changes, message);
+    });
+  }
+
+  async deleteFolder(folderPath: string, message: string, branch: string = DIRTY_BRANCH): Promise<void> {
+    const targetFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
+    return withWriteLock(this.repoId, branch, async () => {
+      const changes: FileChange[] = [
+        {
+          path: targetFolder,
+          type: 'delete',
+        },
+      ];
+      await this.commitChangesToRef(branch, changes, message);
+    });
+  }
+
+  async removeDataFolder(folderPath: string): Promise<void> {
+    const targetFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
+    const message = `Remove data folder ${targetFolder}`;
+    console.log(`[RepoWriteService] Removing data folder: ${targetFolder} from repo ${this.repoId}`);
+
+    await withWriteLock(this.repoId, MAIN_BRANCH, async () => {
+      const changes: FileChange[] = [{ path: targetFolder, type: 'delete' }];
+      await this.commitChangesToRef(MAIN_BRANCH, changes, message);
+    });
+
+    await withWriteLock(this.repoId, DIRTY_BRANCH, async () => {
+      const changes: FileChange[] = [{ path: targetFolder, type: 'delete' }];
+      await this.commitChangesToRef(DIRTY_BRANCH, changes, message);
+    });
+
+    console.log(`[RepoWriteService] Rebasing dirty after removal of ${targetFolder}`);
+    await this.rebaseDirty();
+  }
+
+  async publishFile(file: { path: string; content: string }, message: string): Promise<void> {
+    await this.commitFiles(MAIN_BRANCH, [file], message);
+    await this.rebaseDirty();
+  }
+
+  async discardChanges(
+    path: string,
+    changes: Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>,
+  ): Promise<void> {
+    const normalizedTarget = path.startsWith('/') ? path.slice(1) : path;
+
+    const changesToDiscard = changes.filter(
+      (change) => change.path === normalizedTarget || change.path.startsWith(normalizedTarget + '/'),
+    );
+
+    if (changesToDiscard.length === 0) return;
+
+    return withWriteLock(this.repoId, DIRTY_BRANCH, async () => {
+      const revertChanges: FileChange[] = [];
+
+      for (const change of changesToDiscard) {
+        if (change.status === 'added') {
+          revertChanges.push({ path: change.path, type: 'delete' });
+        } else {
+          const mainContent = await this.getFileContent(MAIN_BRANCH, change.path);
+          if (mainContent !== null) {
+            revertChanges.push({
+              path: change.path,
+              content: mainContent,
+              type: 'modify',
+            });
+          }
+        }
+      }
+
+      if (revertChanges.length > 0) {
+        await this.commitChangesToRef(DIRTY_BRANCH, revertChanges, `Discard changes to ${normalizedTarget}`);
+      }
+    });
+  }
+
+  async rebaseDirty(strategy: 'ours' | 'diff3' = 'diff3'): Promise<{ rebased: boolean; conflicts: string[] }> {
+    const dir = this.getRepoPath();
+
+    // Ensure dirty exists
+    try {
+      await this.resolveRef(DIRTY_BRANCH);
+    } catch {
+      const mainOid = await this.resolveRef(MAIN_BRANCH);
+      await git.branch({
+        fs,
+        dir,
+        gitdir: dir,
+        ref: DIRTY_BRANCH,
+        object: mainOid,
+        checkout: false,
+      });
+      return { rebased: true, conflicts: [] };
+    }
+
+    const [mainCommit, dirtyCommit] = await Promise.all([this.resolveRef(MAIN_BRANCH), this.resolveRef(DIRTY_BRANCH)]);
+
+    if (mainCommit === dirtyCommit) {
+      return { rebased: true, conflicts: [] };
+    }
+
+    const mergeBaseOids = await git.findMergeBase({
+      fs,
+      dir,
+      gitdir: dir,
+      oids: [mainCommit, dirtyCommit],
+    });
+    if (mergeBaseOids.length === 0) {
+      await this.forceRef(DIRTY_BRANCH, mainCommit);
+      return { rebased: true, conflicts: [] };
+    }
+    const mergeBase = mergeBaseOids[0] as string;
+
+    const userChanges = await this.compareCommits(mergeBase, dirtyCommit);
+
+    if (userChanges.length === 0) {
+      await this.forceRef(DIRTY_BRANCH, mainCommit);
+      return { rebased: true, conflicts: [] };
+    }
+
+    const edits = await Promise.all(
+      userChanges.map(async (change) => {
+        if (change.status === 'deleted') {
+          return {
+            path: change.path,
+            status: 'deleted' as const,
+            content: null,
+            baseContent: null,
+          };
+        }
+        const content = await this.getFileContent(DIRTY_BRANCH, change.path);
+        let baseContent: string | null = null;
+        if (strategy === 'diff3' && change.status === 'modified') {
+          try {
+            const { blob } = await git.readBlob({
+              fs,
+              dir,
+              gitdir: dir,
+              oid: mergeBase,
+              filepath: change.path,
+            });
+            baseContent = new TextDecoder().decode(blob);
+          } catch {
+            // ignore
+          }
+        }
+        return {
+          path: change.path,
+          status: change.status,
+          content,
+          baseContent,
+        };
+      }),
+    );
+
+    await this.forceRef(DIRTY_BRANCH, mainCommit);
+
+    const conflicts: string[] = [];
+    const changesToCommit: FileChange[] = [];
+
+    for (const edit of edits) {
+      if (edit.status === 'deleted') {
+        const existsOnMain = await this.fileExists(MAIN_BRANCH, edit.path);
+        if (existsOnMain) changesToCommit.push({ path: edit.path, type: 'delete' });
+      } else if (edit.content !== null) {
+        const mainContent = await this.getFileContent(MAIN_BRANCH, edit.path);
+
+        let finalContent = edit.content;
+
+        if (strategy === 'diff3' && edit.status === 'modified') {
+          if (edit.baseContent !== null && mainContent !== null && edit.baseContent !== mainContent) {
+            finalContent = this.mergeFileContents(edit.baseContent, edit.content, mainContent);
+          }
+        }
+
+        if (mainContent !== finalContent) {
+          changesToCommit.push({
+            path: edit.path,
+            content: finalContent,
+            type: 'modify',
+          });
+        }
+      }
+    }
+
+    if (changesToCommit.length > 0) {
+      await this.commitChangesToRef(DIRTY_BRANCH, changesToCommit, 'Rebase dirty on main');
+    }
+
+    return { rebased: true, conflicts };
+  }
+
+  // --- Private Helpers ---
+
+  private async commitChangesToRef(ref: string, changes: FileChange[], message: string) {
+    const dir = this.getRepoPath();
+    const parentCommit = await this.resolveRef(ref);
+    const { tree: currentTree } = await git.readTree({
+      fs,
+      dir,
+      gitdir: dir,
+      oid: parentCommit,
+    });
+
+    const newTreeOid = await this.applyChangesToTree(dir, currentTree, changes);
+    const newCommit = await git.writeCommit({
+      fs,
+      dir,
+      gitdir: dir,
+      commit: {
+        tree: newTreeOid,
+        parent: [parentCommit],
+        author: {
+          ...DEFAULT_AUTHOR,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: 0,
+        },
+        committer: {
+          ...DEFAULT_AUTHOR,
+          timestamp: Math.floor(Date.now() / 1000),
+          timezoneOffset: 0,
+        },
+        message,
+      },
+    });
+    await this.forceRef(ref, newCommit);
+  }
+
+  private async applyChangesToTree(
+    dir: string,
+    currentEntries: TreeEntry[],
+    changes: FileChange[],
+    prefix = '',
+  ): Promise<string> {
+    const directChanges: FileChange[] = [];
+    const subtreeChanges: Map<string, FileChange[]> = new Map();
+
+    for (const change of changes) {
+      const relativePath = prefix ? change.path.slice(prefix.length + 1) : change.path;
+      const slashIndex = relativePath.indexOf('/');
+      if (slashIndex === -1) {
+        directChanges.push({ ...change, path: relativePath });
+      } else {
+        const subtreeName = relativePath.slice(0, slashIndex);
+        const existing = subtreeChanges.get(subtreeName) || [];
+        existing.push(change);
+        subtreeChanges.set(subtreeName, existing);
+      }
+    }
+
+    const newEntries: TreeEntry[] = [];
+    for (const entry of currentEntries) {
+      const direct = directChanges.find((c) => c.path === entry.path);
+      const subtree = subtreeChanges.get(entry.path);
+
+      if (direct) {
+        if (direct.type === 'delete') continue;
+        const newBlob = await git.writeBlob({
+          fs,
+          dir,
+          gitdir: dir,
+          blob: Buffer.from(direct.content || ''),
+        });
+        newEntries.push({
+          mode: '100644',
+          path: entry.path,
+          oid: newBlob,
+          type: 'blob',
+        });
+      } else if (subtree && entry.type === 'tree') {
+        const { tree } = await git.readTree({
+          fs,
+          dir,
+          gitdir: dir,
+          oid: entry.oid,
+        });
+        const newSubtreeOid = await this.applyChangesToTree(
+          dir,
+          tree as unknown as TreeEntry[],
+          subtree,
+          prefix ? `${prefix}/${entry.path}` : entry.path,
+        );
+        newEntries.push({
+          mode: entry.mode,
+          path: entry.path,
+          oid: newSubtreeOid,
+          type: 'tree',
+        });
+        subtreeChanges.delete(entry.path);
+      } else {
+        newEntries.push(entry);
+      }
+    }
+
+    for (const change of directChanges) {
+      if ((change.type === 'add' || change.type === 'modify') && !currentEntries.some((e) => e.path === change.path)) {
+        const newBlob = await git.writeBlob({
+          fs,
+          dir,
+          gitdir: dir,
+          blob: Buffer.from(change.content || ''),
+        });
+        newEntries.push({
+          mode: '100644',
+          path: change.path,
+          oid: newBlob,
+          type: 'blob',
+        });
+      }
+    }
+
+    for (const [name, subChanges] of subtreeChanges) {
+      if (!currentEntries.some((e) => e.path === name)) {
+        const newSubtreeOid = await this.applyChangesToTree(dir, [], subChanges, prefix ? `${prefix}/${name}` : name);
+        newEntries.push({
+          mode: '040000',
+          path: name,
+          oid: newSubtreeOid,
+          type: 'tree',
+        });
+      }
+    }
+
+    newEntries.sort((a, b) => {
+      const aName = a.type === 'tree' ? `${a.path}/` : a.path;
+      const bName = b.type === 'tree' ? `${b.path}/` : b.path;
+      return aName.localeCompare(bName);
+    });
+
+    return git.writeTree({ fs, dir, gitdir: dir, tree: newEntries });
+  }
+
+  private mergeFileContents(base: string, ours: string, theirs: string): string {
+    if (ours === base) return theirs;
+    if (theirs === base) return ours;
+    if (ours === theirs) return ours;
+
+    const baseLines = base.split('\n');
+    const oursLines = ours.split('\n');
+    const theirsLines = theirs.split('\n');
+
+    const result = diff3Merge(oursLines, baseLines, theirsLines);
+
+    const mergedLines: string[] = [];
+    for (const region of result) {
+      if (region.ok) {
+        mergedLines.push(...region.ok);
+      } else if (region.conflict) {
+        mergedLines.push(...region.conflict.a);
+      }
+    }
+    return mergedLines.join('\n');
+  }
+}

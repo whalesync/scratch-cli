@@ -1,17 +1,20 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Router } from 'express';
-import { GitService } from '../../lib/GitService';
+import { RepoDiffService } from '../services/repo-diff.service';
+import { RepoWriteService } from '../services/repo-write.service';
 
 export const repoWriteRouter = Router({ mergeParams: true });
-const gitService = new GitService();
 
 repoWriteRouter.post('/files', async (req, res) => {
   try {
     const { id } = req.params as { id: string };
     const branch = (req.query.branch as string) || 'main';
     const { files, message } = req.body as { files: { path: string; content: string }[]; message?: string };
+    if (!files || !Array.isArray(files)) {
+      throw new Error('files array is required');
+    }
+    const gitService = new RepoWriteService(id);
     await gitService.commitFiles(
-      id,
       branch,
       files.map((f: { path: string; content: string }) => ({
         ...f,
@@ -30,7 +33,11 @@ repoWriteRouter.delete('/files', async (req, res) => {
     const { id } = req.params as { id: string };
     const branch = (req.query.branch as string) || 'main';
     const { files, message } = req.body as { files: string[]; message?: string }; // files is array of paths
-    await gitService.deleteFiles(id, branch, files, message || 'Delete files');
+    if (!files || !Array.isArray(files)) {
+      throw new Error('files array is required');
+    }
+    const gitService = new RepoWriteService(id);
+    await gitService.deleteFiles(branch, files, message || 'Delete files');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -44,7 +51,8 @@ repoWriteRouter.delete('/folder', async (req, res) => {
     const branch = (req.query.branch as string) || 'dirty';
     if (!folder) throw new Error('Query param folder is required');
     const { message } = req.body as { message?: string };
-    await gitService.deleteFolder(id, folder, message || 'Delete folder', branch);
+    const gitService = new RepoWriteService(id);
+    await gitService.deleteFolder(folder, message || 'Delete folder', branch);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -59,7 +67,8 @@ repoWriteRouter.delete('/data-folder', async (req, res) => {
     if (!folderPath) {
       throw new Error('Path is required');
     }
-    await gitService.removeDataFolder(id, folderPath);
+    const gitService = new RepoWriteService(id);
+    await gitService.removeDataFolder(folderPath);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -70,7 +79,28 @@ repoWriteRouter.post('/publish', async (req, res) => {
   try {
     const { id } = req.params as { id: string };
     const { file, message } = req.body as { file: { path: string; content: string }; message?: string };
-    await gitService.publishFile(id, file, message || 'Publish file');
+    if (!file) {
+      throw new Error('file object is required');
+    }
+    const gitService = new RepoWriteService(id);
+    await gitService.publishFile(file, message || 'Publish file');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+repoWriteRouter.post('/discard-changes', async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { path } = req.body as { path: string };
+    if (!path) throw new Error('path is required');
+
+    const diffService = new RepoDiffService(id);
+    const changes = await diffService.getDirtyStatus();
+
+    const gitService = new RepoWriteService(id);
+    await gitService.discardChanges(path, changes);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -82,7 +112,8 @@ repoWriteRouter.post('/rebase', async (req, res) => {
     const { id } = req.params as { id: string };
     const body = req.body as { strategy?: string };
     const strategy = body.strategy;
-    const result = await gitService.rebaseDirty(id, strategy as 'ours' | 'diff3');
+    const gitService = new RepoWriteService(id);
+    const result = await gitService.rebaseDirty(strategy as 'ours' | 'diff3');
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
