@@ -1,5 +1,22 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { TransformerConfig } from '../../sync-mapping';
+
+/**
+ * Extended field mapping value that includes optional transformer configuration.
+ * Used when a field needs transformation during sync.
+ */
+export interface FieldMappingValue {
+  destinationField: string;
+  transformer?: TransformerConfig;
+}
+
+/**
+ * Field map type that supports both simple and complex mappings:
+ * - Simple: { "source_col": "dest_col" }
+ * - With transformer: { "source_col": { destinationField: "dest_col", transformer: {...} } }
+ */
+export type FieldMapType = Record<string, string | FieldMappingValue>;
 
 export class FolderMappingDto {
   @IsString()
@@ -11,7 +28,7 @@ export class FolderMappingDto {
   destId!: string;
 
   @IsNotEmpty()
-  fieldMap!: Record<string, string>;
+  fieldMap!: FieldMapType;
 
   @IsString()
   @IsOptional()

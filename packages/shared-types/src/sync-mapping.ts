@@ -1,5 +1,46 @@
 import { DataFolderId } from './ids';
 
+// ============================================================================
+// Transformer Types
+// ============================================================================
+
+export type TransformerType = 'string_to_number' | 'source_fk_to_dest_fk' | 'lookup_field';
+
+/** Options for the string_to_number transformer */
+export interface StringToNumberOptions {
+  /** Strip currency symbols ($, €, £, etc.) before parsing */
+  stripCurrency?: boolean;
+  /** Parse as integer (truncate) instead of float */
+  parseInteger?: boolean;
+}
+
+/** Options for the source_fk_to_dest_fk transformer */
+export interface SourceFkToDestFkOptions {
+  /** The DataFolder ID containing the referenced records */
+  referencedDataFolderId: DataFolderId;
+}
+
+/** Options for the lookup_field transformer */
+export interface LookupFieldOptions {
+  /** The DataFolder ID containing the referenced records */
+  referencedDataFolderId: DataFolderId;
+  /** The field path to extract from the referenced record (e.g. 'name' or 'company.displayName') */
+  referencedFieldPath: string;
+}
+
+/** Union of all transformer options types */
+export type TransformerOptions = StringToNumberOptions | SourceFkToDestFkOptions | LookupFieldOptions;
+
+/** Configuration for a field transformer with strictly typed options */
+export type TransformerConfig =
+  | { type: 'string_to_number'; options?: StringToNumberOptions }
+  | { type: 'source_fk_to_dest_fk'; options: SourceFkToDestFkOptions }
+  | { type: 'lookup_field'; options: LookupFieldOptions };
+
+// ============================================================================
+// Sync Mapping Types
+// ============================================================================
+
 export interface SyncMapping {
   /** Version number for future migrations */
   version: 1;
@@ -35,6 +76,9 @@ export interface LocalColumnMapping {
 
   /** Column ID in the destination DataFolder schema */
   destinationColumnId: string;
+
+  /** Optional transformer to apply to the value during sync */
+  transformer?: TransformerConfig;
 }
 
 export interface ForeignKeyLookupColumnMapping {

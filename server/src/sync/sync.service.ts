@@ -7,25 +7,56 @@ import {
   CreateSyncDto,
   createSyncId,
   DataFolderId,
+  FieldMappingValue,
+  FieldMapType,
+  LocalColumnMapping,
   SyncId,
   TableMapping,
   UpdateSyncDto,
   WorkbookId,
 } from '@spinner/shared-types';
-import at from 'lodash/at';
 import get from 'lodash/get';
 import merge from 'lodash/merge';
 import set from 'lodash/set';
 import zipObjectDeep from 'lodash/zipObjectDeep';
 import { DbService } from 'src/db/db.service';
+import { WSLogger } from 'src/logger';
 import { BaseJsonTableSpec, ConnectorRecord } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { validateSchemaMapping } from 'src/sync/schema-validator';
+import { createLookupTools, getTransformer, LookupTools, TransformContext } from 'src/sync/transformers';
 import { Actor } from 'src/users/types';
 import { formatJsonWithPrettier } from 'src/utils/json-formatter';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WorkbookService } from 'src/workbook/workbook.service';
+
+/**
+ * Converts a FieldMapType entry to a LocalColumnMapping.
+ * Handles both simple string mappings and complex FieldMappingValue objects.
+ */
+function fieldMapEntryToColumnMapping(sourceField: string, value: string | FieldMappingValue): LocalColumnMapping {
+  if (typeof value === 'string') {
+    return {
+      type: 'local',
+      sourceColumnId: sourceField,
+      destinationColumnId: value,
+    };
+  }
+  return {
+    type: 'local',
+    sourceColumnId: sourceField,
+    destinationColumnId: value.destinationField,
+    transformer: value.transformer,
+  };
+}
+
+/**
+ * Converts a FieldMapType to an array of AnyColumnMapping.
+ */
+function fieldMapToColumnMappings(fieldMap: FieldMapType): AnyColumnMapping[] {
+  return Object.entries(fieldMap).map(([sourceField, value]) => fieldMapEntryToColumnMapping(sourceField, value));
+}
 
 export interface RemoteIdMappingPair {
   sourceRemoteId: string;
@@ -97,13 +128,7 @@ export class SyncService {
         mappings: {
           version: 1,
           tableMappings: dto.folderMappings.map((mapping) => {
-            const columnMappings: AnyColumnMapping[] = Object.entries(mapping.fieldMap).map(
-              ([sourceField, destField]) => ({
-                type: 'local',
-                sourceColumnId: sourceField,
-                destinationColumnId: destField,
-              }),
-            );
+            const columnMappings = fieldMapToColumnMappings(mapping.fieldMap);
 
             const tableMapping: TableMapping = {
               sourceDataFolderId: mapping.sourceId as DataFolderId,
@@ -195,13 +220,7 @@ export class SyncService {
           mappings: {
             version: 1,
             tableMappings: dto.folderMappings.map((mapping) => {
-              const columnMappings: AnyColumnMapping[] = Object.entries(mapping.fieldMap).map(
-                ([sourceField, destField]) => ({
-                  type: 'local',
-                  sourceColumnId: sourceField,
-                  destinationColumnId: destField,
-                }),
-              );
+              const columnMappings = fieldMapToColumnMappings(mapping.fieldMap);
 
               const tableMapping: TableMapping = {
                 sourceDataFolderId: mapping.sourceId as DataFolderId,
@@ -491,6 +510,9 @@ export class SyncService {
     // Get destination table spec for slug resolution
     const destTableSpec = destinationFolder.schema as BaseJsonTableSpec | null;
 
+    // Create lookup tools for transformers that need FK resolution
+    const lookupTools = createLookupTools(this.db, syncId);
+
     for (const [sourceRemoteId, destinationRemoteId] of mappingsBySourceId) {
       const sourceRecord = sourceRecordsById.get(sourceRemoteId);
       if (!sourceRecord) {
@@ -502,8 +524,8 @@ export class SyncService {
       }
 
       try {
-        // Transform the record using column mappings
-        const transformedFields = transformRecord(sourceRecord, tableMapping.columnMappings);
+        // Transform the record using column mappings (with optional transformers)
+        const transformedFields = await transformRecordAsync(sourceRecord, tableMapping.columnMappings, lookupTools);
 
         let destinationPath: string;
 
@@ -889,34 +911,81 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): Connect
 
 /**
  * Transform a source record's fields to destination schema using column mappings.
- * Only LocalColumnMapping is currently supported.
+ * Supports LocalColumnMapping with optional transformers.
  *
  * @param sourceRecord - The source record to transform
  * @param columnMappings - Array of column mappings defining field transformations
+ * @param lookupTools - Tools for FK lookups (optional, required for FK transformers)
  * @returns Transformed fields for the destination record
  */
-function transformRecord(sourceRecord: ConnectorRecord, columnMappings: AnyColumnMapping[]): Record<string, unknown> {
-  const sourcePaths: string[] = [];
-  const destinationPaths: string[] = [];
+async function transformRecordAsync(
+  sourceRecord: ConnectorRecord,
+  columnMappings: AnyColumnMapping[],
+  lookupTools?: LookupTools,
+): Promise<Record<string, unknown>> {
+  const definedPaths: string[] = [];
+  const definedValues: unknown[] = [];
 
   for (const mapping of columnMappings) {
     if (mapping.type === 'local') {
-      sourcePaths.push(mapping.sourceColumnId);
-      destinationPaths.push(mapping.destinationColumnId);
+      const sourceValue = get(sourceRecord.fields, mapping.sourceColumnId);
+
+      // Skip undefined source values
+      if (sourceValue === undefined) {
+        continue;
+      }
+
+      let transformedValue: unknown = sourceValue;
+
+      // Apply transformer if configured
+      if (mapping.transformer) {
+        const transformer = getTransformer(mapping.transformer.type);
+        if (transformer) {
+          // Create transform context
+          const ctx: TransformContext = {
+            sourceRecord,
+            sourceFieldPath: mapping.sourceColumnId,
+            sourceValue,
+            lookupTools: lookupTools ?? {
+              getDestinationIdForSourceFk: () => Promise.resolve(null),
+              lookupFieldFromFkRecord: () => Promise.resolve(null),
+            },
+            options: mapping.transformer.options ?? {},
+          };
+
+          const result = await transformer.transform(ctx);
+
+          if (result.success) {
+            transformedValue = result.value;
+          } else {
+            if (result.useOriginal) {
+              transformedValue = sourceValue;
+            }
+            WSLogger.error({
+              source: 'transformRecordAsync',
+              message: 'Failed to transform field',
+              error: result.error,
+              transformerType: mapping.transformer.type,
+              sourceColumnId: mapping.sourceColumnId,
+              sourceRecordId: sourceRecord.id,
+            });
+            throw new Error(`Failed to transform field "${mapping.sourceColumnId}": ${result.error}`);
+          }
+        } else {
+          WSLogger.error({
+            source: 'transformRecordAsync',
+            message: `Unknown transformer type: ${mapping.transformer.type}`,
+            transformerType: mapping.transformer.type,
+            sourceColumnId: mapping.sourceColumnId,
+            sourceRecordId: sourceRecord.id,
+          });
+        }
+      }
+
+      definedPaths.push(mapping.destinationColumnId);
+      definedValues.push(transformedValue);
     } else if (mapping.type === 'foreign_key_lookup') {
       throw new Error('ForeignKeyLookupColumnMapping is not yet implemented');
-    }
-  }
-
-  const sourceValues = at(sourceRecord.fields, sourcePaths);
-
-  // Filter out undefined values and their corresponding paths
-  const definedPaths: string[] = [];
-  const definedValues: unknown[] = [];
-  for (let i = 0; i < sourceValues.length; i++) {
-    if (sourceValues[i] !== undefined) {
-      definedPaths.push(destinationPaths[i]);
-      definedValues.push(sourceValues[i]);
     }
   }
 

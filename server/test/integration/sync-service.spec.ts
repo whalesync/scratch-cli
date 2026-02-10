@@ -923,7 +923,7 @@ describe('SyncService - syncTableMapping', () => {
     expect(content.endsWith('\n')).toBe(true); // Should end with newline
 
     // Verify JSON is still valid
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content) as { email: string | undefined };
     expect(parsed.email).toBe('john@example.com');
   });
 
@@ -977,5 +977,83 @@ describe('SyncService - syncTableMapping', () => {
       expect(file.content.endsWith('\n')).toBe(true); // All should end with newline
       expect(JSON.parse(file.content)).toBeDefined(); // All should be valid JSON
     }
+  });
+
+  it('should apply string_to_number transformer to convert string values to numbers', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "email": "john@example.com", "price": "$1,234.56", "quantity": "42"}',
+      },
+      {
+        folderId: sourceFolderId,
+        path: 'src/file2.json',
+        content: '{"id": "rec2", "email": "jane@example.com", "price": "€99.99", "quantity": "7"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    // Use transformers to convert string fields to numbers
+    const columnMappings: AnyColumnMapping[] = [
+      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
+      {
+        type: 'local',
+        sourceColumnId: 'price',
+        destinationColumnId: 'price_cents',
+        transformer: { type: 'string_to_number', options: { stripCurrency: true } },
+      },
+      {
+        type: 'local',
+        sourceColumnId: 'quantity',
+        destinationColumnId: 'qty',
+        transformer: { type: 'string_to_number', options: { parseInteger: true } },
+      },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(2);
+    expect(result.errors).toHaveLength(0);
+    expect(writtenFiles).toHaveLength(2);
+
+    // Verify string values were transformed to numbers
+    const file1 = writtenFiles.find((f) => {
+      const content = JSON.parse(f.content) as Record<string, unknown>;
+      return content.email === 'john@example.com';
+    });
+    expect(file1).toBeDefined();
+    const file1Content = JSON.parse(file1!.content) as Record<string, unknown>;
+    expect(file1Content.price_cents).toBe(1234.56); // Currency stripped and parsed as float
+    expect(file1Content.qty).toBe(42); // Parsed as integer
+
+    const file2 = writtenFiles.find((f) => {
+      const content = JSON.parse(f.content) as Record<string, unknown>;
+      return content.email === 'jane@example.com';
+    });
+    expect(file2).toBeDefined();
+    const file2Content = JSON.parse(file2!.content) as Record<string, unknown>;
+    expect(file2Content.price_cents).toBe(99.99);
+    expect(file2Content.qty).toBe(7);
   });
 });
