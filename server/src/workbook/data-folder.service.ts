@@ -385,10 +385,10 @@ export class DataFolderService {
       throw new NotFoundException('Data folder not found');
     }
 
-    // Delete folder in git
+    // Delete folder in git from both branches to avoid orphaned files in git status
     // Note: dataFolder.path includes leading slash, which is handled by service
     if (dataFolder.path) {
-      await this.scratchGitService.deleteFolder(
+      await this.scratchGitService.deleteFolderFromAllBranches(
         dataFolder.workbookId as WorkbookId,
         dataFolder.path,
         `Delete folder ${dataFolder.name}`,

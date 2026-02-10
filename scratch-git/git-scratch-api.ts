@@ -178,9 +178,10 @@ app.delete('/api/repo/:id/files', async (req, res) => {
 app.delete('/api/repo/:id/folder', async (req, res) => {
   try {
     const folder = req.query.folder as string;
+    const branch = (req.query.branch as string) || 'dirty';
     if (!folder) throw new Error('Query param folder is required');
     const { message } = req.body as { message?: string };
-    await gitService.deleteFolder(req.params.id, folder, message || 'Delete folder');
+    await gitService.deleteFolder(req.params.id, folder, message || 'Delete folder', branch);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

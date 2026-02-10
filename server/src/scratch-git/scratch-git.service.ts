@@ -87,8 +87,14 @@ export class ScratchGitService {
     await this.scratchGitClient.deleteFiles(workbookId, branch, paths, message);
   }
 
-  async deleteFolder(workbookId: WorkbookId, folderPath: string, message: string): Promise<void> {
-    await this.scratchGitClient.deleteFolder(workbookId, folderPath, message);
+  async deleteFolder(workbookId: WorkbookId, folderPath: string, message: string, branch?: string): Promise<void> {
+    await this.scratchGitClient.deleteFolder(workbookId, folderPath, message, branch);
+  }
+
+  async deleteFolderFromAllBranches(workbookId: WorkbookId, folderPath: string, message: string): Promise<void> {
+    // Delete from both main and dirty branches to avoid orphaned files in git status
+    await this.scratchGitClient.deleteFolder(workbookId, folderPath, message, MAIN_BRANCH);
+    await this.scratchGitClient.deleteFolder(workbookId, folderPath, message, DIRTY_BRANCH);
   }
 
   async publishFile(workbookId: WorkbookId, path: string, content: string, message: string): Promise<void> {

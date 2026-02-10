@@ -633,21 +633,21 @@ export class GitService implements IGitService {
     });
   }
 
-  async deleteFolder(repoId: string, folderPath: string, message: string): Promise<void> {
+  async deleteFolder(repoId: string, folderPath: string, message: string, branch: string = 'dirty'): Promise<void> {
     // Remove leading slash
     const targetFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
 
     // Optimization: Instead of walking the tree to delete every file,
     // we simply issue a delete operation for the folder path itself.
     // applyChangesToTree handles this by pruning the tree entry.
-    return withWriteLock(repoId, 'dirty', async () => {
+    return withWriteLock(repoId, branch, async () => {
       const changes: FileChange[] = [
         {
           path: targetFolder,
           type: 'delete',
         },
       ];
-      await this.commitChangesToRef(repoId, 'dirty', changes, message);
+      await this.commitChangesToRef(repoId, branch, changes, message);
     });
   }
 
