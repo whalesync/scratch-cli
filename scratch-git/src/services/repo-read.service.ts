@@ -49,6 +49,59 @@ export class RepoReadService extends BaseRepoService {
     return { main: mainContent, dirty: dirtyContent };
   }
 
+  // TODO: optimize this
+  async readFiles(branch: string, paths: string[]): Promise<Array<{ path: string; content: string | null }>> {
+    const results = await Promise.all(
+      paths.map(async (path) => {
+        const content = await this.getFileContent(branch, path);
+        return { path, content };
+      }),
+    );
+    return results;
+  }
+
+  async readFilesPaginated(
+    branch: string,
+    folderPath: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<{ files: Array<{ name: string; content: string }>; nextCursor?: string }> {
+    const allFiles = await this.list(branch, folderPath);
+    // Sort by name for consistent pagination
+    allFiles.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Filter for files only (no directories) and apply cursor
+    let fileEntries = allFiles.filter((f) => f.type === 'file');
+
+    if (cursor) {
+      const cursorIndex = fileEntries.findIndex((f) => f.name === cursor);
+      if (cursorIndex !== -1) {
+        fileEntries = fileEntries.slice(cursorIndex + 1);
+      }
+    }
+
+    // Apply limit
+    const paginatedEntries = fileEntries.slice(0, limit);
+    const nextCursor = paginatedEntries.length > 0 ? paginatedEntries[paginatedEntries.length - 1].name : undefined;
+    const hasMore = fileEntries.length > limit;
+
+    // Fetch content for paginated entries
+    const filesWithContent = await Promise.all(
+      paginatedEntries.map(async (entry) => {
+        const content = await this.getFileContent(branch, entry.path);
+        return {
+          name: entry.name,
+          content: content || '',
+        };
+      }),
+    );
+
+    return {
+      files: filesWithContent,
+      nextCursor: hasMore ? nextCursor : undefined,
+    };
+  }
+
   async createArchive(branch: string): Promise<Readable> {
     const dir = this.getRepoPath();
     const commitOid = await this.resolveRef(branch);

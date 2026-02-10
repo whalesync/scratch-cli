@@ -45,6 +45,36 @@ repoReadRouter.get('/diff', async (req, res) => {
   }
 });
 
+repoReadRouter.post('/files', async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { branch = 'main', paths } = req.body as { branch?: string; paths: string[] };
+    if (!paths || !Array.isArray(paths)) throw new Error('Body param paths must be an array');
+
+    const gitService = new RepoReadService(id);
+    const results = await gitService.readFiles(branch, paths);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+repoReadRouter.get('/files-paginated', async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const branch = (req.query.branch as string) || 'main';
+    const folder = (req.query.folder as string) || '';
+    const limit = parseInt((req.query.limit as string) || '50', 10);
+    const cursor = req.query.cursor as string | undefined;
+
+    const gitService = new RepoReadService(id);
+    const result = await gitService.readFilesPaginated(branch, folder, limit, cursor);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // Endpoints moved to repo-diff.ts and repo-debug.ts
 
 repoReadRouter.get('/archive', async (req, res) => {

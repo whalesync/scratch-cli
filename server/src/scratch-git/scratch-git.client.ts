@@ -105,7 +105,35 @@ export class ScratchGitClient {
     } catch {
       // TODO: handle error properly
       return null;
+      return null;
     }
+  }
+
+  async readFiles(
+    repoId: string,
+    branch: string,
+    paths: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    return this.callGitApi(`/api/repo/read/${repoId}/files`, 'POST', { branch, paths }) as Promise<
+      Array<{ path: string; content: string | null }>
+    >;
+  }
+
+  async readFilesPaginated(
+    repoId: string,
+    branch: string,
+    folder: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<{ files: Array<{ name: string; content: string }>; nextCursor?: string }> {
+    let url = `/api/repo/read/${repoId}/files-paginated?branch=${branch}&folder=${encodeURIComponent(folder)}&limit=${limit}`;
+    if (cursor) {
+      url += `&cursor=${encodeURIComponent(cursor)}`;
+    }
+    return this.callGitApi(url, 'GET') as Promise<{
+      files: Array<{ name: string; content: string }>;
+      nextCursor?: string;
+    }>;
   }
 
   async getStatus(repoId: string): Promise<any> {
