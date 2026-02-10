@@ -34,10 +34,14 @@ gcloud config set project "$GCP_PROJECT"
 echo "==> Authenticating Docker with GCP..."
 gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev
 
+BUILD_VERSION=$(date +%y.%m.%d.%H.%M).$(git -C "$REPO_ROOT" rev-parse --short HEAD)
+echo "==> Build version: $BUILD_VERSION"
+
 echo "==> Building client image..."
 docker build \
   --platform linux/amd64 \
   --build-arg APP_ENV=production \
+  --build-arg BUILD_VERSION="$BUILD_VERSION" \
   --build-arg CLERK_PUBLISHABLE_KEY="$(get_secret CLERK_PUBLISHABLE_KEY)" \
   --build-arg NEXT_PUBLIC_POSTHOG_KEY="$(get_secret POSTHOG_API_KEY)" \
   --build-arg NEXT_PUBLIC_POSTHOG_HOST="https://us.i.posthog.com" \
@@ -49,6 +53,7 @@ docker build \
 echo "==> Building server image..."
 docker build \
   --platform linux/amd64 \
+  --build-arg BUILD_VERSION="$BUILD_VERSION" \
   -t "$REGISTRY/spinner-server:latest" \
   -f "$REPO_ROOT/server/Dockerfile.monorepo" \
   "$REPO_ROOT"

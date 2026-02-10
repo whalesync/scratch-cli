@@ -6,6 +6,7 @@ import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { usersApi } from '@/lib/api/users';
 import { getSessionId, getSessionRecordingStatus, getSessionReplayUrl } from '@/lib/posthog';
 import { FLAGS, LocalStorageFlag } from '@/utils/flags-dev';
+import { BUILD_VERSION } from '@/version';
 import { ActionIcon, Checkbox, CopyButton, Divider, Grid, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
 import { CheckIcon, CopyIcon, KeyIcon, PlayIcon, RefreshCwIcon } from 'lucide-react';
 import { Fragment, JSX, useState } from 'react';
@@ -150,24 +151,41 @@ const FlagCheckboxOption = (props: { flag: LocalStorageFlag }): JSX.Element => {
   );
 };
 
-// Current User ID, visible even not in dev mode.
+// Debug section with User ID and Build, visible even not in dev mode.
 export const CurrentUserSection = () => {
   const { user, isAdmin } = useScratchPadUser();
   return (
-    <Group wrap="nowrap" gap="xs">
-      <Text13Regular miw={150}>User ID</Text13Regular>
-      <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
-      <CopyButton value={user?.id || ''} timeout={2000}>
-        {({ copied, copy }) => (
-          <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
-            <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-              {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-            </ActionIcon>
-          </Tooltip>
-        )}
-      </CopyButton>
-      {isAdmin && <Badge>Admin</Badge>}
-    </Group>
+    <ConfigSection title="Debug" description="Debug information for troubleshooting.">
+      <Stack gap="xs">
+        <Group wrap="nowrap" gap="xs">
+          <Text13Regular miw={150}>User ID</Text13Regular>
+          <Text13Regular>{user?.id || 'No user ID found'}</Text13Regular>
+          <CopyButton value={user?.id || ''} timeout={2000}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : `${user?.id}`} withArrow position="right">
+                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+          {isAdmin && <Badge>Admin</Badge>}
+        </Group>
+        <Group wrap="nowrap" gap="xs">
+          <Text13Regular miw={150}>Build</Text13Regular>
+          <Text13Regular>{BUILD_VERSION}</Text13Regular>
+          <CopyButton value={BUILD_VERSION} timeout={2000}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : BUILD_VERSION} withArrow position="right">
+                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
+      </Stack>
+    </ConfigSection>
   );
 };
 
