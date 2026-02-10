@@ -17,6 +17,21 @@ app.use(cors());
 const buildVersion = process.env.BUILD_VERSION || '0.0.0-local';
 const reposDir = process.env.GIT_REPOS_DIR || 'repos';
 
+// Root endpoint
+app.get('/', (_, res) => {
+  const absoluteReposDir = path.isAbsolute(reposDir) ? reposDir : path.join(process.cwd(), reposDir);
+  const repoCount = fs.existsSync(absoluteReposDir)
+    ? fs.readdirSync(absoluteReposDir).filter((name) => name.endsWith('.git')).length
+    : 0;
+  res.json({
+    service: 'git-http-backend',
+    build_version: buildVersion,
+    reposDir: absoluteReposDir,
+    repoCount,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check
 app.get('/health', (_, res) =>
   res.json({

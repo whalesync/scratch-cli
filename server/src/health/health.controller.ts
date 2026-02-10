@@ -48,7 +48,11 @@ export class HealthController {
     };
   }
 
-  @Get('connection-test')
+  /**
+   * Verifies the micro-services this server can talk to to ensure it has access
+   * @returns A JSON response with a list of microservices and the connection status
+   */
+  @Get('service-check')
   async getConnectionTest(): Promise<ConnectionTestResponse> {
     const [redis, scratchGit, scratchGitHttp] = await Promise.all([
       this.testRedis(),
@@ -141,24 +145,23 @@ export class HealthController {
     }
   }
 
-  /**
-   * The git-http-backend is a raw git CGI proxy with no /health endpoint.
-   * We verify it's reachable by hitting the root URL — any HTTP response (even 404) means the server is up.
-   * A network-level error (ECONNREFUSED, timeout) means it's down.
-   */
   private async testScratchGitHttp(): Promise<ConnectionTestResult> {
     const backendUrl = this.configService.getScratchGitBackendUrl();
     if (!backendUrl) {
       return { status: 'not_enabled' };
     }
 
+    const healthUrl = `${backendUrl}/health`;
     try {
-      await fetch(backendUrl, {
+      const response = await fetch(healthUrl, {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
       });
-      // Any HTTP response means the server is reachable (it has no health endpoint, so 404 is expected)
-      return { status: 'ok', url: backendUrl };
+      if (response.ok) {
+        const body = (await response.json()) as { build_version?: string };
+        return { status: 'ok', url: backendUrl, build_version: body.build_version };
+      }
+      return { status: 'error', url: backendUrl, error: `HTTP ${response.status}: ${await response.text()}` };
     } catch (err) {
       return { status: 'error', url: backendUrl, error: err instanceof Error ? err.message : String(err) };
     }
