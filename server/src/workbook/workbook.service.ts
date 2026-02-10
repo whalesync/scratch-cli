@@ -99,6 +99,7 @@ export class WorkbookService {
       eventType: 'delete',
       message: `Deleted workbook ${workbook.name}`,
       entityId: workbook.id as WorkbookId,
+      context: {},
     });
   }
 
@@ -112,6 +113,48 @@ export class WorkbookService {
       eventType: 'delete',
       message: `Discarded unpublished changes in workbook${path ? ` for ${path}` : ''}`,
       entityId: workbookId,
+    });
+  }
+
+  async resetWorkbook(id: WorkbookId, actor: Actor): Promise<void> {
+    const workbook = await this.findOneOrThrow(id, actor);
+
+    // Delete Git Repo
+    try {
+      await this.scratchGitService.deleteRepo(id);
+    } catch (err) {
+      WSLogger.error({
+        source: 'WorkbookService.resetWorkbook',
+        message: 'Failed to delete git repo during reset',
+        error: err,
+        workbookId: id,
+      });
+    }
+
+    // Re-Initialize Git Repo
+    try {
+      await this.scratchGitService.initRepo(id);
+    } catch (err) {
+      WSLogger.error({
+        source: 'WorkbookService.resetWorkbook',
+        message: 'Failed to re-init git repo during reset',
+        error: err,
+        workbookId: id,
+      });
+      throw err;
+    }
+
+    // Delete all data folders
+    await this.db.client.dataFolder.deleteMany({
+      where: { workbookId: id },
+    });
+
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'update', // Using update as "reset" is a form of update to base state
+      message: `Reset workbook ${workbook.name}`,
+      entityId: workbook.id as WorkbookId,
+      context: { action: 'reset_workbook' },
     });
   }
 

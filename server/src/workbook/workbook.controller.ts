@@ -99,11 +99,17 @@ export class WorkbookController {
   @Post(':id/discard-changes')
   @HttpCode(204)
   async discardChanges(
-    @Param('id') workbookId: WorkbookId,
+    @Param('id') id: WorkbookId,
     @Body() body: { path?: string },
     @Req() req: RequestWithUser,
   ): Promise<void> {
-    await this.service.discardChanges(workbookId, userToActor(req.user), body?.path);
+    await this.service.discardChanges(id, userToActor(req.user), body.path);
+  }
+
+  @Post(':id/reset')
+  @HttpCode(204)
+  async reset(@Param('id') id: WorkbookId, @Req() req: RequestWithUser): Promise<void> {
+    await this.service.resetWorkbook(id, userToActor(req.user));
   }
 
   /* Start new Data Folder functions */

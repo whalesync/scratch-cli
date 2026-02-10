@@ -25,7 +25,9 @@ console.log(`[API] Repos directory exists: ${fs.existsSync(reposDir)}`);
 if (fs.existsSync(reposDir)) {
   try {
     const entries = fs.readdirSync(reposDir);
-    console.log(`[API] Repos directory contains ${entries.length} entries: ${entries.slice(0, 20).join(', ')}${entries.length > 20 ? '...' : ''}`);
+    console.log(
+      `[API] Repos directory contains ${entries.length} entries: ${entries.slice(0, 20).join(', ')}${entries.length > 20 ? '...' : ''}`,
+    );
   } catch (err) {
     console.error(`[API] Failed to read repos directory: ${err}`);
   }
@@ -57,6 +59,20 @@ app.post('/api/repo/:id/init', async (req, res) => {
 app.delete('/api/repo/:id', async (req, res) => {
   try {
     await gitService.deleteRepo(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.delete('/api/repo/:id/data-folder', async (req, res) => {
+  try {
+    const body = req.body as { path?: string };
+    const folderPath = body.path || (req.query.path as string);
+    if (!folderPath) {
+      throw new Error('Path is required');
+    }
+    await gitService.removeDataFolder(req.params.id, folderPath);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

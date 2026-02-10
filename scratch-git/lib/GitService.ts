@@ -651,6 +651,28 @@ export class GitService implements IGitService {
     });
   }
 
+  async removeDataFolder(repoId: string, folderPath: string): Promise<void> {
+    const targetFolder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
+    const message = `Remove data folder ${targetFolder}`;
+    console.log(`[GitService] Removing data folder: ${targetFolder} from repo ${repoId}`);
+
+    // 1. Delete from main (blindly attempt, to ensure we catch it)
+    await withWriteLock(repoId, 'main', async () => {
+      const changes: FileChange[] = [{ path: targetFolder, type: 'delete' }];
+      await this.commitChangesToRef(repoId, 'main', changes, message);
+    });
+
+    // 2. Delete from dirty (blindly attempt)
+    await withWriteLock(repoId, 'dirty', async () => {
+      const changes: FileChange[] = [{ path: targetFolder, type: 'delete' }];
+      await this.commitChangesToRef(repoId, 'dirty', changes, message);
+    });
+
+    // 3. Rebase dirty
+    console.log(`[GitService] Rebasing dirty after removal of ${targetFolder}`);
+    await this.rebaseDirty(repoId);
+  }
+
   async publishFile(repoId: string, file: { path: string; content: string }, message: string): Promise<void> {
     // 1. Commit to main
     await this.commitFiles(repoId, 'main', [file], message);

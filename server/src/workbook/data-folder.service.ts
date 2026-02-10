@@ -388,11 +388,7 @@ export class DataFolderService {
     // Delete folder in git from both branches to avoid orphaned files in git status
     // Note: dataFolder.path includes leading slash, which is handled by service
     if (dataFolder.path) {
-      await this.scratchGitService.deleteFolderFromAllBranches(
-        dataFolder.workbookId as WorkbookId,
-        dataFolder.path,
-        `Delete folder ${dataFolder.name}`,
-      );
+      await this.scratchGitService.removeDataFolder(dataFolder.workbookId as WorkbookId, dataFolder.path);
     }
 
     // Delete the data folder (cascades to children due to schema relation)

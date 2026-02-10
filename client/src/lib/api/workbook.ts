@@ -269,4 +269,14 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  async resetWorkbook(workbookId: WorkbookId): Promise<void> {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/workbook/${workbookId}/reset`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to reset workbook');
+      throw error;
+    }
+  },
 };

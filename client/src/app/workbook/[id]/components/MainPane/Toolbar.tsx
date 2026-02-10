@@ -1,10 +1,13 @@
 'use client';
 
-import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary, IconButtonToolbar } from '@/app/components/base/buttons';
-import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import {
+  ButtonCompactDanger,
+  ButtonCompactPrimary,
+  ButtonCompactSecondary,
+  IconButtonToolbar,
+} from '@/app/components/base/buttons';
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
-import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
-import { CreateConnectionModal } from '../shared/CreateConnectionModal';
+import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { dataFolderApi } from '@/lib/api/data-folder';
@@ -14,10 +17,24 @@ import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { DataFolderId, Workbook } from '@spinner/shared-types';
-import { BugIcon, ChevronRightIcon, CloudUploadIcon, DownloadIcon, MoonIcon, PlusIcon, RotateCcwIcon, SunIcon, TerminalIcon } from 'lucide-react';
+import { WorkbookId } from '@spinner/shared-types';
+import {
+  BugIcon,
+  ChevronRightIcon,
+  CloudUploadIcon,
+  DownloadIcon,
+  MoonIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  SunIcon,
+  TerminalIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
+import { CreateConnectionModal } from '../shared/CreateConnectionModal';
+import { DebugMenu } from './DebugMenu';
 
 interface ToolbarProps {
   workbook: Workbook;
@@ -226,10 +243,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
         {/* Files mode buttons */}
         {isFilesPage && (
           <>
-            <ButtonCompactSecondary
-              leftSection={<PlusIcon size={12} />}
-              onClick={openConnectionModal}
-            >
+            <ButtonCompactSecondary leftSection={<PlusIcon size={12} />} onClick={openConnectionModal}>
               Connect service
             </ButtonCompactSecondary>
             <ButtonCompactSecondary
@@ -279,6 +293,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
             <StyledLucideIcon Icon={colorScheme === 'light' ? MoonIcon : SunIcon} size="sm" />
           </IconButtonToolbar>
         </Tooltip>
+        <DebugMenu workbookId={workbook.id as WorkbookId} />
       </Group>
 
       {/* Connection Modal */}
