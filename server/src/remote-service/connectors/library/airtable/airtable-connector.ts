@@ -1,4 +1,3 @@
-import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
@@ -16,14 +15,16 @@ import {
 } from '../../types';
 import { AirtableTableSpec } from '../custom-spec-registry';
 import { AirtableApiClient } from './airtable-api-client';
+import { buildAirtableJsonTableSpec, isReadonlyField } from './airtable-json-schema';
 import { AirtableSchemaParser } from './airtable-schema-parser';
-import { AirtableDataType, AirtableFieldsV2, AirtableRecord } from './airtable-types';
+import { AirtableRecord } from './airtable-types';
 
 export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   readonly service = Service.AIRTABLE;
   static readonly displayName = 'Airtable';
 
   private readonly client: AirtableApiClient;
+  /** @deprecated */
   private readonly schemaParser = new AirtableSchemaParser();
 
   constructor(apiKey: string) {
@@ -59,163 +60,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       throw new Error(`Table ${tableId} not found in base ${baseId}`);
     }
 
-    // Build schema for the fields object
-    const fieldProperties: Record<string, TSchema> = {};
-    let titleColumnRemoteId: EntityId['remoteId'] | undefined;
-    let mainContentColumnRemoteId: EntityId['remoteId'] | undefined;
-
-    for (const field of table.fields) {
-      const fieldSchema = this.airtableFieldToJsonSchema(field);
-      // All Airtable fields are optional in the response (can be missing if empty)
-      fieldProperties[field.name] = Type.Optional(fieldSchema);
-
-      // Track title column (primary field)
-      if (field.id === table.primaryFieldId) {
-        titleColumnRemoteId = [baseId, tableId, field.id];
-      }
-
-      // Track main content column (first rich text field)
-      if (!mainContentColumnRemoteId && (field.type as AirtableDataType) === AirtableDataType.RICH_TEXT) {
-        mainContentColumnRemoteId = [baseId, tableId, field.id];
-      }
-    }
-
-    // Airtable raw record schema: { id, fields, createdTime }
-    const schema = Type.Object(
-      {
-        id: Type.String({ description: 'Unique record identifier' }),
-        fields: Type.Object(fieldProperties, { description: 'Record field values keyed by field name' }),
-        createdTime: Type.String({ description: 'ISO 8601 timestamp of record creation', format: 'date-time' }),
-      },
-      {
-        $id: `${baseId}/${tableId}`,
-        title: table.name,
-      },
-    );
-
-    return {
-      id,
-      slug: id.wsId,
-      name: table.name,
-      schema,
-      idColumnRemoteId: 'id',
-      titleColumnRemoteId,
-      mainContentColumnRemoteId,
-    };
-  }
-
-  /**
-   * Convert an Airtable field to a TypeBox JSON Schema.
-   */
-  private airtableFieldToJsonSchema(field: AirtableFieldsV2): TSchema {
-    const description = field.description || field.name;
-
-    switch (field.type as AirtableDataType) {
-      case AirtableDataType.SINGLE_LINE_TEXT:
-      case AirtableDataType.MULTILINE_TEXT:
-      case AirtableDataType.PHONE_NUMBER:
-        return Type.String({ description });
-
-      case AirtableDataType.BARCODE:
-        return Type.Object(
-          {
-            text: Type.Optional(Type.String()),
-            type: Type.Optional(Type.String()),
-          },
-          { description },
-        );
-
-      case AirtableDataType.EMAIL:
-        return Type.String({ description, format: 'email' });
-
-      case AirtableDataType.URL:
-        return Type.String({ description, format: 'uri' });
-
-      case AirtableDataType.RICH_TEXT:
-        return Type.String({ description, contentMediaType: 'text/markdown' });
-
-      case AirtableDataType.NUMBER:
-      case AirtableDataType.PERCENT:
-      case AirtableDataType.CURRENCY:
-      case AirtableDataType.DURATION:
-      case AirtableDataType.RATING:
-        return Type.Number({ description });
-
-      case AirtableDataType.AUTO_NUMBER:
-      case AirtableDataType.COUNT:
-        return Type.Integer({ description });
-
-      case AirtableDataType.CHECKBOX:
-        return Type.Boolean({ description });
-
-      case AirtableDataType.DATE:
-        return Type.String({ description, format: 'date' });
-
-      case AirtableDataType.DATE_TIME:
-      case AirtableDataType.CREATED_TIME:
-      case AirtableDataType.LAST_MODIFIED_TIME:
-        return Type.String({ description, format: 'date-time' });
-
-      case AirtableDataType.SINGLE_SELECT:
-        return Type.Union([Type.String(), Type.Null()], { description });
-
-      case AirtableDataType.MULTIPLE_SELECTS:
-      case AirtableDataType.MULTIPLE_RECORD_LINKS:
-      case AirtableDataType.MULTIPLE_LOOKUP_VALUES:
-        return Type.Array(Type.String(), { description });
-
-      case AirtableDataType.SINGLE_COLLABORATOR:
-        return Type.Object(
-          {
-            id: Type.String(),
-            email: Type.String({ format: 'email' }),
-            name: Type.String(),
-          },
-          { description },
-        );
-
-      case AirtableDataType.MULTIPLE_COLLABORATORS:
-        return Type.Array(
-          Type.Object({
-            id: Type.String(),
-            email: Type.String({ format: 'email' }),
-            name: Type.String(),
-          }),
-          { description },
-        );
-
-      case AirtableDataType.MULTIPLE_ATTACHMENTS:
-        return Type.Array(
-          Type.Object({
-            id: Type.String(),
-            url: Type.String({ format: 'uri' }),
-            filename: Type.Optional(Type.String()),
-            size: Type.Optional(Type.Number()),
-            type: Type.Optional(Type.String()),
-          }),
-          { description },
-        );
-
-      case AirtableDataType.CREATED_BY:
-      case AirtableDataType.LAST_MODIFIED_BY:
-        return Type.Object(
-          {
-            id: Type.String(),
-            email: Type.String({ format: 'email' }),
-            name: Type.String(),
-          },
-          { description },
-        );
-
-      case AirtableDataType.FORMULA:
-      case AirtableDataType.ROLLUP:
-      case AirtableDataType.LOOKUP:
-        // These can return various types, use unknown
-        return Type.Unknown({ description });
-
-      default:
-        return Type.Unknown({ description });
-    }
+    return buildAirtableJsonTableSpec(id, table);
   }
 
   public pullRecordDeep = undefined;
@@ -291,10 +136,9 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
     // Extract the fields from each file (Airtable expects { fields: {...} })
-    const airtableRecords = files.map((file) => {
-      const fields = (file.fields as Record<string, unknown>) || file;
-      return { fields };
-    });
+    const airtableRecords = files.map((file) => ({
+      fields: this.processFieldDataWithSchema(file, tableSpec),
+    }));
 
     const created = await this.client.createRecords(baseId, tableId, airtableRecords);
 
@@ -313,11 +157,10 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
-    const airtableRecords = files.map((file) => {
-      const id = file.id as string;
-      const fields = (file.fields as Record<string, unknown>) || {};
-      return { id, fields };
-    });
+    const airtableRecords = files.map((file) => ({
+      id: file.id as string,
+      fields: this.processFieldDataWithSchema(file, tableSpec),
+    }));
 
     await this.client.updateRecords(baseId, tableId, airtableRecords);
   }
@@ -330,6 +173,35 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     const [baseId, tableId] = tableSpec.id.remoteId;
     const recordIds = files.map((file) => file.id as string);
     await this.client.deleteRecords(baseId, tableId, recordIds);
+  }
+
+  /**
+   * Process a ConnectorFile using the JSON table spec to extract writable fields.
+   * Filters out the 'id' field and any fields marked as read-only in the schema.
+   */
+  processFieldDataWithSchema(file: ConnectorFile, tableSpec: BaseJsonTableSpec): Record<string, unknown> {
+    const fields = (file.fields as Record<string, unknown>) || {};
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+      if (value === undefined) {
+        continue;
+      }
+
+      // Skip the id field
+      if (key === 'id') {
+        continue;
+      }
+
+      // Skip read-only fields
+      if (isReadonlyField(key, tableSpec)) {
+        continue;
+      }
+
+      result[key] = value;
+    }
+
+    return result;
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

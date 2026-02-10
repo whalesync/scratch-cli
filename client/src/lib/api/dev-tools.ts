@@ -1,6 +1,6 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
-import { ScratchPlanType } from '@spinner/shared-types';
+import { DataFolderId, ScratchPlanType } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -58,6 +58,15 @@ export const devToolsApi = {
       await axios.post('/dev-tools/subscription/plan/cancel');
     } catch (error) {
       handleAxiosError(error, 'Failed to force cancel subscription');
+    }
+  },
+  getDataFolderSchema: async (dataFolderId: DataFolderId): Promise<Record<string, unknown>> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<Record<string, unknown>>(`/dev-tools/data-folder/${dataFolderId}/schema`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get schema for data folder: ' + dataFolderId);
     }
   },
 };

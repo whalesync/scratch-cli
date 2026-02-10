@@ -15,6 +15,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { DataFolderId } from '@spinner/shared-types';
 import {
   createSubscriptionId,
   ScratchPlanType,
@@ -38,6 +39,7 @@ import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
+import { DataFolderService } from '../workbook/data-folder.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
 
@@ -62,6 +64,7 @@ export class DevToolsController {
     private readonly auditLogService: AuditLogService,
     private readonly devToolsService: DevToolsService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly dataFolderService: DataFolderService,
   ) {}
 
   @Get('users/search')
@@ -227,6 +230,22 @@ export class DevToolsController {
         lastInvoicePaid: true,
       },
     });
+  }
+
+  /* Data folder JSON schema */
+  @Get('data-folder/:id/schema')
+  async getDataFolderSchema(@Param('id') id: DataFolderId, @Req() req: RequestWithUser) {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can view data folder schemas');
+    }
+
+    const actor = userToActor(req.user);
+    const spec = await this.dataFolderService.fetchSchemaSpec(id, actor);
+    if (!spec) {
+      throw new NotFoundException('No schema found for this data folder');
+    }
+
+    return spec;
   }
 
   /* Sync data folders job trigger */

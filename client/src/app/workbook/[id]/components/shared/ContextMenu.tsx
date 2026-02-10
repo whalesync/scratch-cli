@@ -12,6 +12,7 @@ export interface ContextMenuItem {
   disabled?: boolean;
   icon?: LucideIcon | React.ReactNode;
   delete?: boolean;
+  devtool?: boolean;
 }
 
 interface ContextMenuProps {
@@ -60,6 +61,7 @@ export function ContextMenu({ opened, onClose, position, items }: ContextMenuPro
               leftSection={renderIcon(item.icon)}
               disabled={item.disabled}
               data-delete={item.delete || undefined}
+              data-devtool={item.devtool || undefined}
               onClick={() => {
                 item.onClick?.();
                 onClose();

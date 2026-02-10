@@ -3,6 +3,7 @@
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular, TextMono12Regular } from '@/app/components/base/text';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
 import { workbookApi } from '@/lib/api/workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
@@ -13,6 +14,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
+  FileJsonIcon,
   FilePlusIcon,
   FolderIcon,
   MoreHorizontalIcon,
@@ -24,6 +26,7 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
+import { DataFolderSchemaModal } from '../shared/DataFolderSchemaModal';
 import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
@@ -302,6 +305,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const pathname = usePathname();
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
+  const { isDevToolsEnabled } = useDevTools();
 
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -318,6 +322,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   // Modal states
   const [newFileModalOpened, { open: openNewFileModal, close: closeNewFileModal }] = useDisclosure(false);
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
+  const [schemaModalOpened, { open: openSchemaModal, close: closeSchemaModal }] = useDisclosure(false);
 
   // Pull handler for this table
   const handlePullTable = async () => {
@@ -492,6 +497,12 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
           },
           { type: 'divider' },
           { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
+          ...(isDevToolsEnabled
+            ? [
+                { type: 'divider' as const },
+                { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal, devtool: true },
+              ]
+            : []),
         ]}
       />
 
@@ -500,6 +511,11 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 
       {/* Remove Table Modal */}
       <RemoveTableModal opened={removeModalOpened} onClose={closeRemoveModal} folder={folder} workbookId={workbookId} />
+
+      {/* Schema Modal (dev tools only) */}
+      {isDevToolsEnabled && (
+        <DataFolderSchemaModal opened={schemaModalOpened} onClose={closeSchemaModal} folder={folder} />
+      )}
     </>
   );
 }
