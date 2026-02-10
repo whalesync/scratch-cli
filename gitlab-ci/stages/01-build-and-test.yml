@@ -63,8 +63,6 @@ build client docker image for test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - client/Dockerfile.monorepo
-        - client/package.json
-        - packages/**/*
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
@@ -100,12 +98,6 @@ build client docker image for production:
       -f client/Dockerfile.monorepo .
     - docker save spinner/spinner-client-production > client/image-production.tar
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - client/Dockerfile.monorepo
-        - client/package.json
-        - gitlab-ci/stages/01-build-and-test.yml
-        - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_prod]
 
 # =============================================================================
@@ -198,7 +190,6 @@ build server docker image:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - server/Dockerfile.monorepo
-        - server/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
@@ -274,7 +265,6 @@ build scratch-git docker image:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - scratch-git/Dockerfile
-        - scratch-git/package.json
         - gitlab-ci/stages/01-build-and-test.yml
         - gitlab-ci/stages/03-push-images.yml
     - !reference [.rules, on_merge_to_master]
