@@ -46,3 +46,4 @@ export * from './dto/workbook/update-workbook.dto';
 export * from './dto/sync/create-sync.dto';
 export * from './dto/sync/update-sync.dto';
 export * from './dto/sync/validate-mapping.dto';
+export * from './dto/transformer/test-transformer.dto';

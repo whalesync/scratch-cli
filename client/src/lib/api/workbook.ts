@@ -3,6 +3,8 @@ import {
   CreateWorkbookDto,
   DataFolderGroup,
   DataFolderPublishStatus,
+  TestTransformerDto,
+  TestTransformerResponse,
   UpdateWorkbookDto,
   Workbook,
   WorkbookId,
@@ -276,6 +278,29 @@ export const workbookApi = {
       await axios.post(`/workbook/${workbookId}/reset`);
     } catch (error) {
       handleAxiosError(error, 'Failed to reset workbook');
+      throw error;
+    }
+  },
+
+  testTransformer: async (workbookId: WorkbookId, dto: TestTransformerDto): Promise<TestTransformerResponse> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<TestTransformerResponse>('/sync/transformers/test', dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to test transformer');
+      throw error;
+    }
+  },
+
+  deleteFile: async (workbookId: WorkbookId, path: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/workbooks/${workbookId}/files/by-path`, {
+        params: { path },
+      });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete file');
       throw error;
     }
   },

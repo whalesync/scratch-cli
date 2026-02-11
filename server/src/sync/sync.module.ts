@@ -8,6 +8,7 @@ import { WorkbookModule } from 'src/workbook/workbook.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
+import { TransformerController } from './transformers/transformer.controller';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { SyncService } from './sync.service';
     ScratchConfigModule,
     WorkerEnqueuerModule,
   ],
-  controllers: [SyncController],
+  controllers: [SyncController, TransformerController],
   providers: [SyncService],
   exports: [SyncService],
 })

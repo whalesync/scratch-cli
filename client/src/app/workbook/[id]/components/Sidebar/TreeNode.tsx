@@ -18,6 +18,7 @@ import {
   DownloadIcon,
   FileJsonIcon,
   FilePlusIcon,
+  FlaskRoundIcon,
   FolderIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
@@ -27,11 +28,13 @@ import {
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, type MouseEvent } from 'react';
+import { TestTransformerModal } from '../modals/TestTransformerModal';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
 import { DataFolderSchemaModal } from '../shared/DataFolderSchemaModal';
 import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
+import { RemoveFileModal } from '../shared/RemoveFileModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
 import type { FileTreeMode } from './FileTree';
 
@@ -567,46 +570,115 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
   // Text color: always primary (the dot indicator is enough)
   const textColor = 'var(--fg-primary)';
 
-  return (
-    <Link href={href} style={{ textDecoration: 'none' }}>
-      <UnstyledButton
-        px="sm"
-        py={4}
-        style={{
-          width: `calc(100% - ${INDENT_PX}px)`,
-          marginLeft: INDENT_PX,
-          backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
-          borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
-        }}
-        __vars={{
-          '--hover-bg': 'var(--mantine-color-gray-1)',
-        }}
-        styles={{
-          root: {
-            '&:hover': {
-              backgroundColor: isSelected ? 'var(--bg-selected)' : 'var(--hover-bg)',
-            },
-          },
-        }}
-      >
-        <Group gap={6} wrap="nowrap">
-          {/* Dirty indicator dot (or spacer for alignment) */}
-          <Box
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              backgroundColor: isDirty ? 'var(--mantine-color-orange-6)' : 'transparent',
-              flexShrink: 0,
-            }}
-          />
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
-          <TextMono12Regular c={textColor} truncate style={{ flex: 1 }}>
-            {file.name}
-          </TextMono12Regular>
-        </Group>
-      </UnstyledButton>
-    </Link>
+  // Modals
+  const [testTransformerOpened, { open: openTestTransformer, close: closeTestTransformer }] = useDisclosure(false);
+  const [removeFileOpened, { open: openRemoveFile, close: closeRemoveFile }] = useDisclosure(false);
+
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleThreeDotsClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setContextMenu({ x: rect.right, y: rect.bottom });
+  };
+
+  return (
+    <>
+      <Link href={href} style={{ textDecoration: 'none' }}>
+        <UnstyledButton
+          px="sm"
+          py={4}
+          onContextMenu={mode === 'files' ? handleContextMenu : undefined}
+          style={{
+            width: `calc(100% - ${INDENT_PX}px)`,
+            marginLeft: INDENT_PX,
+            backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
+            borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
+          }}
+          __vars={{
+            '--hover-bg': 'var(--mantine-color-gray-1)',
+          }}
+          styles={{
+            root: {
+              '&:hover': {
+                backgroundColor: isSelected ? 'var(--bg-selected)' : 'var(--hover-bg)',
+              },
+            },
+          }}
+        >
+          <Group gap={6} wrap="nowrap">
+            {/* Dirty indicator dot (or spacer for alignment) */}
+            <Box
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: isDirty ? 'var(--mantine-color-orange-6)' : 'transparent',
+                flexShrink: 0,
+              }}
+            />
+
+            <TextMono12Regular c={textColor} truncate style={{ flex: 1 }}>
+              {file.name}
+            </TextMono12Regular>
+
+            {/* Three dots menu - only in files mode */}
+            {mode === 'files' && (
+              <Box
+                onClick={handleThreeDotsClick}
+                style={{
+                  padding: 2,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.5,
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '1';
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLElement).style.opacity = '0.5';
+                }}
+              >
+                <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
+              </Box>
+            )}
+          </Group>
+        </UnstyledButton>
+      </Link>
+
+      <ContextMenu
+        opened={!!contextMenu}
+        onClose={() => setContextMenu(null)}
+        position={contextMenu ?? { x: 0, y: 0 }}
+        items={[
+          { label: 'Test Transformer', icon: FlaskRoundIcon, onClick: openTestTransformer },
+          { type: 'divider' },
+          { label: 'Delete', icon: Trash2Icon, onClick: openRemoveFile, delete: true },
+        ]}
+      />
+
+      <TestTransformerModal
+        opened={testTransformerOpened}
+        onClose={closeTestTransformer}
+        workbookId={params.id as WorkbookId}
+        file={file}
+      />
+
+      <RemoveFileModal
+        opened={removeFileOpened}
+        onClose={closeRemoveFile}
+        workbookId={params.id as WorkbookId}
+        file={file}
+      />
+    </>
   );
 }
 
