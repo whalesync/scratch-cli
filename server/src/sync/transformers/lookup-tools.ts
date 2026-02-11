@@ -46,13 +46,16 @@ export function createLookupTools(db: DbService, syncId: SyncId): LookupTools {
       });
 
       if (cachedRecord?.recordData) {
-        // Extract the field using the dot-path
-        return get(cachedRecord.recordData as object, fieldPath);
+        // Extract the field using the dot-path.
+        // Normalize undefined (missing path) to null so callers can distinguish
+        // "record not found" (undefined) from "field is null/missing" (null).
+        const value: unknown = get(cachedRecord.recordData as object, fieldPath);
+        return value === undefined ? null : value;
       }
 
-      // If not in cache, return null - the caller should handle fetching if needed
-      // In the future, we could add logic here to fetch the record from the source
-      return null;
+      // Record not found in cache — return undefined as a sentinel value.
+      // Callers can distinguish this from a null field value in the referenced record.
+      return undefined;
     },
   };
 }

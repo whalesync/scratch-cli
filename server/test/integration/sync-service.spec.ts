@@ -1841,3 +1841,533 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     expect(resolvedPostContent.author_id).toBe(authorTempId);
   });
 });
+
+describe('SyncService - lookup_field transformer', () => {
+  let prisma: PrismaClient;
+  let syncService: SyncService;
+  let dataFolderService: DataFolderService;
+  let scratchGitService: ScratchGitService;
+  let dbService: DbService;
+
+  // Test data
+  let workbookId: WorkbookId;
+  let sourceCategoriesFolderId: DataFolderId;
+  let sourcePostsFolderId: DataFolderId;
+  let destPostsFolderId: DataFolderId;
+  let syncId: SyncId;
+  let orgId: string;
+  let userId: string;
+  const actor: Actor = { userId: 'test-user', organizationId: 'test-org' };
+
+  // Track written files for verification
+  let writtenFiles: Array<{ path: string; content: string }>;
+
+  beforeAll(() => {
+    prisma = new PrismaClient();
+  });
+
+  beforeEach(async () => {
+    writtenFiles = [];
+
+    dbService = { client: prisma } as unknown as DbService;
+
+    dataFolderService = {
+      getAllFileContentsByFolderId: jest.fn(),
+      findOne: jest.fn(),
+    } as unknown as DataFolderService;
+
+    scratchGitService = {
+      commitFilesToBranch: jest
+        .fn()
+        .mockImplementation((_workbookId, _branch, files: Array<{ path: string; content: string }>) => {
+          writtenFiles.push(...files);
+          return Promise.resolve();
+        }),
+    } as unknown as ScratchGitService;
+
+    syncService = new SyncService(dbService, dataFolderService, {} as PostHogService, scratchGitService, {} as never);
+
+    // Create test organization
+    const org = await prisma.organization.create({
+      data: {
+        id: 'org_lookup_test_' + Date.now(),
+        name: 'Lookup Test Org',
+        clerkId: 'clerk_lookup_' + Date.now(),
+      },
+    });
+    orgId = org.id;
+
+    const user = await prisma.user.create({
+      data: {
+        id: 'user_lookup_test_' + Date.now(),
+        email: `lookup-test-${Date.now()}@example.com`,
+        organizationId: org.id,
+      },
+    });
+    userId = user.id;
+
+    const wbId = createWorkbookId();
+    await prisma.workbook.create({
+      data: {
+        id: wbId,
+        name: 'Lookup Test Workbook',
+        userId: user.id,
+        organizationId: org.id,
+      },
+    });
+    workbookId = wbId;
+
+    // Create 3 data folders: sourceCategories, sourcePosts, destPosts
+    const srcCatId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: srcCatId,
+        name: 'Source Categories',
+        workbookId,
+        path: '/src-categories',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    sourceCategoriesFolderId = srcCatId;
+
+    const srcPostsId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: srcPostsId,
+        name: 'Source Posts',
+        workbookId,
+        path: '/src-posts',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    sourcePostsFolderId = srcPostsId;
+
+    const dstPostsId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: dstPostsId,
+        name: 'Dest Posts',
+        workbookId,
+        path: '/dest-posts',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    destPostsFolderId = dstPostsId;
+
+    // Create sync
+    const synId = createSyncId();
+    await prisma.sync.create({
+      data: {
+        id: synId,
+        displayName: 'Lookup Test Sync',
+        mappings: [],
+      },
+    });
+    syncId = synId;
+  });
+
+  afterEach(async () => {
+    await prisma.sync.delete({ where: { id: syncId } });
+    await prisma.user.delete({ where: { id: userId } });
+    await prisma.organization.delete({ where: { id: orgId } });
+    await prisma.syncMatchKeys.deleteMany({ where: { syncId } });
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  /**
+   * Helper: set up mock for getAllFileContentsByFolderId
+   */
+  function mockFiles(filesByFolder: Record<string, Array<{ folderId: DataFolderId; path: string; content: string }>>) {
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation(
+      (_workbookIdArg: WorkbookId, folderIdArg: DataFolderId) => {
+        return Promise.resolve(filesByFolder[folderIdArg] ?? []);
+      },
+    );
+  }
+
+  it('should resolve a scalar FK to a field value from the referenced record', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat1.json',
+        content: '{"id": "cat_1", "name": "Technology", "description": "Tech articles"}',
+      },
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat2.json',
+        content: '{"id": "cat_2", "name": "Science", "description": "Science articles"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "AI is cool", "slug": "ai-cool", "category_id": "cat_1"}',
+      },
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post2.json',
+        content: '{"id": "post_2", "title": "Quantum stuff", "slug": "quantum", "category_id": "cat_2"}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'category_id',
+          destinationColumnId: 'category_name',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(2);
+    expect(result.errors).toHaveLength(0);
+    expect(writtenFiles).toHaveLength(2);
+
+    // Find each file by checking its content
+    const file1 = writtenFiles.find((f) => {
+      const content = JSON.parse(f.content) as Record<string, unknown>;
+      return content.title === 'AI is cool';
+    });
+    expect(file1).toBeDefined();
+    const file1Content = JSON.parse(file1!.content) as Record<string, unknown>;
+    expect(file1Content.category_name).toBe('Technology');
+
+    const file2 = writtenFiles.find((f) => {
+      const content = JSON.parse(f.content) as Record<string, unknown>;
+      return content.title === 'Quantum stuff';
+    });
+    expect(file2).toBeDefined();
+    const file2Content = JSON.parse(file2!.content) as Record<string, unknown>;
+    expect(file2Content.category_name).toBe('Science');
+  });
+
+  it('should handle null FK value without error', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat1.json',
+        content: '{"id": "cat_1", "name": "Technology"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "Uncategorized", "slug": "uncategorized", "category_id": null}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'category_id',
+          destinationColumnId: 'category_name',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.category_name).toBeNull();
+  });
+
+  it('should return error when FK references a non-existent record', async () => {
+    // No categories exist — the FK can't be resolved
+    const sourceCategoryFiles: Array<{ folderId: DataFolderId; path: string; content: string }> = [];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "Orphaned", "slug": "orphaned", "category_id": "cat_999"}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'category_id',
+          destinationColumnId: 'category_name',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].error).toContain('Could not find referenced record');
+    expect(result.errors[0].error).toContain('cat_999');
+  });
+
+  it('should resolve a nested field path from the referenced record', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat1.json',
+        content: '{"id": "cat_1", "name": "Technology", "metadata": {"color": "blue", "icon": "laptop"}}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "AI is cool", "slug": "ai-cool", "category_id": "cat_1"}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'category_id',
+          destinationColumnId: 'category_color',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'metadata.color',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.category_color).toBe('blue');
+  });
+
+  it('should resolve array FK values to an array of looked-up field values', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/tag1.json',
+        content: '{"id": "tag_1", "name": "Tech"}',
+      },
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/tag2.json',
+        content: '{"id": "tag_2", "name": "Science"}',
+      },
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/tag3.json',
+        content: '{"id": "tag_3", "name": "Art"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "Multi-tag", "slug": "multi-tag", "tag_ids": ["tag_1", "tag_3"]}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'tag_ids',
+          destinationColumnId: 'tag_names',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.tag_names).toEqual(['Tech', 'Art']);
+  });
+
+  it('should skip in FOREIGN_KEY_MAPPING phase', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat1.json',
+        content: '{"id": "cat_1", "name": "Technology"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "AI", "slug": "ai", "category_id": "cat_1"}',
+      },
+    ];
+
+    // First run DATA phase to create the record
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [],
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'category_id',
+          destinationColumnId: 'category_name',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const dataResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+    expect(dataResult.recordsCreated).toBe(1);
+
+    const phase1Content = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(phase1Content.category_name).toBe('Technology');
+
+    // Now run FOREIGN_KEY_MAPPING phase — lookup_field should skip
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: writtenFiles[0].path,
+          content: writtenFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+
+    // Should succeed — lookup_field skipped, no errors
+    expect(fkResult.errors).toHaveLength(0);
+    expect(fkResult.recordsUpdated).toBe(1);
+
+    // The category_name should be preserved from the existing destination record
+    const phase2Files = writtenFiles.slice(1); // Files from the FK_MAPPING phase
+    const phase2Content = JSON.parse(phase2Files[0].content) as Record<string, unknown>;
+    expect(phase2Content.category_name).toBe('Technology');
+  });
+});

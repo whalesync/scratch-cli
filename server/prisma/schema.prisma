@@ -74,11 +74,6 @@ enum SyncState {
   ON
 }
 
-enum SyncSide {
-  SOURCE
-  DESTINATION
-}
-
 ///
 /// End "keep in sync" section
 ///
@@ -510,20 +505,13 @@ model SyncForeignKeyRecord {
   dataFolder   DataFolder @relation(fields: [dataFolderId], references: [id], onDelete: Cascade)
   dataFolderId String
 
-  /// Whether foreignKeyId came from the source or destination
-  /// This is somewhat redundant, since dataFolderId already associates it with a specific DataFolder
-  side SyncSide
-
-  /// The remote column ID for this specific foreign key on the source table
-  foreignKeyColumnId String
-
   /// The foreign key value (remote ID of the referenced record)
   foreignKeyValue String
 
   /// JSON representation of the referenced record
   recordData Json
 
-  @@unique([syncId, dataFolderId, foreignKeyColumnId, foreignKeyValue])
+  @@unique([syncId, dataFolderId, foreignKeyValue])
   @@index([syncId])
   @@index([dataFolderId])
 }

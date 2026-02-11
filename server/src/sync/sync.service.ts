@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DataFolder } from '@prisma/client';
+import { DataFolder, Prisma } from '@prisma/client';
 import { TSchema } from '@sinclair/typebox';
 import {
   ColumnMapping,
@@ -9,6 +9,7 @@ import {
   DataFolderId,
   FieldMappingValue,
   FieldMapType,
+  LookupFieldOptions,
   SyncId,
   TableMapping,
   UpdateSyncDto,
@@ -419,6 +420,106 @@ export class SyncService {
   }
 
   /**
+   * Populates the SyncForeignKeyRecord cache for lookup_field transformers.
+   * For each column mapping that uses a lookup_field transformer, this method:
+   * 1. Fetches all records from the referenced DataFolder
+   * 2. Extracts unique FK values from the source records
+   * 3. Caches the referenced record data in SyncForeignKeyRecord
+   *
+   * This must be called before transformation so that lookupFieldFromFkRecord()
+   * can resolve FK values to field values from the referenced records.
+   */
+  private async populateForeignKeyRecordCache(
+    syncId: SyncId,
+    tableMapping: TableMapping,
+    sourceRecords: SyncRecord[],
+    workbookId: WorkbookId,
+    actor: Actor,
+  ): Promise<void> {
+    const lookupFieldMappings = tableMapping.columnMappings.filter((m) => m.transformer?.type === 'lookup_field');
+
+    if (lookupFieldMappings.length === 0) {
+      return;
+    }
+
+    // Clear existing FK record cache for this sync
+    await this.db.client.syncForeignKeyRecord.deleteMany({ where: { syncId } });
+
+    // Group mappings by referenced data folder to avoid duplicate fetches
+    const byFolder = new Map<DataFolderId, ColumnMapping[]>();
+    for (const mapping of lookupFieldMappings) {
+      const opts = mapping.transformer!.options as LookupFieldOptions;
+      const arr = byFolder.get(opts.referencedDataFolderId) ?? [];
+      arr.push(mapping);
+      byFolder.set(opts.referencedDataFolderId, arr);
+    }
+
+    for (const [referencedFolderId, mappings] of byFolder) {
+      // Fetch the referenced DataFolder for its schema
+      const folder = await this.db.client.dataFolder.findUnique({
+        where: { id: referencedFolderId },
+      });
+      if (!folder) {
+        WSLogger.warn({
+          source: 'SyncService',
+          message: `Referenced DataFolder ${referencedFolderId} not found for lookup_field transformer`,
+        });
+        continue;
+      }
+
+      // Fetch and parse records from the referenced DataFolder
+      const idColumn = this.getIdColumnFromSchema(folder.schema);
+      const files = await this.dataFolderService.getAllFileContentsByFolderId(workbookId, referencedFolderId, actor);
+      const records = files.map((f) => parseFileToRecord(f, idColumn));
+      const recordsById = new Map(records.map((r) => [r.id, r.fields]));
+
+      // Collect all unique FK values across all columns that reference this folder
+      const fkValues = new Set<string>();
+      for (const mapping of mappings) {
+        for (const record of sourceRecords) {
+          const val = record.fields[mapping.sourceColumnId];
+          if (val === null || val === undefined) continue;
+          if (Array.isArray(val)) {
+            for (const elem of val) {
+              if (elem !== null && elem !== undefined && (typeof elem === 'string' || typeof elem === 'number')) {
+                fkValues.add(String(elem));
+              }
+            }
+          } else if (typeof val === 'string' || typeof val === 'number') {
+            fkValues.add(String(val));
+          }
+        }
+      }
+
+      // Create one cache entry per unique (dataFolderId, foreignKeyValue)
+      const entries: Array<{
+        syncId: string;
+        dataFolderId: string;
+        foreignKeyValue: string;
+        recordData: Prisma.InputJsonValue;
+      }> = [];
+
+      for (const fkValue of fkValues) {
+        const recordData = recordsById.get(fkValue);
+        if (!recordData) continue;
+        entries.push({
+          syncId,
+          dataFolderId: referencedFolderId,
+          foreignKeyValue: fkValue,
+          recordData: recordData as Prisma.InputJsonValue,
+        });
+      }
+
+      if (entries.length > 0) {
+        await this.db.client.syncForeignKeyRecord.createMany({
+          data: entries,
+          skipDuplicates: true,
+        });
+      }
+    }
+  }
+
+  /**
    * Syncs records from source to destination DataFolder based on a TableMapping.
    * Creates new records in destination for unmatched source records,
    * and updates existing destination records for matched ones.
@@ -474,6 +575,11 @@ export class SyncService {
 
     // 4. Fill caches - populates match keys and creates initial remote ID mappings
     await this.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+
+    // 4a. Populate FK record cache for lookup_field transformers (DATA phase only)
+    if (phase === 'DATA') {
+      await this.populateForeignKeyRecordCache(syncId, tableMapping, sourceRecords, workbookId, actor);
+    }
 
     // Create maps of records by ID for quick lookup
     const sourceRecordsById = new Map(sourceRecords.map((r) => [r.id, r]));
