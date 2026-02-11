@@ -45,6 +45,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [newModifier, setNewModifier] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth');
 
+  const [shopDomain, setShopDomain] = useState('');
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [customClientId, setCustomClientId] = useState('');
@@ -63,6 +64,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
         oauthSupportedServices.push(Service.WEBFLOW);
       }
+      if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
+        oauthSupportedServices.push(Service.SHOPIFY);
+      }
 
       // Services that use generic parameters
       const genericParametersSupportedServices = [
@@ -71,6 +75,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.WORDPRESS,
         Service.CSV,
         Service.WEBFLOW,
+        Service.SHOPIFY,
         Service.AUDIENCEFUL,
         Service.MOCO,
         Service.POSTGRES,
@@ -83,7 +88,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         return 'oauth'; // Default fallback
       }
     },
-    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH],
+    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH, user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH],
   );
 
   const getSupportedAuthMethods = useCallback(
@@ -93,12 +98,16 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
         oauthSupportedServices.push(Service.WEBFLOW);
       }
+      if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
+        oauthSupportedServices.push(Service.SHOPIFY);
+      }
 
       const userProvidedParamsSupportedServices = [
         Service.NOTION,
         Service.AIRTABLE,
         Service.WORDPRESS,
         Service.WEBFLOW,
+        Service.SHOPIFY,
         Service.AUDIENCEFUL,
         Service.MOCO,
         Service.POSTGRES,
@@ -116,7 +125,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       }
       return methods;
     },
-    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH],
+    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH, user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH],
   );
 
   const handleSelectNewService = (service: Service) => {
@@ -134,6 +143,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     setEndpoint('');
     setDomain('');
     setConnectionString('');
+    setShopDomain('');
     setNewService(null);
     setNewModifier(null);
     setNewDisplayName(null);
@@ -162,6 +172,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         customClientSecret: isCustom ? customClientSecret : undefined,
         connectionName: connectionName,
         returnPage: returnPage,
+        shopDomain: newService === Service.SHOPIFY ? shopDomain : undefined,
       });
       // The initiateOAuth function will redirect the user, so we don't need to do anything else here
     } catch (error) {
@@ -188,6 +199,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       newService !== Service.WORDPRESS &&
       newService !== Service.MOCO &&
       newService !== Service.POSTGRES &&
+      newService !== Service.SHOPIFY &&
       !newApiKey
     ) {
       setError('API key is required for this service.');
@@ -211,6 +223,10 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       setError('Domain and API key are required for Moco.');
       return;
     }
+    if (authMethod === 'user_provided_params' && newService === Service.SHOPIFY && (!shopDomain || !newApiKey)) {
+      setError('Shop domain and API access token are required for Shopify.');
+      return;
+    }
     try {
       setIsCreating(true);
       // For OAuth, the connection will be created in the callback page
@@ -228,9 +244,11 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               ? { username, password, endpoint }
               : newService === Service.MOCO
                 ? { domain, apiKey: newApiKey }
-                : newService === Service.POSTGRES
-                  ? { connectionString }
-                  : { apiKey: newApiKey },
+                : newService === Service.SHOPIFY
+                  ? { shopDomain, apiKey: newApiKey }
+                  : newService === Service.POSTGRES
+                    ? { connectionString }
+                    : { apiKey: newApiKey },
         modifier: newModifier || undefined,
         displayName: newDisplayName || undefined,
       });
@@ -374,6 +392,34 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               />
             </>
           )}
+          {authMethod === 'oauth' && newService === Service.SHOPIFY && (
+            <TextInput
+              label="Shop Domain"
+              placeholder="your-store.myshopify.com"
+              description="Enter your Shopify store domain"
+              value={shopDomain}
+              onChange={(e) => setShopDomain(e.currentTarget.value)}
+            />
+          )}
+          {authMethod === 'user_provided_params' && newService === Service.SHOPIFY && (
+            <Stack>
+              <TextInput
+                label="Shop Domain"
+                placeholder="your-store.myshopify.com"
+                description="Your Shopify store domain (e.g., your-store.myshopify.com)"
+                value={shopDomain}
+                onChange={(e) => setShopDomain(e.currentTarget.value)}
+              />
+              <TextInput
+                label="Admin API Access Token"
+                placeholder="shpat_..."
+                description="Create a custom app in Settings > Apps > Develop apps to get an access token"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.currentTarget.value)}
+                type="password"
+              />
+            </Stack>
+          )}
           {authMethod === 'user_provided_params' && newService === Service.WORDPRESS && (
             <Stack>
               <Group grow>
@@ -436,6 +482,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
             newService !== Service.CSV &&
             newService !== Service.WORDPRESS &&
             newService !== Service.MOCO &&
+            newService !== Service.SHOPIFY &&
             newService !== Service.POSTGRES &&
             getSupportedAuthMethods(newService).includes('user_provided_params') &&
             authMethod === 'user_provided_params' && (

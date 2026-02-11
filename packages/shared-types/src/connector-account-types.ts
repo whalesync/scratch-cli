@@ -8,6 +8,8 @@ export interface DecryptedCredentials {
   endpoint?: string;
   // Moco specific
   domain?: string;
+  // Shopify specific
+  shopDomain?: string;
   // PostgreSQL specific
   connectionString?: string;
 

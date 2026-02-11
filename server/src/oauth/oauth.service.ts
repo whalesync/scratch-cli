@@ -18,6 +18,7 @@ import { DecryptedCredentials } from '../remote-service/connector-account/types/
 import { EncryptedData } from '../utils/encryption';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
+import { ShopifyOAuthProvider } from './providers/shopify-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
@@ -42,6 +43,7 @@ export class OAuthService {
   constructor(
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
+    private readonly shopifyProvider: ShopifyOAuthProvider,
     private readonly webflowProvider: WebflowOAuthProvider,
     private readonly wixProvider: WixOAuthProvider,
     private readonly youTubeProvider: YouTubeOAuthProvider,
@@ -50,6 +52,7 @@ export class OAuthService {
   ) {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
+    this.providers.set('SHOPIFY', this.shopifyProvider);
     this.providers.set('WEBFLOW', this.webflowProvider);
     this.providers.set('WIX_BLOG', this.wixProvider);
     this.providers.set('YOUTUBE', this.youTubeProvider);
@@ -82,12 +85,14 @@ export class OAuthService {
       connectionName: options.connectionName,
       returnPage: options.returnPage,
       connectorAccountId: options.connectorAccountId,
+      shopDomain: options.shopDomain,
       ts: Date.now(),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64');
 
     const authUrl = provider.generateAuthUrl(actor.userId, state, {
       clientId: options.connectionMethod === 'OAUTH_CUSTOM' ? options.customClientId : undefined,
+      shopDomain: options.shopDomain,
     });
 
     return { authUrl };
@@ -151,6 +156,7 @@ export class OAuthService {
     const tokenResponse = await provider.exchangeCodeForTokens(callbackData.code, {
       clientId: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientId : undefined,
       clientSecret: statePayload.connectionMethod === 'OAUTH_CUSTOM' ? statePayload.customClientSecret : undefined,
+      shopDomain: statePayload.shopDomain,
     });
 
     if (existingConnectorAccount) {
@@ -346,6 +352,8 @@ export class OAuthService {
         return Service.YOUTUBE; // For now, map Google to CUSTOM
       case 'wix_blog':
         return Service.WIX_BLOG;
+      case 'shopify':
+        return Service.SHOPIFY;
       default:
         throw new BadRequestException(`Unsupported service: ${service}`);
     }

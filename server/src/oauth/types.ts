@@ -13,5 +13,6 @@ export type OAuthStatePayload = {
   connectionName?: string;
   returnPage?: string;
   connectorAccountId?: string;
+  shopDomain?: string;
   ts: number;
 };

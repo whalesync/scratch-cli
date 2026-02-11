@@ -36,6 +36,8 @@ export function getServiceDisplayName(service: Service): string {
       return AudiencefulConnector.displayName;
     case Service.MOCO:
       return MocoConnector.displayName;
+    case Service.SHOPIFY:
+      return 'Shopify';
     default: {
       // Exhaustive check - TypeScript will error if a Service case is missing
       const _exhaustiveCheck: never = service;

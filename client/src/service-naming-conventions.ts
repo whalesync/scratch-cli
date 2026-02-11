@@ -140,6 +140,19 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
+  [Service.SHOPIFY]: {
+    service: 'Shopify',
+    table: 'resource',
+    record: 'item',
+    base: 'store',
+    tables: 'resources',
+    records: 'items',
+    bases: 'stores',
+    logo: 'shopify.svg',
+    oauthLabel: 'OAuth',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
 };
 
 export const serviceName = (serviceCode: Service): string => {

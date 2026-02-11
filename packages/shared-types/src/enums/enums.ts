@@ -16,6 +16,7 @@ export enum Service {
   WIX_BLOG = 'WIX_BLOG',
   AUDIENCEFUL = 'AUDIENCEFUL',
   MOCO = 'MOCO',
+  SHOPIFY = 'SHOPIFY',
 }
 
 export enum AuthType {

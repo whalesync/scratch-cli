@@ -7,6 +7,7 @@ import { DbModule } from '../db/db.module';
 import { OAuthController } from './oauth.controller';
 import { OAuthService } from './oauth.service';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
+import { ShopifyOAuthProvider } from './providers/shopify-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
@@ -14,7 +15,14 @@ import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
 @Module({
   imports: [ConfigModule, DbModule, PosthogModule, CredentialEncryptionModule, UserModule],
   controllers: [OAuthController],
-  providers: [OAuthService, NotionOAuthProvider, WebflowOAuthProvider, WixOAuthProvider, YouTubeOAuthProvider],
+  providers: [
+    OAuthService,
+    NotionOAuthProvider,
+    ShopifyOAuthProvider,
+    WebflowOAuthProvider,
+    WixOAuthProvider,
+    YouTubeOAuthProvider,
+  ],
   exports: [OAuthService],
 })
 export class OAuthModule {}

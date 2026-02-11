@@ -26,6 +26,7 @@ export interface UserExperimentFlags {
   CONNECTOR_LIST: string[];
   ENABLE_TOKEN_LIMIT_WARNINGS: boolean;
   ENABLE_WEBFLOW_OAUTH: boolean;
+  ENABLE_SHOPIFY_OAUTH: boolean;
   ENABLE_CREATE_BUG_REPORT: boolean;
   DEFAULT_WORKBOOK_MODE: 'scratchsync';
 }

@@ -46,6 +46,7 @@ enum Service {
   WIX_BLOG
   AUDIENCEFUL
   MOCO
+  SHOPIFY
 }
 
 enum AuthType {

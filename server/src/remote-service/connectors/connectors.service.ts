@@ -147,6 +147,8 @@ export class ConnectorsService {
           throw new ConnectorInstantiationError('Connection string is required for PostgreSQL', service);
         }
         return new PostgresConnector({ connectionString: decryptedCredentials.connectionString });
+      case Service.SHOPIFY:
+        throw new ConnectorInstantiationError('Shopify connector not yet implemented', service);
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }

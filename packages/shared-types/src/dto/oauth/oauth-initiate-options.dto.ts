@@ -43,6 +43,10 @@ export class OAuthInitiateOptionsDto {
   @IsString()
   @IsNotEmpty()
   workbookId?: string;
+
+  @IsString()
+  @IsOptional()
+  shopDomain?: string;
 }
 
 export type ValidatedOAuthInitiateOptionsDto = Required<
@@ -56,4 +60,5 @@ export type ValidatedOAuthInitiateOptionsDto = Required<
     | 'connectionName'
     | 'returnPage'
     | 'connectorAccountId'
+    | 'shopDomain'
   >;

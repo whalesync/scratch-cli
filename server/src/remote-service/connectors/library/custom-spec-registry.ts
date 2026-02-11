@@ -51,6 +51,7 @@ export interface TableSpecs {
   POSTGRES: PostgresTableSpec;
   AUDIENCEFUL: AudiencefulTableSpec;
   MOCO: MocoTableSpec;
+  SHOPIFY: BaseTableSpec<BaseColumnSpec>;
 }
 
 export type AnyColumnSpec = ColumnSpecs[keyof ColumnSpecs];
@@ -66,6 +67,7 @@ export interface ColumnSpecs {
   POSTGRES: PostgresColumnSpec;
   AUDIENCEFUL: AudiencefulColumnSpec;
   MOCO: MocoColumnSpec;
+  SHOPIFY: BaseColumnSpec;
 }
 
 // JSON Table Spec types for the new JSON schema method
