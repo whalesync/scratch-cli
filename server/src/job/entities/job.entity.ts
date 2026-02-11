@@ -6,6 +6,7 @@ import { JsonSafeObject } from 'src/utils/objects';
 export type DbJobStatus =
   | JobState
   | 'unknown'
+  | 'created'
   // bullmq state will be completed
   | 'canceled';
 export interface JobEntity<TPublicProgress = JsonSafeObject> {

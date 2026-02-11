@@ -124,14 +124,17 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       userId: jobData.userId,
     });
 
-    // TODO: This should be creater by the service that enqueues the job
-    const dbJob = await this.jobService.createJob({
-      userId: jobData.userId || 'unknown',
-      type: jobData.type,
-      data: jobData,
-      bullJobId: job.id?.toString(),
-      workbookId: (jobData as Record<string, unknown>).workbookId as string | undefined,
-    });
+    // Look up the DbJob created by the enqueuer, or create one as fallback for test/legacy jobs
+    let dbJob = await this.jobService.getJobByBullJobId(jobId);
+    if (!dbJob) {
+      dbJob = await this.jobService.createJob({
+        userId: jobData.userId || 'unknown',
+        type: jobData.type,
+        data: jobData,
+        bullJobId: job.id?.toString(),
+        workbookId: (jobData as Record<string, unknown>).workbookId as string | undefined,
+      });
+    }
 
     await this.jobService.updateJobStatus({
       id: dbJob.id,

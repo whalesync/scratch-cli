@@ -1,8 +1,10 @@
 'use client';
 
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
+import { SpinningIcon } from '@/app/components/Icons/SpinningIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular, TextMono12Regular } from '@/app/components/base/text';
+import { useActiveJobs } from '@/hooks/use-active-jobs';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
 import { workbookApi } from '@/lib/api/workbook';
@@ -18,6 +20,7 @@ import {
   FilePlusIcon,
   FolderIcon,
   MoreHorizontalIcon,
+  RefreshCwIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -306,6 +309,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const { isDevToolsEnabled } = useDevTools();
+  const { activeJobs } = useActiveJobs(folder.id, folder.lock !== null);
 
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -440,6 +444,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
               {dirtyCount}
             </Badge>
           )}
+
+          {/* Active jobs badge */}
+          {activeJobs.length > 0 && <SpinningIcon Icon={RefreshCwIcon} size={12} c="var(--mantine-color-blue-6)" />}
         </Group>
       </UnstyledButton>
 

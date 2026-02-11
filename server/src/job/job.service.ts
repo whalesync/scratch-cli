@@ -35,16 +35,18 @@ export class JobService {
     data: Record<string, unknown>;
     bullJobId?: string;
     workbookId?: string;
+    dataFolderId?: string;
   }): Promise<DbJob> {
     const job = await this.db.client.dbJob.create({
       data: {
         id: createJobId(),
         userId: params.userId,
         workbookId: params.workbookId,
+        dataFolderId: params.dataFolderId,
         type: params.type,
         data: params.data as any,
         bullJobId: params.bullJobId,
-        status: 'active',
+        status: 'created',
       },
     });
     return job;
@@ -93,6 +95,16 @@ export class JobService {
     });
 
     return job;
+  }
+
+  async getActiveJobsByDataFolderId(dataFolderId: string): Promise<DbJob[]> {
+    return await this.db.client.dbJob.findMany({
+      where: {
+        dataFolderId,
+        status: { in: ['created', 'active'] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async getJobByBullJobId(bullJobId: string): Promise<DbJob | null> {

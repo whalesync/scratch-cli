@@ -16,17 +16,6 @@ export const jobApi = {
     }
   },
 
-  getJobProgress: async (jobId: string): Promise<JobEntity> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<JobEntity>(`/jobs/${jobId}/progress`);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to fetch job progress');
-      throw error;
-    }
-  },
-
   getJobsStatus: async (jobIds: string[]): Promise<JobEntity[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
@@ -34,6 +23,17 @@ export const jobApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch bulk job status');
+      return [];
+    }
+  },
+
+  getActiveJobsByDataFolder: async (dataFolderId: string): Promise<JobEntity[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<JobEntity[]>(`/jobs/data-folder/${dataFolderId}/active`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch active jobs for data folder');
       return [];
     }
   },

@@ -3,6 +3,7 @@ import { createPlainId, DataFolderId, SyncId, WorkbookId } from '@spinner/shared
 import { Job, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScratchConfigService } from 'src/config/scratch-config.service';
+import { JobService } from 'src/job/job.service';
 import { Actor } from 'src/users/types';
 import { JobData } from 'src/worker/jobs/union-types';
 import { PublishDataFolderJobDefinition } from '../worker/jobs/job-definitions/publish-data-folder.job';
@@ -14,7 +15,10 @@ export class BullEnqueuerService implements OnModuleDestroy {
   private redis?: IORedis;
   private queue?: Queue;
 
-  constructor(private readonly configService: ScratchConfigService) {
+  constructor(
+    private readonly configService: ScratchConfigService,
+    private readonly jobService: JobService,
+  ) {
     if (configService.getUseJobs()) {
       this.redis = new IORedis({
         host: this.configService.getRedisHost(),
@@ -62,6 +66,14 @@ export class BullEnqueuerService implements OnModuleDestroy {
       type: 'pull-linked-folder-files',
       initialPublicProgress,
     };
+    await this.jobService.createJob({
+      userId: actor.userId,
+      type: data.type,
+      data,
+      bullJobId: id,
+      workbookId,
+      dataFolderId,
+    });
     return await this.enqueueJobWithId(data, id);
   }
 
@@ -80,6 +92,13 @@ export class BullEnqueuerService implements OnModuleDestroy {
       type: 'publish-data-folder',
       initialPublicProgress,
     };
+    await this.jobService.createJob({
+      userId: actor.userId,
+      type: data.type,
+      data,
+      bullJobId: id,
+      workbookId,
+    });
     return await this.enqueueJobWithId(data, id);
   }
 
@@ -98,6 +117,13 @@ export class BullEnqueuerService implements OnModuleDestroy {
       type: 'sync-data-folders',
       initialPublicProgress,
     };
+    await this.jobService.createJob({
+      userId: actor.userId,
+      type: data.type,
+      data,
+      bullJobId: id,
+      workbookId,
+    });
     return await this.enqueueJobWithId(data, id);
   }
 
