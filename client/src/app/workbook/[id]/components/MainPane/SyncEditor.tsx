@@ -23,9 +23,10 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import type { SyncId, WorkbookId } from '@spinner/shared-types';
+import type { FieldMapType, SyncId, TransformerConfig, WorkbookId } from '@spinner/shared-types';
 import {
   ArrowRight,
   ChevronDown,
@@ -36,9 +37,11 @@ import {
   RefreshCwIcon,
   Search,
   Trash2,
+  Wand2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { TransformerConfigModal } from './TransformerConfigModal';
 
 interface SyncEditorProps {
   workbookId: WorkbookId;
@@ -49,6 +52,7 @@ interface FieldMapping {
   id: string;
   sourceField: string;
   destField: string;
+  transformer?: TransformerConfig;
 }
 
 interface FolderPair {
@@ -63,10 +67,11 @@ interface FolderPair {
 
 // Helpers
 let mappingIdCounter = 0;
-const createMapping = (sourceField = '', destField = ''): FieldMapping => ({
+const createMapping = (sourceField = '', destField = '', transformer?: TransformerConfig): FieldMapping => ({
   id: `mapping-${++mappingIdCounter}`,
   sourceField,
   destField,
+  transformer,
 });
 
 let pairIdCounter = 0;
@@ -124,6 +129,11 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
   const [saving, setSaving] = useState(false);
   const [schemaCache, setSchemaCache] = useState<Record<string, { path: string; type: string }[]>>({});
+  const [transformerModalOpen, setTransformerModalOpen] = useState(false);
+  const [editingTransformerTarget, setEditingTransformerTarget] = useState<{
+    pairIndex: number;
+    mappingIndex: number;
+  } | null>(null);
 
   // Confirm dialog
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
@@ -165,6 +175,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
           id: `mapping-${++mappingIdCounter}`,
           sourceField: cm.sourceColumnId,
           destField: cm.destinationColumnId,
+          transformer: cm.transformer,
         }));
 
         return {
@@ -228,10 +239,12 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
       });
 
       const folderMappings = validPairs.map((pair) => {
-        const fieldMap: Record<string, string> = {};
+        const fieldMap: FieldMapType = {};
         pair.fieldMappings.forEach((m) => {
           if (m.sourceField && m.destField) {
-            fieldMap[m.sourceField] = m.destField;
+            fieldMap[m.sourceField] = m.transformer
+              ? { destinationField: m.destField, transformer: m.transformer }
+              : m.destField;
           }
         });
 
@@ -370,6 +383,24 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
       next[pairIndex].fieldMappings = next[pairIndex].fieldMappings.filter((_, i) => i !== mappingIndex);
       setFolderPairs(next);
     }
+  };
+
+  const updateFieldMappingTransformer = (
+    pairIndex: number,
+    mappingIndex: number,
+    transformer: TransformerConfig | undefined,
+  ) => {
+    const next = [...folderPairs];
+    next[pairIndex].fieldMappings[mappingIndex] = {
+      ...next[pairIndex].fieldMappings[mappingIndex],
+      transformer,
+    };
+    setFolderPairs(next);
+  };
+
+  const openTransformerModal = (pairIndex: number, mappingIndex: number) => {
+    setEditingTransformerTarget({ pairIndex, mappingIndex });
+    setTransformerModalOpen(true);
   };
 
   const getFolderName = (id: string) => allFolders.find((f) => f.id === id)?.name || 'Unknown';
@@ -561,6 +592,17 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                             renderOption={renderAutocompleteOption}
                             rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
                           />
+                          <Tooltip
+                            label={mapping.transformer ? mapping.transformer.type.replaceAll('_', ' ') : 'Transform'}
+                          >
+                            <ActionIcon
+                              variant="subtle"
+                              color={mapping.transformer ? 'blue' : 'gray'}
+                              onClick={() => openTransformerModal(index, mIndex)}
+                            >
+                              <Wand2 size={14} />
+                            </ActionIcon>
+                          </Tooltip>
                           {pair.fieldMappings.length > 1 && (
                             <ActionIcon variant="subtle" color="gray" onClick={() => removeFieldMapping(index, mIndex)}>
                               <Trash2 size={14} />
@@ -664,6 +706,31 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
       {/* Confirm Dialog */}
       <ConfirmDialog {...dialogProps} />
+
+      {/* Transformer Config Modal */}
+      <TransformerConfigModal
+        opened={transformerModalOpen}
+        onClose={() => {
+          setTransformerModalOpen(false);
+          setEditingTransformerTarget(null);
+        }}
+        currentConfig={
+          editingTransformerTarget
+            ? folderPairs[editingTransformerTarget.pairIndex]?.fieldMappings[editingTransformerTarget.mappingIndex]
+                ?.transformer
+            : undefined
+        }
+        onSave={(config) => {
+          if (editingTransformerTarget) {
+            updateFieldMappingTransformer(
+              editingTransformerTarget.pairIndex,
+              editingTransformerTarget.mappingIndex,
+              config,
+            );
+          }
+        }}
+        allFolders={allFolders}
+      />
     </Stack>
   );
 }
