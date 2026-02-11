@@ -1,12 +1,13 @@
 'use client';
 
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { SpinningIcon } from '@/app/components/Icons/SpinningIcon';
+import { PulsingIcon } from '@/app/components/Icons/PulsingIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular, TextMono12Regular } from '@/app/components/base/text';
-import { useActiveJobs } from '@/hooks/use-active-jobs';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
+import { useWorkbook } from '@/hooks/use-workbook';
+import { useWorkbookActiveJobs } from '@/hooks/use-workbook-active-jobs';
 import { workbookApi } from '@/lib/api/workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Badge, Box, Collapse, Group, Stack, Tooltip, UnstyledButton } from '@mantine/core';
@@ -15,13 +16,13 @@ import type { ConnectorAccount, DataFolder, DataFolderGroup, FileRefEntity, Work
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  ClockIcon,
   DownloadIcon,
   FileJsonIcon,
   FilePlusIcon,
   FlaskRoundIcon,
   FolderIcon,
   MoreHorizontalIcon,
-  RefreshCwIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveFileModal } from '../shared/RemoveFileModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
+import { ActiveDataFolderJobIndicator } from './ActiveDataFolderJobIndicator';
 import type { FileTreeMode } from './FileTree';
 
 const SCRATCH_GROUP_NAME = 'Scratch';
@@ -64,6 +66,13 @@ export function ConnectionNode({
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const router = useRouter();
+  const { workbook } = useWorkbook(workbookId);
+  const { getJobsForConnector } = useWorkbookActiveJobs(workbookId);
+
+  const connectorJobs = useMemo(() => {
+    if (!connectorAccount) return [];
+    return getJobsForConnector(connectorAccount.id, workbook?.dataFolders ?? []);
+  }, [connectorAccount, workbook?.dataFolders, getJobsForConnector]);
 
   const nodeId = `connection-${group.name}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -195,6 +204,7 @@ export function ConnectionNode({
                 />
               </Tooltip>
             )}
+            {connectorJobs.length > 0 && <PulsingIcon Icon={ClockIcon} size={12} c="var(--mantine-color-blue-6)" />}
           </Group>
 
           {/* Right side items */}
@@ -314,7 +324,6 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const { isDevToolsEnabled } = useDevTools();
-  const { activeJobs } = useActiveJobs(folder.id, folder.lock !== null);
 
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -454,7 +463,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
           )}
 
           {/* Active jobs badge */}
-          {activeJobs.length > 0 && <SpinningIcon Icon={RefreshCwIcon} size={12} c="var(--mantine-color-blue-6)" />}
+          {folder.lock && <ActiveDataFolderJobIndicator folder={folder} />}
         </Group>
       </UnstyledButton>
 

@@ -36,7 +36,7 @@ export const SWR_KEYS = {
       Array.isArray(key) && key[0] === 'files' && key[2] === workbookId,
   },
   jobs: {
-    activeByDataFolder: (dataFolderId: DataFolderId) => ['jobs', 'active-by-data-folder', dataFolderId] as const,
+    activeByWorkbook: (workbookId: WorkbookId) => ['jobs', 'active-by-workbook', workbookId] as const,
   },
   dataFolders: {
     list: (workbookId: WorkbookId) => ['data-folders', 'list', workbookId] as const,

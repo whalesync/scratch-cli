@@ -13,7 +13,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: `${PROJECT_NAME} - AI Data Studio`,
+  title: `${PROJECT_NAME}`,
   description: 'A data studio tool powered by Whalesync.ai',
 };
 

@@ -6,7 +6,7 @@ import IORedis from 'ioredis';
 import { ScratchConfigService } from 'src/config/scratch-config.service';
 import { Progress } from 'src/types/progress';
 import { DbService } from '../db/db.service';
-import { DbJobStatus, JobEntity } from './entities/job.entity';
+import { DbJobStatus, dbJobToJobEntity, JobEntity } from './entities/job.entity';
 
 @Injectable()
 export class JobService {
@@ -97,14 +97,56 @@ export class JobService {
     return job;
   }
 
-  async getActiveJobsByDataFolderId(dataFolderId: string): Promise<DbJob[]> {
-    return await this.db.client.dbJob.findMany({
+  async getActiveJobsByWorkbookId(workbookId: string): Promise<JobEntity[]> {
+    const dbJobs = await this.db.client.dbJob.findMany({
       where: {
-        dataFolderId,
+        workbookId,
         status: { in: ['created', 'active'] },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    if (dbJobs.length === 0) return [];
+
+    const bullJobIds = dbJobs.map((j) => j.bullJobId).filter((id): id is string => id != null);
+
+    if (bullJobIds.length === 0) return dbJobs.map((j) => dbJobToJobEntity(j));
+
+    const queue = new (await import('bullmq')).Queue('worker-queue', {
+      connection: this.getRedis(),
+    });
+
+    const bullJobs = await Promise.all(bullJobIds.map((id) => queue.getJob(id)));
+    const bullJobMap = new Map<string, (typeof bullJobs)[number]>();
+    for (const job of bullJobs) {
+      if (job?.id) bullJobMap.set(job.id, job);
+    }
+
+    const results: JobEntity[] = await Promise.all(
+      dbJobs.map(async (dbJob) => {
+        const bullJob = dbJob.bullJobId ? bullJobMap.get(dbJob.bullJobId) : undefined;
+
+        if (!bullJob) return dbJobToJobEntity(dbJob);
+
+        const state = await bullJob.getState();
+        const progress = bullJob.progress as Progress;
+        return {
+          dbJobId: dbJob.id,
+          bullJobId: dbJob.bullJobId,
+          type: dbJob.type,
+          state,
+          publicProgress:
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
+            progress?.publicProgress || (bullJob.data as any).initialPublicProgress || undefined,
+          processedOn: bullJob.processedOn ? new Date(bullJob.processedOn) : null,
+          finishedOn: bullJob.finishedOn ? new Date(bullJob.finishedOn) : null,
+          failedReason: bullJob.failedReason,
+        };
+      }),
+    );
+
+    await queue.close();
+    return results;
   }
 
   async getJobByBullJobId(bullJobId: string): Promise<DbJob | null> {

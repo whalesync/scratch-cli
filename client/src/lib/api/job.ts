@@ -27,13 +27,13 @@ export const jobApi = {
     }
   },
 
-  getActiveJobsByDataFolder: async (dataFolderId: string): Promise<JobEntity[]> => {
+  getActiveJobsByWorkbook: async (workbookId: string): Promise<JobEntity[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<JobEntity[]>(`/jobs/data-folder/${dataFolderId}/active`);
+      const res = await axios.get<JobEntity[]>(`/jobs/workbook/${workbookId}/active`);
       return res.data;
     } catch (error) {
-      handleAxiosError(error, 'Failed to fetch active jobs for data folder');
+      handleAxiosError(error, 'Failed to fetch active jobs for workbook');
       return [];
     }
   },

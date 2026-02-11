@@ -36,10 +36,14 @@ export class JobController {
     return dbJobs.map(dbJobToJobEntity);
   }
 
-  @Get('data-folder/:dataFolderId/active')
-  async getActiveJobsByDataFolder(@Param('dataFolderId') dataFolderId: string): Promise<JobEntity[]> {
-    const dbJobs = await this.jobService.getActiveJobsByDataFolderId(dataFolderId);
-    return dbJobs.map(dbJobToJobEntity);
+  @Get('workbook/:workbookId/active')
+  async getActiveJobsByWorkbook(@Param('workbookId') workbookId: string): Promise<JobEntity[]> {
+    return await this.jobService.getActiveJobsByWorkbookId(workbookId);
+  }
+
+  @Get(':jobId/progress')
+  async getJobProgress(@Param('jobId') jobId: string): Promise<JobEntity> {
+    return this.jobService.getJobProgress(jobId);
   }
 
   @Get(':jobId/raw')

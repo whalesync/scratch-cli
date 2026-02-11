@@ -8,6 +8,7 @@ import {
 } from '@/app/components/base/buttons';
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { dataFolderApi } from '@/lib/api/data-folder';
@@ -32,7 +33,6 @@ import {
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
@@ -62,9 +62,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
   // Check if there are any linked data folders (folders with a connector account)
   const hasLinkedFolders = useMemo(() => {
-    return dataFolderGroups.some((group) =>
-      group.dataFolders.some((folder) => folder.connectorAccountId !== null),
-    );
+    return dataFolderGroups.some((group) => group.dataFolders.some((folder) => folder.connectorAccountId !== null));
   }, [dataFolderGroups]);
 
   // Connection modal state
@@ -188,10 +186,13 @@ export function Toolbar({ workbook }: ToolbarProps) {
     trackToggleDisplayMode(newScheme);
   };
 
-  const handleConnectionCreated = useCallback((account: ConnectorAccount) => {
-    setNewlyCreatedAccount(account);
-    openChooseTables();
-  }, [openChooseTables]);
+  const handleConnectionCreated = useCallback(
+    (account: ConnectorAccount) => {
+      setNewlyCreatedAccount(account);
+      openChooseTables();
+    },
+    [openChooseTables],
+  );
 
   // Build breadcrumb from URL path
   // Path structure: TableName/file.json

@@ -139,6 +139,12 @@ export class PostHogService implements OnModuleDestroy {
     });
   }
 
+  trackResetWorkbook(actor: Actor, workbook: WorkbookCluster.Workbook): void {
+    this.captureEvent(PostHogEventName.WORKBOOK_RESET, actor, {
+      ...mapWorkbookProperties(workbook),
+    });
+  }
+
   trackPushWorkbook(actor: Actor, workbook: WorkbookCluster.Workbook): void {
     this.captureEvent(PostHogEventName.WORKBOOK_PUBLISHED, actor, {
       ...mapWorkbookProperties(workbook),
@@ -365,6 +371,7 @@ export enum PostHogEventName {
   WORKBOOK_UPDATED = 'workbook_updated',
   WORKBOOK_CHANGES_DISCARDED = 'workbook_changes_discarded',
   WORKBOOK_REMOVED = 'workbook_deleted',
+  WORKBOOK_RESET = 'workbook_reset',
   WORKBOOK_PULL_FILES = 'workbook_pull_files',
   WORKBOOK_PUBLISH_TRIGGERED = 'workbook_publish_triggered',
   WORKBOOK_PUBLISHED = 'workbook_published',

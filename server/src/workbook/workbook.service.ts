@@ -147,10 +147,17 @@ export class WorkbookService {
       throw err;
     }
 
+    // Delete all jobs for this workbook
+    await this.db.client.dbJob.deleteMany({
+      where: { workbookId: id },
+    });
+
     // Delete all data folders
     await this.db.client.dataFolder.deleteMany({
       where: { workbookId: id },
     });
+
+    this.posthogService.trackResetWorkbook(actor, workbook);
 
     await this.auditLogService.logEvent({
       actor,
