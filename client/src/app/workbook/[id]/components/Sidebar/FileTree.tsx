@@ -7,9 +7,10 @@ import { workbookApi } from '@/lib/api/workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Box, Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ConnectorAccount, Workbook } from '@spinner/shared-types';
+import type { ConnectorAccount, Workbook, WorkbookId } from '@spinner/shared-types';
 import { RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { ConnectionNode, EmptyConnectionNode } from './TreeNode';
 
@@ -35,6 +36,18 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
 
   // Connection modal for empty state
   const [connectionModalOpened, { open: openConnectionModal, close: closeConnectionModal }] = useDisclosure(false);
+
+  // Choose tables modal state (opened after creating a connection)
+  const [chooseTablesOpened, { open: openChooseTables, close: closeChooseTables }] = useDisclosure(false);
+  const [newlyCreatedAccount, setNewlyCreatedAccount] = useState<ConnectorAccount | null>(null);
+
+  const handleConnectionCreated = useCallback(
+    (account: ConnectorAccount) => {
+      setNewlyCreatedAccount(account);
+      openChooseTables();
+    },
+    [openChooseTables],
+  );
 
   // For review mode, fetch dirty files
   const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
@@ -138,7 +151,19 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
           onClose={closeConnectionModal}
           workbookId={workbook.id}
           returnUrl={`/workbook/${workbook.id}/files`}
+          onConnectionCreated={handleConnectionCreated}
         />
+        {newlyCreatedAccount && (
+          <ChooseTablesModal
+            opened={chooseTablesOpened}
+            onClose={() => {
+              closeChooseTables();
+              setNewlyCreatedAccount(null);
+            }}
+            workbookId={workbook.id as WorkbookId}
+            connectorAccount={newlyCreatedAccount}
+          />
+        )}
       </>
     );
   }

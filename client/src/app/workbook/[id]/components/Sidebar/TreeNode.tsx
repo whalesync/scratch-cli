@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { useMemo, useState, type MouseEvent } from 'react';
+import { useCallback, useMemo, useState, type MouseEvent } from 'react';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
 import { DataFolderSchemaModal } from '../shared/DataFolderSchemaModal';
@@ -113,9 +113,9 @@ export function ConnectionNode({
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     toggleNode(nodeId);
-  };
+  }, [toggleNode, nodeId]);
 
   const handleThreeDotsClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -254,20 +254,22 @@ export function ConnectionNode({
       </Collapse>
 
       {/* Context Menu */}
-      <ContextMenu
-        opened={!!contextMenu}
-        onClose={() => setContextMenu(null)}
-        position={contextMenu ?? { x: 0, y: 0 }}
-        items={[
-          { label: 'Pull All Tables', icon: DownloadIcon, onClick: handlePullAll },
-          ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
-          { type: 'divider' as const },
-          { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
-          ...(connectorAccount && !isScratch
-            ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }]
-            : []),
-        ]}
-      />
+      {contextMenu && (
+        <ContextMenu
+          opened={true}
+          onClose={() => setContextMenu(null)}
+          position={contextMenu}
+          items={[
+            { label: 'Pull All Tables', icon: DownloadIcon, onClick: handlePullAll },
+            ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
+            { type: 'divider' as const },
+            { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
+            ...(connectorAccount && !isScratch
+              ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }]
+              : []),
+          ]}
+        />
+      )}
 
       {/* Choose Tables Modal */}
       {connectorAccount && (
@@ -365,20 +367,23 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   };
 
   // Chevron click: just toggle expand/collapse
-  const handleChevronClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    toggleNode(nodeId);
-  };
+  const handleChevronClick = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      toggleNode(nodeId);
+    },
+    [toggleNode, nodeId],
+  );
 
   // Row click (folder name): navigate to folder detail AND expand if collapsed
-  const handleRowClick = () => {
+  const handleRowClick = useCallback(() => {
     const routeBase = mode === 'review' ? 'review' : 'files';
     router.push(`/workbook/${workbookId}/${routeBase}/${encodeURIComponent(folder.name)}`);
     // Also expand if not already expanded
     if (!isExpanded) {
       toggleNode(nodeId);
     }
-  };
+  }, [mode, router, workbookId, folder.name, isExpanded, toggleNode, nodeId]);
 
   // In review mode, hide tables with no dirty files
   if (mode === 'review' && !hasAnyDirtyFiles && !isLoading) {
@@ -488,30 +493,32 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       </Collapse>
 
       {/* Context Menu */}
-      <ContextMenu
-        opened={!!contextMenu}
-        onClose={() => setContextMenu(null)}
-        position={contextMenu ?? { x: 0, y: 0 }}
-        items={[
-          { label: 'Pull this table', icon: DownloadIcon, onClick: handlePullTable },
-          {
-            label: 'New File',
-            icon: FilePlusIcon,
-            onClick: () => {
-              openNewFileModal();
-              setContextMenu(null);
+      {contextMenu && (
+        <ContextMenu
+          opened={true}
+          onClose={() => setContextMenu(null)}
+          position={contextMenu}
+          items={[
+            { label: 'Pull this table', icon: DownloadIcon, onClick: handlePullTable },
+            {
+              label: 'New File',
+              icon: FilePlusIcon,
+              onClick: () => {
+                openNewFileModal();
+                setContextMenu(null);
+              },
             },
-          },
-          { type: 'divider' },
-          { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
-          ...(isDevToolsEnabled
-            ? [
-                { type: 'divider' as const },
-                { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal, devtool: true },
-              ]
-            : []),
-        ]}
-      />
+            { type: 'divider' },
+            { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
+            ...(isDevToolsEnabled
+              ? [
+                  { type: 'divider' as const },
+                  { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal, devtool: true },
+                ]
+              : []),
+          ]}
+        />
+      )}
 
       {/* New File Modal */}
       <NewFileModal opened={newFileModalOpened} onClose={closeNewFileModal} folder={folder} workbookId={workbookId} />
@@ -631,9 +638,9 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
   // Remove connection modal state
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
 
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     toggleNode(nodeId);
-  };
+  }, [toggleNode, nodeId]);
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -730,17 +737,19 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
       </Collapse>
 
       {/* Context Menu */}
-      <ContextMenu
-        opened={!!contextMenu}
-        onClose={() => setContextMenu(null)}
-        position={contextMenu ?? { x: 0, y: 0 }}
-        items={[
-          { label: 'Choose tables', onClick: openChooseTables },
-          { type: 'divider' },
-          { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
-          { label: 'Remove', onClick: openRemoveModal, color: 'red' },
-        ]}
-      />
+      {contextMenu && (
+        <ContextMenu
+          opened={true}
+          onClose={() => setContextMenu(null)}
+          position={contextMenu}
+          items={[
+            { label: 'Choose tables', onClick: openChooseTables },
+            { type: 'divider' },
+            { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
+            { label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
+          ]}
+        />
+      )}
 
       {/* Choose Tables Modal */}
       <ChooseTablesModal

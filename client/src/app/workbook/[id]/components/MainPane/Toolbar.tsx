@@ -16,7 +16,7 @@ import { trackDiscardChanges, trackPublishAll, trackPullFiles, trackToggleDispla
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { DataFolderId, Workbook } from '@spinner/shared-types';
+import type { ConnectorAccount, DataFolderId, Workbook } from '@spinner/shared-types';
 import { WorkbookId } from '@spinner/shared-types';
 import {
   BugIcon,
@@ -33,6 +33,7 @@ import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
+import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { DebugMenu } from './DebugMenu';
@@ -59,8 +60,19 @@ export function Toolbar({ workbook }: ToolbarProps) {
   const isFilesPage = pathname.includes('/files');
   const showBugReport = user?.experimentalFlags?.ENABLE_CREATE_BUG_REPORT;
 
+  // Check if there are any linked data folders (folders with a connector account)
+  const hasLinkedFolders = useMemo(() => {
+    return dataFolderGroups.some((group) =>
+      group.dataFolders.some((folder) => folder.connectorAccountId !== null),
+    );
+  }, [dataFolderGroups]);
+
   // Connection modal state
   const [connectionModalOpened, { open: openConnectionModal, close: closeConnectionModal }] = useDisclosure(false);
+
+  // Choose tables modal state (opened after creating a connection)
+  const [chooseTablesOpened, { open: openChooseTables, close: closeChooseTables }] = useDisclosure(false);
+  const [newlyCreatedAccount, setNewlyCreatedAccount] = useState<ConnectorAccount | null>(null);
 
   // CLI modal state
   const [cliModalOpened, { open: openCLIModal, close: closeCLIModal }] = useDisclosure(false);
@@ -176,6 +188,11 @@ export function Toolbar({ workbook }: ToolbarProps) {
     trackToggleDisplayMode(newScheme);
   };
 
+  const handleConnectionCreated = useCallback((account: ConnectorAccount) => {
+    setNewlyCreatedAccount(account);
+    openChooseTables();
+  }, [openChooseTables]);
+
   // Build breadcrumb from URL path
   // Path structure: TableName/file.json
   // - Workbook root links to /files or /review
@@ -270,6 +287,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
               leftSection={<DownloadIcon size={12} />}
               onClick={handlePullAll}
               loading={isPulling}
+              disabled={!hasLinkedFolders}
             >
               Pull all
             </ButtonCompactSecondary>
@@ -322,7 +340,21 @@ export function Toolbar({ workbook }: ToolbarProps) {
         onClose={closeConnectionModal}
         workbookId={workbook.id}
         returnUrl={`/workbook/${workbook.id}/files`}
+        onConnectionCreated={handleConnectionCreated}
       />
+
+      {/* Choose Tables Modal (after creating connection) */}
+      {newlyCreatedAccount && (
+        <ChooseTablesModal
+          opened={chooseTablesOpened}
+          onClose={() => {
+            closeChooseTables();
+            setNewlyCreatedAccount(null);
+          }}
+          workbookId={workbook.id as WorkbookId}
+          connectorAccount={newlyCreatedAccount}
+        />
+      )}
 
       {/* CLI Modal */}
       <ConnectToCLIModal opened={cliModalOpened} onClose={closeCLIModal} workbookId={workbook.id} />

@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   createWorkbookId,
   DataFolderId,
+  PullFilesResponseDto,
   UpdateWorkbookDto,
   ValidatedCreateWorkbookDto,
   WorkbookId,
@@ -239,7 +240,7 @@ export class WorkbookService {
     return updatedWorkbook;
   }
 
-  async pullFiles(id: WorkbookId, actor: Actor, dataFolderIds?: string[]): Promise<{ jobId: string }> {
+  async pullFiles(id: WorkbookId, actor: Actor, dataFolderIds?: string[]): Promise<PullFilesResponseDto> {
     // Verify the workbook exists and the user has access
     const workbook = await this.findOneOrThrow(id, actor);
 
@@ -260,7 +261,10 @@ export class WorkbookService {
     }
 
     if (foldersToProcess.length === 0) {
-      throw new BadRequestException('No linked data folders found to pull files from');
+      return {
+        warning:
+          'No data folders are linked so pull is a no-op. Please link folders in the web app or with `scratchmd link add`.',
+      };
     }
 
     // Set lock='pull' for all folders before enqueuing jobs

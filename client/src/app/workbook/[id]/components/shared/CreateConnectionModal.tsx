@@ -24,15 +24,18 @@ import { Service } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
+import type { ConnectorAccount } from '@spinner/shared-types';
+
 type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
 export type CreateConnectionModalProps = ModalProps & {
   workbookId: string;
   returnUrl?: string;
+  onConnectionCreated?: (account: ConnectorAccount) => void;
 };
 
 export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
-  const { workbookId, returnUrl, ...modalProps } = props;
+  const { workbookId, returnUrl, onConnectionCreated, ...modalProps } = props;
   const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState('');
@@ -235,7 +238,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         return;
       }
 
-      await createConnectorAccount({
+      const createdAccount = await createConnectorAccount({
         service: newService,
         userProvidedParams:
           newService === Service.CSV
@@ -254,6 +257,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       });
       handleClearForm();
       props.onClose?.();
+      onConnectionCreated?.(createdAccount);
     } catch (error) {
       console.error('Failed to create connection:', error);
       if (error instanceof ScratchpadApiError) {

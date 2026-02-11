@@ -8,3 +8,8 @@ export class PullFilesDto {
 }
 
 export type ValidatedPullFilesDto = PullFilesDto;
+
+export interface PullFilesResponseDto {
+  jobId?: string;
+  warning?: string;
+}

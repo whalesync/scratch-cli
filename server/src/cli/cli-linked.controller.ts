@@ -13,7 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { DataFolderId, Service, WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, PullFilesResponseDto, Service, WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
@@ -222,7 +222,7 @@ export class CliLinkedController {
     @Req() req: RequestWithUser,
     @Param('workbookId') workbookId: string,
     @Param('folderId') folderId: string,
-  ): Promise<{ jobId: string }> {
+  ): Promise<PullFilesResponseDto> {
     const actor = userToActor(req.user);
 
     return await this.workbookService.pullFiles(workbookId as WorkbookId, actor, [folderId]);

@@ -21,9 +21,14 @@ interface ChooseTablesModalProps {
 }
 
 export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccount }: ChooseTablesModalProps) {
-  const { tables: allTableGroups, isLoading: tablesLoading } = useAllTables(workbookId);
+  const { tables: allTableGroups, isLoading, isValidating } = useAllTables(workbookId);
   const { dataFolderGroups, refresh: refreshDataFolders } = useDataFolders();
   const { addLinkedDataFolder } = useWorkbook(workbookId);
+
+  // Check if tables for this specific connector account are available
+  const hasTablesForAccount = allTableGroups.some((g) => g.connectorAccountId === connectorAccount.id);
+  // Show loading if: initial load, or validating and we don't have tables for this account yet
+  const tablesLoading = isLoading || (isValidating && !hasTablesForAccount);
 
   const [selectedTableIds, setSelectedTableIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
