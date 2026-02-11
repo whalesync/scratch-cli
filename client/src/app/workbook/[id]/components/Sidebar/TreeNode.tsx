@@ -246,7 +246,7 @@ export function ConnectionNode({
           {group.dataFolders.length === 0
             ? mode === 'files' &&
               connectorAccount && (
-                <Box pl={INDENT_PX + 14} py={4}>
+                <Box pl={INDENT_PX * 2 + 34} py={4}>
                   <UnstyledButton onClick={openChooseTables}>
                     <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
                       Choose tables
@@ -471,8 +471,11 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         <Stack gap={0} pl={INDENT_PX * 2} pr="sm">
           {/* Loading state */}
           {isLoading && files.length === 0 && (
-            <Box ml={INDENT_PX} py={4}>
-              <Text12Regular c="dimmed">Loading...</Text12Regular>
+            <Box py={4} px="sm" style={{ marginLeft: INDENT_PX }}>
+              <Group gap={6} wrap="nowrap">
+                <Box style={{ width: 6, flexShrink: 0 }} />
+                <Text12Regular c="dimmed">Loading...</Text12Regular>
+              </Group>
             </Box>
           )}
 
@@ -483,22 +486,28 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 
           {/* Hidden count indicator - links to folder view */}
           {hiddenCount > 0 && (
-            <Box ml={INDENT_PX} py={4}>
-              <Link
-                href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
-                  {hiddenCount} more...
-                </Text12Regular>
-              </Link>
+            <Box py={4} px="sm" style={{ marginLeft: INDENT_PX }}>
+              <Group gap={6} wrap="nowrap">
+                <Box style={{ width: 6, flexShrink: 0 }} />
+                <Link
+                  href={`/workbook/${workbookId}/files/${encodeURIComponent(folder.name)}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
+                    {hiddenCount} more...
+                  </Text12Regular>
+                </Link>
+              </Group>
             </Box>
           )}
 
           {/* Empty state */}
           {!isLoading && displayedFiles.length === 0 && (
-            <Box ml={INDENT_PX} py={4}>
-              <Text12Regular c="dimmed">No files</Text12Regular>
+            <Box py={4} px="sm" style={{ marginLeft: INDENT_PX }}>
+              <Group gap={6} wrap="nowrap">
+                <Box style={{ width: 6, flexShrink: 0 }} />
+                <Text12Regular c="dimmed">No files</Text12Regular>
+              </Group>
             </Box>
           )}
         </Stack>
@@ -808,7 +817,7 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
 
       {/* Expanded content - show "Choose tables" link */}
       <Collapse in={isExpanded}>
-        <Box pl={INDENT_PX + 24} py={4}>
+        <Box pl={INDENT_PX * 3 + 34} py={4}>
           <UnstyledButton onClick={openChooseTables}>
             <Text12Regular c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
               Choose tables

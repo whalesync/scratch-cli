@@ -5,12 +5,12 @@ import { Text12Medium, Text13Regular } from '@/app/components/base/text';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { Box, Divider, Stack, UnstyledButton } from '@mantine/core';
 import {
+  BlocksIcon,
   BriefcaseIcon,
   CreditCardIcon,
   DatabaseIcon,
   FolderSyncIcon,
   GridIcon,
-  KeyIcon,
   LayoutGridIcon,
   UserIcon,
   UsersIcon,
@@ -34,10 +34,10 @@ const mainNavItems: NavItem[] = [
     href: '/settings/billing',
   },
   {
-    id: 'api-key',
-    label: 'API Key',
-    icon: KeyIcon,
-    href: '/settings/api-key',
+    id: 'integrations',
+    label: 'Integrations',
+    icon: BlocksIcon,
+    href: '/settings/integrations',
   },
   {
     id: 'user',

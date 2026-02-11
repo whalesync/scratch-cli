@@ -42,7 +42,6 @@ import { CloseButtonInline } from '@/app/components/CloseButtonInline';
 import { ConfigSection } from '@/app/components/ConfigSection';
 import { CornerBoxedBadge } from '@/app/components/CornerBoxedBadge';
 import { DebouncedTextArea } from '@/app/components/DebouncedTextArea';
-import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { DevToolPopover } from '@/app/components/DevToolPopover';
 import { DotSpacer } from '@/app/components/DotSpacer';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
@@ -53,6 +52,7 @@ import { EmptyListInfoPanel, ErrorInfo, Info } from '@/app/components/InfoPanel'
 import { LabelValuePair } from '@/app/components/LabelValuePair';
 import MainContent from '@/app/components/layouts/MainContent';
 import { LoaderWithMessage } from '@/app/components/LoaderWithMessage';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { RelativeDate } from '@/app/components/RelativeDate';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import {
@@ -911,10 +911,7 @@ function ConfirmDialogDemo(): ReactNode {
       >
         <ButtonPrimaryLight onClick={handlePrimaryConfirm}>Show Primary Confirm</ButtonPrimaryLight>
       </GalleryItem>
-      <GalleryItem
-        label="ConfirmDialog (danger)"
-        notes="Use for destructive actions like delete, discard, reset, etc."
-      >
+      <GalleryItem label="ConfirmDialog (danger)" notes="Use for destructive actions like delete, discard, reset, etc.">
         <ButtonDangerLight onClick={handleDangerConfirm}>Show Danger Confirm</ButtonDangerLight>
       </GalleryItem>
       <ConfirmDialog {...dialogProps} />

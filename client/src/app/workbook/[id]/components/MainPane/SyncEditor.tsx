@@ -7,6 +7,7 @@ import { useDataFolders } from '@/hooks/use-data-folders';
 import { syncApi } from '@/lib/api/sync';
 import { workbookApi } from '@/lib/api/workbook';
 import { useSyncStore } from '@/stores/sync-store';
+import { DocsUrls } from '@/utils/docs-urls';
 import {
   ActionIcon,
   Anchor,
@@ -23,7 +24,6 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { DocsUrls } from '@/utils/docs-urls';
 import { notifications } from '@mantine/notifications';
 import type { SyncId, WorkbookId } from '@spinner/shared-types';
 import {
@@ -162,10 +162,10 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
         uniqueFolderIds.add(tm.destinationDataFolderId);
 
         const fieldMappings: FieldMapping[] = tm.columnMappings.map((cm) => ({
-            id: `mapping-${++mappingIdCounter}`,
-            sourceField: cm.sourceColumnId,
-            destField: cm.destinationColumnId,
-          }));
+          id: `mapping-${++mappingIdCounter}`,
+          sourceField: cm.sourceColumnId,
+          destField: cm.destinationColumnId,
+        }));
 
         return {
           id: `pair-${++pairIdCounter}`,

@@ -4,6 +4,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -238,6 +239,14 @@ export class CliLinkedController {
     @Param('workbookId') workbookId: string,
     @Param('folderId') folderId: string,
   ): Promise<{ jobId: string }> {
+    // Check if CLI publishing is enabled for this user
+    const userSettings = req.user.settings as Record<string, unknown> | undefined;
+    if (!userSettings?.cliCanPublish) {
+      throw new ForbiddenException(
+        'CLI publishing is disabled. Enable it in Settings > Integrations to publish changes from the CLI.',
+      );
+    }
+
     const actor = userToActor(req.user);
     const wbId = workbookId as WorkbookId;
     const dfId = folderId as DataFolderId;

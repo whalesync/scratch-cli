@@ -1,8 +1,8 @@
 import { MantineSize } from '@mantine/core';
 import { LucideIcon } from 'lucide-react';
 import { JSX } from 'react';
-import { StyledLucideIcon } from './StyledLucideIcon';
 import classes from './PulsingIcon.module.css';
+import { StyledLucideIcon } from './StyledLucideIcon';
 
 export const PulsingIcon = ({
   Icon,

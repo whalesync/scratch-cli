@@ -14,7 +14,13 @@ export interface OAuthCallbackResponse {
   connectorAccountId: string;
 }
 
-export type OAuthService = Service.NOTION | Service.AIRTABLE | Service.YOUTUBE | Service.WEBFLOW | Service.WIX_BLOG | Service.SHOPIFY;
+export type OAuthService =
+  | Service.NOTION
+  | Service.AIRTABLE
+  | Service.YOUTUBE
+  | Service.WEBFLOW
+  | Service.WIX_BLOG
+  | Service.SHOPIFY;
 
 export interface OAuthError {
   error: string;

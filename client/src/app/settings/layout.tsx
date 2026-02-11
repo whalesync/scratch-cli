@@ -23,7 +23,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         height: '100vh',
         width: '100vw',
         overflow: 'hidden',
-        backgroundColor: 'var(--bg-base)',
+        backgroundColor: 'var(--bg-panel)',
+        padding: 6,
       }}
     >
       {/* Sidebar */}
@@ -33,7 +34,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           width: SIDEBAR_WIDTH,
           minWidth: SIDEBAR_WIDTH,
           height: '100%',
-          borderRight: '0.5px solid var(--fg-divider)',
+          border: '0.5px solid var(--fg-divider)',
+          borderRadius: 4,
           backgroundColor: 'var(--bg-base)',
           flexShrink: 0,
         }}
@@ -58,6 +60,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           minWidth: 0,
           height: '100%',
           overflow: 'hidden',
+          border: '0.5px solid var(--fg-divider)',
+          borderRadius: 4,
+          backgroundColor: 'var(--bg-base)',
+          marginLeft: 6,
         }}
       >
         {children}

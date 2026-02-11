@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useFileByPath } from '@/hooks/use-file-path';
 import { dataFolderApi } from '@/lib/api/data-folder';
@@ -13,7 +14,6 @@ import CodeMirror from '@uiw/react-codemirror';
 import { CloudUploadIcon, RotateCcwIcon, SaveIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { MergeEditor } from '../shared/MergeEditor';
 
 type ViewMode = 'split' | 'unified';

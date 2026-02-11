@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "turbo dev dev:http-backend",
     "build": "turbo build",
     "lint": "turbo lint",
     "format": "turbo format",

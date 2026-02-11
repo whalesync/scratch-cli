@@ -6,14 +6,17 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { usersApi } from '@/lib/api/users';
-import { ActionIcon, CopyButton, Group, PasswordInput, Stack, Tooltip } from '@mantine/core';
-import { CheckIcon, CopyIcon, KeyIcon, RefreshCwIcon } from 'lucide-react';
+import { ActionIcon, CopyButton, Group, PasswordInput, Stack, Switch, Tooltip } from '@mantine/core';
+import { BlocksIcon, CheckIcon, CopyIcon, KeyIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
 
-export default function ApiKeySettingsPage() {
+export default function IntegrationsSettingsPage() {
   const { user, refreshCurrentUser } = useScratchPadUser();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUpdatingPublish, setIsUpdatingPublish] = useState(false);
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
+
+  const cliCanPublish = user?.settings?.cliCanPublish === true;
 
   const generateToken = async () => {
     setIsGenerating(true);
@@ -39,9 +42,19 @@ export default function ApiKeySettingsPage() {
     }
   };
 
+  const handleToggleCliPublish = async (checked: boolean) => {
+    setIsUpdatingPublish(true);
+    try {
+      await usersApi.updateSettings({ updates: { cliCanPublish: checked } });
+      await refreshCurrentUser();
+    } finally {
+      setIsUpdatingPublish(false);
+    }
+  };
+
   return (
     <MainContent>
-      <MainContent.BasicHeader title="API Key" Icon={KeyIcon} />
+      <MainContent.BasicHeader title="Integrations" Icon={BlocksIcon} />
       <MainContent.Body>
         <Stack gap="20px" maw={800}>
           <ConfigSection title="API Key" description="Use this key to authenticate with the Scratch API.">
@@ -73,6 +86,18 @@ export default function ApiKeySettingsPage() {
                 Generate API Key
               </ButtonPrimarySolid>
             )}
+          </ConfigSection>
+
+          <ConfigSection
+            title="Allow CLI to publish changes"
+            description="When enabled, changes from the CLI will bypass the Review stage and go live to your connected services immediately."
+          >
+            <Switch
+              checked={cliCanPublish}
+              onChange={(event) => handleToggleCliPublish(event.currentTarget.checked)}
+              disabled={isUpdatingPublish}
+              label={cliCanPublish ? 'Enabled' : 'Disabled'}
+            />
           </ConfigSection>
         </Stack>
       </MainContent.Body>
