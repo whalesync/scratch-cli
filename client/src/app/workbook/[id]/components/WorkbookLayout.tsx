@@ -95,7 +95,7 @@ export function WorkbookLayout({ workbook, children }: WorkbookLayoutProps) {
           <NavTabs />
 
           {/* Sidebar Content */}
-          <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <Box style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {sidebarMode === 'syncs' && <SyncsList workbookId={workbook.id} />}
             {(sidebarMode === 'files' || sidebarMode === 'review') && (
               <FileTree workbook={workbook} mode={fileTreeMode} />
