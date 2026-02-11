@@ -7,12 +7,10 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   PostgresColumnType,
   TablePreview,
 } from '../../types';
-import { PostgresTableSpec } from '../custom-spec-registry';
 import { PostgresClient, PostgresClientError } from './postgres-client';
 import {
   PG_BOOLEAN_TYPES,
@@ -166,24 +164,6 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
       schema,
       idColumnRemoteId: primaryKey,
     };
-  }
-
-  /**
-   * Download records using the column-based method.
-   * @throws Error - This connector only supports JSON schema methods for downloading.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async pullTableRecords(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tableSpec: PostgresTableSpec,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _progress: JsonSafeObject,
-  ): Promise<void> {
-    throw new Error('PostgreSQL connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**

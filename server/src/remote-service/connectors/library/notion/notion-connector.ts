@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-base-to-string */ // TODO REMOVE.
 import {
   APIErrorCode,
   APIResponseError,
@@ -16,24 +15,13 @@ import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
-import { MarkdownErrors } from '../../markdown-errors';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  ConnectorRecord,
-  EntityId,
-  TablePreview,
-} from '../../types';
-import { NotionTableSpec } from '../custom-spec-registry';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
 import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
 import { NotionMarkdownConverter } from './conversion/notion-markdown-converter';
-import { convertNotionBlockObjectToHtmlv2 } from './conversion/notion-rich-text-conversion';
 import { convertToNotionBlocks } from './conversion/notion-rich-text-push';
 import { ConvertedNotionBlock } from './conversion/notion-rich-text-push-types';
 import { NotionSchemaParser } from './notion-schema-parser';
-import { PageObjectResponsePropertyTypes } from './property-types';
 
 export const PAGE_CONTENT_COLUMN_NAME = 'Page Content';
 export const PAGE_CONTENT_COLUMN_ID = 'WS_PAGE_CONTENT';
@@ -401,89 +389,6 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
   }
 
-  async pullTableRecords(
-    tableSpec: NotionTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
-    progress?: NotionDownloadProgress,
-  ): Promise<void> {
-    const [databaseId] = tableSpec.id.remoteId;
-    const notionDownloadProgress = (progress ?? {}) as NotionDownloadProgress;
-    let hasMore = true;
-    let nextCursor = notionDownloadProgress.nextCursor;
-    while (hasMore) {
-      const response = await this.client.databases.query({
-        database_id: databaseId,
-        start_cursor: nextCursor,
-        page_size,
-      });
-      const records = await Promise.all(
-        response.results
-          .filter((r): r is PageObjectResponse => r.object === 'page')
-          .map(async (page) => {
-            const converted: ConnectorRecord = {
-              id: page.id,
-              fields: {},
-            };
-
-            for (const column of tableSpec.columns) {
-              const prop = Object.values(page.properties).find((p) => p.id === column.id.remoteId[0]);
-              if (prop) {
-                converted.fields[column.id.wsId] = this.extractPropertyValue(prop);
-              }
-            }
-            const pageContentColumn = tableSpec.columns.find((c) => c.id.wsId === PAGE_CONTENT_COLUMN_ID);
-            if (pageContentColumn) {
-              try {
-                // Check what data converter the user wants for this column
-                const dataConverter = columnSettingsMap[pageContentColumn.id.wsId]?.dataConverter;
-                const blocks = await this.fetchBlocksWithChildren(page.id);
-
-                if (dataConverter === 'html') {
-                  // Convert to HTML using the old method
-                  let htmlContent = '';
-                  for (const block of blocks) {
-                    const blockHtml = convertNotionBlockObjectToHtmlv2(block);
-                    htmlContent += blockHtml;
-                  }
-                  converted.fields[pageContentColumn.id.wsId] = htmlContent;
-                } else {
-                  // Convert to Markdown using the new converter
-                  const markdownContent = this.markdownConverter.notionToMarkdown(blocks);
-                  converted.fields[pageContentColumn.id.wsId] = markdownContent;
-
-                  // Extract data loss errors from the markdown
-                  converted.errors = MarkdownErrors.extractAllDataLossErrors(
-                    markdownContent,
-                    pageContentColumn.id.wsId,
-                    converted.errors,
-                  );
-                }
-              } catch (e) {
-                converted.fields[pageContentColumn.id.wsId] = 'Unable to convert this page content';
-                WSLogger.error({
-                  source: 'NotionConnector',
-                  message: 'Error converting page content',
-                  error: e,
-                  pageId: page.id,
-                });
-              }
-            }
-
-            return converted;
-          }),
-      );
-
-      hasMore = response.has_more;
-      nextCursor = response.next_cursor ?? undefined;
-
-      await callback({
-        records,
-        connectorProgress: { nextCursor },
-      });
-    }
-  }
-
   public pullRecordDeep = undefined;
 
   async pullRecordFiles(
@@ -505,9 +410,28 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       });
 
       // Return raw page objects as ConnectorFiles
-      const files = response.results
-        .filter((r): r is PageObjectResponse => r.object === 'page')
-        .map((page) => page as unknown as ConnectorFile);
+      const files: ConnectorFile[] = [];
+      const pageResults = response.results.filter((r): r is PageObjectResponse => r.object === 'page');
+
+      for (const page of pageResults) {
+        const connectorFile = page as unknown as ConnectorFile;
+        // Fetch children recursively for this page
+        try {
+          const childrenData = await this.pollRecordPageContentChildren(
+            page.id,
+            NotionConnector.PAGE_CONTENT_MAX_DEPTH,
+            page.id,
+          );
+          connectorFile['page_content'] = childrenData.children;
+        } catch (error) {
+          WSLogger.error({
+            source: 'NotionConnector',
+            message: `Failed to fetch content for page ${page.id}`,
+            error,
+          });
+        }
+        files.push(connectorFile);
+      }
 
       hasMore = response.has_more;
       nextCursor = response.next_cursor ?? undefined;
@@ -516,119 +440,6 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
         files,
         connectorProgress: { nextCursor },
       });
-    }
-  }
-
-  private extractPropertyValue(
-    property: PageObjectResponsePropertyTypes,
-  ): string | number | boolean | Date | null | string[] {
-    switch (property.type) {
-      case 'title':
-        return property.title.map((t) => t.plain_text).join('');
-      case 'rich_text':
-        return property.rich_text.map((t) => t.plain_text).join('');
-      case 'number':
-        return property.number;
-      case 'select':
-        return property.select?.name ?? null;
-      case 'multi_select':
-        return property.multi_select?.map((o) => o.name);
-      case 'status':
-        return property.status?.name ?? null;
-      case 'date':
-        // dates from Notion are in ISO 8601 format in UTC
-        return property.date?.start ? new Date(property.date.start) : null;
-      case 'people':
-        return property.people.map((p) => p.id).join(', ');
-      case 'files':
-        return property.files.map((f) => f.name).join(', ');
-      case 'checkbox':
-        return property.checkbox;
-      case 'url':
-        return property.url;
-      case 'email':
-        return property.email;
-      case 'phone_number':
-        return property.phone_number;
-      case 'formula':
-        switch (property.formula.type) {
-          case 'string':
-            return property.formula.string;
-          case 'number':
-            return property.formula.number;
-          case 'boolean':
-            return property.formula.boolean;
-          case 'date':
-            // dates from Notion are in ISO 8601 format in UTC
-            return property.formula.date?.start ? new Date(property.formula.date.start) : null;
-          default:
-            return null;
-        }
-      case 'relation':
-        return property.relation.map((r) => r.id);
-      case 'rollup':
-        // TODO: This is more complicated.
-        return null;
-      case 'created_time':
-        return property.created_time;
-      case 'created_by':
-        return property.created_by.id;
-      case 'last_edited_time':
-        return property.last_edited_time;
-      case 'last_edited_by':
-        return property.last_edited_by.id;
-      case 'place':
-        return property.place?.address || property.place?.name || '';
-      case 'unique_id': {
-        const { prefix, number } = property.unique_id;
-        return prefix ? `${prefix}-${number}` : number;
-      }
-      case 'button':
-        return '';
-      default:
-        return `Unsupported type: ${property.type}`;
-    }
-  }
-
-  private buildNotionPropertyValue(
-    type: string | undefined,
-    value: unknown,
-  ): CreatePageParameters['properties'][string] | undefined {
-    if (value === null || value === undefined) {
-      return undefined;
-    }
-
-    switch (type) {
-      case 'title':
-        return { title: [{ text: { content: String(value) } }] };
-      case 'rich_text':
-        return { rich_text: [{ text: { content: String(value) } }] };
-      case 'number':
-        return { number: Number(value) };
-      case 'select':
-        return { select: { name: String(value) } };
-      case 'multi_select':
-        return { multi_select: Array.isArray(value) ? value.map((v) => ({ name: String(v) })) : [] };
-      case 'status':
-        return { status: { name: String(value) } };
-      case 'date':
-        // Notion expects dates to be in ISO 8601 format in UTC
-        return { date: { start: value instanceof Date ? value.toISOString() : String(value) } };
-      case 'checkbox':
-        return { checkbox: Boolean(value) };
-      case 'url':
-        return { url: String(value) };
-      case 'email':
-        return { email: String(value) };
-      case 'phone_number':
-        return { phone_number: String(value) };
-      case 'relation':
-        return { relation: Array.isArray(value) ? value.map((id) => ({ id: String(id) })) : [] };
-      case 'last_edited_by':
-      case 'files':
-      case 'people':
-      default:
-        return undefined;
     }
   }
 
@@ -662,6 +473,120 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     }
 
     return results;
+  }
+
+  // ==========================================
+  // Recursive Fetching Logic
+  // ==========================================
+
+  private static readonly PAGE_CONTENT_MAX_DEPTH = 10;
+  private static readonly PAGE_CONTENT_MAX_BREADTH = 500;
+  private static readonly PAGE_CONTENT_PAGE_SIZE = 100;
+
+  /**
+   * Fetches the full content of a block (including recursive children).
+   * Acts as the entry point for recursive fetching.
+   */
+  async pollRecordPageContent(blockId: string): Promise<{
+    pageContent: ConvertedNotionBlock;
+    statistics: { maxDepth: number; maxBreadth: number; totalCalls: number };
+  }> {
+    const response = await this.client.blocks.retrieve({ block_id: blockId });
+    const pageContent = response as unknown as ConvertedNotionBlock;
+
+    if (_.has(response, 'has_children') && (response as BlockObjectResponse).has_children) {
+      const childrenData = await this.pollRecordPageContentChildren(
+        pageContent.id!,
+        NotionConnector.PAGE_CONTENT_MAX_DEPTH,
+        blockId,
+      );
+
+      pageContent.children = childrenData.children;
+      return {
+        pageContent,
+        statistics: {
+          maxDepth: childrenData.statistics.maxDepth + 1,
+          maxBreadth: Math.max(childrenData.statistics.maxBreadth, 1),
+          totalCalls: childrenData.statistics.totalCalls + 1,
+        },
+      };
+    }
+
+    return { pageContent, statistics: { maxDepth: 1, maxBreadth: 1, totalCalls: 1 } };
+  }
+
+  /**
+   * Recursively fetches children of a block, respecting depth and breadth limits.
+   */
+  async pollRecordPageContentChildren(
+    blockId: string,
+    depthLimit: number,
+    rootRecordId: string,
+  ): Promise<{
+    children: ConvertedNotionBlock[];
+    statistics: { maxDepth: number; maxBreadth: number; totalCalls: number };
+  }> {
+    if (depthLimit === 0) {
+      WSLogger.warn({
+        source: 'NotionConnector',
+        message: `Max depth reached for record ${rootRecordId}`,
+      });
+      return { children: [], statistics: { maxDepth: 0, maxBreadth: 0, totalCalls: 0 } };
+    }
+
+    const blocks: ConvertedNotionBlock[] = [];
+    let hasMore = true;
+    let startCursor: string | undefined = undefined;
+    let childMaxDepth = 0;
+    let childMaxBreadth = 0;
+    let totalCalls = 0;
+
+    while (hasMore) {
+      totalCalls++;
+
+      // Stop if breadth limit reached
+      if (blocks.length >= NotionConnector.PAGE_CONTENT_MAX_BREADTH) {
+        WSLogger.warn({
+          source: 'NotionConnector',
+          message: `Max breadth reached for record ${rootRecordId}`,
+        });
+        break;
+      }
+
+      const response = await this.client.blocks.children.list({
+        block_id: blockId,
+        start_cursor: startCursor,
+        page_size: NotionConnector.PAGE_CONTENT_PAGE_SIZE,
+      });
+
+      for (const result of response.results) {
+        const block = result as unknown as ConvertedNotionBlock;
+
+        // Skip unsupported types if necessary
+
+        if ((result as BlockObjectResponse).has_children) {
+          const childrenData = await this.pollRecordPageContentChildren(block.id!, depthLimit - 1, rootRecordId);
+          block.children = childrenData.children;
+          childMaxDepth = Math.max(childrenData.statistics.maxDepth, childMaxDepth);
+          childMaxBreadth = Math.max(childrenData.statistics.maxBreadth, childMaxBreadth);
+          totalCalls += childrenData.statistics.totalCalls;
+        }
+
+        blocks.push(block);
+      }
+
+      hasMore = response.has_more;
+      startCursor = response.next_cursor || undefined;
+    }
+
+    return {
+      children: blocks,
+      statistics: {
+        maxDepth: childMaxDepth + 1,
+        maxBreadth: Math.max(childMaxBreadth, blocks.length),
+        totalCalls,
+      },
+    };
   }
 
   /**

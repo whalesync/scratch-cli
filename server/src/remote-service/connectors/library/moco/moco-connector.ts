@@ -10,12 +10,10 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   PostgresColumnType,
   TablePreview,
 } from '../../types';
-import { MocoTableSpec } from '../custom-spec-registry';
 import { MocoApiClient, MocoError } from './moco-api-client';
 import { MocoCredentials, MocoEntityType } from './moco-types';
 
@@ -891,24 +889,6 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
       },
       { $id: 'moco/projects', title: 'Projects' },
     );
-  }
-
-  /**
-   * Download records using the column-based method.
-   * @throws Error - This connector only supports JSON schema methods for downloading.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async pullTableRecords(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tableSpec: MocoTableSpec,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _progress: JsonSafeObject,
-  ): Promise<void> {
-    throw new Error('Moco connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**

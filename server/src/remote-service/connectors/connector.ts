@@ -7,7 +7,6 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   ExistingSnapshotRecord,
   SnapshotRecordSanitizedForUpdate,
@@ -76,20 +75,6 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   getNewFile(tableSpec: BaseJsonTableSpec): Promise<Record<string, unknown>> {
     return Promise.resolve({});
   }
-
-  /**
-   * Pull all available records for a given table.
-   * @param tableSpec The table spec to pull records for.
-   * @param callback The callback that will process batches of records as they are pulled.
-   * @param progress The progress object to update with the pull progress.
-   * @throws Error if there is a problem pulling the records.
-   */
-  abstract pullTableRecords(
-    tableSpec: TableSpecs[T],
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
-    progress: TConnectorProgress,
-  ): Promise<void>;
 
   /**
    * Does a full poll of target remote table and pulls all of the available records as JSON files.

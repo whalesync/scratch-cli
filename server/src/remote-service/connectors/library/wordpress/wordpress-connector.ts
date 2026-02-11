@@ -198,38 +198,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
   }
 
-  async pullTableRecords(
-    tableSpec: WordPressTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
-    progress?: WordPressDownloadProgress,
-  ): Promise<void> {
-    const [tableId] = tableSpec.id.remoteId;
-    let offset = progress?.nextOffset ?? 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await this.client.pollRecords(tableId, offset, WORDPRESS_POLLING_PAGE_SIZE);
-
-      if (!Array.isArray(response)) {
-        throw new Error(`Unexpected response format from WordPress: expected array, got ${typeof response}`);
-      }
-
-      const records = response.map((wpRecord) =>
-        this.wordPressRecordToConnectorRecord(wpRecord, tableSpec, columnSettingsMap),
-      );
-
-      const returnedCount = records.length;
-      if (returnedCount < WORDPRESS_POLLING_PAGE_SIZE) {
-        hasMore = false;
-        await callback({ records, connectorProgress: { nextOffset: undefined } });
-      } else {
-        offset += returnedCount;
-        await callback({ records, connectorProgress: { nextOffset: offset } });
-      }
-    }
-  }
-
   public pullRecordDeep = undefined;
 
   async pullRecordFiles(

@@ -376,47 +376,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     }
   }
 
-  async pullTableRecords(
-    tableSpec: WebflowTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-  ): Promise<void> {
-    const [, collectionId] = tableSpec.id.remoteId;
-
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      // List items with pagination
-      const response = await this.client.collections.items.listItems(collectionId, {
-        offset,
-        limit: WEBFLOW_DEFAULT_BATCH_SIZE,
-      });
-
-      const items = response.items || [];
-
-      if (items.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      const records = this.wireToConnectorRecord(items, tableSpec);
-      await callback({ records });
-
-      // Check if there are more items
-      const pagination = response.pagination;
-      if (pagination) {
-        const total = pagination.total || 0;
-        offset += items.length;
-        hasMore = offset < total;
-      } else {
-        // If no pagination info, assume we're done if we got less than limit
-        hasMore = items.length === WEBFLOW_DEFAULT_BATCH_SIZE;
-        offset += items.length;
-      }
-    }
-  }
-
   // Record fields need to be keyed by the wsId, not the remoteId.
   private wireToConnectorRecord(items: Webflow.CollectionItem[], tableSpec: WebflowTableSpec): ConnectorRecord[] {
     return items.map((item) => {

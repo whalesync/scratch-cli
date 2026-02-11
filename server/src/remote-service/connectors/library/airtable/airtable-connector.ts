@@ -78,19 +78,6 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     }
   }
 
-  async pullTableRecords(
-    tableSpec: AirtableTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-  ): Promise<void> {
-    const [baseId, tableId] = tableSpec.id.remoteId;
-
-    for await (const rawRecords of this.client.listRecords(baseId, tableId)) {
-      const records = this.wireToConnectorRecord(rawRecords, tableSpec);
-      await callback({ records });
-    }
-  }
-
   // Record fields need to be keyed by the wsId, not the remoteId.
   // Airtable returns fields keyed by field name (slug).
   private wireToConnectorRecord(records: AirtableRecord[], tableSpec: AirtableTableSpec): ConnectorRecord[] {

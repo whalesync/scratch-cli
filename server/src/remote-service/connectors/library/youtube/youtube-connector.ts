@@ -202,31 +202,6 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     };
   }
 
-  async pullTableRecords(
-    tableSpec: YouTubeTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; progress?: JsonSafeObject }) => Promise<void>,
-  ): Promise<void> {
-    const channelId = tableSpec.id.remoteId[0];
-    let nextPageToken: string | undefined;
-
-    do {
-      const videosResponse = await this.apiClient.getVideos(channelId, nextPageToken);
-
-      if (!videosResponse.items) {
-        break;
-      }
-
-      const records: ConnectorRecord[] = videosResponse.items.map((video) =>
-        this.formatRecordWithoutTranscript(video, tableSpec),
-      );
-
-      await callback({ records });
-
-      nextPageToken = videosResponse.nextPageToken || undefined;
-    } while (nextPageToken);
-  }
-
   async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,

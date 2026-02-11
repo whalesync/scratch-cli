@@ -10,12 +10,10 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   PostgresColumnType,
   TablePreview,
 } from '../../types';
-import { AudiencefulTableSpec } from '../custom-spec-registry';
 import { AudiencefulApiClient, AudiencefulError } from './audienceful-api-client';
 import { AudiencefulField } from './audienceful-types';
 
@@ -433,24 +431,6 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
       default:
         return Type.Unknown({ description });
     }
-  }
-
-  /**
-   * Download records using the column-based method.
-   * @throws Error - This connector only supports JSON schema methods for downloading.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async pullTableRecords(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tableSpec: AudiencefulTableSpec,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _progress: JsonSafeObject,
-  ): Promise<void> {
-    throw new Error('Audienceful connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**

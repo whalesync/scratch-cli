@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
-import type { DraftPost, ListDraftPostsResponse } from '@wix/auto_sdk_blog_draft-posts';
+import type { DraftPost } from '@wix/auto_sdk_blog_draft-posts';
 import { draftPosts } from '@wix/blog';
 import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
@@ -176,47 +176,6 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   ): Promise<void> {
     WSLogger.info({ source: 'WixBlogConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });
-  }
-
-  async pullTableRecords(
-    tableSpec: WixBlogTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-  ): Promise<void> {
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      // Use SDK to list draft posts with rich content fieldset
-      const response: ListDraftPostsResponse = await this.wixClient.draftPosts.listDraftPosts({
-        paging: {
-          limit: WIX_DEFAULT_BATCH_SIZE,
-          offset: offset,
-        },
-        fieldsets: ['RICH_CONTENT'],
-      });
-
-      const posts = response.draftPosts || [];
-
-      if (posts.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      const records = this.wireToConnectorRecord(posts, tableSpec, columnSettingsMap);
-      await callback({ records });
-
-      // Check pagination
-      const metaData = response.metaData;
-      if (metaData && metaData.total !== undefined) {
-        offset += posts.length;
-        hasMore = offset < metaData.total;
-      } else {
-        // If no pagination info, assume we're done if we got less than limit
-        hasMore = posts.length === WIX_DEFAULT_BATCH_SIZE;
-        offset += posts.length;
-      }
-    }
   }
 
   // Convert Wix draft posts to ConnectorRecords with fields keyed by wsId
