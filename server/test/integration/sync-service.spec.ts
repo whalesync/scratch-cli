@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import {
-  AnyColumnMapping,
+  ColumnMapping,
   createDataFolderId,
   createSyncId,
   createWorkbookId,
@@ -412,9 +412,9 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email_address' },
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email_address' },
+      { sourceColumnId: 'name', destinationColumnId: 'full_name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -503,9 +503,9 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
+      { sourceColumnId: 'name', destinationColumnId: 'name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -584,9 +584,9 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
+      { sourceColumnId: 'name', destinationColumnId: 'name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -646,10 +646,10 @@ describe('SyncService - syncTableMapping', () => {
     });
 
     // Map to different field names
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'contact_email' },
-      { type: 'local', sourceColumnId: 'first_name', destinationColumnId: 'given_name' },
-      { type: 'local', sourceColumnId: 'last_name', destinationColumnId: 'family_name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'contact_email' },
+      { sourceColumnId: 'first_name', destinationColumnId: 'given_name' },
+      { sourceColumnId: 'last_name', destinationColumnId: 'family_name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -703,9 +703,7 @@ describe('SyncService - syncTableMapping', () => {
     // Mock commitFilesToBranch to fail
     (scratchGitService.commitFilesToBranch as jest.Mock).mockRejectedValue(new Error('Git commit failed'));
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
-    ];
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'email', destinationColumnId: 'email' }];
 
     const tableMapping: TableMapping = {
       sourceDataFolderId: sourceFolderId,
@@ -747,9 +745,9 @@ describe('SyncService - syncTableMapping', () => {
     });
 
     // Column mappings do NOT include the match key field (id -> source_id)
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
-      { type: 'local', sourceColumnId: 'company', destinationColumnId: 'company_name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'name', destinationColumnId: 'full_name' },
+      { sourceColumnId: 'company', destinationColumnId: 'company_name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -803,9 +801,9 @@ describe('SyncService - syncTableMapping', () => {
     });
 
     // Column mappings explicitly map external_id to source_id (the match key field)
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
-      { type: 'local', sourceColumnId: 'external_id', destinationColumnId: 'source_id' }, // User maps this!
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'name', destinationColumnId: 'full_name' },
+      { sourceColumnId: 'external_id', destinationColumnId: 'source_id' }, // User maps this!
     ];
 
     const tableMapping: TableMapping = {
@@ -856,9 +854,7 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'full_name' },
-    ];
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'name', destinationColumnId: 'full_name' }];
 
     const tableMapping: TableMapping = {
       sourceDataFolderId: sourceFolderId,
@@ -875,7 +871,75 @@ describe('SyncService - syncTableMapping', () => {
     // Record should fail, not be created
     expect(result.recordsCreated).toBe(0);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].error).toContain('Source record missing match key field: external_ref');
+    expect(result.errors[0].error).toContain('Source record missing record matching field: external_ref');
+  });
+
+  it('should return errors for source records with falsy match key values (empty string, null) and skip them', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        // email is empty string
+        content: '{"id": "rec1", "email": "", "name": "John"}',
+      },
+      {
+        folderId: sourceFolderId,
+        path: 'src/file2.json',
+        // email is null
+        content: '{"id": "rec2", "email": null, "name": "Jane"}',
+      },
+      {
+        folderId: sourceFolderId,
+        path: 'src/file3.json',
+        // email is valid — this one should sync fine
+        content: '{"id": "rec3", "email": "bob@example.com", "name": "Bob"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
+      { sourceColumnId: 'name', destinationColumnId: 'name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    // Only rec3 (Bob) should be created; rec1 and rec2 should produce errors
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(2);
+
+    const errorIds = result.errors.map((e) => e.sourceRemoteId).sort();
+    expect(errorIds).toEqual(['rec1', 'rec2']);
+
+    for (const err of result.errors) {
+      expect(err.error).toContain('record matching');
+    }
+
+    // Verify only Bob's record was written
+    expect(writtenFiles).toHaveLength(1);
+    const bobContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(bobContent.email).toBe('bob@example.com');
+    expect(bobContent.name).toBe('Bob');
   });
 
   it('should format JSON content with Prettier formatting (newlines and proper structure)', async () => {
@@ -898,9 +962,7 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
-    ];
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'email', destinationColumnId: 'email' }];
 
     const tableMapping: TableMapping = {
       sourceDataFolderId: sourceFolderId,
@@ -953,9 +1015,9 @@ describe('SyncService - syncTableMapping', () => {
       return Promise.resolve([]);
     });
 
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
-      { type: 'local', sourceColumnId: 'name', destinationColumnId: 'name' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
+      { sourceColumnId: 'name', destinationColumnId: 'name' },
     ];
 
     const tableMapping: TableMapping = {
@@ -1006,16 +1068,14 @@ describe('SyncService - syncTableMapping', () => {
     });
 
     // Use transformers to convert string fields to numbers
-    const columnMappings: AnyColumnMapping[] = [
-      { type: 'local', sourceColumnId: 'email', destinationColumnId: 'email' },
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
       {
-        type: 'local',
         sourceColumnId: 'price',
         destinationColumnId: 'price_cents',
         transformer: { type: 'string_to_number', options: { stripCurrency: true } },
       },
       {
-        type: 'local',
         sourceColumnId: 'quantity',
         destinationColumnId: 'qty',
         transformer: { type: 'string_to_number', options: { parseInteger: true } },
@@ -1056,5 +1116,728 @@ describe('SyncService - syncTableMapping', () => {
     const file2Content = JSON.parse(file2!.content) as Record<string, unknown>;
     expect(file2Content.price_cents).toBe(99.99);
     expect(file2Content.qty).toBe(7);
+  });
+});
+
+describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
+  let prisma: PrismaClient;
+  let syncService: SyncService;
+  let dataFolderService: DataFolderService;
+  let scratchGitService: ScratchGitService;
+  let dbService: DbService;
+
+  // Test data
+  let workbookId: WorkbookId;
+  let sourceAuthorsFolderId: DataFolderId;
+  let destAuthorsFolderId: DataFolderId;
+  let sourcePostsFolderId: DataFolderId;
+  let destPostsFolderId: DataFolderId;
+  let syncId: SyncId;
+  let orgId: string;
+  let userId: string;
+  const actor: Actor = { userId: 'test-user', organizationId: 'test-org' };
+
+  // Track written files per call for verification
+  let writtenFilesByCall: Array<Array<{ path: string; content: string }>>;
+
+  beforeAll(() => {
+    prisma = new PrismaClient();
+  });
+
+  beforeEach(async () => {
+    writtenFilesByCall = [];
+
+    dbService = { client: prisma } as unknown as DbService;
+
+    dataFolderService = {
+      getAllFileContentsByFolderId: jest.fn(),
+      findOne: jest.fn(),
+    } as unknown as DataFolderService;
+
+    scratchGitService = {
+      commitFilesToBranch: jest
+        .fn()
+        .mockImplementation((_workbookId, _branch, files: Array<{ path: string; content: string }>) => {
+          writtenFilesByCall.push([...files]);
+          return Promise.resolve();
+        }),
+    } as unknown as ScratchGitService;
+
+    syncService = new SyncService(dbService, dataFolderService, {} as PostHogService, scratchGitService, {} as never);
+
+    // Create test organization
+    const org = await prisma.organization.create({
+      data: {
+        id: 'org_fk_test_' + Date.now(),
+        name: 'FK Test Org',
+        clerkId: 'clerk_fk_' + Date.now(),
+      },
+    });
+    orgId = org.id;
+
+    const user = await prisma.user.create({
+      data: {
+        id: 'user_fk_test_' + Date.now(),
+        email: `fk-test-${Date.now()}@example.com`,
+        organizationId: org.id,
+      },
+    });
+    userId = user.id;
+
+    const wbId = createWorkbookId();
+    await prisma.workbook.create({
+      data: {
+        id: wbId,
+        name: 'FK Test Workbook',
+        userId: user.id,
+        organizationId: org.id,
+      },
+    });
+    workbookId = wbId;
+
+    // Create 4 data folders: sourceAuthors, destAuthors, sourcePosts, destPosts
+    const srcAuthId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: srcAuthId,
+        name: 'Source Authors',
+        workbookId,
+        path: '/src-authors',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    sourceAuthorsFolderId = srcAuthId;
+
+    const dstAuthId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: dstAuthId,
+        name: 'Dest Authors',
+        workbookId,
+        path: '/dest-authors',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    destAuthorsFolderId = dstAuthId;
+
+    const srcPostsId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: srcPostsId,
+        name: 'Source Posts',
+        workbookId,
+        path: '/src-posts',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    sourcePostsFolderId = srcPostsId;
+
+    const dstPostsId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: dstPostsId,
+        name: 'Dest Posts',
+        workbookId,
+        path: '/dest-posts',
+        schema: { idColumnRemoteId: 'id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+    destPostsFolderId = dstPostsId;
+
+    // Create sync
+    const synId = createSyncId();
+    await prisma.sync.create({
+      data: {
+        id: synId,
+        displayName: 'FK Test Sync',
+        mappings: [],
+      },
+    });
+    syncId = synId;
+  });
+
+  afterEach(async () => {
+    await prisma.sync.delete({ where: { id: syncId } });
+    await prisma.user.delete({ where: { id: userId } });
+    await prisma.organization.delete({ where: { id: orgId } });
+    await prisma.syncMatchKeys.deleteMany({ where: { syncId } });
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  /**
+   * Helper: set up mock for getAllFileContentsByFolderId
+   */
+  function mockFiles(filesByFolder: Record<string, Array<{ folderId: DataFolderId; path: string; content: string }>>) {
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation(
+      (_workbookIdArg: WorkbookId, folderIdArg: DataFolderId) => {
+        return Promise.resolve(filesByFolder[folderIdArg] ?? []);
+      },
+    );
+  }
+
+  it('should resolve FK to an existing destination record after two-phase sync', async () => {
+    // Author already exists in destination with a known ID
+    const sourceAuthorFiles = [
+      {
+        folderId: sourceAuthorsFolderId,
+        path: 'src-authors/author1.json',
+        content: '{"id": "rec_author_1", "name": "Alice", "email": "alice@example.com"}',
+      },
+    ];
+    const destAuthorFiles = [
+      {
+        folderId: destAuthorsFolderId,
+        path: 'dest-authors/author1.json',
+        content: '{"id": "dest_author_1", "name": "Alice", "email": "alice@example.com"}',
+      },
+    ];
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "rec_post_1", "title": "Hello World", "slug": "hello-world", "author_id": "rec_author_1"}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    // Phase 1: sync authors (existing record matches), then sync posts
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [destAuthorsFolderId]: destAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const authorsMapping: TableMapping = {
+      sourceDataFolderId: sourceAuthorsFolderId,
+      destinationDataFolderId: destAuthorsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'name', destinationColumnId: 'name' },
+        { sourceColumnId: 'email', destinationColumnId: 'email' },
+      ],
+      recordMatching: { sourceColumnId: 'email', destinationColumnId: 'email' },
+    };
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_id',
+          destinationColumnId: 'author_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1: sync both table mappings
+    await syncService.syncTableMapping(syncId, authorsMapping, workbookId, actor);
+    const postsResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(postsResult.recordsCreated).toBe(1);
+    expect(postsResult.errors).toHaveLength(0);
+
+    // After Phase 1, the post file should have the raw source FK value
+    const phase1PostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    expect(phase1PostFiles).toHaveLength(1);
+    const phase1PostContent = JSON.parse(phase1PostFiles[0].content) as Record<string, unknown>;
+    expect(phase1PostContent.author_id).toBe('rec_author_1'); // Raw source FK, not yet resolved
+
+    // Phase 2: resolve FK references
+    // First update mock to return the newly written post file
+    const postTempId = phase1PostContent.id as string;
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [destAuthorsFolderId]: destAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: phase1PostFiles[0].path,
+          content: phase1PostFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+
+    expect(fkResult.recordsCreated).toBe(0);
+    expect(fkResult.recordsUpdated).toBe(1);
+    expect(fkResult.errors).toHaveLength(0);
+
+    // Verify the resolved file has the destination author ID
+    const phase2PostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    const phase2PostContent = JSON.parse(phase2PostFiles[0].content) as Record<string, unknown>;
+    expect(phase2PostContent.author_id).toBe('dest_author_1'); // Resolved!
+    expect(phase2PostContent.id).toBe(postTempId); // ID should be preserved
+  });
+
+  it('should resolve FK to a newly created record (cross-table)', async () => {
+    // Author is NEW (doesn't exist in destination)
+    const sourceAuthorFiles = [
+      {
+        folderId: sourceAuthorsFolderId,
+        path: 'src-authors/author1.json',
+        content: '{"id": "rec_author_1", "name": "Bob", "email": "bob@example.com"}',
+      },
+    ];
+    const destAuthorFiles: typeof sourceAuthorFiles = [];
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "rec_post_1", "title": "First Post", "slug": "first-post", "author_id": "rec_author_1"}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [destAuthorsFolderId]: destAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const authorsMapping: TableMapping = {
+      sourceDataFolderId: sourceAuthorsFolderId,
+      destinationDataFolderId: destAuthorsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'name', destinationColumnId: 'name' },
+        { sourceColumnId: 'email', destinationColumnId: 'email' },
+      ],
+      recordMatching: { sourceColumnId: 'email', destinationColumnId: 'email' },
+    };
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_id',
+          destinationColumnId: 'author_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1: sync both table mappings
+    const authorsResult = await syncService.syncTableMapping(syncId, authorsMapping, workbookId, actor);
+    expect(authorsResult.recordsCreated).toBe(1);
+
+    const postsResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+    expect(postsResult.recordsCreated).toBe(1);
+    expect(postsResult.errors).toHaveLength(0);
+
+    // Get the temp IDs assigned to the new records
+    const authorFiles = writtenFilesByCall[0];
+    const authorContent = JSON.parse(authorFiles[0].content) as Record<string, unknown>;
+    const authorTempId = authorContent.id as string;
+    expect(authorTempId.startsWith('scratch_pending_publish_')).toBe(true);
+
+    const postFiles = writtenFilesByCall[1];
+    const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
+    expect(postContent.author_id).toBe('rec_author_1'); // Raw source FK from Phase 1
+
+    // Phase 2: update mock to return written files, then resolve FKs
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: postFiles[0].path,
+          content: postFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+
+    expect(fkResult.recordsCreated).toBe(0);
+    expect(fkResult.recordsUpdated).toBe(1);
+    expect(fkResult.errors).toHaveLength(0);
+
+    // The post's author_id should now be the author's temp ID
+    const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
+    expect(resolvedPostContent.author_id).toBe(authorTempId);
+  });
+
+  it('should handle FK with null value (no error)', async () => {
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "rec_post_1", "title": "No Author", "slug": "no-author", "author_id": null}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_id',
+          destinationColumnId: 'author_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    const postFiles = writtenFilesByCall[0];
+    const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
+    // Null should pass through without error
+    expect(postContent.author_id).toBeNull();
+
+    // Phase 2: resolve FKs - null should be skipped without error
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: postFiles[0].path,
+          content: postFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+    expect(fkResult.errors).toHaveLength(0);
+    // Null FK value passes through unchanged, record still gets updated (other fields re-written)
+    expect(fkResult.recordsUpdated).toBe(1);
+  });
+
+  it('should resolve FK with array value', async () => {
+    // Author 1 exists in destination
+    const sourceAuthorFiles = [
+      {
+        folderId: sourceAuthorsFolderId,
+        path: 'src-authors/auth1.json',
+        content: '{"id": "auth_1", "name": "Author1", "email": "a1@example.com"}',
+      },
+      {
+        folderId: sourceAuthorsFolderId,
+        path: 'src-authors/auth2.json',
+        content: '{"id": "auth_2", "name": "Author2", "email": "a2@example.com"}',
+      },
+    ];
+    const destAuthorFiles = [
+      {
+        folderId: destAuthorsFolderId,
+        path: 'dest-authors/auth1.json',
+        content: '{"id": "dest_auth_1", "name": "Author1", "email": "a1@example.com"}',
+      },
+      {
+        folderId: destAuthorsFolderId,
+        path: 'dest-authors/auth2.json',
+        content: '{"id": "dest_auth_2", "name": "Author2", "email": "a2@example.com"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "rec_post_1", "title": "Collab Post", "slug": "collab", "author_ids": ["auth_1", "auth_2"]}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [destAuthorsFolderId]: destAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const authorsMapping: TableMapping = {
+      sourceDataFolderId: sourceAuthorsFolderId,
+      destinationDataFolderId: destAuthorsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'name', destinationColumnId: 'name' },
+        { sourceColumnId: 'email', destinationColumnId: 'email' },
+      ],
+      recordMatching: { sourceColumnId: 'email', destinationColumnId: 'email' },
+    };
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_ids',
+          destinationColumnId: 'author_ids',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1
+    await syncService.syncTableMapping(syncId, authorsMapping, workbookId, actor);
+    const postsResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+    expect(postsResult.recordsCreated).toBe(1);
+
+    const postFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
+    // Phase 1 should pass through the raw array
+    expect(postContent.author_ids).toEqual(['auth_1', 'auth_2']);
+
+    // Phase 2: resolve FKs
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: postFiles[0].path,
+          content: postFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+    expect(fkResult.recordsCreated).toBe(0);
+    expect(fkResult.recordsUpdated).toBe(1);
+    expect(fkResult.errors).toHaveLength(0);
+
+    const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
+    expect(resolvedPostContent.author_ids).toEqual(['dest_auth_1', 'dest_auth_2']);
+  });
+
+  it('should return error when FK references a non-existent record', async () => {
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "rec_post_1", "title": "Orphan", "slug": "orphan", "author_id": "non_existent_author"}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_id',
+          destinationColumnId: 'author_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1
+    await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    const postFiles = writtenFilesByCall[0];
+
+    // Phase 2: resolve FKs — should fail because the author doesn't exist
+    mockFiles({
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: postFiles[0].path,
+          content: postFiles[0].content,
+        },
+      ],
+    });
+
+    const fkResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor, 'FOREIGN_KEY_MAPPING');
+    expect(fkResult.recordsCreated).toBe(0);
+    expect(fkResult.recordsUpdated).toBe(0);
+    expect(fkResult.errors).toHaveLength(1);
+    expect(fkResult.errors[0].error).toContain('Could not resolve foreign key');
+    expect(fkResult.errors[0].error).toContain('non_existent_author');
+  });
+
+  it('should resolve circular FK references (authors reference posts, posts reference authors)', async () => {
+    // Authors have latest_post_id, Posts have author_id
+    const sourceAuthorFiles = [
+      {
+        folderId: sourceAuthorsFolderId,
+        path: 'src-authors/auth1.json',
+        content: '{"id": "auth_1", "name": "Alice", "email": "alice@example.com", "latest_post_id": "post_1"}',
+      },
+    ];
+    const destAuthorFiles: typeof sourceAuthorFiles = [];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "Hello", "slug": "hello", "author_id": "auth_1"}',
+      },
+    ];
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [destAuthorsFolderId]: destAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const authorsMapping: TableMapping = {
+      sourceDataFolderId: sourceAuthorsFolderId,
+      destinationDataFolderId: destAuthorsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'name', destinationColumnId: 'name' },
+        { sourceColumnId: 'email', destinationColumnId: 'email' },
+        {
+          sourceColumnId: 'latest_post_id',
+          destinationColumnId: 'latest_post_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourcePostsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'email', destinationColumnId: 'email' },
+    };
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'author_id',
+          destinationColumnId: 'author_id',
+          transformer: {
+            type: 'source_fk_to_dest_fk',
+            options: { referencedDataFolderId: sourceAuthorsFolderId },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    // Phase 1: sync both table mappings (order shouldn't matter)
+    const authorsResult = await syncService.syncTableMapping(syncId, authorsMapping, workbookId, actor);
+    expect(authorsResult.recordsCreated).toBe(1);
+
+    const postsResult = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+    expect(postsResult.recordsCreated).toBe(1);
+
+    // Get the temp IDs
+    const authorFiles = writtenFilesByCall[0];
+    const authorContent = JSON.parse(authorFiles[0].content) as Record<string, unknown>;
+    const authorTempId = authorContent.id as string;
+    // Author's latest_post_id should be the raw source FK
+    expect(authorContent.latest_post_id).toBe('post_1');
+
+    const postFiles = writtenFilesByCall[1];
+    const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
+    const postTempId = postContent.id as string;
+    // Post's author_id should be the raw source FK
+    expect(postContent.author_id).toBe('auth_1');
+
+    // Phase 2: resolve FKs for both table mappings
+    // Update mocks to return written files
+    mockFiles({
+      [sourceAuthorsFolderId]: sourceAuthorFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destAuthorsFolderId]: [
+        {
+          folderId: destAuthorsFolderId,
+          path: authorFiles[0].path,
+          content: authorFiles[0].content,
+        },
+      ],
+      [destPostsFolderId]: [
+        {
+          folderId: destPostsFolderId,
+          path: postFiles[0].path,
+          content: postFiles[0].content,
+        },
+      ],
+    });
+
+    // Resolve authors (latest_post_id -> posts)
+    const authorsFkResult = await syncService.syncTableMapping(
+      syncId,
+      authorsMapping,
+      workbookId,
+      actor,
+      'FOREIGN_KEY_MAPPING',
+    );
+    expect(authorsFkResult.recordsCreated).toBe(0);
+    expect(authorsFkResult.recordsUpdated).toBe(1);
+    expect(authorsFkResult.errors).toHaveLength(0);
+
+    // Resolve posts (author_id -> authors)
+    const postsFkResult = await syncService.syncTableMapping(
+      syncId,
+      postsMapping,
+      workbookId,
+      actor,
+      'FOREIGN_KEY_MAPPING',
+    );
+    expect(postsFkResult.recordsCreated).toBe(0);
+    expect(postsFkResult.recordsUpdated).toBe(1);
+    expect(postsFkResult.errors).toHaveLength(0);
+
+    // Verify resolved values
+    const resolvedAuthorFiles = writtenFilesByCall[writtenFilesByCall.length - 2];
+    const resolvedAuthorContent = JSON.parse(resolvedAuthorFiles[0].content) as Record<string, unknown>;
+    expect(resolvedAuthorContent.latest_post_id).toBe(postTempId);
+
+    const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
+    const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
+    expect(resolvedPostContent.author_id).toBe(authorTempId);
   });
 });

@@ -161,9 +161,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
         uniqueFolderIds.add(tm.sourceDataFolderId);
         uniqueFolderIds.add(tm.destinationDataFolderId);
 
-        const fieldMappings: FieldMapping[] = tm.columnMappings
-          .filter((cm) => cm.type === 'local')
-          .map((cm) => ({
+        const fieldMappings: FieldMapping[] = tm.columnMappings.map((cm) => ({
             id: `mapping-${++mappingIdCounter}`,
             sourceField: cm.sourceColumnId,
             destField: cm.destinationColumnId,

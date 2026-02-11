@@ -5,7 +5,6 @@ import { LookupTools } from './transformer.types';
 
 /**
  * Factory function to create LookupTools for a specific sync context.
- * TODO: This will need to be replaced in the new approach of writing placeholder paths in destination record FK fields.
  *
  * @param db - Database service
  * @param syncId - The sync ID for looking up mappings

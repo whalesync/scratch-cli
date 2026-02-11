@@ -18,8 +18,7 @@ The core configuration for a sync, stored as JSON in the `Sync.mappings` column.
 
 - `SyncMapping`: Top-level sync configuration with version and table mappings
 - `TableMapping`: Maps a source DataFolder to a destination DataFolder with column mappings and optional record matching
-- `LocalColumnMapping`: Direct field-to-field mapping with an optional `transformer` configuration
-- `ForeignKeyLookupColumnMapping`: Resolve FK to a value from the referenced table (not yet implemented)
+- `ColumnMapping`: Direct field-to-field mapping with an optional `transformer` configuration
 
 ### Database Tables
 
@@ -114,7 +113,7 @@ And a source record has `{ id: 'rec_001', name: 'John' }`, the new destination r
 
 Column mappings can include an optional `transformer` configuration that processes source values before writing them to the destination. Transformers are defined in [transformers.ts](transformers.ts).
 
-Each `LocalColumnMapping` can specify a `transformer` with:
+Each `ColumnMapping` can specify a `transformer` with:
 - `type`: The transformer type identifier (looked up via `getTransformer()`)
 - `options`: An optional key-value bag of transformer-specific configuration
 
@@ -137,5 +136,4 @@ If a transformer fails, the record is skipped and an error is added to the sync 
 
 ## Limitations
 
-- `ForeignKeyLookupColumnMapping` throws "not yet implemented"
 - `schedule` and `autoPublish` are accepted in DTOs but not used

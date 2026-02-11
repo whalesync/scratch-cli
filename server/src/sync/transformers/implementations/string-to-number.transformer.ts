@@ -12,30 +12,35 @@ import { FieldTransformer, TransformContext, TransformResult } from '../transfor
 export const stringToNumberTransformer: FieldTransformer = {
   type: 'string_to_number',
 
-  transform(ctx: TransformContext): Promise<TransformResult> {
-    const { sourceValue, options } = ctx;
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async transform(ctx: TransformContext): Promise<TransformResult> {
+    const { sourceValue, options, phase } = ctx;
     const typedOptions = options as StringToNumberOptions;
+
+    if (phase !== 'DATA') {
+      return { success: true, skip: true };
+    }
 
     // Handle null/undefined
     if (sourceValue === null || sourceValue === undefined) {
-      return Promise.resolve({ success: true, value: null });
+      return { success: true, value: null };
     }
 
     // Already a number
     if (typeof sourceValue === 'number') {
       if (typedOptions.parseInteger) {
-        return Promise.resolve({ success: true, value: Math.floor(sourceValue) });
+        return { success: true, value: Math.floor(sourceValue) };
       }
-      return Promise.resolve({ success: true, value: sourceValue });
+      return { success: true, value: sourceValue };
     }
 
     // Must be a string to transform
     if (typeof sourceValue !== 'string') {
-      return Promise.resolve({
+      return {
         success: false,
         error: `Expected string or number, got ${typeof sourceValue}`,
         useOriginal: true,
-      });
+      };
     }
 
     let cleanedValue = sourceValue.trim();
@@ -51,21 +56,21 @@ export const stringToNumberTransformer: FieldTransformer = {
 
     // Empty string after cleaning
     if (cleanedValue === '') {
-      return Promise.resolve({ success: true, value: null });
+      return { success: true, value: null };
     }
 
     // Parse the number
     const parsedValue = typedOptions.parseInteger ? parseInt(cleanedValue, 10) : parseFloat(cleanedValue);
 
     if (isNaN(parsedValue)) {
-      return Promise.resolve({
+      return {
         success: false,
         error: `Could not parse "${sourceValue}" as a number`,
         useOriginal: true,
-      });
+      };
     }
 
-    return Promise.resolve({ success: true, value: parsedValue });
+    return { success: true, value: parsedValue };
   },
 };
 

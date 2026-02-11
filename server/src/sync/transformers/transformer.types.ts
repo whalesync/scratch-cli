@@ -1,5 +1,7 @@
 import { DataFolderId, TransformerOptions, TransformerType } from '@spinner/shared-types';
 
+export type SyncPhase = 'DATA' | 'FOREIGN_KEY_MAPPING';
+
 /**
  * A record used within the sync subsystem.
  * Parsed from JSON files and re-serialized the same way.
@@ -58,13 +60,16 @@ export interface TransformContext {
 
   /** Transformer-specific configuration options */
   options: TransformerOptions;
+
+  /** The current sync phase — transformers can use this to vary behavior */
+  phase: SyncPhase;
 }
 
 /**
  * Result of a field transformation.
  */
 export type TransformResult =
-  | { success: true; value: unknown }
+  | { success: true; value?: unknown; skip?: boolean }
   | { success: false; error: string; useOriginal?: boolean };
 
 /**

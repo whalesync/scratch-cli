@@ -13,6 +13,7 @@ function createContext(sourceValue: unknown, options: StringToNumberOptions = {}
       lookupFieldFromFkRecord: jest.fn(),
     },
     options,
+    phase: 'DATA',
   };
 }
 

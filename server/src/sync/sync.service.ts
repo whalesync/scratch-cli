@@ -2,14 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { DataFolder } from '@prisma/client';
 import { TSchema } from '@sinclair/typebox';
 import {
-  AnyColumnMapping,
+  ColumnMapping,
   createScratchPendingPublishId,
   CreateSyncDto,
   createSyncId,
   DataFolderId,
   FieldMappingValue,
   FieldMapType,
-  LocalColumnMapping,
   SyncId,
   TableMapping,
   UpdateSyncDto,
@@ -25,7 +24,14 @@ import { PostHogService } from 'src/posthog/posthog.service';
 import { BaseJsonTableSpec } from 'src/remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { validateSchemaMapping } from 'src/sync/schema-validator';
-import { createLookupTools, getTransformer, LookupTools, SyncRecord, TransformContext } from 'src/sync/transformers';
+import {
+  createLookupTools,
+  getTransformer,
+  LookupTools,
+  SyncPhase,
+  SyncRecord,
+  TransformContext,
+} from 'src/sync/transformers';
 import { Actor } from 'src/users/types';
 import { formatJsonWithPrettier } from 'src/utils/json-formatter';
 import { DataFolderService } from 'src/workbook/data-folder.service';
@@ -33,19 +39,17 @@ import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WorkbookService } from 'src/workbook/workbook.service';
 
 /**
- * Converts a FieldMapType entry to a LocalColumnMapping.
+ * Converts a FieldMapType entry to a ColumnMapping.
  * Handles both simple string mappings and complex FieldMappingValue objects.
  */
-function fieldMapEntryToColumnMapping(sourceField: string, value: string | FieldMappingValue): LocalColumnMapping {
+function fieldMapEntryToColumnMapping(sourceField: string, value: string | FieldMappingValue): ColumnMapping {
   if (typeof value === 'string') {
     return {
-      type: 'local',
       sourceColumnId: sourceField,
       destinationColumnId: value,
     };
   }
   return {
-    type: 'local',
     sourceColumnId: sourceField,
     destinationColumnId: value.destinationField,
     transformer: value.transformer,
@@ -53,9 +57,9 @@ function fieldMapEntryToColumnMapping(sourceField: string, value: string | Field
 }
 
 /**
- * Converts a FieldMapType to an array of AnyColumnMapping.
+ * Converts a FieldMapType to an array of ColumnMapping.
  */
-function fieldMapToColumnMappings(fieldMap: FieldMapType): AnyColumnMapping[] {
+function fieldMapToColumnMappings(fieldMap: FieldMapType): ColumnMapping[] {
   return Object.entries(fieldMap).map(([sourceField, value]) => fieldMapEntryToColumnMapping(sourceField, value));
 }
 
@@ -430,6 +434,7 @@ export class SyncService {
     tableMapping: TableMapping,
     workbookId: WorkbookId,
     actor: Actor,
+    phase: SyncPhase = 'DATA',
   ): Promise<SyncTableMappingResult> {
     const result: SyncTableMappingResult = {
       recordsCreated: 0,
@@ -454,8 +459,9 @@ export class SyncService {
       throw new NotFoundException(`Destination DataFolder ${tableMapping.destinationDataFolderId} not found`);
     }
 
-    // 2. Clear existing match keys for this sync
-    await this.clearMatchKeys(syncId);
+    // 2. Clear existing match keys for this sync's table mapping
+    await this.clearMatchKeysForDataFolder(syncId, tableMapping.sourceDataFolderId);
+    await this.clearMatchKeysForDataFolder(syncId, tableMapping.destinationDataFolderId);
 
     // 3. Fetch records from source and destination folders
     const { sourceRecords, destinationRecords, destinationIdToFilePath } = await this.fetchRecordsForSync(
@@ -480,7 +486,7 @@ export class SyncService {
       Array.from(sourceRecordsById.keys()),
     );
 
-    // Check for source records that weren't included in mappings (missing match key)
+    // Check for source records that weren't included in mappings (missing or falsy match key)
     if (tableMapping.recordMatching) {
       for (const [sourceId, sourceRecord] of sourceRecordsById) {
         if (!mappingsBySourceId.has(sourceId)) {
@@ -488,7 +494,12 @@ export class SyncService {
           if (matchKeyValue === undefined || matchKeyValue === null) {
             result.errors.push({
               sourceRemoteId: sourceId,
-              error: `Source record missing match key field: ${tableMapping.recordMatching.sourceColumnId}`,
+              error: `Source record missing record matching field: ${tableMapping.recordMatching.sourceColumnId}`,
+            });
+          } else if (typeof matchKeyValue !== 'string' || matchKeyValue === '') {
+            result.errors.push({
+              sourceRemoteId: sourceId,
+              error: `Source record has empty or invalid record matching value for field: ${tableMapping.recordMatching.sourceColumnId}`,
             });
           }
         }
@@ -515,6 +526,9 @@ export class SyncService {
     // Create lookup tools for transformers that need FK resolution
     const lookupTools = createLookupTools(this.db, syncId);
 
+    // Track new records so we can backfill SyncRemoteIdMapping with their temp IDs
+    const newRecordMappings: Array<{ sourceRemoteId: string; tempId: string }> = [];
+
     for (const [sourceRemoteId, destinationRemoteId] of mappingsBySourceId) {
       const sourceRecord = sourceRecordsById.get(sourceRemoteId);
       if (!sourceRecord) {
@@ -526,8 +540,12 @@ export class SyncService {
       }
 
       try {
-        // Transform the record using column mappings (with optional transformers)
-        const transformedFields = await transformRecordAsync(sourceRecord, tableMapping.columnMappings, lookupTools);
+        const transformedFields = await transformRecordAsync(
+          sourceRecord,
+          tableMapping.columnMappings,
+          lookupTools,
+          phase,
+        );
 
         let destinationPath: string;
 
@@ -537,11 +555,18 @@ export class SyncService {
             const destColumnId = tableMapping.recordMatching.destinationColumnId;
             const sourceMatchValue = sourceRecord.fields[tableMapping.recordMatching.sourceColumnId];
 
-            // Fail if source match key is undefined
-            if (sourceMatchValue === undefined) {
+            // Fail if source match key is missing or falsy
+            if (sourceMatchValue === undefined || sourceMatchValue === null) {
               result.errors.push({
                 sourceRemoteId,
                 error: `Source record missing match key field: ${tableMapping.recordMatching.sourceColumnId}`,
+              });
+              continue;
+            }
+            if (typeof sourceMatchValue !== 'string' || sourceMatchValue === '') {
+              result.errors.push({
+                sourceRemoteId,
+                error: `Source record has empty or invalid match key for field: ${tableMapping.recordMatching.sourceColumnId}`,
               });
               continue;
             }
@@ -555,6 +580,9 @@ export class SyncService {
           // Generate a temporary ID for the new record so it can be matched on subsequent syncs
           const tempId = createScratchPendingPublishId();
           set(transformedFields, destIdColumn, tempId);
+
+          // Track this new record mapping for Phase 2 FK resolution
+          newRecordMappings.push({ sourceRemoteId, tempId });
 
           // Resolve filename: prefer slug from destination schema, fall back to temp ID
           const slugValue = destTableSpec?.slugColumnRemoteId
@@ -597,7 +625,13 @@ export class SyncService {
       }
     }
 
-    // 7. Write all files in batch to the dirty branch
+    // 7. Backfill SyncRemoteIdMapping for newly created records with their temp IDs
+    // This is needed so Phase 2 FK resolution can find destination IDs for new records
+    if (newRecordMappings.length > 0) {
+      await this.updateRemoteIdMappingsForNewRecords(syncId, tableMapping.sourceDataFolderId, newRecordMappings);
+    }
+
+    // 8. Write all files in batch to the dirty branch
     if (filesToWrite.length > 0) {
       try {
         await this.scratchGitService.commitFilesToBranch(
@@ -663,6 +697,38 @@ export class SyncService {
           },
           update: {
             destinationRemoteId: mapping.destinationRemoteId,
+          },
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Updates SyncRemoteIdMapping entries for newly created records with their destination temp IDs.
+   * During Phase 1, new records have destinationRemoteId = null. This backfills them with the
+   * generated temp ID so Phase 2 FK resolution can find them.
+   */
+  private async updateRemoteIdMappingsForNewRecords(
+    syncId: SyncId,
+    dataFolderId: DataFolderId,
+    newRecords: Array<{ sourceRemoteId: string; tempId: string }>,
+  ): Promise<void> {
+    if (newRecords.length === 0) {
+      return;
+    }
+
+    await this.db.client.$transaction(
+      newRecords.map((record) =>
+        this.db.client.syncRemoteIdMapping.update({
+          where: {
+            syncId_dataFolderId_sourceRemoteId: {
+              syncId,
+              dataFolderId,
+              sourceRemoteId: record.sourceRemoteId,
+            },
+          },
+          data: {
+            destinationRemoteId: record.tempId,
           },
         }),
       ),
@@ -913,7 +979,7 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): SyncRec
 
 /**
  * Transform a source record's fields to destination schema using column mappings.
- * Supports LocalColumnMapping with optional transformers.
+ * Supports ColumnMapping with optional transformers.
  *
  * @param sourceRecord - The source record to transform
  * @param columnMappings - Array of column mappings defining field transformations
@@ -922,72 +988,76 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): SyncRec
  */
 async function transformRecordAsync(
   sourceRecord: SyncRecord,
-  columnMappings: AnyColumnMapping[],
+  columnMappings: ColumnMapping[],
   lookupTools?: LookupTools,
+  phase: SyncPhase = 'DATA',
 ): Promise<Record<string, unknown>> {
   const definedPaths: string[] = [];
   const definedValues: unknown[] = [];
 
   for (const mapping of columnMappings) {
-    if (mapping.type === 'local') {
-      const sourceValue = get(sourceRecord.fields, mapping.sourceColumnId);
+    const sourceValue = get(sourceRecord.fields, mapping.sourceColumnId);
 
-      // Skip undefined source values
-      if (sourceValue === undefined) {
-        continue;
-      }
+    // Skip undefined source values
+    if (sourceValue === undefined) {
+      continue;
+    }
 
-      let transformedValue: unknown = sourceValue;
+    let transformedValue: unknown = sourceValue;
+    let skip = false;
 
-      // Apply transformer if configured
-      if (mapping.transformer) {
-        const transformer = getTransformer(mapping.transformer.type);
-        if (transformer) {
-          // Create transform context
-          const ctx: TransformContext = {
-            sourceRecord,
-            sourceFieldPath: mapping.sourceColumnId,
-            sourceValue,
-            lookupTools: lookupTools ?? {
-              getDestinationIdForSourceFk: () => Promise.resolve(null),
-              lookupFieldFromFkRecord: () => Promise.resolve(null),
-            },
-            options: mapping.transformer.options ?? {},
-          };
+    // Apply transformer if configured
+    if (mapping.transformer) {
+      const transformer = getTransformer(mapping.transformer.type);
+      if (transformer) {
+        // Create transform context
+        const ctx: TransformContext = {
+          sourceRecord,
+          sourceFieldPath: mapping.sourceColumnId,
+          sourceValue,
+          lookupTools: lookupTools ?? {
+            getDestinationIdForSourceFk: () => Promise.resolve(null),
+            lookupFieldFromFkRecord: () => Promise.resolve(null),
+          },
+          options: mapping.transformer.options ?? {},
+          phase,
+        };
 
-          const result = await transformer.transform(ctx);
+        const result = await transformer.transform(ctx);
 
-          if (result.success) {
-            transformedValue = result.value;
-          } else {
-            if (result.useOriginal) {
-              transformedValue = sourceValue;
-            }
-            WSLogger.error({
-              source: 'transformRecordAsync',
-              message: 'Failed to transform field',
-              error: result.error,
-              transformerType: mapping.transformer.type,
-              sourceColumnId: mapping.sourceColumnId,
-              sourceRecordId: sourceRecord.id,
-            });
-            throw new Error(`Failed to transform field "${mapping.sourceColumnId}": ${result.error}`);
+        if (result.success) {
+          if (result.skip) {
+            skip = true;
           }
+          transformedValue = result.value;
         } else {
+          if (result.useOriginal) {
+            transformedValue = sourceValue;
+          }
           WSLogger.error({
             source: 'transformRecordAsync',
-            message: `Unknown transformer type: ${mapping.transformer.type}`,
+            message: 'Failed to transform field',
+            error: result.error,
             transformerType: mapping.transformer.type,
             sourceColumnId: mapping.sourceColumnId,
             sourceRecordId: sourceRecord.id,
           });
+          throw new Error(`Failed to transform field "${mapping.sourceColumnId}": ${result.error}`);
         }
+      } else {
+        WSLogger.error({
+          source: 'transformRecordAsync',
+          message: `Unknown transformer type: ${mapping.transformer.type}`,
+          transformerType: mapping.transformer.type,
+          sourceColumnId: mapping.sourceColumnId,
+          sourceRecordId: sourceRecord.id,
+        });
       }
+    }
 
+    if (!skip) {
       definedPaths.push(mapping.destinationColumnId);
       definedValues.push(transformedValue);
-    } else if (mapping.type === 'foreign_key_lookup') {
-      throw new Error('ForeignKeyLookupColumnMapping is not yet implemented');
     }
   }
 

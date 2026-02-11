@@ -192,6 +192,59 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       });
     }
 
+    // Phase 2: Resolve FK references by re-running table mappings with FOREIGN_KEY_MAPPING phase
+    for (let i = 0; i < tableMappings.length; i++) {
+      const tableMapping = tableMappings[i];
+      const hasFkColumns = tableMapping.columnMappings.some((m) => m.transformer?.type === 'source_fk_to_dest_fk');
+      if (hasFkColumns) {
+        try {
+          const fkResult = await this.syncService.syncTableMapping(
+            data.syncId,
+            tableMapping,
+            data.workbookId,
+            actor,
+            'FOREIGN_KEY_MAPPING',
+          );
+
+          WSLogger.info({
+            source: 'SyncDataFoldersJob',
+            message: 'Completed FK resolution for table mapping',
+            syncId: data.syncId,
+            tableIndex: i,
+            recordsUpdated: fkResult.recordsUpdated,
+            errorCount: fkResult.errors.length,
+          });
+
+          if (fkResult.errors.length > 0) {
+            WSLogger.warn({
+              source: 'SyncDataFoldersJob',
+              message: 'FK resolution completed with errors',
+              syncId: data.syncId,
+              tableIndex: i,
+              errors: fkResult.errors,
+            });
+            tablesProgress[i].status = 'failed';
+          }
+        } catch (error) {
+          WSLogger.error({
+            source: 'SyncDataFoldersJob',
+            message: 'Failed to resolve foreign keys for table mapping',
+            syncId: data.syncId,
+            tableIndex: i,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          tablesProgress[i].status = 'failed';
+        }
+      }
+    }
+
+    // Checkpoint after Phase 2
+    await checkpoint({
+      publicProgress: { totalFilesSynced, tables: tablesProgress },
+      jobProgress: {},
+      connectorProgress: {},
+    });
+
     // Update lastSyncTime on the Sync record
     const allTablesSucceeded = tablesProgress.every((t) => t.status === 'completed');
     if (allTablesSucceeded) {
