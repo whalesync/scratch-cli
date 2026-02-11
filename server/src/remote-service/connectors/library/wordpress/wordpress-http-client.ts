@@ -96,6 +96,7 @@ export class WordPressHttpClient {
       searchParams.push({ name: 'offset', value: String(offset) });
     }
     searchParams.push({ name: 'status', value: 'any' }); // This is to ensure that we get all posts, including draft and trashed ones
+    searchParams.push({ name: 'context', value: 'edit' }); // Return raw content and all fields
     const url = this.generateUrl(this.endpoint, tableId, null, searchParams);
     const response = await axios.get<WordPressRecord[]>(url, { headers: this.authHeaders });
     return response.data;
