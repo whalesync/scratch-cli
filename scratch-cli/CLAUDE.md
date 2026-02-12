@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the `scratch-cli` Go project containing the `scratchmd` CLI tool - a command-line application for authenticating with Scratch.md.
+This is the `scratch-cli` Go project containing the `scratchmd` CLI tool — a command-line tool that synchronizes local Markdown files with CMS platforms (Webflow, WordPress, Airtable, Shopify, etc.) via the Scratch.md API.
 
 ## Project Structure
 
@@ -10,21 +10,36 @@ This is the `scratch-cli` Go project containing the `scratchmd` CLI tool - a com
 scratch-cli/
 ├── cmd/
 │   └── scratchmd/
-│       └── main.go              # Entry point (builds to `scratchmd` binary)
+│       └── main.go                  # Entry point (builds to `scratchmd` binary)
 ├── internal/
 │   ├── cmd/
-│   │   ├── root.go              # Root command and CLI setup
-│   │   └── auth.go              # Auth commands (login, logout, status)
+│   │   ├── root.go                  # Root command and CLI setup
+│   │   ├── auth.go                  # Auth commands (login, logout, status)
+│   │   ├── workbooks.go             # Workbook commands (list, create, show, delete, init)
+│   │   ├── files.go                 # File commands (download, upload)
+│   │   ├── connections.go           # Connection commands (list, add, show, remove)
+│   │   ├── linked.go               # Linked table commands (available, list, add, remove, show, pull, publish)
+│   │   └── syncs.go                # Sync commands (list, show, create, update, delete, run)
 │   ├── config/
-│   │   ├── config.go            # Configuration management
-│   │   ├── credentials.go       # Credentials storage
-│   │   └── overrides.go         # Config overrides
-│   └── api/
-│       └── client.go            # API client for server communication
-├── go.mod                       # Go module: github.com/whalesync/scratch-cli
-├── go.sum                       # Dependency checksums
-├── CLAUDE.md                    # This file (development context for AI)
-└── README.md                    # User documentation
+│   │   ├── config.go                # Configuration management
+│   │   ├── credentials.go           # Credentials storage
+│   │   └── overrides.go             # Config overrides
+│   ├── api/
+│   │   ├── client.go                # Base API client (auth headers, request helpers)
+│   │   ├── client_auth.go           # Auth API methods
+│   │   ├── client_workbooks.go      # Workbook API methods
+│   │   ├── client_linked.go         # Linked table API methods
+│   │   ├── client_connections.go    # Connection API methods
+│   │   ├── client_syncs.go          # Sync API methods
+│   │   └── client_jobs.go           # Job polling API methods
+│   └── merge/
+│       ├── merge.go                 # Three-way merge orchestration
+│       └── textmerge.go             # Line-level text merging
+├── go.mod                           # Go module: github.com/whalesync/scratch-cli
+├── go.sum                           # Dependency checksums
+├── CLAUDE.md                        # This file (development context for AI)
+├── AGENT.md                         # LLM agent quick reference for programmatic usage
+└── README.md                        # User documentation
 ```
 
 ## Technology Stack
@@ -53,18 +68,84 @@ scratch-cli/
 ### Authentication
 
 ```bash
-scratchmd auth login     # Authenticate with Scratch.md (opens browser)
-scratchmd auth logout    # Remove stored credentials
-scratchmd auth status    # Show current authentication status
+scratchmd auth login              # Authenticate with Scratch.md (opens browser)
+scratchmd auth logout             # Remove stored credentials
+scratchmd auth status             # Show current authentication status
 ```
 
-### Flags
+### Workbooks
 
-| Flag | Commands | Description |
-|------|----------|-------------|
+```bash
+scratchmd workbooks list          # List all workbooks
+scratchmd workbooks create        # Create a new workbook
+scratchmd workbooks show <id>     # Show workbook details
+scratchmd workbooks delete <id>   # Delete a workbook
+scratchmd workbooks init <id>     # Clone workbook files to local directory
+```
+
+### Files
+
+```bash
+scratchmd files download          # Download remote changes, three-way merge with local edits
+scratchmd files upload            # Upload local changes to server
+```
+
+### Connections
+
+```bash
+scratchmd connections list        # List all connections in the workbook
+scratchmd connections add         # Authorize a new connection (interactive or via flags)
+scratchmd connections show <id>   # Show connection details
+scratchmd connections remove <id> # Delete a connection
+```
+
+### Linked Tables
+
+```bash
+scratchmd linked available        # List available tables from connections
+scratchmd linked list             # List linked tables in a workbook
+scratchmd linked add              # Link a new table to a workbook
+scratchmd linked remove [id]      # Unlink a table
+scratchmd linked show [id]        # Show linked table details + pending changes
+scratchmd linked pull [id]        # Pull CRM changes into the workbook
+scratchmd linked publish [id]     # Publish workbook changes to the CRM
+```
+
+### Syncs
+
+```bash
+scratchmd syncs list              # List sync configurations
+scratchmd syncs show <id>         # Show sync details
+scratchmd syncs create            # Create a new sync (requires --config)
+scratchmd syncs update <id>       # Update a sync (requires --config)
+scratchmd syncs delete <id>       # Delete a sync
+scratchmd syncs run <id>          # Execute a sync and wait for completion
+```
+
+### Common Flags
+
+| Flag | Scope | Description |
+|------|-------|-------------|
+| `--json` | most subcommands | Output as JSON (stdout) |
+| `--yes` | destructive commands | Skip confirmation prompts |
+| `--workbook <id>` | linked, syncs, connections | Override workbook auto-detection |
+| `--scratch-url <url>` | global | Override scratch server URL |
+| `--config <path>` | global | Config file path (default: `.scratchmd.config.yaml`) |
+| `-v, --verbose` | global | Enable verbose output |
 | `--no-browser` | auth login | Don't open browser automatically |
-| `--server` | auth * | Override the server URL |
-| `--scratch-url` | global | Override scratch server URL |
+| `--server <url>` | auth commands | Override the auth server URL |
+| `-o, --output <dir>` | workbooks init | Output directory for clone |
+| `--force` | workbooks init | Overwrite existing local copy |
+| `--sort-by` | workbooks list | Sort field (name, createdAt, updatedAt) |
+| `--sort-order` | workbooks list | Sort direction (asc, desc) |
+| `--connection-id` | linked add | Connection ID (non-interactive mode) |
+| `--table-id` | linked add | Table ID (non-interactive, repeatable) |
+| `--name` | linked add, connections add | Display name |
+| `--refresh` | linked available | Force refresh from connector |
+| `--service` | connections add | Service type (non-interactive mode) |
+| `--param` | connections add | Credential key=value (repeatable) |
+| `--config` | syncs create/update | JSON config (file path or inline) |
+| `--no-wait` | syncs run | Return job ID without waiting |
 
 ---
 
@@ -102,7 +183,11 @@ Configuration management:
 
 ### `internal/api/`
 
-API client for communicating with the Scratch.md server.
+API client for communicating with the Scratch.md server. Split into per-domain files (`client_auth.go`, `client_workbooks.go`, `client_linked.go`, `client_connections.go`, `client_syncs.go`, `client_jobs.go`).
+
+### `internal/merge/`
+
+Three-way merge logic used by `files download` and `files upload`. Handles line-level text merge with local-wins conflict resolution and CRLF normalization.
 
 ## Configuration Files
 

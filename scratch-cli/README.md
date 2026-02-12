@@ -15,34 +15,35 @@ A command-line tool (`scratchmd`) that synchronizes local Markdown files with CM
 
 ## Installation
 
-### From Source
-
-````bash
-# Clone the repository
-git clone https://github.com/whalesync/scratch-cli.git
-cd scratch-cli
-
-# Build the binary
-go build -o scratchmd ./cmd/scratchmd
-
-# Optionally, install globally
-go install ./cmd/scratchmd
-
-### Developer Install (After Changes)
-
-To rebuild and install the latest version after making changes:
+### Homebrew (macOS, Linux, WSL)
 
 ```bash
-cd cmd/scratchmd && go build && go install
-````
+brew tap whalesync/scratch-cli
+brew install scratchmd
+```
 
-````
+### Scoop (Windows)
+
+```powershell
+scoop bucket add whalesync https://github.com/whalesync/scratch-cli-bucket
+scoop install scratchmd
+```
+
+### Manual Installation
+
+See [MANUAL_INSTALL.md](MANUAL_INSTALL.md) for direct download links (Windows, macOS, Linux).
+
+### From Source
+
+```bash
+git clone https://github.com/whalesync/scratch-cli.git
+cd scratch-cli
+go build -o scratchmd ./cmd/scratchmd
+```
 
 See [build.md](build.md) for detailed build instructions including cross-platform builds.
 
 ## Usage
-
-### Getting Help
 
 ```bash
 # Show help and available commands
@@ -53,79 +54,79 @@ scratchmd --version
 
 # Get help for a specific command
 scratchmd <command> --help
-````
-
-### Example Output
-
-```
-$ scratchmd --help
-scratchmd is a command-line tool that synchronizes a local folder with
-CMS platforms like Webflow and WordPress.
-
-It enables local editing of CMS content using AI tools like Claude Code,
-Cursor, or other editors. Content is stored as Markdown files with YAML
-frontmatter for easy manipulation.
-
-Key features:
-  • Pull CMS content into local, text-based Markdown files
-  • Edit using your preferred local AI agent with full context
-  • Push changes back to CMS programmatically
-  • Two-way sync with intelligent conflict handling
-
-Example usage:
-  scratchmd setup                  # Interactive setup wizard
-  scratchmd account add mysite     # Add a CMS account
-  scratchmd download               # Pull content from CMS
-  scratchmd upload                 # Push changes to CMS
-  scratchmd status                 # Show pending changes
-
-For more information, visit: https://github.com/whalesync/scratch-cli
-
-Usage:
-  scratchmd [command]
-
-Available Commands:
-  help        Help about any command
-  setup       Interactive setup wizard for configuring scratchmd
-
-Flags:
-      --config string   Config file path (default: .scratchmd.config.yaml)
-  -h, --help            help for scratchmd
-  -v, --verbose         Enable verbose output
-      --version         version for scratchmd
-
-Use "scratchmd [command] --help" for more information about a command.
 ```
 
 ## Available Commands
 
-### `scratchmd setup`
+### Authentication
 
-Interactive setup wizard that helps you:
+```bash
+scratchmd auth login               # Authenticate (opens browser for OAuth device code flow)
+scratchmd auth login --no-browser   # Display URL to visit manually
+scratchmd auth logout               # Remove stored credentials
+scratchmd auth status               # Show current authentication status
+```
 
-- Add CMS account connections (Webflow, WordPress)
-- Store API keys securely in `.scratchmd.secrets.yaml`
-- Test your credentials against the provider API
+### Workbooks
 
-The secrets file is automatically added to `.gitignore` for security.
+```bash
+scratchmd workbooks list            # List all workbooks
+scratchmd workbooks create --name "My Workbook"  # Create a new workbook
+scratchmd workbooks show <id>       # Show workbook details
+scratchmd workbooks delete <id>     # Delete a workbook
+scratchmd workbooks init <id>       # Clone workbook files to local directory
+```
 
-## Planned Commands
+### Files
 
-The following commands are planned for future releases:
+```bash
+scratchmd files download            # Download remote changes, three-way merge with local edits
+scratchmd files upload              # Upload local changes to server
+```
 
-| Command          | Description                         |
-| ---------------- | ----------------------------------- |
-| `account add`    | Add a CMS account (non-interactive) |
-| `account list`   | List configured accounts            |
-| `account remove` | Remove an account                   |
-| `download`       | Pull content from CMS               |
-| `upload`         | Push changes to CMS                 |
-| `status`         | Show pending changes                |
-| `diff`           | Show detailed diff of changes       |
+### Connections
 
-## License
+```bash
+scratchmd connections list          # List all connections in the workbook
+scratchmd connections add           # Authorize a new connection (interactive)
+scratchmd connections show <id>     # Show connection details
+scratchmd connections remove <id>   # Delete a connection
+```
 
-Private
+### Linked Tables
+
+```bash
+scratchmd linked available          # List available tables from connections
+scratchmd linked list               # List linked tables in a workbook
+scratchmd linked add                # Link a new table to a workbook
+scratchmd linked remove [id]        # Unlink a table
+scratchmd linked show [id]          # Show linked table details + pending changes
+scratchmd linked pull [id]          # Pull CRM changes into the workbook
+scratchmd linked publish [id]       # Publish workbook changes to the CRM
+```
+
+### Syncs
+
+```bash
+scratchmd syncs list                # List sync configurations
+scratchmd syncs show <id>           # Show sync details
+scratchmd syncs create --config <file-or-json>  # Create a new sync
+scratchmd syncs update <id> --config <file-or-json>  # Update a sync
+scratchmd syncs delete <id>         # Delete a sync
+scratchmd syncs run <id>            # Execute a sync
+```
+
+### Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `-v, --verbose` | Enable verbose output |
+| `--config <path>` | Config file path (default: `.scratchmd.config.yaml`) |
+| `--scratch-url <url>` | Override scratch server URL |
+| `--json` | Output as JSON (available on most subcommands) |
+| `--yes` | Skip confirmation prompts |
+| `--version` | Show version information |
+| `-h, --help` | Show help for any command |
 
 ## Enabling Command Completion
 
@@ -167,4 +168,6 @@ fi
 unset _scratchmd_cache
 ```
 
-This caches completions to `~/.zsh/cache/_scratchmd` on first run and reuses them for all `scratchmd` variants.
+## License
+
+Private

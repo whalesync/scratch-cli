@@ -35,10 +35,16 @@ scratchmd files download --json
 # 7. Upload local changes to server
 scratchmd files upload --json
 
-# 8. Pull CRM changes into workbook (async — polls until done, then downloads)
+# 8. Add a connection (needed before linking tables)
+scratchmd connections add --service WEBFLOW --param apiKey=<key> --json
+
+# 9. Link a table from the connection
+scratchmd linked add --connection-id <conn-id> --table-id <table-id> --name "My Table" --json
+
+# 10. Pull CRM changes into workbook (async — polls until done, then downloads)
 scratchmd linked pull --json
 
-# 9. Publish workbook changes to CRM (async — polls until done, then downloads)
+# 11. Publish workbook changes to CRM (async — polls until done, then downloads)
 scratchmd linked publish --json
 ```
 
@@ -108,6 +114,48 @@ scratchmd files download --json              # Download remote changes, three-wa
 scratchmd files download <workbook-id> --json # Download for a specific workbook (when not in workbook dir)
 scratchmd files upload --json                # Upload local changes to server
 scratchmd files upload <workbook-id> --json  # Upload for a specific workbook
+```
+
+### Connections
+
+All `connections` subcommands accept `--workbook <id>` to specify the workbook. If omitted, the workbook is auto-detected from the current directory's `.scratchmd` marker.
+
+```bash
+# List connections
+scratchmd connections list --json
+
+# Add a connection (interactive — prompts for service and credentials)
+scratchmd connections add
+
+# Add a connection (non-interactive)
+scratchmd connections add --json --service AIRTABLE --param apiKey=<token>
+scratchmd connections add --json --service WEBFLOW --param apiKey=<key>
+scratchmd connections add --json --service SHOPIFY --param shopDomain=my-store --param apiKey=<key>
+scratchmd connections add --json --service WORDPRESS --param endpoint=https://example.com --param username=admin --param password=<app-password>
+scratchmd connections add --json --service MOCO --param domain=yourcompany --param apiKey=<key>
+scratchmd connections add --json --service POSTGRES --param connectionString=postgresql://user:pass@host:5432/db
+scratchmd connections add --json --service AIRTABLE --param apiKey=<token> --name "My Airtable"
+
+# Show / remove
+scratchmd connections show <id> --json
+scratchmd connections remove <id> --json --yes
+```
+
+> **Supported services**: `AIRTABLE`, `WEBFLOW`, `SHOPIFY`, `MOCO`, `AUDIENCEFUL`, `WORDPRESS`, `POSTGRES`
+
+### Syncs
+
+All `syncs` subcommands accept `--workbook <id>`. If omitted, auto-detected from the current directory.
+
+```bash
+scratchmd syncs list --json                                          # List sync configurations
+scratchmd syncs show <sync-id> --json                                # Show sync details
+scratchmd syncs create --config sync-config.json --json              # Create from JSON file
+scratchmd syncs create --config '{"name":"My Sync",...}' --json      # Create from inline JSON
+scratchmd syncs update <sync-id> --config sync-config.json --json    # Update a sync
+scratchmd syncs delete <sync-id> --yes                               # Delete (--yes skips confirmation)
+scratchmd syncs run <sync-id> --json                                 # Run and wait for completion
+scratchmd syncs run <sync-id> --json --no-wait                       # Run and return job ID immediately
 ```
 
 ### Global Flags
@@ -207,6 +255,86 @@ scratchmd files upload <workbook-id> --json  # Upload for a specific workbook
 }
 ```
 
+### connections list
+
+```json
+[
+  {
+    "id": "...",
+    "service": "WEBFLOW",
+    "displayName": "My Webflow",
+    "authType": "USER_PROVIDED_PARAMS",
+    "healthStatus": "HEALTHY",
+    "healthStatusMessage": null,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+### connections add / connections show
+
+```json
+{
+  "id": "...",
+  "service": "WEBFLOW",
+  "displayName": "My Webflow",
+  "authType": "USER_PROVIDED_PARAMS",
+  "healthStatus": "HEALTHY",
+  "healthStatusMessage": null,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+### connections remove
+
+```json
+{ "success": true, "id": "...", "name": "..." }
+```
+
+### syncs list
+
+```json
+[
+  {
+    "id": "...",
+    "displayName": "My Sync",
+    "displayOrder": 0,
+    "syncState": "IDLE",
+    "syncStateLastChanged": "2024-01-15T10:30:00Z",
+    "lastSyncTime": "2024-01-15T10:30:00Z",
+    "createdAt": "...",
+    "updatedAt": "...",
+    "syncTablePairs": [
+      { "id": "...", "syncId": "...", "sourceDataFolderId": "...", "destinationDataFolderId": "..." }
+    ]
+  }
+]
+```
+
+### syncs create / syncs show / syncs update
+
+Same shape as a single element from `syncs list`.
+
+### syncs delete
+
+```json
+{ "success": true, "id": "...", "name": "..." }
+```
+
+### syncs run
+
+```json
+{ "success": true, "jobId": "...", "message": "Sync completed successfully" }
+```
+
+With `--no-wait`, returns immediately:
+
+```json
+{ "success": true, "jobId": "...", "message": "..." }
+```
+
 ---
 
 ## Context Detection
@@ -241,7 +369,7 @@ The CLI walks upward from the current directory to find these markers. This mean
 
 `linked pull` and `linked publish` are async server operations:
 
-- **Without `--json`**: The CLI starts the job, polls every 2s (prints dots to stderr), and auto-runs `files download` on completion. Timeout is 5 minutes.
+- **Without `--json`**: The CLI starts the job, polls every 2s (prints dots to stderr), and auto-runs `files download` on completion. Timeout is 30 minutes.
 - **With `--json`**: Returns `{"jobID": "..."}` immediately. The agent must handle polling separately if needed.
 
 ---

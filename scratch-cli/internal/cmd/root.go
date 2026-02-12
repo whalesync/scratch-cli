@@ -20,14 +20,14 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "scratchmd",
-	Short: "Command-line tool for ScratchMD",
-	Long: `scratchmd is the command-line tool for ScratchMD.
+	Short: "Command-line tool for Scratch.md",
+	Long: `scratchmd is the command-line tool for Scratch.md.
 
 ══════════════════════════════════════════════════════════════════════════════
                               AUTHENTICATION
 ══════════════════════════════════════════════════════════════════════════════
 
-  auth login                     Authenticate with ScratchMD
+  auth login                     Authenticate with Scratch.md
   auth logout                    End current session
   auth status                    Show current auth state
 
@@ -39,6 +39,23 @@ var rootCmd = &cobra.Command{
   workbooks create               Create a new workbook
   workbooks show <id>            Show workbook details
   workbooks delete <id>          Delete a workbook
+  workbooks init <id>            Clone workbook files to local directory
+
+══════════════════════════════════════════════════════════════════════════════
+                                  FILES
+══════════════════════════════════════════════════════════════════════════════
+
+  files download                 Download remote changes and merge locally
+  files upload                   Upload local changes to the server
+
+══════════════════════════════════════════════════════════════════════════════
+                               CONNECTIONS
+══════════════════════════════════════════════════════════════════════════════
+
+  connections list               List all connections in the workbook
+  connections add                Authorize a new connection
+  connections show <id>          Show connection details
+  connections remove <id>        Delete a connection
 
 ══════════════════════════════════════════════════════════════════════════════
                               LINKED TABLES
@@ -53,8 +70,17 @@ var rootCmd = &cobra.Command{
   linked publish [id]            Publish workbook changes to the CRM
 
 ══════════════════════════════════════════════════════════════════════════════
+                                 SYNCS
+══════════════════════════════════════════════════════════════════════════════
 
-For more information, visit: https://github.com/whalesync/scratch-cli`,
+  syncs list                     List sync configurations
+  syncs show <id>                Show sync details
+  syncs create                   Create a new sync configuration
+  syncs update <id>              Update a sync configuration
+  syncs delete <id>              Delete a sync
+  syncs run <id>                 Execute a sync
+
+══════════════════════════════════════════════════════════════════════════════`,
 	Version: version,
 	// Silence usage on errors - we'll handle our own error messages
 	SilenceUsage: true,

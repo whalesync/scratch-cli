@@ -11,6 +11,7 @@ import { WorkbookModule } from 'src/workbook/workbook.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
 import { CliAuthController } from './cli-auth.controller';
 import { CliAuthService } from './cli-auth.service';
+import { CliConnectionController } from './cli-connection.controller';
 import { CliLinkedController } from './cli-linked.controller';
 import { CliSyncController } from './cli-sync.controller';
 import { CliWorkbookController } from './cli-workbook.controller';
@@ -28,7 +29,13 @@ import { CliWorkbookController } from './cli-workbook.controller';
     ScratchGitModule,
     SyncModule,
   ],
-  controllers: [CliAuthController, CliWorkbookController, CliLinkedController, CliSyncController],
+  controllers: [
+    CliAuthController,
+    CliWorkbookController,
+    CliConnectionController,
+    CliLinkedController,
+    CliSyncController,
+  ],
   providers: [CliAuthService],
   exports: [CliAuthService],
 })

@@ -16,11 +16,11 @@ import (
 // authCmd represents the auth command
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Manage authentication with ScratchMD",
-	Long: `Manage your authentication with ScratchMD.
+	Short: "Manage authentication with Scratch.md",
+	Long: `Manage your authentication with Scratch.md.
 
 Commands:
-  auth login     Authenticate with ScratchMD
+  auth login     Authenticate with Scratch.md
   auth logout    End current session
   auth status    Show current auth state`,
 }
@@ -28,7 +28,7 @@ Commands:
 // authLoginCmd represents the auth login command
 var authLoginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Authenticate with ScratchMD",
+	Short: "Authenticate with Scratch.md",
 	Long: `Authenticate the CLI with your Scratch.md account.
 
 This command opens a browser to Scratch.md where you can log in and authorize the CLI.
