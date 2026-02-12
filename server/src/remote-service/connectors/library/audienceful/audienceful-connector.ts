@@ -1,4 +1,3 @@
-import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
@@ -7,6 +6,7 @@ import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import { AudiencefulApiClient, AudiencefulError } from './audienceful-api-client';
+import { buildAudiencefulJsonTableSpec } from './audienceful-json-schema';
 import { AudiencefulField } from './audienceful-types';
 
 /**
@@ -75,147 +75,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
       console.warn('Failed to fetch Audienceful custom fields:', error);
     }
 
-    // Build the schema
-    const schema = this.buildPeopleSchema(customFields);
-
-    return {
-      id,
-      slug: id.wsId,
-      name: 'People',
-      schema,
-      idColumnRemoteId: 'uid',
-      titleColumnRemoteId: ['email'],
-      mainContentColumnRemoteId: ['notes'],
-    };
-  }
-
-  /**
-   * Build the TypeBox schema for a person record.
-   */
-  private buildPeopleSchema(customFields: AudiencefulField[]): TSchema {
-    // Standard fields
-    const properties: Record<string, TSchema> = {
-      id: Type.Integer({ description: 'Numeric database ID for the person' }),
-      uid: Type.String({ description: 'Unique identifier for the person' }),
-      email: Type.String({ description: 'Email address', format: 'email' }),
-      tags: Type.Array(
-        Type.Object(
-          {
-            id: Type.Optional(Type.Integer({ description: 'Tag ID (auto-generated, not required for create/update)' })),
-            name: Type.String({ description: 'Tag name (required)' }),
-            color: Type.Optional(Type.String({ description: 'Tag color (defaults to pink if not specified)' })),
-          },
-          { additionalProperties: false },
-        ),
-        { description: 'Tags applied to this person. Only name is required when adding new tags.' },
-      ),
-      notes: Type.Optional(
-        Type.Union([Type.String(), Type.Null()], {
-          description: 'Notes about this person. Accepts HTML or plain text.',
-        }),
-      ),
-      extra_data: Type.Record(Type.String(), Type.Unknown(), {
-        description: 'Additional custom field data stored for this person (e.g., first_name, last_name)',
-      }),
-      status: Type.Union(
-        [Type.Literal('active'), Type.Literal('unconfirmed'), Type.Literal('bounced'), Type.Literal('unsubscribed')],
-        { description: 'Subscription status' },
-      ),
-      source: Type.Optional(
-        Type.Union([Type.String(), Type.Null()], {
-          description: 'How the person was added (import, manual, api, form, etc.)',
-        }),
-      ),
-      created_at: Type.String({
-        description: 'When the person was created',
-        format: 'date-time',
-      }),
-      updated_at: Type.String({
-        description: 'When the person was last updated',
-        format: 'date-time',
-      }),
-      last_activity: Type.String({
-        description: 'When the person was last active',
-        format: 'date-time',
-      }),
-      unsubscribed: Type.Optional(
-        Type.Union([Type.String({ format: 'date-time' }), Type.Null()], {
-          description: 'When the person unsubscribed, or null if still subscribed',
-        }),
-      ),
-      country: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Country of the person' })),
-      double_opt_in: Type.Union([Type.Literal('not_required'), Type.Literal('required'), Type.Literal('complete')], {
-        description: 'Email confirmation status',
-      }),
-      bounced: Type.Boolean({ description: 'Whether the email address has bounced' }),
-      open_rate: Type.Optional(
-        Type.Union([Type.Number(), Type.Null()], { description: 'Email open rate for this person' }),
-      ),
-      click_rate: Type.Optional(
-        Type.Union([Type.Number(), Type.Null()], { description: 'Email click rate for this person' }),
-      ),
-    };
-
-    // Add custom fields (skip built-in fields)
-    const builtInFields = [
-      'id',
-      'uid',
-      'email',
-      'tags',
-      'notes',
-      'extra_data',
-      'status',
-      'source',
-      'created_at',
-      'updated_at',
-      'last_activity',
-      'unsubscribed',
-      'country',
-      'double_opt_in',
-      'bounced',
-      'open_rate',
-      'click_rate',
-    ];
-    for (const field of customFields) {
-      if (builtInFields.includes(field.data_name)) continue;
-      const fieldSchema = this.fieldTypeToSchema(field);
-      properties[field.data_name] = field.required ? fieldSchema : Type.Optional(fieldSchema);
-    }
-
-    return Type.Object(properties, {
-      $id: 'audienceful/people',
-      title: 'People',
-    });
-  }
-
-  /**
-   * Convert an Audienceful field type to a TypeBox schema.
-   */
-  private fieldTypeToSchema(field: AudiencefulField): TSchema {
-    const description = field.name;
-
-    switch (field.type) {
-      case 'string':
-        return Type.Union([Type.String(), Type.Null()], { description });
-      case 'number':
-        return Type.Union([Type.Number(), Type.Null()], { description });
-      case 'date':
-        return Type.Union([Type.String({ format: 'date-time' }), Type.Null()], { description });
-      case 'boolean':
-        return Type.Union([Type.Boolean(), Type.Null()], { description });
-      case 'tag':
-        // Tags are stored as an array of objects - only name is required for create/update
-        return Type.Array(
-          Type.Object({
-            id: Type.Optional(Type.Integer()),
-            name: Type.String(),
-            color: Type.Optional(Type.String()),
-          }),
-          { description },
-        );
-      default:
-        return Type.Unknown({ description });
-    }
+    return buildAudiencefulJsonTableSpec(id, customFields);
   }
 
   /**

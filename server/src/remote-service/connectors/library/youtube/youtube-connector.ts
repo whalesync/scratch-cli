@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { youtube_v3 } from '@googleapis/youtube';
 import { ConnectorAccount } from '@prisma/client';
-import { Type } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
@@ -20,6 +19,7 @@ import {
   TablePreview,
 } from '../../types';
 import { YoutubeApiClient } from './youtube-api-client';
+import { buildYouTubeJsonTableSpec } from './youtube-json-schema';
 
 export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
   readonly service = Service.YOUTUBE;
@@ -122,84 +122,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     const channel = channelsResponse.items?.find((c) => c.id === channelId);
     const channelTitle = channel?.snippet?.title || `Channel ${channelId}`;
 
-    // Build schema for YouTube video response
-    const schema = Type.Object(
-      {
-        kind: Type.Optional(Type.String({ description: 'Resource type identifier' })),
-        etag: Type.Optional(Type.String({ description: 'ETag of this resource' })),
-        id: Type.String({ description: 'Unique video identifier' }),
-        snippet: Type.Optional(
-          Type.Object(
-            {
-              publishedAt: Type.Optional(Type.String({ description: 'Video publish date', format: 'date-time' })),
-              channelId: Type.Optional(Type.String({ description: 'Channel ID' })),
-              title: Type.Optional(Type.String({ description: 'Video title' })),
-              description: Type.Optional(Type.String({ description: 'Video description' })),
-              thumbnails: Type.Optional(
-                Type.Record(Type.String(), Type.Unknown(), { description: 'Thumbnail images' }),
-              ),
-              channelTitle: Type.Optional(Type.String({ description: 'Channel title' })),
-              tags: Type.Optional(Type.Array(Type.String(), { description: 'Video tags' })),
-              categoryId: Type.Optional(Type.String({ description: 'Video category ID' })),
-              defaultLanguage: Type.Optional(Type.String({ description: 'Default language' })),
-              defaultAudioLanguage: Type.Optional(Type.String({ description: 'Default audio language' })),
-            },
-            { description: 'Video snippet metadata' },
-          ),
-        ),
-        contentDetails: Type.Optional(
-          Type.Object(
-            {
-              duration: Type.Optional(Type.String({ description: 'Video duration in ISO 8601 format' })),
-              dimension: Type.Optional(Type.String({ description: '2d or 3d' })),
-              definition: Type.Optional(Type.String({ description: 'hd or sd' })),
-              caption: Type.Optional(Type.String({ description: 'Caption availability' })),
-              licensedContent: Type.Optional(Type.Boolean({ description: 'Licensed content flag' })),
-            },
-            { description: 'Video content details' },
-          ),
-        ),
-        status: Type.Optional(
-          Type.Object(
-            {
-              uploadStatus: Type.Optional(Type.String({ description: 'Upload status' })),
-              privacyStatus: Type.Optional(
-                Type.String({ description: 'Privacy status: public, unlisted, or private' }),
-              ),
-              license: Type.Optional(Type.String({ description: 'Video license' })),
-              embeddable: Type.Optional(Type.Boolean({ description: 'Can video be embedded' })),
-              publicStatsViewable: Type.Optional(Type.Boolean({ description: 'Public stats visibility' })),
-              madeForKids: Type.Optional(Type.Boolean({ description: 'Made for kids flag' })),
-            },
-            { description: 'Video status information' },
-          ),
-        ),
-        statistics: Type.Optional(
-          Type.Object(
-            {
-              viewCount: Type.Optional(Type.String({ description: 'View count' })),
-              likeCount: Type.Optional(Type.String({ description: 'Like count' })),
-              commentCount: Type.Optional(Type.String({ description: 'Comment count' })),
-            },
-            { description: 'Video statistics' },
-          ),
-        ),
-      },
-      {
-        $id: `youtube/${channelId}`,
-        title: channelTitle,
-      },
-    );
-
-    return {
-      id,
-      slug: id.wsId,
-      name: channelTitle,
-      schema,
-      idColumnRemoteId: 'id',
-      titleColumnRemoteId: [channelId, 'snippet.title'],
-      mainContentColumnRemoteId: [channelId, 'snippet.description'],
-    };
+    return buildYouTubeJsonTableSpec(id, channelId, channelTitle);
   }
 
   async pullRecordFiles(
