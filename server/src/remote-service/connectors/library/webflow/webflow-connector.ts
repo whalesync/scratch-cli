@@ -1,4 +1,4 @@
-import { TObject, TSchema, Type } from '@sinclair/typebox';
+import { TObject, TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
@@ -19,6 +19,7 @@ import {
   TablePreview,
 } from '../../types';
 import { WebflowTableSpec } from '../custom-spec-registry';
+import { buildWebflowJsonTableSpec } from './webflow-json-schema';
 import { WebflowSchemaParser } from './webflow-schema-parser';
 import {
   WEBFLOW_ECOMMERCE_COLLECTION_SLUGS,
@@ -209,171 +210,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       this.client.collections.get(collectionId),
     ]);
 
-    const properties: Record<string, TSchema> = {};
-    let titleColumnRemoteId: EntityId['remoteId'] | undefined;
-    let mainContentColumnRemoteId: EntityId['remoteId'] | undefined;
-
-    // Add item-level metadata fields (these are present in all Webflow items)
-    properties['id'] = Type.String({ description: 'Unique item identifier (read-only)' });
-    properties['cmsLocaleId'] = Type.Optional(Type.String({ description: 'CMS locale identifier (read-only)' }));
-    properties['lastPublished'] = Type.Optional(
-      Type.Union([Type.String({ format: 'date-time' }), Type.Null()], {
-        description: 'When the item was last published (read-only)',
-      }),
-    );
-    properties['lastUpdated'] = Type.Optional(
-      Type.String({
-        format: 'date-time',
-        description: 'When the item was last updated (read-only)',
-      }),
-    );
-    properties['createdOn'] = Type.Optional(
-      Type.String({
-        format: 'date-time',
-        description: 'When the item was created (read-only)',
-      }),
-    );
-    properties['isArchived'] = Type.Optional(
-      Type.Boolean({ description: 'Whether the item is archived (default: false)' }),
-    );
-    properties['isDraft'] = Type.Optional(
-      Type.Boolean({ description: 'Whether the item is a draft (default: false)' }),
-    );
-
-    // Add fieldData wrapper to indicate where custom fields are stored
-    const fieldDataProperties: Record<string, TSchema> = {};
-
-    for (const field of collection.fields) {
-      // Skip fields without a slug
-      if (!field.slug) {
-        continue;
-      }
-
-      const fieldSchema = this.webflowFieldToJsonSchema(field);
-
-      // Check if field is required using Webflow's isRequired property
-      // slug and name fields are always required for Webflow
-      const isRequired = field.isRequired || field.slug === 'slug' || field.slug === 'name';
-
-      if (isRequired) {
-        fieldDataProperties[field.slug] = fieldSchema;
-      } else {
-        // Wrap optional fields in Type.Optional to exclude from required array
-        fieldDataProperties[field.slug] = Type.Optional(fieldSchema);
-      }
-
-      // Track title column (name field)
-      if (field.slug === 'name') {
-        titleColumnRemoteId = [field.slug, field.id];
-      }
-
-      // Track main content column (first RichText field)
-      if (!mainContentColumnRemoteId && field.type === Webflow.FieldType.RichText) {
-        mainContentColumnRemoteId = [field.slug, field.id];
-      }
-    }
-
-    // Add fieldData as an object containing all collection-specific fields
-    properties['fieldData'] = Type.Object(fieldDataProperties, {
-      description: 'Collection-specific field values',
-    });
-
-    const schema = Type.Object(properties, {
-      $id: collectionId,
-      title: `${site.displayName} - ${collection.displayName}`,
-    });
-
-    return {
-      id,
-      slug: collection.slug ?? id.wsId,
-      name: `${site.displayName} - ${collection.displayName}`,
-      schema,
-      titleColumnRemoteId,
-      mainContentColumnRemoteId,
-      idColumnRemoteId: 'id',
-      slugColumnRemoteId: 'fieldData.slug',
-    };
-  }
-
-  /**
-   * Convert a Webflow field directly to a TypeBox JSON Schema.
-   */
-  private webflowFieldToJsonSchema(field: Webflow.Field): TSchema {
-    const description = field.displayName;
-
-    switch (field.type) {
-      case Webflow.FieldType.PlainText:
-      case Webflow.FieldType.Reference:
-        return Type.String({ description });
-
-      case Webflow.FieldType.RichText:
-        return Type.String({ description, contentMediaType: 'text/html' });
-
-      case Webflow.FieldType.Number: {
-        const validations = field.validations as { format?: 'decimal' | 'integer' } | undefined;
-        if (validations?.format === 'integer') {
-          return Type.Integer({ description });
-        }
-        return Type.Number({ description });
-      }
-
-      case Webflow.FieldType.Switch:
-        return Type.Boolean({ description });
-
-      case Webflow.FieldType.DateTime:
-        return Type.String({ description, format: 'date-time' });
-
-      case Webflow.FieldType.Email:
-        return Type.String({ description, format: 'email' });
-
-      case Webflow.FieldType.Phone:
-        return Type.String({ description });
-
-      case Webflow.FieldType.Link:
-      case Webflow.FieldType.VideoLink:
-        return Type.String({ description, format: 'uri' });
-
-      case Webflow.FieldType.Color:
-        return Type.String({ description });
-
-      case Webflow.FieldType.Option: {
-        // Webflow options are in validations.options as array of { id, name }
-        const options = _.get(field.validations, 'options', []) as { id: string; name: string }[];
-        if (options.length > 0) {
-          return Type.Union(
-            options.map((opt) => Type.Literal(opt.id, { title: opt.name })),
-            { description },
-          );
-        }
-        return Type.String({ description });
-      }
-
-      case Webflow.FieldType.Image:
-      case Webflow.FieldType.File:
-        return Type.Object(
-          {
-            url: Type.String({ format: 'uri' }),
-            alt: Type.Optional(Type.String()),
-          },
-          { description },
-        );
-
-      case Webflow.FieldType.MultiImage:
-        return Type.Array(
-          Type.Object({
-            url: Type.String({ format: 'uri' }),
-            alt: Type.Optional(Type.String()),
-          }),
-          { description },
-        );
-
-      case Webflow.FieldType.MultiReference:
-        return Type.Array(Type.String(), { description });
-
-      default:
-        // Default to unknown for unrecognized types
-        return Type.Unknown({ description });
-    }
+    return buildWebflowJsonTableSpec(id, site, collection);
   }
 
   // Record fields need to be keyed by the wsId, not the remoteId.
