@@ -1,21 +1,10 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { extractErrorMessageFromAxiosError } from '../../error';
-import { validate } from '../../file-validator';
 import { sanitizeForTableWsId } from '../../ids';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  EntityId,
-  FileValidationInput,
-  FileValidationResult,
-  TablePreview,
-} from '../../types';
-import { WordPressTableSpec } from '../custom-spec-registry';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import {
   WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS,
   WORDPRESS_DEFAULT_TABLE_IDS,
@@ -72,8 +61,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     return buildWordPressJsonTableSpec(id, optionsResponse);
   }
 
-  public pullRecordDeep = undefined;
-
   async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
@@ -101,15 +88,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
   }
 
-  /**
-   * Validate files against the WordPress table schema.
-   * Uses the shared file validator - WordPress stores dates as TEXT with dateFormat metadata,
-   * which the shared validator handles automatically.
-   */
-  validateFiles(tableSpec: WordPressTableSpec, files: FileValidationInput[]): Promise<FileValidationResult[]> {
-    return Promise.resolve(validate(tableSpec, files));
-  }
-
   getBatchSize(): number {
     return 1;
   }
@@ -119,11 +97,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
    * Files should contain the fields to create (title, content, etc.).
    * Returns the created records with their new IDs.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const [tableId] = tableSpec.id.remoteId;
 
     // Check if this table supports create
@@ -147,11 +121,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
    * Update records in WordPress from raw JSON files.
    * Files should have an 'id' field and the fields to update.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
 
     for (const file of files) {

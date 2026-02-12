@@ -3,25 +3,13 @@ import type { DraftPost } from '@wix/auto_sdk_blog_draft-posts';
 import { draftPosts } from '@wix/blog';
 import { members } from '@wix/members';
 import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
-import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { MarkdownErrors } from 'src/remote-service/connectors/markdown-errors';
-import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
+import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../../connector';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  ConnectorRecord,
-  EntityId,
-  TablePreview,
-} from '../../../types';
-import { WixBlogTableSpec } from '../../custom-spec-registry';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../../types';
 import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
-import { createMarkdownParser, createTurndownService } from '../rich-content/markdown-helpers';
+import { createTurndownService } from '../rich-content/markdown-helpers';
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
-import { WixDocument } from '../rich-content/types';
 import { buildWixBlogJsonTableSpec } from './wix-blog-json-schema';
 import { WixBlogSchemaParser } from './wix-blog-schema-parser';
 
@@ -99,54 +87,6 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
     await callback({ files: [], connectorProgress: progress });
   }
 
-  // Convert Wix draft posts to ConnectorRecords with fields keyed by wsId
-  private wireToConnectorRecord(
-    posts: DraftPost[],
-    tableSpec: WixBlogTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-  ): ConnectorRecord[] {
-    return posts.map((post) => {
-      const { _id, ...fields } = post;
-      const record: ConnectorRecord = {
-        id: _id || '',
-        fields: {},
-        metadata: {},
-      };
-
-      for (const column of tableSpec.columns) {
-        const fieldId = column.id.remoteId[0];
-
-        const fieldValue = _.get(fields, fieldId) as JsonSafeValue;
-
-        if (fieldValue !== undefined) {
-          // Handle rich content conversion using proper Ricos converters
-          if (column.wixFieldType === 'RichText') {
-            const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-            if (dataConverter === 'wix') {
-              record.fields[fieldId] = fieldValue as string;
-            } else {
-              const convertedRicos = this.ricosToHtmlConverter.convert(fieldValue as WixDocument);
-              if (dataConverter === 'html') {
-                // Convert Ricos format to HTML
-                record.fields[fieldId] = convertedRicos;
-              } else {
-                // Convert to Markdown (Ricos -> HTML -> Markdown)
-                record.fields[fieldId] = this.turndownService.turndown(convertedRicos);
-                // TODO: This is a top-level generic warning about the content being lost. We should add a more
-                // specific warning for the actual nodes that are lost and remove this.
-                record.errors = MarkdownErrors.addFieldFidelityWarning(record.errors, fieldId, 'Wix');
-              }
-            }
-          } else {
-            record.fields[fieldId] = fieldValue;
-          }
-        }
-      }
-
-      return record;
-    });
-  }
-
   getBatchSize(): number {
     return 1;
   }
@@ -156,11 +96,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
    * Files should contain Wix draft post data in the raw API format.
    * Returns the created posts.
    */
-  async createRecords(
-    _tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const results: ConnectorFile[] = [];
 
     // Wix doesn't support bulk create for posts, so we create one at a time
@@ -185,11 +121,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
    * Update draft posts in Wix from raw JSON files.
    * Files should have an '_id' field and the post data to update.
    */
-  async updateRecords(
-    _tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     // Wix doesn't support bulk update, so we update one at a time
     for (const file of files) {
       const postId = (file._id || file.id) as string;
@@ -213,45 +145,6 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
         permanent: true,
       });
     }
-  }
-
-  // Convert internal fields (keyed by wsId) to Wix post format
-  private wsFieldsToWixPost(
-    wsFields: Record<string, unknown>,
-    tableSpec: WixBlogTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-  ): Record<string, unknown> {
-    const wixPost: Record<string, unknown> = {};
-
-    for (const column of tableSpec.columns) {
-      const wsValue = wsFields[column.id.wsId];
-      if (wsValue !== undefined) {
-        const fieldId = column.id.remoteId[0];
-
-        // Handle rich content conversion using proper Ricos converters
-        if (fieldId === 'richContent' && column.wixFieldType === 'RichText') {
-          const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-          let html: string = '';
-          if (dataConverter === 'wix') {
-            wixPost[fieldId] = wsValue as string;
-          } else {
-            if (dataConverter === 'html') {
-              html = wsValue as string;
-            } else {
-              // Convert markdown to HTML (preserves img tags)
-              const md = createMarkdownParser();
-              html = md.render(wsValue as string);
-            }
-            // Convert HTML to Ricos format using proper converter
-            wixPost[fieldId] = this.htmlToRicosConverter.convert(html);
-          }
-        } else {
-          wixPost[fieldId] = wsValue;
-        }
-      }
-    }
-
-    return wixPost;
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

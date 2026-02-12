@@ -15,7 +15,6 @@ export * from './file-types';
 export * from './ids';
 export * from './subscription';
 export * from './sync-mapping';
-export * from './workbook-types';
 
 // DTOs
 export * from './dto/bug-report/create-bug-report.dto';
@@ -33,10 +32,6 @@ export * from './dto/oauth/oauth-state-payload';
 export * from './dto/payment/create-checkout-session.dto';
 export * from './dto/payment/create-portal.dto';
 export * from './dto/users/update-settings.dto';
-export * from './dto/webflow/publish-items.dto';
-export * from './dto/webflow/publish-site.dto';
-export * from './dto/webflow/validate-files.dto';
-export * from './dto/wix/publish-draft-posts.dto';
 export * from './dto/workbook/create-workbook.dto';
 export * from './dto/workbook/file-details.dto';
 export * from './dto/workbook/list-files.dto';

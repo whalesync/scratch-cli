@@ -8,8 +8,6 @@ import { CodeMigrationsModule } from './code-migrations/code-migrations.module';
 import { ScratchConfigModule } from './config/scratch-config.module';
 import { ScratchConfigService } from './config/scratch-config.service';
 import { CronModule } from './cron/cron.module';
-import { WebflowCustomActionsModule } from './custom-actions/webflow/webflow-custom-actions.module';
-import { WixCustomActionsModule } from './custom-actions/wix/wix-custom-actions.module';
 import { DbModule } from './db/db.module';
 import { DevToolsModule } from './dev-tools/dev-tools.module';
 import { ExperimentsModule } from './experiments/experiments.module';
@@ -44,8 +42,6 @@ import { WorkerModule } from './worker/workers.module';
     OAuthModule,
     ConnectorAccountModule,
     ConnectorsModule,
-    WebflowCustomActionsModule,
-    WixCustomActionsModule,
     WorkbookModule,
     ScratchGitModule,
     SyncModule,

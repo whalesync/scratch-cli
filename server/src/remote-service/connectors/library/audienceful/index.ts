@@ -1,6 +1,5 @@
 export { AudiencefulApiClient, AudiencefulError } from './audienceful-api-client';
 export { AudiencefulConnector } from './audienceful-connector';
-export type { AudiencefulColumnSpecExtras, AudiencefulTableSpecExtras } from './audienceful-spec-types';
 export type {
   AudiencefulCreatePersonRequest,
   AudiencefulCredentials,

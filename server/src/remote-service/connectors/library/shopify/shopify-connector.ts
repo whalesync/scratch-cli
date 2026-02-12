@@ -3,7 +3,6 @@ import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
@@ -260,11 +259,7 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
   /**
    * Create records from JSON files.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const entityType = tableSpec.id.wsId as ShopifyEntityType;
     this.assertWritable(entityType);
     const writableType = entityType as ShopifyWritableEntityType;
@@ -282,11 +277,7 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
   /**
    * Update records from JSON files.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const entityType = tableSpec.id.wsId as ShopifyEntityType;
     this.assertWritable(entityType);
     const writableType = entityType as ShopifyWritableEntityType;

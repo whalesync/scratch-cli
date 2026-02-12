@@ -19,10 +19,3 @@ export const WEBFLOW_METADATA_COLUMNS = [
   WEBFLOW_LAST_UPDATED_COLUMN_ID,
   WEBFLOW_CREATED_ON_COLUMN_ID,
 ] as (keyof WebflowItemMetadata)[];
-
-export type WebflowTableSpecExtras = object;
-
-export type WebflowColumnSpecExtras = {
-  // Webflow field type (e.g., 'PlainText', 'RichText', 'Number', etc.)
-  webflowFieldType?: string;
-};

@@ -1,7 +1,6 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
@@ -110,11 +109,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
    * Files should contain Audienceful person data.
    * Returns the created people.
    */
-  async createRecords(
-    _tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const results: ConnectorFile[] = [];
 
     for (const file of files) {
@@ -130,11 +125,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
    * Update people in Audienceful from raw JSON files.
    * Files should contain the person data to update (including email).
    */
-  async updateRecords(
-    _tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     for (const file of files) {
       const updateData = this.transformToUpdateRequest(file);
       await this.client.updatePerson(updateData);

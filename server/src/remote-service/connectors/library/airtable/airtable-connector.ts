@@ -1,7 +1,6 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
@@ -14,7 +13,6 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   static readonly displayName = 'Airtable';
 
   private readonly client: AirtableApiClient;
-  /** @deprecated */
   private readonly schemaParser = new AirtableSchemaParser();
 
   constructor(apiKey: string) {
@@ -77,11 +75,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
    * Files should be in Airtable's native format: { fields: { "Field Name": value } }
    * Returns the created records with their new IDs.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
     // Extract the fields from each file (Airtable expects { fields: {...} })
@@ -99,11 +93,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
    * Update records in Airtable from raw JSON files.
    * Files should have an 'id' field and the fields to update.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
     const airtableRecords = files.map((file) => ({

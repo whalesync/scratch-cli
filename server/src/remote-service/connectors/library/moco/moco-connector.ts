@@ -1,7 +1,6 @@
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
@@ -112,11 +111,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
    * Files should contain Moco entity data.
    * Returns the created entities.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
     const results: ConnectorFile[] = [];
 
@@ -133,11 +128,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
    * Update entities in Moco from raw JSON files.
    * Files should have an 'id' field and the data to update.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 
     for (const file of files) {

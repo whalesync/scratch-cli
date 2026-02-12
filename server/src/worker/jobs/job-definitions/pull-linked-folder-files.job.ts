@@ -1,8 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { DataFolderId, Service, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
-import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
-import type { ConnectorFile } from '../../../remote-service/connectors/types';
+import type { BaseJsonTableSpec, ConnectorFile } from '../../../remote-service/connectors/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
@@ -57,7 +56,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
   private buildGitFilesFromConnectorFiles(
     parentPath: string,
     records: ConnectorFile[],
-    tableSpec: AnyJsonTableSpec,
+    tableSpec: BaseJsonTableSpec,
     usedFileNames: Set<string>,
   ): { path: string; content: string }[] {
     const prefix = parentPath === '/' ? '' : parentPath;
@@ -124,7 +123,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       throw new Error(`DataFolder ${data.dataFolderId} does not have a connector service`);
     }
 
-    const tableSpec = dataFolder.schema as AnyJsonTableSpec;
+    const tableSpec = dataFolder.schema as BaseJsonTableSpec;
 
     const publicProgress: PullLinkedFolderFilesPublicProgress = {
       totalFiles: 0,

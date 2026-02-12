@@ -4,7 +4,6 @@ import { isScratchPendingPublishId } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from '../logger';
 import type { Connector } from '../remote-service/connectors/connector';
-import type { AnyJsonTableSpec } from '../remote-service/connectors/library/custom-spec-registry';
 import type { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { formatJsonWithPrettier } from '../utils/json-formatter';
@@ -187,7 +186,7 @@ export class DataFolderPublishingService {
   async publishCreates<S extends Service>(
     workbookId: WorkbookId,
     connector: Connector<S>,
-    tableSpec: AnyJsonTableSpec,
+    tableSpec: BaseJsonTableSpec,
     files: FileToCreate[],
     onProgress: (count: number) => Promise<void>,
   ): Promise<void> {
@@ -214,7 +213,7 @@ export class DataFolderPublishingService {
       });
 
       // Send to connector
-      const returnedFiles = await connector.createRecords(tableSpec, {}, connectorFiles);
+      const returnedFiles = await connector.createRecords(tableSpec, connectorFiles);
 
       // Update files with the new remote IDs
       const filesToCommit: Array<{ path: string; content: string }> = [];
@@ -304,7 +303,7 @@ export class DataFolderPublishingService {
   async publishUpdates<S extends Service>(
     workbookId: WorkbookId,
     connector: Connector<S>,
-    tableSpec: AnyJsonTableSpec,
+    tableSpec: BaseJsonTableSpec,
     files: FileToUpdate[],
     onProgress: (count: number) => Promise<void>,
   ): Promise<void> {
@@ -322,7 +321,7 @@ export class DataFolderPublishingService {
       const connectorFiles = batch.map((file) => file.content);
 
       // Send to connector
-      await connector.updateRecords(tableSpec, {}, connectorFiles);
+      await connector.updateRecords(tableSpec, connectorFiles);
 
       WSLogger.debug({
         source: 'DataFolderPublishingService',
@@ -343,7 +342,7 @@ export class DataFolderPublishingService {
   async publishDeletes<S extends Service>(
     workbookId: WorkbookId,
     connector: Connector<S>,
-    tableSpec: AnyJsonTableSpec,
+    tableSpec: BaseJsonTableSpec,
     files: FileToDelete[],
     onProgress: (count: number) => Promise<void>,
   ): Promise<void> {
@@ -382,7 +381,7 @@ export class DataFolderPublishingService {
     workbookId: WorkbookId,
     folderPath: string,
     connector: Connector<S>,
-    tableSpec: AnyJsonTableSpec,
+    tableSpec: BaseJsonTableSpec,
     onProgress: (phase: 'creates' | 'updates' | 'deletes', count: number) => Promise<void>,
   ): Promise<{ creates: number; updates: number; deletes: number }> {
     // Get files to publish

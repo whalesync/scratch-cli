@@ -1,7 +1,6 @@
 import { Type, type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import {
   BaseJsonTableSpec,
@@ -209,11 +208,7 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
   /**
    * Create records by inserting rows.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
     const results: ConnectorFile[] = [];
 
@@ -228,11 +223,7 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
   /**
    * Update records by ID.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
     const pkColumn = tableSpec.idColumnRemoteId || 'id';
 

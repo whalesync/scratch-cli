@@ -1,11 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
 import { Service, type DataFolderId, type WorkbookId } from '@spinner/shared-types';
 import type { ConnectorsService } from '../../../remote-service/connectors/connectors.service';
-import type { AnyJsonTableSpec } from '../../../remote-service/connectors/library/custom-spec-registry';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
+import { BaseJsonTableSpec } from 'src/remote-service/connectors/types';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { WSLogger } from '../../../logger';
 import { DataFolderPublishingService } from '../../../workbook/data-folder-publishing.service';
@@ -176,7 +176,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         continue;
       }
 
-      const tableSpec = dataFolder.schema as AnyJsonTableSpec;
+      const tableSpec = dataFolder.schema as BaseJsonTableSpec;
 
       // Mark folder as in_progress
       currentFolder.status = 'in_progress';

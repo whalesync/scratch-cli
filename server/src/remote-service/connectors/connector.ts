@@ -1,17 +1,6 @@
-import { ConnectorAccount } from '@prisma/client';
 import { Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from '../../workbook/types';
-import { AnyTableSpec, TableSpecs } from './library/custom-spec-registry';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  EntityId,
-  ExistingSnapshotRecord,
-  SnapshotRecordSanitizedForUpdate,
-  TablePreview,
-} from './types';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from './types';
 
 /**
  * Defines a utility that parses the user provided parameters for a given service into a set of credentials and extras.
@@ -90,24 +79,6 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<void>;
 
   /**
-   * Sometimes accessing certain record fields requires a more expensive api call that usually cannot be batched.
-   * For example:
-   * - Notion's pageContent field
-   * - Youtube's caption field (for us defined as the video's first english caption)
-   * We should be able to pull these fields on demand to save on api calls.
-   * Youtube, for example can list videos in batches of 100 for 1 api credit per batch,
-   * while fetching the captions for a video consumes 50 credits per video.
-   */
-  abstract pullRecordDeep?(
-    tableSpec: TableSpecs[T],
-    existingRecord: ExistingSnapshotRecord,
-    /** Null indicates all possible fields */
-    fields: string[] | null,
-    callback: (files: ConnectorFile[]) => Promise<void>,
-    account: ConnectorAccount,
-  ): Promise<void>;
-
-  /**
    * Validate files against the table schema before publishing.
    * This is an optional method that connectors can override to provide custom validation logic.
    * By default, returns undefined to indicate that the connector does not support validation.
@@ -118,35 +89,11 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    *          or undefined if the connector does not support validation.
    */
   validateFiles?(
-    tableSpec: TableSpecs[T],
+    tableSpec: BaseJsonTableSpec,
     files: { filename: string; id?: string; data: Record<string, unknown> }[],
   ): Promise<
     { filename: string; id?: string; data: Record<string, unknown>; publishable: boolean; errors?: string[] }[]
   >;
-
-  /**
-   * Sanitize the record for update. Usually involves removing fields that are not touched or are scratch fields that the connector does not know about.
-   * @param record - The record to sanitize.
-   * @param tableSpec - The table spec to sanitize the record for.
-   * @returns The sanitized record.
-   */
-  sanitizeRecordForUpdate(record: ExistingSnapshotRecord, tableSpec: TableSpecs[T]): SnapshotRecordSanitizedForUpdate {
-    const editedFieldNames = (tableSpec as AnyTableSpec).columns
-      .filter((c) => !c.metadata?.scratch)
-      .map((c) => c.id.wsId)
-      .filter((colWsId) => !!record.__edited_fields[colWsId]);
-    const editedFields = Object.fromEntries(
-      Object.entries(record.fields).filter(([fieldName]) => editedFieldNames.includes(fieldName)),
-    );
-
-    return {
-      id: {
-        wsId: record.id.wsId,
-        remoteId: record.id.remoteId,
-      },
-      partialFields: editedFields,
-    };
-  }
 
   /**
    * Get the batch size for a given operation.
@@ -161,11 +108,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @param files - The files to create.
    * @throws Error if there is a problem creating the records.
    */
-  abstract createRecords(
-    tableSpec: BaseJsonTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]>;
+  abstract createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]>;
 
   /**
    * Attempts to push updates to the data source.
@@ -173,11 +116,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @param files - The files to update.
    * @throws Error if there is a problem updating the records.
    */
-  abstract updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void>;
+  abstract updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void>;
 
   /**
    * Delete records from the data source

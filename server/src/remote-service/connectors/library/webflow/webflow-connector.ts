@@ -3,24 +3,13 @@ import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
-import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
-import { validate } from '../../file-validator';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  EntityId,
-  FileValidationInput,
-  FileValidationResult,
-  TablePreview,
-} from '../../types';
-import { WebflowTableSpec } from '../custom-spec-registry';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import { buildWebflowJsonTableSpec } from './webflow-json-schema';
 import { WebflowSchemaParser } from './webflow-schema-parser';
-import { WEBFLOW_ECOMMERCE_COLLECTION_SLUGS } from './webflow-spec-types';
+import { WEBFLOW_ECOMMERCE_COLLECTION_SLUGS } from './webflow-types';
 
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
 
@@ -64,8 +53,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
 
     return tables;
   }
-
-  public pullRecordDeep = undefined;
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getNewFile(tableSpec: BaseJsonTableSpec): Promise<Record<string, unknown>> {
@@ -184,14 +171,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
   }
 
   /**
-   * Validate files against the Webflow table schema.
-   * Uses the shared file validator with Webflow-specific configuration.
-   */
-  validateFiles(tableSpec: WebflowTableSpec, files: FileValidationInput[]): Promise<FileValidationResult[]> {
-    return Promise.resolve(validate(tableSpec, files));
-  }
-
-  /**
    * Fetch JSON Table Spec directly from the Webflow API for a collection.
    * Converts Webflow field types to JSON Schema types for AI consumption.
    * Uses field slugs as property keys.
@@ -218,11 +197,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
    * Files should contain Webflow fieldData.
    * Returns the created items.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const [, collectionId] = tableSpec.id.remoteId;
 
     const fieldDataArray: Record<string, unknown>[] = [];
@@ -246,11 +221,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
    * Update items in Webflow from raw JSON files.
    * Files should have an 'id' field and fieldData to update.
    */
-  async updateRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [, collectionId] = tableSpec.id.remoteId;
 
     const items: { id: string; fieldData: Webflow.CollectionItemFieldData }[] = [];

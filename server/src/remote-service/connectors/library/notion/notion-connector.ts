@@ -10,7 +10,6 @@ import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/buil
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import type { SnapshotColumnSettingsMap } from '../../../../workbook/types';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
@@ -170,11 +169,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
    * Files should contain Notion properties in the raw API format.
    * Returns the created pages.
    */
-  async createRecords(
-    tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<ConnectorFile[]> {
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const results: ConnectorFile[] = [];
     const databaseId = tableSpec.id.remoteId[0];
 
@@ -345,11 +340,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
    * Update pages in Notion from raw JSON files.
    * Files should have an 'id' field and the properties to update.
    */
-  async updateRecords(
-    _tableSpec: BaseJsonTableSpec,
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    files: ConnectorFile[],
-  ): Promise<void> {
+  async updateRecords(_tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     for (const file of files) {
       const pageId = file.id as string;
       const rawProperties = (file.properties as Record<string, unknown>) || {};

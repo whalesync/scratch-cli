@@ -1,43 +1,10 @@
 import { isNotEmpty } from '@/utils/helpers';
-import { DataFolder, Service, SnapshotColumnSettingsMap, Workbook } from '@spinner/shared-types';
+import { DataFolder, Service, Workbook } from '@spinner/shared-types';
 import isBoolean from 'lodash/isBoolean';
 import isNumber from 'lodash/isNumber';
 import partition from 'lodash/partition';
 import toNumber from 'lodash/toNumber';
-import truncate from 'lodash/truncate';
 import uniq from 'lodash/uniq';
-
-export interface UpdateColumnSettingsDto {
-  /** Only keys present in the map will be updated, other keys will be left unchanged. */
-  columnSettings: SnapshotColumnSettingsMap;
-}
-
-export type SnapshotRecord = {
-  id: {
-    wsId: string;
-    remoteId: string | null;
-  };
-  fields: Record<string, unknown>;
-
-  __edited_fields?: EditedFieldsMetadata;
-  __suggested_values?: Record<string, unknown>;
-  __fields?: Record<string, unknown>;
-  __dirty: boolean;
-  __errors: RecordErrorsMetadata;
-};
-
-export const SNAPSHOT_RECORD_DELETED_FIELD = '__deleted';
-export const SNAPSHOT_RECORD_CREATED_FIELD = '__created';
-
-export type EditedFieldsMetadata = {
-  /** Timestamp when the record was created locally. */
-  __created?: string;
-  /** Timestamp when the record was deleted locally. */
-  __deleted?: string;
-} & {
-  /** The fields that have been edited since last download */
-  [wsId: string]: string;
-};
 
 export type RecordErrorsMetadata = {
   byField?: Record<string, { message: string; severity: 'warning' | 'error' }[]>;
@@ -45,24 +12,6 @@ export type RecordErrorsMetadata = {
 
 export interface PullWorkbookResult {
   jobId: string;
-}
-
-export function buildRecordTitle(record: SnapshotRecord): string {
-  if (record.fields) {
-    for (const key of Object.keys(record.fields)) {
-      if (key.toLowerCase() === 'title' || key.toLowerCase() === 'name') {
-        const value = truncate(record.fields[key] as string, { length: 25 });
-        if (value) {
-          return value;
-        }
-      }
-    }
-    const firstValue = Object.values(record.fields)[0];
-    if (firstValue) {
-      return truncate(firstValue as string, { length: 40 });
-    }
-  }
-  return record.id.wsId;
 }
 
 export function getSafeBooleanValue(fields: Record<string, unknown>, columnId: string): boolean {
