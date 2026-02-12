@@ -232,6 +232,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     }
 
     const created = await this.client.collections.items.createItems(collectionId, {
+      skipInvalidFiles: false,
       isArchived: false,
       isDraft: false,
       fieldData: fieldDataArray as Webflow.collections.CreateBulkCollectionItemRequestBodyFieldData,
@@ -261,7 +262,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
       });
     }
 
-    await this.client.collections.items.updateItems(collectionId, { items });
+    await this.client.collections.items.updateItems(collectionId, { skipInvalidFiles: false, items });
   }
 
   /**
