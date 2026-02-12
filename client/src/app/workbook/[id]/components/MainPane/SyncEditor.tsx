@@ -126,12 +126,14 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
   const [folderPairs, setFolderPairs] = useState<FolderPair[]>([createPair()]);
   const [syncName, setSyncName] = useState('');
   const [schedule, setSchedule] = useState('');
-  const [autoPublish, setAutoPublish] = useState(true);
-  const [enableValidation, setEnableValidation] = useState(true);
+  const [autoPublish, setAutoPublish] = useState(false);
+  const [enableValidation, setEnableValidation] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [errorBanner, setErrorBanner] = useState<{ title: string; body: string } | null>(null);
-  const [schemaCache, setSchemaCache] = useState<Record<string, { path: string; type: string }[]>>({});
+  const [schemaCache, setSchemaCache] = useState<
+    Record<string, { path: string; type: string; suggestedTransformer?: TransformerConfig }[]>
+  >({});
   const [transformerModalOpen, setTransformerModalOpen] = useState(false);
   const [editingTransformerTarget, setEditingTransformerTarget] = useState<{
     pairIndex: number;
@@ -158,8 +160,8 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
       setFolderPairs([createPair()]);
       setSyncName('');
       setSchedule('');
-      setAutoPublish(true);
-      setEnableValidation(true);
+      setAutoPublish(false);
+      setEnableValidation(false);
       return;
     }
 
@@ -468,7 +470,14 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
       {/* Error Banner */}
       {errorBanner && (
-        <Alert color="red" title={errorBanner.title} withCloseButton onClose={() => setErrorBanner(null)} mx="md" mt="md">
+        <Alert
+          color="red"
+          title={errorBanner.title}
+          withCloseButton
+          onClose={() => setErrorBanner(null)}
+          mx="md"
+          mt="md"
+        >
           {errorBanner.body}
         </Alert>
       )}
@@ -572,7 +581,16 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                             placeholder="Source field"
                             style={{ flex: 1 }}
                             value={mapping.sourceField}
-                            onChange={(val) => updateFieldMapping(index, mIndex, 'sourceField', val)}
+                            onChange={(val) => {
+                              updateFieldMapping(index, mIndex, 'sourceField', val);
+                              const field = (schemaCache[pair.sourceId] || []).find((f) => f.path === val);
+                              if (
+                                field?.suggestedTransformer &&
+                                !folderPairs[index].fieldMappings[mIndex].transformer
+                              ) {
+                                updateFieldMappingTransformer(index, mIndex, field.suggestedTransformer);
+                              }
+                            }}
                             data={(schemaCache[pair.sourceId] || []).map((f) => {
                               if (typeof f === 'string') return { value: f, label: f, type: 'unknown' };
                               return { value: f.path, label: f.path, type: f.type };
@@ -680,18 +698,19 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
           {/* Options */}
           <Stack gap="xs">
             <Checkbox
-              label="Auto-publish changes after sync"
-              checked={autoPublish}
-              onChange={(e) => {
-                setAutoPublish(e.currentTarget.checked);
-              }}
-            />
-            <Checkbox
               label="Validate Mappings"
               description="Check if source and destination field types are compatible"
               checked={enableValidation}
               onChange={(e) => {
                 setEnableValidation(e.currentTarget.checked);
+              }}
+            />
+            <Checkbox
+              label="Auto-publish changes after sync"
+              checked={autoPublish}
+              disabled
+              onChange={(e) => {
+                setAutoPublish(e.currentTarget.checked);
               }}
             />
           </Stack>

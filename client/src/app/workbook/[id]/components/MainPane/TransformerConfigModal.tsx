@@ -17,6 +17,7 @@ const TRANSFORMER_OPTIONS = [
   { value: 'string_to_number', label: 'String to Number' },
   { value: 'source_fk_to_dest_fk', label: 'Foreign Key Lookup' },
   { value: 'lookup_field', label: 'Lookup Field' },
+  { value: 'notion_to_html', label: 'Notion to HTML' },
 ];
 
 export function TransformerConfigModal({
@@ -81,6 +82,9 @@ export function TransformerConfigModal({
           type,
           options: { referencedDataFolderId: referencedDataFolderId as DataFolderId, referencedFieldPath },
         };
+        break;
+      case 'notion_to_html':
+        config = { type };
         break;
       default:
         return;

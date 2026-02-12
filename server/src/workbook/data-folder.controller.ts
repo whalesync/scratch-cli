@@ -29,6 +29,7 @@ import { DbService } from '../db/db.service';
 import { PostHogService } from '../posthog/posthog.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { userToActor } from '../users/types';
+import { SchemaField } from '../utils/schema-helpers';
 import { BullEnqueuerService } from '../worker-enqueuer/bull-enqueuer.service';
 import {
   FolderPublishProgress,
@@ -263,10 +264,7 @@ export class DataFolderController {
   }
 
   @Get(':id/schema-paths')
-  async getSchemaPaths(
-    @Param('id') id: DataFolderId,
-    @Req() req: RequestWithUser,
-  ): Promise<{ path: string; type: string }[]> {
+  async getSchemaPaths(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<SchemaField[]> {
     return await this.dataFolderService.getSchemaPaths(id, userToActor(req.user));
   }
 }

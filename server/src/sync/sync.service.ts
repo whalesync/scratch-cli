@@ -103,23 +103,25 @@ export class SyncService {
     }
 
     // Validate mappings
-    for (const mapping of dto.folderMappings) {
-      const sourceId = mapping.sourceId as DataFolderId;
-      const destId = mapping.destId as DataFolderId;
+    if (dto.enableValidation !== false) {
+      for (const mapping of dto.folderMappings) {
+        const sourceId = mapping.sourceId as DataFolderId;
+        const destId = mapping.destId as DataFolderId;
 
-      const sourceFolder = await this.dataFolderService.fetchSchemaSpec(sourceId, actor);
-      const destFolder = await this.dataFolderService.fetchSchemaSpec(destId, actor);
+        const sourceFolder = await this.dataFolderService.fetchSchemaSpec(sourceId, actor);
+        const destFolder = await this.dataFolderService.fetchSchemaSpec(destId, actor);
 
-      if (!sourceFolder?.schema) {
-        throw new NotFoundException(`Source folder schema not found for ${mapping.sourceId}`);
-      }
-      if (!destFolder?.schema) {
-        throw new NotFoundException(`Destination folder schema not found for ${mapping.destId}`);
-      }
+        if (!sourceFolder?.schema) {
+          throw new NotFoundException(`Source folder schema not found for ${mapping.sourceId}`);
+        }
+        if (!destFolder?.schema) {
+          throw new NotFoundException(`Destination folder schema not found for ${mapping.destId}`);
+        }
 
-      const errors = validateSchemaMapping(sourceFolder.schema, destFolder.schema, mapping.fieldMap);
-      if (errors.length > 0) {
-        throw new BadRequestException(`Validation failed for folder mapping: ${errors.join('; ')}`);
+        const errors = validateSchemaMapping(sourceFolder.schema, destFolder.schema, mapping.fieldMap);
+        if (errors.length > 0) {
+          throw new BadRequestException(`Validation failed for folder mapping: ${errors.join('; ')}`);
+        }
       }
     }
 
@@ -189,7 +191,7 @@ export class SyncService {
       throw new NotFoundException('Sync not found');
     }
 
-    // Validate mappings if validation is enabled (default true)
+    // Validate mappings if validation is enabled (default false)
     if (dto.enableValidation !== false) {
       for (const mapping of dto.folderMappings) {
         const sourceId = mapping.sourceId as DataFolderId;
@@ -395,6 +397,19 @@ export class SyncService {
     sourceRecords: SyncRecord[],
     destinationRecords: SyncRecord[],
   ): Promise<void> {
+    if (!tableMapping.recordMatching) {
+      // No record matching — every source record is a create.
+      // Insert mappings directly with null destination so the rest of the flow treats them as new.
+      const allSourceMappings: RemoteIdMappingPair[] = sourceRecords.map((r) => ({
+        sourceRemoteId: r.id,
+        destinationRemoteId: null,
+      }));
+      if (allSourceMappings.length > 0) {
+        await this.upsertRemoteIdMappings(syncId, tableMapping, allSourceMappings);
+      }
+      return;
+    }
+
     // Insert match keys for both sides
     await this.insertSourceMatchKeys(syncId, tableMapping, sourceRecords);
     await this.insertDestinationMatchKeys(syncId, tableMapping, destinationRecords);

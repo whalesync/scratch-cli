@@ -1,4 +1,6 @@
 import { TSchema } from '@sinclair/typebox';
+import { TransformerConfig } from '@spinner/shared-types';
+import { SUGGESTED_TRANSFORMER } from '../remote-service/connectors/json-schema';
 
 /**
  * Extracts all possible dot-notation paths from a JSON Schema.
@@ -41,17 +43,21 @@ export function extractSchemaPaths(schema: TSchema, parentPath = ''): string[] {
 export interface SchemaField {
   path: string;
   type: string;
+  suggestedTransformer?: TransformerConfig;
 }
 
 /**
  * Extracts all possible dot-notation paths from a JSON Schema with their types.
  */
 export function extractSchemaFields(schema: TSchema, parentPath = ''): SchemaField[] {
-  const fields = new Map<string, string>();
+  const fields = new Map<string, SchemaField>();
 
   // Base Path (if meaningful)
   if (parentPath) {
-    fields.set(parentPath, (schema.type as string) || 'unknown');
+    const field: SchemaField = { path: parentPath, type: (schema.type as string) || 'unknown' };
+    const suggested = schema[SUGGESTED_TRANSFORMER] as TransformerConfig | undefined;
+    if (suggested) field.suggestedTransformer = suggested;
+    fields.set(parentPath, field);
   }
 
   // Handle Unions (anyOf/oneOf/Optional)
@@ -62,7 +68,7 @@ export function extractSchemaFields(schema: TSchema, parentPath = ''): SchemaFie
       const subFields = extractSchemaFields(variant, parentPath);
       subFields.forEach((f) => {
         if (!fields.has(f.path)) {
-          fields.set(f.path, f.type);
+          fields.set(f.path, f);
         }
       });
     }
@@ -75,11 +81,11 @@ export function extractSchemaFields(schema: TSchema, parentPath = ''): SchemaFie
       const subFields = extractSchemaFields(propSchema, currentPath);
       subFields.forEach((f) => {
         if (!fields.has(f.path)) {
-          fields.set(f.path, f.type);
+          fields.set(f.path, f);
         }
       });
     }
   }
 
-  return Array.from(fields.entries()).map(([path, type]) => ({ path, type }));
+  return Array.from(fields.values());
 }

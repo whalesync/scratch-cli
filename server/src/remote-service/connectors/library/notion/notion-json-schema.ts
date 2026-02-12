@@ -1,7 +1,7 @@
 import { DatabaseObjectResponse } from '@notionhq/client';
 import { Type, type TSchema } from '@sinclair/typebox';
 import { sanitizeForTableWsId } from '../../ids';
-import { CONNECTOR_DATA_TYPE, FOREIGN_KEY_OPTIONS, READONLY_FLAG } from '../../json-schema';
+import { CONNECTOR_DATA_TYPE, FOREIGN_KEY_OPTIONS, READONLY_FLAG, SUGGESTED_TRANSFORMER } from '../../json-schema';
 import { BaseJsonTableSpec, EntityId } from '../../types';
 
 /**
@@ -98,6 +98,13 @@ export function buildNotionJsonTableSpec(id: EntityId, database: DatabaseObjectR
       ),
       archived: Type.Boolean({ description: 'Is page archived' }),
       in_trash: Type.Optional(Type.Boolean({ description: 'Is page in trash' })),
+      page_content: Type.Optional(
+        Type.Array(Type.Unknown(), {
+          description: 'Page body content (Notion blocks)',
+          [SUGGESTED_TRANSFORMER]: { type: 'notion_to_html' },
+          [READONLY_FLAG]: true,
+        }),
+      ),
       properties: Type.Object(propertySchemas, { description: 'Page properties' }),
       url: Type.String({ description: 'Page URL', format: 'uri' }),
       public_url: Type.Optional(Type.Union([Type.String({ format: 'uri' }), Type.Null()])),

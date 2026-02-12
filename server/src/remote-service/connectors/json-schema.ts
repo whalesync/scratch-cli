@@ -11,6 +11,9 @@ export const CONNECTOR_DATA_TYPE = 'x-scratch-connector-data-type';
 // An object describing a foreign key configuration for a field.
 export const FOREIGN_KEY_OPTIONS = 'x-scratch-foreign-key';
 
+// The suggested transformer to auto-apply when this field is selected as a source in the sync editor.
+export const SUGGESTED_TRANSFORMER = 'x-scratch-suggested-transformer';
+
 /**
  * An object desribing a foreign key option for a field.
 

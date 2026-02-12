@@ -5,6 +5,7 @@ import {
   DataFolderPublishStatus,
   TestTransformerDto,
   TestTransformerResponse,
+  TransformerConfig,
   UpdateWorkbookDto,
   Workbook,
   WorkbookId,
@@ -127,10 +128,14 @@ export const workbookApi = {
     }
   },
 
-  getSchemaPaths: async (folderId: string): Promise<{ path: string; type: string }[]> => {
+  getSchemaPaths: async (
+    folderId: string,
+  ): Promise<{ path: string; type: string; suggestedTransformer?: TransformerConfig }[]> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<{ path: string; type: string }[]>(`/data-folder/${folderId}/schema-paths`);
+      const res = await axios.get<{ path: string; type: string; suggestedTransformer?: TransformerConfig }[]>(
+        `/data-folder/${folderId}/schema-paths`,
+      );
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to fetch schema paths');
