@@ -477,7 +477,7 @@ export class SyncService {
       const fkValues = new Set<string>();
       for (const mapping of mappings) {
         for (const record of sourceRecords) {
-          const val = record.fields[mapping.sourceColumnId];
+          const val = get(record.fields, mapping.sourceColumnId);
           if (val === null || val === undefined) continue;
           if (Array.isArray(val)) {
             for (const elem of val) {
@@ -596,7 +596,7 @@ export class SyncService {
     if (tableMapping.recordMatching) {
       for (const [sourceId, sourceRecord] of sourceRecordsById) {
         if (!mappingsBySourceId.has(sourceId)) {
-          const matchKeyValue = sourceRecord.fields[tableMapping.recordMatching.sourceColumnId];
+          const matchKeyValue = get(sourceRecord.fields, tableMapping.recordMatching.sourceColumnId);
           if (matchKeyValue === undefined || matchKeyValue === null) {
             result.errors.push({
               sourceRemoteId: sourceId,
@@ -659,7 +659,7 @@ export class SyncService {
           // This is a new record - inject match key so subsequent syncs can find it
           if (tableMapping.recordMatching) {
             const destColumnId = tableMapping.recordMatching.destinationColumnId;
-            const sourceMatchValue = sourceRecord.fields[tableMapping.recordMatching.sourceColumnId];
+            const sourceMatchValue = get(sourceRecord.fields, tableMapping.recordMatching.sourceColumnId);
 
             // Fail if source match key is missing or falsy
             if (sourceMatchValue === undefined || sourceMatchValue === null) {
@@ -892,7 +892,7 @@ export class SyncService {
   ): Promise<void> {
     const matchKeys = records
       .map((record) => {
-        const matchValue = record.fields[matchColumnId];
+        const matchValue = get(record.fields, matchColumnId);
         if (typeof matchValue !== 'string' || matchValue === '') {
           return null;
         }
@@ -1069,7 +1069,7 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): SyncRec
   }
 
   // Extract the record ID from the specified column
-  const recordId = fields[idColumnRemoteId];
+  const recordId = get(fields, idColumnRemoteId);
   if (recordId === undefined || recordId === null) {
     throw new Error(`Record in file ${file.path} is missing required ID field: ${idColumnRemoteId}`);
   }

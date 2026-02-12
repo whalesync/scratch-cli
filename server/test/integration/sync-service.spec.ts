@@ -245,6 +245,53 @@ describe('SyncService - fillSyncCaches', () => {
     const mappings = await prisma.syncRemoteIdMapping.findMany({ where: { syncId } });
     expect(mappings).toHaveLength(0);
   });
+
+  it('should populate SyncMatchKeys using dot-separated paths for nested fields', async () => {
+    const sourceRecords = [
+      { id: '/file1.json', fields: { meta: { email: 'john@example.com' } } },
+      { id: '/file2.json', fields: { meta: { email: 'jane@example.com' } } },
+    ];
+
+    const destinationRecords = [{ id: '/item1.json', fields: { contact: { email: 'john@example.com' } } }];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings: [],
+      recordMatching: {
+        sourceColumnId: 'meta.email',
+        destinationColumnId: 'contact.email',
+      },
+    };
+
+    await syncService.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+
+    // Source match keys should be created for both records
+    const sourceMatches = await prisma.syncMatchKeys.findMany({
+      where: { syncId, dataFolderId: sourceFolderId },
+    });
+    expect(sourceMatches).toHaveLength(2);
+
+    // Destination match keys should be created for the one record
+    const destMatches = await prisma.syncMatchKeys.findMany({
+      where: { syncId, dataFolderId: destFolderId },
+    });
+    expect(destMatches).toHaveLength(1);
+
+    // John should be matched across source and destination
+    const mappings = await prisma.syncRemoteIdMapping.findMany({
+      where: { syncId, dataFolderId: sourceFolderId },
+    });
+    expect(mappings).toHaveLength(2);
+
+    const johnMapping = mappings.find((m) => m.sourceRemoteId === '/file1.json');
+    expect(johnMapping).toBeDefined();
+    expect(johnMapping?.destinationRemoteId).toBe('/item1.json');
+
+    const janeMapping = mappings.find((m) => m.sourceRemoteId === '/file2.json');
+    expect(janeMapping).toBeDefined();
+    expect(janeMapping?.destinationRemoteId).toBeNull();
+  });
 });
 
 describe('SyncService - syncTableMapping', () => {
@@ -1040,6 +1087,293 @@ describe('SyncService - syncTableMapping', () => {
       expect(file.content.endsWith('\n')).toBe(true); // All should end with newline
       expect(JSON.parse(file.content)).toBeDefined(); // All should be valid JSON
     }
+  });
+
+  it('should create records with dot-separated source column paths (nested source fields)', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "fields": {"Name": "John", "Email": "john@example.com"}}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'fields.Email', destinationColumnId: 'email' },
+      { sourceColumnId: 'fields.Name', destinationColumnId: 'name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'fields.Email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.email).toBe('john@example.com');
+    expect(fileContent.name).toBe('John');
+  });
+
+  it('should create records with dot-separated destination column paths (nested destination fields)', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "email": "john@example.com", "name": "John"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'fields.Email' },
+      { sourceColumnId: 'name', destinationColumnId: 'fields.Name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'fields.Email',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect((fileContent.fields as Record<string, unknown>).Email).toBe('john@example.com');
+    expect((fileContent.fields as Record<string, unknown>).Name).toBe('John');
+  });
+
+  it('should match and update records using dot-separated record matching paths', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "meta": {"slug": "hello-world"}, "title": "Hello Updated"}',
+      },
+    ];
+
+    const destFiles = [
+      {
+        folderId: destFolderId,
+        path: 'dest/item1.json',
+        content: '{"id": "dest1", "info": {"slug": "hello-world"}, "title": "Hello"}',
+      },
+    ];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'title', destinationColumnId: 'title' }];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'meta.slug',
+        destinationColumnId: 'info.slug',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsUpdated).toBe(1);
+    expect(result.recordsCreated).toBe(0);
+    expect(result.errors).toHaveLength(0);
+
+    const file = writtenFiles.find((f) => f.path === 'dest/item1.json');
+    expect(file).toBeDefined();
+    const fileContent = JSON.parse(file!.content) as Record<string, unknown>;
+    expect(fileContent.title).toBe('Hello Updated');
+    expect(fileContent.id).toBe('dest1');
+  });
+
+  it('should auto-inject match key into dot-separated destination path for new records', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        content: '{"id": "rec1", "slug": "hello-world", "name": "John"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'name', destinationColumnId: 'name' }];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'slug',
+        destinationColumnId: 'meta.slug',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.name).toBe('John');
+    // Match key should be auto-injected at the nested path
+    expect((fileContent.meta as Record<string, unknown>).slug).toBe('hello-world');
+  });
+
+  it('should report error when source record is missing a dot-separated match key field', async () => {
+    const sourceFiles = [
+      {
+        folderId: sourceFolderId,
+        path: 'src/file1.json',
+        // Has 'meta' but not 'meta.email'
+        content: '{"id": "rec1", "meta": {"name": "John"}, "name": "John"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === sourceFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [{ sourceColumnId: 'name', destinationColumnId: 'name' }];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: sourceFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'meta.email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].error).toContain('meta.email');
+  });
+
+  it('should handle dot-separated idColumnRemoteId when parsing records', async () => {
+    // Source folder uses a nested ID column
+    const nestedIdFolderId = createDataFolderId();
+    await prisma.dataFolder.create({
+      data: {
+        id: nestedIdFolderId,
+        name: 'Nested ID Source',
+        workbookId,
+        path: '/nested-src',
+        schema: { idColumnRemoteId: 'sys.id' },
+        lastSchemaRefreshAt: new Date(),
+      },
+    });
+
+    const sourceFiles = [
+      {
+        folderId: nestedIdFolderId,
+        path: 'nested-src/file1.json',
+        content: '{"sys": {"id": "rec1"}, "fields": {"name": "John"}, "email": "john@example.com"}',
+      },
+    ];
+
+    const destFiles: typeof sourceFiles = [];
+
+    (dataFolderService.getAllFileContentsByFolderId as jest.Mock).mockImplementation((_workbookIdArg, folderIdArg) => {
+      if (folderIdArg === nestedIdFolderId) {
+        return Promise.resolve(sourceFiles);
+      } else if (folderIdArg === destFolderId) {
+        return Promise.resolve(destFiles);
+      }
+      return Promise.resolve([]);
+    });
+
+    const columnMappings: ColumnMapping[] = [
+      { sourceColumnId: 'email', destinationColumnId: 'email' },
+      { sourceColumnId: 'fields.name', destinationColumnId: 'name' },
+    ];
+
+    const tableMapping: TableMapping = {
+      sourceDataFolderId: nestedIdFolderId,
+      destinationDataFolderId: destFolderId,
+      columnMappings,
+      recordMatching: {
+        sourceColumnId: 'email',
+        destinationColumnId: 'email',
+      },
+    };
+
+    // This should not throw — the record should be parsed with sys.id as the record ID
+    const result = await syncService.syncTableMapping(syncId, tableMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    expect(writtenFiles).toHaveLength(1);
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.email).toBe('john@example.com');
+    expect(fileContent.name).toBe('John');
   });
 
   it('should apply string_to_number transformer to convert string values to numbers', async () => {
@@ -2293,6 +2627,66 @@ describe('SyncService - lookup_field transformer', () => {
 
     const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
     expect(fileContent.tag_names).toEqual(['Tech', 'Art']);
+  });
+
+  it('should resolve a scalar FK from a dot-separated source column path', async () => {
+    const sourceCategoryFiles = [
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat1.json',
+        content: '{"id": "cat_1", "name": "Technology", "description": "Tech articles"}',
+      },
+      {
+        folderId: sourceCategoriesFolderId,
+        path: 'src-categories/cat2.json',
+        content: '{"id": "cat_2", "name": "Science", "description": "Science articles"}',
+      },
+    ];
+
+    const sourcePostFiles = [
+      {
+        folderId: sourcePostsFolderId,
+        path: 'src-posts/post1.json',
+        content: '{"id": "post_1", "title": "AI is cool", "slug": "ai-cool", "refs": {"category_id": "cat_1"}}',
+      },
+    ];
+
+    const destPostFiles: typeof sourcePostFiles = [];
+
+    mockFiles({
+      [sourceCategoriesFolderId]: sourceCategoryFiles,
+      [sourcePostsFolderId]: sourcePostFiles,
+      [destPostsFolderId]: destPostFiles,
+    });
+
+    const postsMapping: TableMapping = {
+      sourceDataFolderId: sourcePostsFolderId,
+      destinationDataFolderId: destPostsFolderId,
+      columnMappings: [
+        { sourceColumnId: 'title', destinationColumnId: 'title' },
+        { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+        {
+          sourceColumnId: 'refs.category_id',
+          destinationColumnId: 'category_name',
+          transformer: {
+            type: 'lookup_field',
+            options: {
+              referencedDataFolderId: sourceCategoriesFolderId,
+              referencedFieldPath: 'name',
+            },
+          },
+        },
+      ],
+      recordMatching: { sourceColumnId: 'slug', destinationColumnId: 'slug' },
+    };
+
+    const result = await syncService.syncTableMapping(syncId, postsMapping, workbookId, actor);
+
+    expect(result.recordsCreated).toBe(1);
+    expect(result.errors).toHaveLength(0);
+
+    const fileContent = JSON.parse(writtenFiles[0].content) as Record<string, unknown>;
+    expect(fileContent.category_name).toBe('Technology');
   });
 
   it('should skip in FOREIGN_KEY_MAPPING phase', async () => {
