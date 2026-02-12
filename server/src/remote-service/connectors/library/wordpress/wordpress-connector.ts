@@ -10,7 +10,6 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   FileValidationInput,
   FileValidationResult,
@@ -21,12 +20,11 @@ import {
   WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS,
   WORDPRESS_DEFAULT_TABLE_IDS,
   WORDPRESS_POLLING_PAGE_SIZE,
-  WORDPRESS_REMOTE_CUSTOM_FIELDS_ID,
 } from './wordpress-constants';
 import { WordPressHttpClient } from './wordpress-http-client';
 import { buildWordPressJsonTableSpec, formatTableName } from './wordpress-json-schema';
-import { parseTableInfoFromTypes, WORDPRESS_RICH_TEXT_TARGET } from './wordpress-schema-parser';
-import { WordPressDataType, WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
+import { parseTableInfoFromTypes } from './wordpress-schema-parser';
+import { WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
   readonly service = Service.WORDPRESS;
@@ -101,20 +99,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
         await callback({ files: response as unknown as ConnectorFile[], connectorProgress: { nextOffset: offset } });
       }
     }
-  }
-
-  /**
-   * Convert raw WordPress records to ConnectorFiles with minimal transformation.
-   * Preserves native API structure: rendered objects, ACF fields nested under 'acf', etc.
-   */
-  private wireToConnectorFiles(wpRecords: WordPressRecord[]): ConnectorFile[] {
-    return wpRecords.map((wpRecord) => {
-      const { id, ...data } = wpRecord;
-      return {
-        id: String(id ?? ''),
-        data: data as Record<string, unknown>,
-      };
-    });
   }
 
   /**
@@ -212,76 +196,6 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     }
 
     return wpRecord;
-  }
-
-  /**
-   * Convert a WordPress record to a ConnectorRecord
-   */
-  private wordPressRecordToConnectorRecord(
-    wpRecord: WordPressRecord,
-    tableSpec: WordPressTableSpec,
-    columnSettingsMap: SnapshotColumnSettingsMap,
-  ): ConnectorRecord {
-    const record: ConnectorRecord = {
-      id: String(wpRecord.id),
-      fields: {},
-    };
-
-    const fieldIds = Object.keys(wpRecord);
-    for (const fieldId of fieldIds) {
-      // Handle ACF (Advanced Custom Fields)
-      if (fieldId === WORDPRESS_REMOTE_CUSTOM_FIELDS_ID) {
-        const acfObject = wpRecord[WORDPRESS_REMOTE_CUSTOM_FIELDS_ID] as Record<string, unknown>;
-        if (acfObject && typeof acfObject === 'object') {
-          for (const [acfFieldId, value] of Object.entries(acfObject)) {
-            const column = tableSpec.columns.find((c) => c.id.remoteId[0] === acfFieldId);
-            let convertedValue = value;
-            if (!column || value === undefined) {
-              continue;
-            }
-            // Handle values being returned as empty string by ACF
-            if (
-              column.wordpressDataType === WordPressDataType.NUMBER ||
-              column.wordpressDataType === WordPressDataType.INTEGER ||
-              column.wordpressDataType === WordPressDataType.ARRAY ||
-              column.wordpressDataType === WordPressDataType.BOOLEAN
-            ) {
-              if (value === '') {
-                convertedValue = null;
-              }
-            }
-            record.fields[column.id.wsId] = convertedValue;
-          }
-        }
-        continue;
-      }
-
-      // Handle regular fields
-      const column = tableSpec.columns.find((c) => c.id.remoteId[0] === fieldId);
-      if (column) {
-        const value = wpRecord[fieldId];
-        if (value !== undefined) {
-          // Handle rendered objects (content, title, etc)
-          if (value && typeof value === 'object' && 'rendered' in value) {
-            const dataConverter = columnSettingsMap[column.id.wsId]?.dataConverter;
-            const rendered = (value as { rendered: string }).rendered;
-            switch (dataConverter) {
-              case WORDPRESS_RICH_TEXT_TARGET.MARKDOWN:
-                record.fields[column.id.wsId] = String(this.turndownService.turndown(rendered));
-                break;
-              case WORDPRESS_RICH_TEXT_TARGET.HTML:
-              default:
-                record.fields[column.id.wsId] = rendered;
-                break;
-            }
-          } else {
-            record.fields[column.id.wsId] = value;
-          }
-        }
-      }
-    }
-
-    return record;
   }
 
   extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {

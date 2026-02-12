@@ -30,10 +30,6 @@ const ENTITY_DISPLAY_NAMES: Record<MocoEntityType, string> = {
  * - Companies (customers/suppliers)
  * - Contacts (people associated with companies)
  * - Projects
- *
- * This is a JSON-only connector that implements:
- * - fetchJsonTableSpec() for schema discovery
- * - pullRecordFiles() for fetching records
  */
 export class MocoConnector extends Connector<typeof Service.MOCO> {
   readonly service = Service.MOCO;

@@ -6,14 +6,7 @@ import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  ConnectorRecord,
-  EntityId,
-  TablePreview,
-} from '../../types';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import { ShopifyApiClient, ShopifyError } from './shopify-api-client';
 import {
   buildArticleSchema,
@@ -33,8 +26,6 @@ import {
   ShopifyProduct,
   ShopifyWritableEntityType,
 } from './shopify-types';
-
-type ShopifyTableSpec = import('../custom-spec-registry').TableSpecs[typeof Service.SHOPIFY];
 
 const LOG_SOURCE = 'ShopifyConnector';
 
@@ -212,24 +203,6 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
     }
 
     return spec;
-  }
-
-  /**
-   * Pull records using the column-based method.
-   * @throws Error - This connector only supports JSON schema methods.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async pullTableRecords(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tableSpec: ShopifyTableSpec,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _columnSettingsMap: SnapshotColumnSettingsMap,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _callback: (params: { records: ConnectorRecord[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _progress: JsonSafeObject,
-  ): Promise<void> {
-    throw new Error('Shopify connector does not support pullTableRecords. Use pullRecordFiles instead.');
   }
 
   /**

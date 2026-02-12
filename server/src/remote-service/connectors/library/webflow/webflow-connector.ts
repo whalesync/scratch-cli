@@ -2,7 +2,7 @@ import { TObject, TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
-import { JsonSafeObject, JsonSafeValue } from 'src/utils/objects';
+import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
@@ -12,7 +12,6 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
-  ConnectorRecord,
   EntityId,
   FileValidationInput,
   FileValidationResult,
@@ -21,11 +20,7 @@ import {
 import { WebflowTableSpec } from '../custom-spec-registry';
 import { buildWebflowJsonTableSpec } from './webflow-json-schema';
 import { WebflowSchemaParser } from './webflow-schema-parser';
-import {
-  WEBFLOW_ECOMMERCE_COLLECTION_SLUGS,
-  WEBFLOW_METADATA_COLUMNS,
-  WebflowItemMetadata,
-} from './webflow-spec-types';
+import { WEBFLOW_ECOMMERCE_COLLECTION_SLUGS } from './webflow-spec-types';
 
 export const WEBFLOW_DEFAULT_BATCH_SIZE = 100;
 
@@ -211,42 +206,6 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     ]);
 
     return buildWebflowJsonTableSpec(id, site, collection);
-  }
-
-  // Record fields need to be keyed by the wsId, not the remoteId.
-  private wireToConnectorRecord(items: Webflow.CollectionItem[], tableSpec: WebflowTableSpec): ConnectorRecord[] {
-    return items.map((item) => {
-      const { id, fieldData, ...metadata } = item;
-      const record: ConnectorRecord = {
-        id: id || '',
-        fields: {},
-        metadata,
-      };
-
-      for (const column of tableSpec.columns) {
-        const fieldId = column.id.wsId;
-
-        // Handle predefined metadata columns
-        if (WEBFLOW_METADATA_COLUMNS.includes(fieldId as keyof WebflowItemMetadata)) {
-          record.fields[fieldId] = metadata[fieldId as keyof WebflowItemMetadata];
-        }
-
-        // Webflow uses a slug for the column value, this is really bad, but if we don't have a slug
-        // we can't get the value of the record column.
-        // they are supposed to be unique and once set, they will not change.
-        if (!column.slug) {
-          continue;
-        }
-
-        const fieldValue = _.get(fieldData, column.slug) as JsonSafeValue;
-
-        if (fieldValue !== undefined) {
-          record.fields[fieldId] = fieldValue;
-        }
-      }
-
-      return record;
-    });
   }
 
   getBatchSize(): number {

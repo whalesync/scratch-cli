@@ -4,20 +4,10 @@ import { JsonSafeObject } from 'src/utils/objects';
 import type { SnapshotColumnSettingsMap } from 'src/workbook/types';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import {
-  BaseJsonTableSpec,
-  ConnectorErrorDetails,
-  ConnectorFile,
-  ConnectorRecord,
-  EntityId,
-  PostgresColumnType,
-  TablePreview,
-} from '../../types';
-import { AirtableTableSpec } from '../custom-spec-registry';
+import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import { AirtableApiClient } from './airtable-api-client';
 import { buildAirtableJsonTableSpec, isReadonlyField } from './airtable-json-schema';
 import { AirtableSchemaParser } from './airtable-schema-parser';
-import { AirtableRecord } from './airtable-types';
 
 export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   readonly service = Service.AIRTABLE;
@@ -76,34 +66,6 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     for await (const rawRecords of this.client.listRecords(baseId, tableId)) {
       await callback({ files: rawRecords as unknown as ConnectorFile[] });
     }
-  }
-
-  // Record fields need to be keyed by the wsId, not the remoteId.
-  // Airtable returns fields keyed by field name (slug).
-  private wireToConnectorRecord(records: AirtableRecord[], tableSpec: AirtableTableSpec): ConnectorRecord[] {
-    return records.map((r) => {
-      const record: ConnectorRecord = {
-        id: r.id,
-        fields: {},
-      };
-      for (const column of tableSpec.columns) {
-        // Airtable uses field name as the key in response (like Webflow uses slug)
-        if (!column.slug) {
-          continue;
-        }
-
-        const fieldValue = r.fields[column.slug];
-        if (fieldValue !== undefined) {
-          if (column.pgType === PostgresColumnType.TIMESTAMP) {
-            // dates should be sent to Airtable in ISO 8601 format in UTC
-            record.fields[column.id.wsId] = fieldValue ? new Date(fieldValue as string) : null;
-          } else {
-            record.fields[column.id.wsId] = fieldValue;
-          }
-        }
-      }
-      return record;
-    });
   }
 
   getBatchSize(): number {
