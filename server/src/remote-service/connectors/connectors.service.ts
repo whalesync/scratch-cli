@@ -10,6 +10,7 @@ import { AudiencefulConnector } from './library/audienceful/audienceful-connecto
 import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { PostgresConnector } from './library/postgres/postgres-connector';
+import { ShopifyConnector } from './library/shopify/shopify-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
 import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
@@ -147,8 +148,30 @@ export class ConnectorsService {
           throw new ConnectorInstantiationError('Connection string is required for PostgreSQL', service);
         }
         return new PostgresConnector({ connectionString: decryptedCredentials.connectionString });
-      case Service.SHOPIFY:
-        throw new ConnectorInstantiationError('Shopify connector not yet implemented', service);
+      case Service.SHOPIFY: {
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Shopify', service);
+        }
+        if (connectorAccount.authType === AuthType.OAUTH) {
+          const accessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+          const shopDomain = decryptedCredentials?.oauthWorkspaceId;
+          if (!shopDomain) {
+            throw new ConnectorInstantiationError('Shop domain is required for Shopify OAuth', service);
+          }
+          return new ShopifyConnector({ shopDomain, accessToken });
+        } else {
+          if (!decryptedCredentials?.apiKey) {
+            throw new ConnectorInstantiationError('Access token (API key) is required for Shopify', service);
+          }
+          if (!decryptedCredentials?.shopDomain) {
+            throw new ConnectorInstantiationError('Shop domain is required for Shopify', service);
+          }
+          return new ShopifyConnector({
+            shopDomain: decryptedCredentials.shopDomain,
+            accessToken: decryptedCredentials.apiKey,
+          });
+        }
+      }
       default:
         throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
     }

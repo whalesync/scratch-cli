@@ -20,7 +20,8 @@ export class ShopifyOAuthProvider implements OAuthProvider {
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly redirectUri: string;
-  private readonly scopes = 'read_products,write_products,read_orders,read_customers,read_inventory';
+  private readonly scopes =
+    'read_products,write_products,read_orders,read_customers,read_inventory,read_content,write_content,read_files,read_metaobjects';
 
   constructor(private readonly configService: ConfigService) {
     this.clientId = this.configService.get<string>('SHOPIFY_CLIENT_ID') || '';
