@@ -6,6 +6,7 @@
  */
 
 import { Type, type TSchema } from '@sinclair/typebox';
+import { FOREIGN_KEY_OPTIONS } from '../../json-schema';
 
 // ============= Products =============
 
@@ -154,7 +155,10 @@ export function buildArticleSchema(): TSchema {
       blog: Type.Optional(
         Type.Object(
           { id: Type.String(), handle: Type.String() },
-          { description: 'Parent blog (read-only except blog.id on create)' },
+          {
+            description: 'Parent blog (read-only except blog.id on create)',
+            [FOREIGN_KEY_OPTIONS]: { linkedTableId: 'blogs' },
+          },
         ),
       ),
       createdAt: Type.Optional(Type.String({ description: 'Created timestamp (read-only)', format: 'date-time' })),
@@ -225,6 +229,7 @@ export function buildOrderSchema(): TSchema {
       customer: Type.Optional(
         Type.Union([Type.Object({ id: Type.String(), displayName: Type.String() }), Type.Null()], {
           description: 'Customer reference',
+          [FOREIGN_KEY_OPTIONS]: { linkedTableId: 'customers' },
         }),
       ),
       totalPriceSet: Type.Optional(moneyBagSchema),
