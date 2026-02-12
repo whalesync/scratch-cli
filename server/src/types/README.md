@@ -23,7 +23,6 @@ Defines a prefixed ID system for globally unique, type-safe identifiers.
 - `org_` - Organizations
 - `tok_` - API Tokens
 - `con_` - Connectors
-- `csv_` - CSV Records
 - `aud_` - Audit Logs
 - And more...
 

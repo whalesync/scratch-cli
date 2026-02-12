@@ -15,8 +15,6 @@ export enum IdPrefixes {
   CONNECTOR_ACCOUNT = 'coa_',
   WORKBOOK = 'wkb_',
   SNAPSHOT_RECORD = 'sre_',
-  CSV_FILE_RECORD = 'cfr_', // Record in CSV upload table
-  CSV_SNAPSHOT_RECORD = 'csr_', // Record in snapshot created from CSV
   VIEW = 'vew_',
   AI_AGENT_CREDENTIAL = 'aac_',
   AI_AGENT_TOKEN_USAGE_EVENT = 'uev_',

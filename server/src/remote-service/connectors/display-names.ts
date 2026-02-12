@@ -20,8 +20,6 @@ export function getServiceDisplayName(service: Service): string {
       return NotionConnector.displayName;
     case Service.AIRTABLE:
       return AirtableConnector.displayName;
-    case Service.CSV:
-      return 'CSV';
     case Service.POSTGRES:
       return PostgresConnector.displayName;
     case Service.YOUTUBE:

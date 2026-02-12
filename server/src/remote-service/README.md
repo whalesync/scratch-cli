@@ -6,7 +6,7 @@ The remote-service module is the core abstraction layer responsible for managing
 
 ## Purpose
 
-This module provides a unified interface for integrating with multiple third-party services (Airtable, WordPress, Notion, YouTube, Webflow, Wix Blog, CSV, and Custom connectors) while handling credential management, authentication, and data transformation.
+This module provides a unified interface for integrating with multiple third-party services (Airtable, WordPress, Notion, YouTube, Webflow, Wix Blog, and Custom connectors) while handling credential management, authentication, and data transformation.
 
 ## Architecture
 
@@ -66,7 +66,6 @@ List available tables from a connected data source.
 - **YouTube**: Video platform integration
 - **Webflow**: CMS and website integration
 - **Wix Blog**: Blog platform integration
-- **CSV**: File-based data import
 - **Custom**: User-defined connectors via AI generation
 
 ## Connector Pattern

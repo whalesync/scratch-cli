@@ -92,18 +92,6 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
-  [Service.CSV]: {
-    service: 'CSV',
-    table: 'file',
-    record: 'row',
-    base: null,
-    tables: 'files',
-    records: 'rows',
-    bases: null,
-    logo: 'csv.svg',
-    pushOperationName: 'Publish',
-    pullOperationName: 'Download',
-  },
   [Service.POSTGRES]: {
     service: 'PostgreSQL',
     table: 'table',
@@ -204,9 +192,9 @@ export const getOauthPrivateLabel = (serviceCode: Service): string => {
 
 export const getServiceName = (serviceCode: Service | null | undefined): string => {
   if (!serviceCode) {
-    return 'CSV';
+    return 'Service';
   }
-  return ServiceNamingConventions[serviceCode]?.service ?? 'Unknown';
+  return ServiceNamingConventions[serviceCode]?.service ?? 'Service';
 };
 
 export const getPullOperationName = (serviceCode: Service | null | undefined): string => {

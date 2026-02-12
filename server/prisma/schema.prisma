@@ -38,7 +38,7 @@ enum AiAgentCredentialSource {
 enum Service {
   NOTION
   AIRTABLE
-  CSV
+  CSV /// Deprecated.
   POSTGRES
   YOUTUBE
   WORDPRESS

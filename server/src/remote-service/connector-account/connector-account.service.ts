@@ -278,7 +278,7 @@ export class ConnectorAccountService {
   }
 
   async listTables(service: Service, connectorAccountId: string | null, actor: Actor): Promise<TablePreview[]> {
-    // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (e.g., CSV)
+    // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (formerly CSV, but not anymore?)
     // When connectorAccountId is provided, load the account and pass it to the connector
     let account: (ConnectorAccount & DecryptedCredentials) | null = null;
 

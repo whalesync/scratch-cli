@@ -26,7 +26,6 @@ This module manages snapshots—isolated PostgreSQL schemas that store copies of
 - Filter with SQL WHERE clauses
 - Set page sizes for pagination
 - Add scratch columns for temporary data
-- Import CSV suggestions
 
 ## Controllers
 
@@ -37,7 +36,6 @@ Primary authenticated API for snapshot operations:
 - CRUD operations on snapshots
 - Table management
 - Record operations
-- CSV import/export
 - Publishing workflow
 
 ### AiSnapshotController

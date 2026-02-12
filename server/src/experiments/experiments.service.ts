@@ -32,7 +32,7 @@ const IN_MEMORY_FLAGS = {
   [UserFlag.CONNECTOR_LIST]: {
     variants: {
       // Just for testing flags locally.
-      on: ['AIRTABLE', 'NOTION', 'WORDPRESS', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG', 'CSV', 'CUSTOM'],
+      on: ['AIRTABLE', 'NOTION', 'WORDPRESS', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG', 'CUSTOM'],
       off: [],
     },
     disabled: false,

@@ -10,23 +10,17 @@ This module serves as a foundational layer with reusable code that supports core
 
 ## Utilities
 
-### csv-stream.helper.ts
-
-Enables efficient CSV data export from PostgreSQL.
-
 **Features:**
 
 - Creates PostgreSQL COPY streams
 - Configurable column selection
 - WHERE clause filtering support
 - Memory-efficient streaming
-- Direct database-to-CSV pipeline
 
 **Use Cases:**
 
 - Export snapshot data
 - Download query results
-- Generate CSV reports
 - Bulk data extraction
 
 ### encryption.ts
@@ -137,12 +131,6 @@ TypeScript type definitions for JSON-safe objects.
 
 Utilities are used throughout the application:
 
-### CSV Export
-
-- Snapshot controller
-- Uploads service
-- Data export endpoints
-
 ### Encryption
 
 - OAuth provider
@@ -201,7 +189,6 @@ Utilities are used throughout the application:
 
 ### Data Export
 
-- CSV streaming
 - Database COPY operations
 - Efficient data transfer
 

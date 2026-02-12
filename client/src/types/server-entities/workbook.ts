@@ -111,13 +111,8 @@ export function hasAllConnectionsDeleted(workbook: Workbook | undefined): boolea
   }
   // Check if all tables have a deleted connection
   return (
-    workbook.dataFolders?.every((folder) => {
-      // CSV tables can't have a deleted connection, so we return false
-      if (folder.connectorService === Service.CSV) {
-        return false;
-      }
-      return folder.connectorAccountId === null && folder.connectorService !== null;
-    }) ?? false
+    workbook.dataFolders?.every((folder) => folder.connectorAccountId === null && folder.connectorService !== null) ??
+    false
   );
 }
 
@@ -130,10 +125,7 @@ export function getConnectorsWithStatus(workbook: Workbook): { connectorService:
     })),
   ];
 
-  const [working, broken] = partition(
-    connectorSources,
-    (source) => source.connectorService === Service.CSV || source.connectorAccountId !== null,
-  );
+  const [working, broken] = partition(connectorSources, (source) => source.connectorAccountId !== null);
 
   // Get rid of nulls
   let workingServices = working.map((source) => source.connectorService).filter(isNotEmpty);
@@ -172,9 +164,5 @@ export function hasDeletedServiceConnection(workbook: Workbook | undefined, serv
  * This is indicated by connectorAccountId being null while connectorService is not null.
  */
 export function hasDeletedConnection(folder: DataFolder): boolean {
-  // CSV tables can't have a deleted connection, so we return false
-  if (folder.connectorService === Service.CSV) {
-    return false;
-  }
   return folder.connectorAccountId === null && folder.connectorService !== null;
 }

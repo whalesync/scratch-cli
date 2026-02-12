@@ -43,7 +43,6 @@ export interface TableSpecs {
   AIRTABLE: AirtableTableSpec;
   NOTION: NotionTableSpec;
   CUSTOM: BaseTableSpec<BaseColumnSpec>; // @deprecated - custom connector is being phased out
-  CSV: BaseTableSpec<BaseColumnSpec>;
   YOUTUBE: YouTubeTableSpec;
   WORDPRESS: WordPressTableSpec;
   WEBFLOW: WebflowTableSpec;
@@ -59,7 +58,6 @@ export interface ColumnSpecs {
   AIRTABLE: AirtableColumnSpec;
   NOTION: NotionColumnSpec;
   CUSTOM: BaseColumnSpec; // @deprecated - custom connector is being phased out
-  CSV: BaseColumnSpec;
   YOUTUBE: YouTubeColumnSpec;
   WORDPRESS: WordPressColumnSpec;
   WEBFLOW: WebflowColumnSpec;

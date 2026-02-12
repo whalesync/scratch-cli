@@ -4,7 +4,6 @@ export type TestConnectionResponse = { health: 'ok' } | { health: 'error'; error
 
 export const INTERNAL_SERVICES = [
   Service.AIRTABLE,
-  Service.CSV,
   Service.WORDPRESS,
   Service.WEBFLOW,
   Service.WIX_BLOG,

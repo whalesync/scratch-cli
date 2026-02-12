@@ -76,7 +76,6 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.NOTION,
         Service.AIRTABLE,
         Service.WORDPRESS,
-        Service.CSV,
         Service.WEBFLOW,
         Service.SHOPIFY,
         Service.AUDIENCEFUL,
@@ -198,7 +197,6 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     }
     if (
       authMethod === 'user_provided_params' &&
-      newService !== Service.CSV &&
       newService !== Service.WORDPRESS &&
       newService !== Service.MOCO &&
       newService !== Service.POSTGRES &&
@@ -241,17 +239,15 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       const createdAccount = await createConnectorAccount({
         service: newService,
         userProvidedParams:
-          newService === Service.CSV
-            ? { apiKey: newApiKey }
-            : newService === Service.WORDPRESS
-              ? { username, password, endpoint }
-              : newService === Service.MOCO
-                ? { domain, apiKey: newApiKey }
-                : newService === Service.SHOPIFY
-                  ? { shopDomain, apiKey: newApiKey }
-                  : newService === Service.POSTGRES
-                    ? { connectionString }
-                    : { apiKey: newApiKey },
+          newService === Service.WORDPRESS
+            ? { username, password, endpoint }
+            : newService === Service.MOCO
+              ? { domain, apiKey: newApiKey }
+              : newService === Service.SHOPIFY
+                ? { shopDomain, apiKey: newApiKey }
+                : newService === Service.POSTGRES
+                  ? { connectionString }
+                  : { apiKey: newApiKey },
         modifier: newModifier || undefined,
         displayName: newDisplayName || undefined,
       });
@@ -477,13 +473,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               type="password"
             />
           )}
-          {newService === Service.CSV && (
-            <Alert color="blue" title="CSV Connection">
-              CSV connections allow you to work with CSV files uploaded to your account. No API key is required.
-            </Alert>
-          )}
           {newService &&
-            newService !== Service.CSV &&
             newService !== Service.WORDPRESS &&
             newService !== Service.MOCO &&
             newService !== Service.SHOPIFY &&

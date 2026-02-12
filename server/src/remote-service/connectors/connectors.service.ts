@@ -173,7 +173,7 @@ export class ConnectorsService {
         }
       }
       default:
-        throw new ConnectorInstantiationError(`Unsupported service: ${service}`, service);
+        throw new ConnectorInstantiationError(`Unsupported service: ${String(service)}`, service);
     }
   }
 }
