@@ -4,7 +4,7 @@ import { ConfigSection } from '@/app/components/ConfigSection';
 import { usePayments } from '@/hooks/use-payments';
 import { useSubscription } from '@/hooks/use-subscription';
 import { RouteUrls } from '@/utils/route-urls';
-import { Group, Stack } from '@mantine/core';
+import { Center, Group, Stack } from '@mantine/core';
 import { ArrowUpRightIcon } from 'lucide-react';
 
 export const ActiveSubscriptionSection = () => {
@@ -29,17 +29,21 @@ export const ActiveSubscriptionSection = () => {
           </Text13Regular>
         )}
       </Stack>
-      {!isFreePlan && (
+      {!isFreePlan && subscription.canManageSubscription && (
         <ButtonSecondaryOutline
           component="a"
           target="_blank"
           onClick={() => redirectToManageSubscription(RouteUrls.billingPageUrl)}
           leftSection={<ArrowUpRightIcon size={16} />}
-          disabled={!subscription.canManageSubscription}
           loading={portalRedirectInProgress}
         >
           Manage
         </ButtonSecondaryOutline>
+      )}
+      {!subscription.canManageSubscription && (
+        <Center maw={200}>
+          <Text13Regular c="dimmed">This subscription is managed by another user in your organization</Text13Regular>
+        </Center>
       )}
     </Group>
   );

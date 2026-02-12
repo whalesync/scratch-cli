@@ -20,7 +20,6 @@ export enum UserFlag {
   ENABLE_WEBFLOW_OAUTH = 'ENABLE_WEBFLOW_OAUTH',
   ENABLE_SHOPIFY_OAUTH = 'ENABLE_SHOPIFY_OAUTH',
   ENABLE_CREATE_BUG_REPORT = 'ENABLE_CREATE_BUG_REPORT',
-  DEFAULT_WORKBOOK_MODE = 'DEFAULT_WORKBOOK_MODE',
 }
 
 /**
@@ -45,5 +44,4 @@ export const ClientUserFlags: Record<UserFlag, FlagDataType> = {
   [UserFlag.ENABLE_WEBFLOW_OAUTH]: 'boolean',
   [UserFlag.ENABLE_SHOPIFY_OAUTH]: 'boolean',
   [UserFlag.ENABLE_CREATE_BUG_REPORT]: 'boolean',
-  [UserFlag.DEFAULT_WORKBOOK_MODE]: 'string',
 };

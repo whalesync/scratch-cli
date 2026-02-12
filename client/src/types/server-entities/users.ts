@@ -28,7 +28,6 @@ export interface UserExperimentFlags {
   ENABLE_WEBFLOW_OAUTH: boolean;
   ENABLE_SHOPIFY_OAUTH: boolean;
   ENABLE_CREATE_BUG_REPORT: boolean;
-  DEFAULT_WORKBOOK_MODE: 'scratchsync';
 }
 
 export function isExperimentEnabled(experiment: keyof UserExperimentFlags, user: User | null): boolean {

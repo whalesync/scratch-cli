@@ -23,7 +23,6 @@ export function useWorkbookParams() {
     return {
       workbookId,
       dataFolderId: undefined as DataFolderId | undefined,
-      workbookMode: 'scratchsync' as const,
       viewType,
       filePath,
     };
@@ -35,7 +34,6 @@ export function useWorkbookParams() {
   return {
     workbookId,
     dataFolderId,
-    workbookMode: 'scratchsync' as const,
     viewType: undefined as FileViewType | undefined,
     filePath: undefined as string | undefined,
   };

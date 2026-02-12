@@ -39,8 +39,6 @@ export enum WorkbookModals {
   CONFIRM_PULL_SOURCE = 'confirm-pull-source',
 }
 
-export type WorkbookMode = 'scratchsync';
-
 export type WorkbookModalParams =
   | { type: WorkbookModals.KEYBOARD_SHORTCUT_HELP }
   | { type: WorkbookModals.RENAME_WORKBOOK }
@@ -75,12 +73,10 @@ export interface WorkbookEditorUIState {
   preselectedPublishDataFolderIds: DataFolderId[] | null;
 
   activeModal: WorkbookModalParams | null;
-
-  workbookMode: WorkbookMode;
 }
 
 type Actions = {
-  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId; mode?: WorkbookMode }) => void;
+  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId }) => void;
   closeWorkbook: () => void;
   reconcileWithWorkbook: (workbook: Workbook) => void;
 
@@ -124,16 +120,14 @@ const INITIAL_STATE: WorkbookEditorUIState = {
   dataFolderPublishConfirmationOpen: false,
   preselectedPublishDataFolderIds: null,
   activeModal: null,
-  workbookMode: 'scratchsync',
 };
 
 export const useWorkbookEditorUIStore = create<WorkbookEditorUIStore>((set, get) => ({
   ...INITIAL_STATE,
-  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId; workbookMode?: WorkbookMode }) => {
+  openWorkbook: (params: { workbookId: WorkbookId; tabId?: TabId }) => {
     set({
       workbookId: params.workbookId,
       activeTab: params.tabId ?? null,
-      workbookMode: params.workbookMode ?? 'scratchsync',
     });
   },
   closeWorkbook: () => {
