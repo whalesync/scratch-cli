@@ -1,4 +1,3 @@
-import { Type } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import type { DraftPost } from '@wix/auto_sdk_blog_draft-posts';
 import { draftPosts } from '@wix/blog';
@@ -23,6 +22,7 @@ import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
 import { createMarkdownParser, createTurndownService } from '../rich-content/markdown-helpers';
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
 import { WixDocument } from '../rich-content/types';
+import { buildWixBlogJsonTableSpec } from './wix-blog-json-schema';
 import { WixBlogSchemaParser } from './wix-blog-schema-parser';
 
 export const WIX_DEFAULT_BATCH_SIZE = 100; // Wix API supports up to 100
@@ -85,86 +85,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
   async fetchJsonTableSpec(_id: EntityId): Promise<BaseJsonTableSpec> {
     void _id; // Wix Blog has only one table, so id is unused
     const id = this.schemaParser.parseTablePreview().id;
-
-    // Build schema for Wix DraftPost response
-    const schema = Type.Object(
-      {
-        _id: Type.Optional(Type.String({ description: 'Unique post identifier' })),
-        title: Type.Optional(Type.String({ description: 'Post title' })),
-        excerpt: Type.Optional(Type.String({ description: 'Post excerpt/summary' })),
-        featured: Type.Optional(Type.Boolean({ description: 'Featured post flag' })),
-        commentingEnabled: Type.Optional(Type.Boolean({ description: 'Comments enabled flag' })),
-        minutesToRead: Type.Optional(Type.Integer({ description: 'Estimated reading time' })),
-        wordCount: Type.Optional(Type.Integer({ description: 'Word count' })),
-        firstPublishedDate: Type.Optional(Type.String({ description: 'First publish date', format: 'date-time' })),
-        lastPublishedDate: Type.Optional(Type.String({ description: 'Last publish date', format: 'date-time' })),
-        slug: Type.Optional(Type.String({ description: 'SEO slug' })),
-        seoSlug: Type.Optional(Type.String({ description: 'SEO slug' })),
-        url: Type.Optional(Type.String({ description: 'Post URL', format: 'uri' })),
-        status: Type.Optional(Type.String({ description: 'Post status: DRAFT, PUBLISHED, etc.' })),
-        memberId: Type.Optional(Type.String({ description: 'Author member ID' })),
-        hashtags: Type.Optional(Type.Array(Type.String(), { description: 'Post hashtags' })),
-        categoryIds: Type.Optional(Type.Array(Type.String(), { description: 'Category IDs' })),
-        tagIds: Type.Optional(Type.Array(Type.String(), { description: 'Tag IDs' })),
-        relatedPostIds: Type.Optional(Type.Array(Type.String(), { description: 'Related post IDs' })),
-        pricingPlanIds: Type.Optional(Type.Array(Type.String(), { description: 'Pricing plan IDs' })),
-        language: Type.Optional(Type.String({ description: 'Post language code' })),
-        translationId: Type.Optional(Type.String({ description: 'Translation ID for multilingual' })),
-        richContent: Type.Optional(
-          Type.Object(
-            {
-              nodes: Type.Optional(Type.Array(Type.Unknown(), { description: 'Rich content nodes' })),
-              metadata: Type.Optional(Type.Unknown({ description: 'Rich content metadata' })),
-            },
-            { description: 'Wix Rich Content (Ricos) document' },
-          ),
-        ),
-        heroImage: Type.Optional(
-          Type.Object(
-            {
-              url: Type.Optional(Type.String({ description: 'Image URL', format: 'uri' })),
-              height: Type.Optional(Type.Integer({ description: 'Image height' })),
-              width: Type.Optional(Type.Integer({ description: 'Image width' })),
-              altText: Type.Optional(Type.String({ description: 'Alt text' })),
-            },
-            { description: 'Hero/cover image' },
-          ),
-        ),
-        media: Type.Optional(
-          Type.Object(
-            {
-              wixMedia: Type.Optional(Type.Unknown({ description: 'Wix media reference' })),
-              displayed: Type.Optional(Type.Boolean({ description: 'Is media displayed' })),
-              custom: Type.Optional(Type.Boolean({ description: 'Is custom media' })),
-            },
-            { description: 'Post media' },
-          ),
-        ),
-        seoData: Type.Optional(
-          Type.Object(
-            {
-              tags: Type.Optional(Type.Array(Type.Unknown(), { description: 'SEO meta tags' })),
-              settings: Type.Optional(Type.Unknown({ description: 'SEO settings' })),
-            },
-            { description: 'SEO data' },
-          ),
-        ),
-      },
-      {
-        $id: 'wix-blog/draft-posts',
-        title: 'Blog Posts',
-      },
-    );
-
-    return {
-      id,
-      slug: id.wsId,
-      name: 'Blog Posts',
-      schema,
-      idColumnRemoteId: '_id',
-      titleColumnRemoteId: ['wix-blog', 'title'],
-      mainContentColumnRemoteId: ['wix-blog', 'richContent'],
-    };
+    return buildWixBlogJsonTableSpec(id);
   }
 
   public pullRecordDeep = undefined;
