@@ -5,6 +5,10 @@ import {
   ConnectorAuthErrorExceptionFilter,
   ConnectorInstantiationErrorExceptionFilter,
 } from './exception-filters/connector.exception-filter';
+import {
+  BadRequestExceptionFilter,
+  NotFoundExceptionFilter,
+} from './exception-filters/generic-errors.exception-filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { WSLogger, WSLoggerShim } from './logger';
 
@@ -48,7 +52,12 @@ async function bootstrap(): Promise<void> {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Apply global exception filters for connector errors
-  app.useGlobalFilters(new ConnectorInstantiationErrorExceptionFilter(), new ConnectorAuthErrorExceptionFilter());
+  app.useGlobalFilters(
+    new BadRequestExceptionFilter(),
+    new NotFoundExceptionFilter(),
+    new ConnectorInstantiationErrorExceptionFilter(),
+    new ConnectorAuthErrorExceptionFilter(),
+  );
 
   app.useLogger(new WSLoggerShim());
   const port = process.env.PORT ?? 3010;

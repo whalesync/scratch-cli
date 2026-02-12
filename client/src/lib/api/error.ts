@@ -81,6 +81,16 @@ export async function checkForApiError(res: Response, fallbackMessage: string): 
   }
 }
 
+export function getHumanReadableErrorMessage(error: unknown): string {
+  if (error instanceof ScratchpadApiError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Unknown error';
+}
+
 export const isUnauthorizedError = (error: unknown): boolean => {
   return !!(error && error instanceof ScratchpadApiError && error.statusCode === 401);
 };

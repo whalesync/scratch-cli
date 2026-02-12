@@ -4,12 +4,14 @@ import { Text13Medium } from '@/app/components/base/text';
 import { ComingSoonBadge } from '@/app/components/ComingSoonBadge';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDataFolders } from '@/hooks/use-data-folders';
+import { getHumanReadableErrorMessage } from '@/lib/api/error';
 import { syncApi } from '@/lib/api/sync';
 import { workbookApi } from '@/lib/api/workbook';
 import { useSyncStore } from '@/stores/sync-store';
 import { DocsUrls } from '@/utils/docs-urls';
 import {
   ActionIcon,
+  Alert,
   Anchor,
   Autocomplete,
   Badge,
@@ -128,6 +130,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
   const [enableValidation, setEnableValidation] = useState(true);
 
   const [saving, setSaving] = useState(false);
+  const [errorBanner, setErrorBanner] = useState<{ title: string; body: string } | null>(null);
   const [schemaCache, setSchemaCache] = useState<Record<string, { path: string; type: string }[]>>({});
   const [transformerModalOpen, setTransformerModalOpen] = useState(false);
   const [editingTransformerTarget, setEditingTransformerTarget] = useState<{
@@ -232,6 +235,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
   const handleSave = async () => {
     setSaving(true);
+    setErrorBanner(null);
     try {
       const validPairs = folderPairs.filter((p) => {
         const hasValidMappings = p.fieldMappings.some((m) => m.sourceField && m.destField);
@@ -285,11 +289,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
       }
     } catch (error) {
       console.debug('Error saving sync:', error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to save sync',
-        color: 'red',
-      });
+      setErrorBanner({ title: 'Failed to save sync', body: getHumanReadableErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -304,6 +304,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: async () => {
+        setErrorBanner(null);
         try {
           await syncApi.delete(workbookId, syncId);
           await fetchSyncs(workbookId);
@@ -315,11 +316,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
           router.push(`/workbook/${workbookId}/syncs`);
         } catch (error) {
           console.debug('Failed to delete sync:', error);
-          notifications.show({
-            title: 'Error',
-            message: 'Failed to delete sync',
-            color: 'red',
-          });
+          setErrorBanner({ title: 'Failed to delete sync', body: getHumanReadableErrorMessage(error) });
         }
       },
     });
@@ -327,6 +324,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
 
   const handleRunSync = async () => {
     if (isNew) return;
+    setErrorBanner(null);
     try {
       await runSync(workbookId, syncId);
       notifications.show({
@@ -335,11 +333,7 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
         color: 'green',
       });
     } catch (error) {
-      notifications.show({
-        title: 'Failed to start sync',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        color: 'red',
-      });
+      setErrorBanner({ title: 'Failed to start sync', body: getHumanReadableErrorMessage(error) });
     }
   };
 
@@ -471,6 +465,13 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
           </Button>
         </Group>
       </Group>
+
+      {/* Error Banner */}
+      {errorBanner && (
+        <Alert color="red" title={errorBanner.title} withCloseButton onClose={() => setErrorBanner(null)} mx="md" mt="md">
+          {errorBanner.body}
+        </Alert>
+      )}
 
       {/* Content */}
       <ScrollArea style={{ flex: 1 }}>

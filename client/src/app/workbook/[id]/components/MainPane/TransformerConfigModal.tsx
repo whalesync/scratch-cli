@@ -2,7 +2,7 @@
 
 import { Button, Checkbox, Group, Modal, Select, Stack, TextInput } from '@mantine/core';
 import type { DataFolder, DataFolderId, TransformerConfig, TransformerType } from '@spinner/shared-types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface TransformerConfigModalProps {
   opened: boolean;
@@ -42,22 +42,24 @@ export function TransformerConfigModal({
     currentConfig?.type === 'lookup_field' ? currentConfig.options.referencedFieldPath : '',
   );
 
-  // Reset form when modal opens with new config
-  const resetForm = () => {
-    setType(currentConfig?.type ?? '');
-    setStripCurrency(
-      currentConfig?.type === 'string_to_number' ? (currentConfig.options?.stripCurrency ?? false) : false,
-    );
-    setParseInteger(
-      currentConfig?.type === 'string_to_number' ? (currentConfig.options?.parseInteger ?? false) : false,
-    );
-    setReferencedDataFolderId(
-      currentConfig?.type === 'source_fk_to_dest_fk' || currentConfig?.type === 'lookup_field'
-        ? currentConfig.options.referencedDataFolderId
-        : '' as DataFolderId | '',
-    );
-    setReferencedFieldPath(currentConfig?.type === 'lookup_field' ? currentConfig.options.referencedFieldPath : '');
-  };
+  // Sync form state whenever the modal opens
+  useEffect(() => {
+    if (opened) {
+      setType(currentConfig?.type ?? '');
+      setStripCurrency(
+        currentConfig?.type === 'string_to_number' ? (currentConfig.options?.stripCurrency ?? false) : false,
+      );
+      setParseInteger(
+        currentConfig?.type === 'string_to_number' ? (currentConfig.options?.parseInteger ?? false) : false,
+      );
+      setReferencedDataFolderId(
+        currentConfig?.type === 'source_fk_to_dest_fk' || currentConfig?.type === 'lookup_field'
+          ? currentConfig.options.referencedDataFolderId
+          : ('' as DataFolderId | ''),
+      );
+      setReferencedFieldPath(currentConfig?.type === 'lookup_field' ? currentConfig.options.referencedFieldPath : '');
+    }
+  }, [opened, currentConfig]);
 
   const handleSave = () => {
     if (!type) {
@@ -100,7 +102,6 @@ export function TransformerConfigModal({
       onClose={onClose}
       title="Configure Transformer"
       size="md"
-      onExitTransitionEnd={resetForm}
     >
       <Stack gap="md">
         <Select
