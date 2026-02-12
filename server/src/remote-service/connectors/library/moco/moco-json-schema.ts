@@ -276,20 +276,10 @@ function buildProjectSchema(): TSchema {
       billable: Type.Boolean({ description: 'Billable flag' }),
       fixed_price: Type.Boolean({ description: 'Fixed price project (required)' }),
       retainer: Type.Boolean({ description: 'Retainer project (required)' }),
-      start_date: Type.Optional(
-        Type.Union([Type.String({ format: 'date' }), Type.Null()], {
-          description: 'Start date YYYY-MM-DD (required for create)',
-        }),
-      ),
-      finish_date: Type.Optional(
-        Type.Union([Type.String({ format: 'date' }), Type.Null()], {
-          description: 'Finish date YYYY-MM-DD (required for create)',
-        }),
-      ),
+      start_date: Type.String({ format: 'date', description: 'Start date YYYY-MM-DD (required)' }),
+      finish_date: Type.String({ format: 'date', description: 'Finish date YYYY-MM-DD (required)' }),
       color: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Color (hex code)' })),
-      currency: Type.Optional(
-        Type.Union([Type.String(), Type.Null()], { description: 'Currency code (required for create)' }),
-      ),
+      currency: Type.String({ description: 'Currency code (required)' }),
       budget: Type.Optional(Type.Union([Type.Number(), Type.Null()], { description: 'Total budget' })),
       budget_monthly: Type.Optional(
         Type.Union([Type.Number(), Type.Null()], { description: 'Monthly budget (required for retainer)' }),

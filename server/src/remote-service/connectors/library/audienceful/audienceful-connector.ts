@@ -178,7 +178,8 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
     ];
     for (const field of customFields) {
       if (builtInFields.includes(field.data_name)) continue;
-      properties[field.data_name] = Type.Optional(this.fieldTypeToSchema(field));
+      const fieldSchema = this.fieldTypeToSchema(field);
+      properties[field.data_name] = field.required ? fieldSchema : Type.Optional(fieldSchema);
     }
 
     return Type.Object(properties, {

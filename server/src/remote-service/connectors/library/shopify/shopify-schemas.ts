@@ -152,14 +152,12 @@ export function buildArticleSchema(): TSchema {
         Type.Union([Type.String({ format: 'date-time' }), Type.Null()], { description: 'Published timestamp' }),
       ),
       templateSuffix: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Theme template suffix' })),
-      blog: Type.Optional(
-        Type.Object(
-          { id: Type.String(), handle: Type.String() },
-          {
-            description: 'Parent blog (read-only except blog.id on create)',
-            [FOREIGN_KEY_OPTIONS]: { linkedTableId: 'blogs' },
-          },
-        ),
+      blog: Type.Object(
+        { id: Type.String(), handle: Type.String() },
+        {
+          description: 'Parent blog (read-only except blog.id on create)',
+          [FOREIGN_KEY_OPTIONS]: { linkedTableId: 'blogs' },
+        },
       ),
       createdAt: Type.Optional(Type.String({ description: 'Created timestamp (read-only)', format: 'date-time' })),
       updatedAt: Type.Optional(Type.String({ description: 'Updated timestamp (read-only)', format: 'date-time' })),

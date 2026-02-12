@@ -69,7 +69,7 @@ export class PostgresClient {
     await this.validateTableName(tableName);
 
     const result = await this.pool.query<PostgresColumnInfo>(
-      `SELECT column_name, data_type, is_nullable, udt_name, character_maximum_length
+      `SELECT column_name, data_type, is_nullable, udt_name, character_maximum_length, column_default
        FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = $1
        ORDER BY ordinal_position`,

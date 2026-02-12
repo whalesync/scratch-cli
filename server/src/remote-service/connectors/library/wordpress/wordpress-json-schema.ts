@@ -210,7 +210,8 @@ export function buildWordPressJsonTableSpec(
     const acfFieldProperties: Record<string, TSchema> = {};
     for (const [acfFieldId, acfFieldDef] of Object.entries(acfProps)) {
       if (!acfFieldDef) continue;
-      acfFieldProperties[acfFieldId] = Type.Optional(wordpressFieldToJsonSchema(acfFieldId, acfFieldDef, true));
+      const acfFieldSchema = wordpressFieldToJsonSchema(acfFieldId, acfFieldDef, true);
+      acfFieldProperties[acfFieldId] = acfFieldDef.required ? acfFieldSchema : Type.Optional(acfFieldSchema);
     }
     properties['acf'] = Type.Optional(Type.Object(acfFieldProperties, { description: 'Advanced Custom Fields' }));
   }

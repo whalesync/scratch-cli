@@ -12,6 +12,7 @@ export interface PostgresColumnInfo {
   is_nullable: string;
   udt_name: string;
   character_maximum_length: number | null;
+  column_default: string | null;
 }
 
 /**

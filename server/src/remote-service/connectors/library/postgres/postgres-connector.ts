@@ -148,8 +148,11 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
     const schemaProperties: Record<string, TSchema> = {};
     for (const col of columns) {
       const isNullable = col.is_nullable === 'YES';
+      const hasDefault = col.column_default !== null;
       const { schema } = mapPgType(col.data_type, col.udt_name, isNullable);
-      schemaProperties[col.column_name] = schema;
+      // Columns that are nullable or have a default value (including serial/identity)
+      // are not required for inserts, so mark them optional
+      schemaProperties[col.column_name] = isNullable || hasDefault ? Type.Optional(schema) : schema;
     }
 
     const schema = Type.Object(schemaProperties, {
