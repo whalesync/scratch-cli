@@ -33,6 +33,7 @@ export function useWorkbookActiveJobs(workbookId: WorkbookId | undefined) {
     workbookId ? SWR_KEYS.jobs.activeByWorkbook(workbookId) : null,
     () => jobApi.getActiveJobsByWorkbook(workbookId!),
     {
+      // TODO: eventually replace this agressive refresh with a mutate via the workbook websocket
       refreshInterval: 5000,
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

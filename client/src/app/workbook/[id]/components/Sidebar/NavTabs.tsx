@@ -2,6 +2,7 @@
 
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text13Regular } from '@/app/components/base/text';
+import { useWorkbookActiveJobs } from '@/hooks/use-workbook-active-jobs';
 import { workbookApi } from '@/lib/api/workbook';
 import { Badge, Box, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
@@ -29,6 +30,7 @@ export function NavTabs() {
   const pathname = usePathname();
   const workbookId = params.id as WorkbookId;
 
+  const { activeJobs } = useWorkbookActiveJobs(workbookId);
   const [dirtyCount, setDirtyCount] = useState<number>(0);
 
   const fetchDirtyCount = useCallback(async () => {
@@ -76,6 +78,7 @@ export function NavTabs() {
       icon: SquareIcon,
       href: `/workbook/${params.id}/runs`,
       disabled: false,
+      badge: activeJobs && activeJobs.length > 0 ? activeJobs.length : undefined,
     },
   ];
 

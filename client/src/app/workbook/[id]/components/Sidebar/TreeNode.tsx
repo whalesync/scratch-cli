@@ -65,8 +65,7 @@ export function ConnectionNode({
 }: ConnectionNodeProps) {
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
-  const router = useRouter();
-  const { workbook } = useWorkbook(workbookId);
+  const { workbook, pullFolders } = useWorkbook(workbookId);
   const { getJobsForConnector } = useWorkbookActiveJobs(workbookId);
 
   const connectorJobs = useMemo(() => {
@@ -111,14 +110,9 @@ export function ConnectionNode({
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
 
   // Pull handler
-  const handlePullAll = async () => {
-    try {
-      await workbookApi.pullFiles(workbookId);
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to pull files:', error);
-    }
-  };
+  const handlePullAll = useCallback(async () => {
+    await pullFolders();
+  }, [pullFolders]);
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();

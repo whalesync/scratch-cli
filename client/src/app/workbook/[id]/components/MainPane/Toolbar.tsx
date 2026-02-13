@@ -10,10 +10,10 @@ import { Text12Medium, Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDataFolders } from '@/hooks/use-data-folders';
+import { useWorkbook } from '@/hooks/use-workbook';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
-import { trackDiscardChanges, trackPublishAll, trackPullFiles, trackToggleDisplayMode } from '@/lib/posthog';
+import { trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -51,6 +51,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
   const params = useParams<{ id: string; path?: string[] }>();
   const pathname = usePathname();
   const router = useRouter();
+  const { publishFolders, discardAllChanges, pullFolders } = useWorkbook(workbook.id);
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const { user } = useScratchPadUser();
   const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
@@ -104,16 +105,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
   const handlePullAll = useCallback(async () => {
     setIsPulling(true);
-    trackPullFiles(workbook.id);
-    try {
-      await workbookApi.pullFiles(workbook.id);
-      router.refresh();
-    } catch (error) {
-      console.debug('Failed to pull files:', error);
-    } finally {
-      setIsPulling(false);
-    }
-  }, [workbook.id, router]);
+    await pullFolders();
+    setIsPulling(false);
+  }, [pullFolders]);
 
   const handlePublishAll = useCallback(() => {
     openConfirmDialog({
@@ -143,13 +137,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
             });
           });
 
-          trackPublishAll(workbook.id, dataFolderIds.length);
-
-          if (dataFolderIds.length > 0) {
-            await dataFolderApi.publish(dataFolderIds, workbook.id);
+          if (dataFolderIds.length !== 0) {
+            await publishFolders(dataFolderIds);
           }
-
-          router.refresh();
         } catch (error) {
           console.debug('Failed to publish changes:', error);
         } finally {
@@ -157,7 +147,7 @@ export function Toolbar({ workbook }: ToolbarProps) {
         }
       },
     });
-  }, [workbook.id, router, dirtyFiles, dataFolderGroups, openConfirmDialog]);
+  }, [dirtyFiles, dataFolderGroups, openConfirmDialog, publishFolders]);
 
   const handleDiscardAll = useCallback(() => {
     openConfirmDialog({
@@ -167,18 +157,16 @@ export function Toolbar({ workbook }: ToolbarProps) {
       variant: 'danger',
       onConfirm: async () => {
         setIsDiscarding(true);
-        trackDiscardChanges(workbook.id);
+
         try {
-          await workbookApi.discardChanges(workbook.id);
+          await discardAllChanges();
           router.refresh();
-        } catch (error) {
-          console.debug('Failed to discard changes:', error);
         } finally {
           setIsDiscarding(false);
         }
       },
     });
-  }, [workbook.id, router, openConfirmDialog]);
+  }, [router, openConfirmDialog, discardAllChanges]);
 
   const toggleColorScheme = () => {
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';
