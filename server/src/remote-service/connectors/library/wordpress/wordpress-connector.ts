@@ -6,14 +6,21 @@ import { extractErrorMessageFromAxiosError } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
 import {
+  WORDPRESS_BATCH_SIZE,
   WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS,
   WORDPRESS_DEFAULT_TABLE_IDS,
+  WORDPRESS_ORG_V2_PATH,
   WORDPRESS_POLLING_PAGE_SIZE,
 } from './wordpress-constants';
 import { WordPressHttpClient } from './wordpress-http-client';
 import { buildWordPressJsonTableSpec, formatTableName } from './wordpress-json-schema';
 import { parseTableInfoFromTypes } from './wordpress-schema-parser';
-import { WordPressDownloadProgress, WordPressRecord } from './wordpress-types';
+import {
+  WordPressBatchRequestItem,
+  WordPressBatchResponse,
+  WordPressDownloadProgress,
+  WordPressRecord,
+} from './wordpress-types';
 
 export class WordPressConnector extends Connector<typeof Service.WORDPRESS, WordPressDownloadProgress> {
   readonly service = Service.WORDPRESS;
@@ -89,58 +96,84 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   }
 
   getBatchSize(): number {
-    return 1;
+    return WORDPRESS_BATCH_SIZE;
   }
 
   /**
-   * Create records in WordPress from raw JSON files.
-   * Files should contain the fields to create (title, content, etc.).
-   * Returns the created records with their new IDs.
+   * Create records in WordPress using the batch API (POST /batch/v1).
+   * Uses "require-all-validate" so WordPress rejects the entire batch if any request
+   * fails validation (returns 207 with failed:"validation"). Once past validation,
+   * all requests execute and are expected to succeed.
    */
   async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
     const [tableId] = tableSpec.id.remoteId;
 
-    // Check if this table supports create
     if (WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS.includes(tableId)) {
       throw new Error(`Table "${tableId}" does not support record creation`);
     }
 
-    const results: ConnectorFile[] = [];
+    const requests: WordPressBatchRequestItem[] = files.map((file) => ({
+      method: 'POST' as const,
+      path: `/${WORDPRESS_ORG_V2_PATH}${tableId}`,
+      body: this.fileToWordPressRecord(file) as Record<string, unknown>,
+    }));
 
-    for (const file of files) {
-      // WordPress expects fields directly at the top level
-      const wpRecord = this.fileToWordPressRecord(file);
-      const created = await this.client.createRecord(tableId, wpRecord);
-      results.push(created as unknown as ConnectorFile);
-    }
+    const batchResponse = await this.client.batchRequest(requests);
+    this.assertBatchValidation(batchResponse);
 
-    return results;
+    return batchResponse.responses.map((r) => r.body as unknown as ConnectorFile);
   }
 
   /**
-   * Update records in WordPress from raw JSON files.
-   * Files should have an 'id' field and the fields to update.
+   * Update records in WordPress using the batch API (POST /batch/v1).
+   * Uses "require-all-validate" so WordPress rejects the entire batch if any request
+   * fails validation. Once past validation, all requests execute and are expected to succeed.
    */
   async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
 
-    for (const file of files) {
-      const recordId = String(file.id);
-      const wpRecord = this.fileToWordPressRecord(file);
-      await this.client.updateRecord(tableId, recordId, wpRecord);
-    }
+    const requests: WordPressBatchRequestItem[] = files.map((file) => ({
+      method: 'PATCH' as const,
+      path: `/${WORDPRESS_ORG_V2_PATH}${tableId}/${String(file.id)}`,
+      body: this.fileToWordPressRecord(file) as Record<string, unknown>,
+    }));
+
+    const batchResponse = await this.client.batchRequest(requests);
+    this.assertBatchValidation(batchResponse);
   }
 
   /**
-   * Delete records from WordPress.
-   * Files should have an 'id' field with the record ID to delete.
+   * Delete records from WordPress using the batch API (POST /batch/v1).
+   * Uses "require-all-validate" so WordPress rejects the entire batch if any request
+   * fails validation. Once past validation, all requests execute and are expected to succeed.
    */
   async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
 
-    for (const file of files) {
-      const recordId = String(file.id);
-      await this.client.deleteRecord(tableId, recordId);
+    const requests: WordPressBatchRequestItem[] = files.map((file) => ({
+      method: 'DELETE' as const,
+      path: `/${WORDPRESS_ORG_V2_PATH}${tableId}/${String(file.id)}?force=true`,
+    }));
+
+    const batchResponse = await this.client.batchRequest(requests);
+    this.assertBatchValidation(batchResponse);
+  }
+
+  /**
+   * Throws if WordPress rejected the entire batch at validation time.
+   * The batch endpoint always returns HTTP 207 (axios won't throw), so we must
+   * check the "failed" field manually. With "require-all-validate", WordPress validates
+   * all requests upfront and refuses to execute any if validation fails.
+   */
+  private assertBatchValidation(response: WordPressBatchResponse): void {
+    if (response.failed === 'validation') {
+      const errors = response.responses
+        .filter((r) => r.status >= 400)
+        .map((r) => {
+          const body = r.body as { message?: string };
+          return body.message || `HTTP ${r.status}`;
+        });
+      throw new Error(`WordPress batch failed validation: ${errors.join('; ')}`);
     }
   }
 

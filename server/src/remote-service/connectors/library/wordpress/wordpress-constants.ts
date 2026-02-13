@@ -2,6 +2,9 @@
 
 export const WORDPRESS_POLLING_PAGE_SIZE = 100;
 
+// WordPress batch API supports up to 25 requests per batch (default server limit)
+export const WORDPRESS_BATCH_SIZE = 25;
+
 // ACF (Advanced Custom Fields) support
 export const WORDPRESS_REMOTE_CUSTOM_FIELDS_ID = 'acf';
 export const WORDPRESS_ORG_V2_PATH = 'wp/v2/';

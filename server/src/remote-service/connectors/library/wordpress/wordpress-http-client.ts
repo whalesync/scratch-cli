@@ -5,6 +5,8 @@ import { WSLogger } from 'src/logger';
 import { ConnectorAuthError } from '../../error';
 import { WORDPRESS_ORG_V2_PATH } from './wordpress-constants';
 import {
+  WordPressBatchRequestItem,
+  WordPressBatchResponse,
   WordPressEndpointOptionsResponse,
   WordPressGetDiscoveryApiResponse,
   WordPressGetTypesApiResponse,
@@ -55,6 +57,22 @@ export class WordPressHttpClient {
         endpointUrl.searchParams.delete(param.name);
       }
       endpointUrl.searchParams.append(param.name, param.value);
+    }
+    return endpointUrl.toString();
+  }
+
+  /**
+   * Generate a URL for a raw API path (without the wp/v2/ prefix).
+   * Used for endpoints like batch/v1 that live outside the wp/v2 namespace.
+   */
+  private generateRawUrl(endpoint: string, rawPath: string): string {
+    const endpointUrl = new URL(endpoint);
+    const restRoute = endpointUrl.searchParams.get('rest_route');
+    if (restRoute === null) {
+      endpointUrl.pathname = `${endpointUrl.pathname}${rawPath}`;
+    } else {
+      endpointUrl.searchParams.delete('rest_route');
+      endpointUrl.searchParams.append('rest_route', `/${rawPath}`);
     }
     return endpointUrl.toString();
   }
@@ -149,6 +167,21 @@ export class WordPressHttpClient {
   async deleteRecord(tableId: string, recordId: string): Promise<void> {
     const url = this.generateUrl(this.endpoint, tableId, recordId, [{ name: 'force', value: 'true' }]);
     await axios.delete(url, { headers: this.authHeaders });
+  }
+
+  /**
+   * Send a batch request to the WordPress REST API (POST /batch/v1).
+   * Uses "require-all-validate" so WordPress validates all requests upfront and
+   * rejects the entire batch if any fail validation. Always returns HTTP 207.
+   */
+  async batchRequest(requests: WordPressBatchRequestItem[]): Promise<WordPressBatchResponse> {
+    const url = this.generateRawUrl(this.endpoint, 'batch/v1');
+    const response = await axios.post<WordPressBatchResponse>(
+      url,
+      { validation: 'require-all-validate', requests },
+      { headers: this.authHeaders },
+    );
+    return response.data;
   }
 
   /**

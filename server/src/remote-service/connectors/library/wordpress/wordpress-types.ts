@@ -80,6 +80,31 @@ export interface WordPressPostType {
   hierarchical?: boolean;
 }
 
+/**
+ * A single request within a WordPress batch operation.
+ * https://developer.wordpress.org/rest-api/using-the-rest-api/global-parameters/#_method-or-x-http-method-override
+ */
+export interface WordPressBatchRequestItem {
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  body?: Record<string, unknown>;
+}
+
+/**
+ * Response from the WordPress batch endpoint (POST /batch/v1).
+ * Returns HTTP 207 Multi-Status.
+ */
+export interface WordPressBatchResponse {
+  failed: 'none' | 'validation';
+  responses: WordPressBatchResponseItem[];
+}
+
+export interface WordPressBatchResponseItem {
+  body: WordPressRecord | { code: string; message: string; data: { status: number } };
+  status: number;
+  headers: Record<string, string>;
+}
+
 export enum WordPressDataType {
   STRING = 'wordpress/string',
   EMAIL = 'wordpress/email',
