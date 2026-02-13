@@ -259,11 +259,11 @@ describe('PullLinkedFolderFilesJobHandler', () => {
         const result = (handler as any).buildGitFilesFromConnectorFiles('/', records, tableSpec, new Set());
 
         expect(result[0].content).toEqual(`{
-  "id": "rec1",
   "name": "Test",
   "nested": {
     "field": "value"
-  }
+  },
+  "id": "rec1"
 }\n`);
         // Verify it's properly formatted (contains newlines, indentation)
         expect(result[0].content).toContain('\n');
