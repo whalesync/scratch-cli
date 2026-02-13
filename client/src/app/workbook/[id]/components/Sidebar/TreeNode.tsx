@@ -562,6 +562,7 @@ interface FileNodeProps {
 function FileNode({ file, mode = 'files' }: FileNodeProps) {
   const params = useParams<{ id: string }>();
   const pathname = usePathname();
+  const { showSecretButton } = useDevTools();
 
   // Build the file path for the URL - encode each segment but keep slashes
   const filePath = file.path;
@@ -672,7 +673,9 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
         onClose={() => setContextMenu(null)}
         position={contextMenu ?? { x: 0, y: 0 }}
         items={[
-          { label: 'Test Transformer', icon: FlaskRoundIcon, onClick: openTestTransformer },
+          ...(showSecretButton
+            ? [{ label: 'Test Transformer', icon: FlaskRoundIcon, onClick: openTestTransformer }]
+            : []),
           { type: 'divider' },
           { label: 'Delete', icon: Trash2Icon, onClick: openRemoveFile, delete: true },
         ]}

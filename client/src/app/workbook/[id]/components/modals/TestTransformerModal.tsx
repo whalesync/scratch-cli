@@ -1,10 +1,10 @@
 import { workbookApi } from '@/lib/api/workbook';
-import { Autocomplete, Button, Code, Group, Modal, Select, Stack, Text, Title } from '@mantine/core';
+import { Autocomplete, Badge, Button, Code, Group, Modal, Select, Stack, Text, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { FileRefEntity, TestTransformerResponse, TransformerType, WorkbookId } from '@spinner/shared-types';
-import { ArrowRightIcon, FlaskRoundIcon } from 'lucide-react';
-import { useState } from 'react';
+import { FlaskRoundIcon, Search, Wand2Icon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TestTransformerModalProps {
   opened: boolean;
@@ -20,28 +20,48 @@ const TRANSFORMER_TYPES: { value: TransformerType; label: string }[] = [
   { value: 'lookup_field', label: 'Lookup Field' },
 ];
 
+interface PathOption {
+  value: string;
+  label: string;
+  type: string;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function flattenKeys(obj: any, prefix = ''): string[] {
-  const keys: string[] = [];
+const renderAutocompleteOption = ({ option }: any) => (
+  <Group gap="sm" wrap="nowrap">
+    <Badge size="xs" variant="light" color="blue" w={70} style={{ flexShrink: 0 }}>
+      {option.type}
+    </Badge>
+    <Text size="sm">{option.value}</Text>
+  </Group>
+);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenKeys(obj: any, prefix = ''): PathOption[] {
+  const keys: PathOption[] = [];
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const newKey = prefix ? `${prefix}.${key}` : key;
-      keys.push(newKey);
-      if (typeof obj[key] === 'object' && obj[key] !== null) {
-        if (Array.isArray(obj[key])) {
+      const value = obj[key];
+      const type = Array.isArray(value) ? 'array' : typeof value;
+
+      keys.push({ value: newKey, label: newKey, type });
+
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
           // For arrays, maybe add index 0 to show structure, or just the array itself
           // keys.push(...flattenKeys(obj[key], newKey));
           // Arrays index notation like [0]
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          obj[key].forEach((item: any, index: number) => {
+          value.forEach((item: any, index: number) => {
             if (typeof item === 'object' && item !== null) {
               keys.push(...flattenKeys(item, `${newKey}[${index}]`));
             } else {
-              keys.push(`${newKey}[${index}]`);
+              keys.push({ value: `${newKey}[${index}]`, label: `${newKey}[${index}]`, type: typeof item });
             }
           });
         } else {
-          keys.push(...flattenKeys(obj[key], newKey));
+          keys.push(...flattenKeys(value, newKey));
         }
       }
     }
@@ -52,19 +72,44 @@ function flattenKeys(obj: any, prefix = ''): string[] {
 export function TestTransformerModal({ opened, onClose, workbookId, file }: TestTransformerModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestTransformerResponse | null>(null);
-  const [paths, setPaths] = useState<string[]>([]);
+  const [paths, setPaths] = useState<PathOption[]>([]);
   const [fetchingPaths, setFetchingPaths] = useState(false);
+  const [prettify, setPrettify] = useState(false);
+
+  // Simple HTML formatter
+  const formatHtml = (html: string) => {
+    let formatted = '';
+    let indent = 0;
+    const tab = '  ';
+    html.split(/>\s*</).forEach((element) => {
+      if (element.match(/^\/\w/)) {
+        indent -= 1;
+      }
+      formatted += tab.repeat(Math.max(0, indent)) + '<' + element + '>\n';
+      if (
+        element.match(/^<?\w[^>]*[^\/]$/) &&
+        !element.startsWith('input') &&
+        !element.startsWith('img') &&
+        !element.startsWith('br')
+      ) {
+        indent += 1;
+      }
+    });
+    return formatted.substring(1, formatted.length - 2);
+  };
 
   // Fetch file content when opened
-  useState(() => {
+  useEffect(() => {
     if (opened) {
       setFetchingPaths(true);
+      setPaths([]); // Clear previous paths
       workbookApi
         .getRepoFile(workbookId, file.path)
         .then((res) => {
           try {
             const json = JSON.parse(res.content);
             const flattened = flattenKeys(json);
+            console.log('Flattened paths:', flattened); // Debug log
             setPaths(flattened);
           } catch (e) {
             console.warn('Failed to parse file content or flatten keys', e);
@@ -77,8 +122,7 @@ export function TestTransformerModal({ opened, onClose, workbookId, file }: Test
           setFetchingPaths(false);
         });
     }
-  }); // Note: using useEffect would be better but useState lazy init or useEffect with dependency is fine.
-  // Actually, I should use useEffect.
+  }, [opened, workbookId, file.path]);
 
   const form = useForm({
     initialValues: {
@@ -144,6 +188,8 @@ export function TestTransformerModal({ opened, onClose, workbookId, file }: Test
               description="Dot notation path to the value in the JSON file"
               data={paths}
               disabled={fetchingPaths}
+              renderOption={renderAutocompleteOption}
+              rightSection={<Search size={14} color="var(--mantine-color-dimmed)" />}
               {...form.getInputProps('path')}
             />
 
@@ -163,19 +209,30 @@ export function TestTransformerModal({ opened, onClose, workbookId, file }: Test
             {result.success ? (
               <>
                 <Group align="flex-start">
+                  {/* Original value removed as per user request */}
                   <Stack gap={4} style={{ flex: 1 }}>
-                    <Text size="xs" c="dimmed">
-                      Original
-                    </Text>
-                    <Code block>{JSON.stringify(result.originalValue, null, 2)}</Code>
-                  </Stack>
-                  <ArrowRightIcon size={20} style={{ marginTop: 24 }} />
-                  <Stack gap={4} style={{ flex: 1 }}>
-                    <Text size="xs" c="dimmed">
-                      Transformed
-                    </Text>
-                    <Code block>{JSON.stringify(result.value, null, 2)}</Code>
-                    {/* If HTML, maybe show preview? */}
+                    <Group justify="flex-start" align="center" gap="md">
+                      <Text size="xs" c="dimmed">
+                        Transformed
+                      </Text>
+                      {typeof result.value === 'string' && result.value.trim().startsWith('<') && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<Wand2Icon size={14} />}
+                          onClick={() => setPrettify(!prettify)}
+                        >
+                          {prettify ? 'Raw' : 'Prettify'}
+                        </Button>
+                      )}
+                    </Group>
+                    <Code block style={{ flex: 1, overflow: 'auto', maxHeight: 400 }}>
+                      {prettify && typeof result.value === 'string'
+                        ? formatHtml(result.value)
+                        : typeof result.value === 'object'
+                          ? JSON.stringify(result.value, null, 2)
+                          : String(result.value)}
+                    </Code>
                   </Stack>
                 </Group>
               </>
