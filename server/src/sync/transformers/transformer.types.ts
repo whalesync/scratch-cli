@@ -33,7 +33,7 @@ export interface LookupTools {
    * @param sourceFkValue - The foreign key value from the source record
    * @param referencedDataFolderId - The DataFolder that contains the referenced records
    * @param fieldPath - Dot-path to the field in the referenced record (e.g. 'company.name')
-   * @returns The field value, or null if not found
+   * @returns The field value, or undefined if not found
    */
   lookupFieldFromFkRecord(
     sourceFkValue: string,

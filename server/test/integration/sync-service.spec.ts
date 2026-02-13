@@ -1684,11 +1684,11 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     expect(postsResult.recordsCreated).toBe(1);
     expect(postsResult.errors).toHaveLength(0);
 
-    // After Phase 1, the post file should have the raw source FK value
+    // After Phase 1, the post file should NOT have author_id — it's skipped during DATA phase
     const phase1PostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     expect(phase1PostFiles).toHaveLength(1);
     const phase1PostContent = JSON.parse(phase1PostFiles[0].content) as Record<string, unknown>;
-    expect(phase1PostContent.author_id).toBe('rec_author_1'); // Raw source FK, not yet resolved
+    expect(phase1PostContent.author_id).toBeUndefined(); // Skipped in DATA phase, resolved in Phase 2
 
     // Phase 2: resolve FK references
     // First update mock to return the newly written post file
@@ -1789,7 +1789,7 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
 
     const postFiles = writtenFilesByCall[1];
     const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
-    expect(postContent.author_id).toBe('rec_author_1'); // Raw source FK from Phase 1
+    expect(postContent.author_id).toBeUndefined(); // Skipped in DATA phase, resolved in Phase 2
 
     // Phase 2: update mock to return written files, then resolve FKs
     mockFiles({
@@ -1855,10 +1855,10 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
 
     const postFiles = writtenFilesByCall[0];
     const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
-    // Null should pass through without error
-    expect(postContent.author_id).toBeNull();
+    // FK field is skipped in DATA phase (not written at all)
+    expect(postContent.author_id).toBeUndefined();
 
-    // Phase 2: resolve FKs - null should be skipped without error
+    // Phase 2: resolve FKs - null should resolve to null without error
     mockFiles({
       [sourcePostsFolderId]: sourcePostFiles,
       [destPostsFolderId]: [
@@ -1954,8 +1954,8 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
 
     const postFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
-    // Phase 1 should pass through the raw array
-    expect(postContent.author_ids).toEqual(['auth_1', 'auth_2']);
+    // FK field is skipped in DATA phase (not written at all)
+    expect(postContent.author_ids).toBeUndefined();
 
     // Phase 2: resolve FKs
     mockFiles({
@@ -2111,14 +2111,14 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     const authorFiles = writtenFilesByCall[0];
     const authorContent = JSON.parse(authorFiles[0].content) as Record<string, unknown>;
     const authorTempId = authorContent.id as string;
-    // Author's latest_post_id should be the raw source FK
-    expect(authorContent.latest_post_id).toBe('post_1');
+    // FK field is skipped in DATA phase (not written at all)
+    expect(authorContent.latest_post_id).toBeUndefined();
 
     const postFiles = writtenFilesByCall[1];
     const postContent = JSON.parse(postFiles[0].content) as Record<string, unknown>;
     const postTempId = postContent.id as string;
-    // Post's author_id should be the raw source FK
-    expect(postContent.author_id).toBe('auth_1');
+    // FK field is skipped in DATA phase (not written at all)
+    expect(postContent.author_id).toBeUndefined();
 
     // Phase 2: resolve FKs for both table mappings
     // Update mocks to return written files

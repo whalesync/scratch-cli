@@ -15,9 +15,9 @@ export const sourceFkToDestFkTransformer: FieldTransformer = {
   type: 'source_fk_to_dest_fk',
 
   async transform(ctx: TransformContext): Promise<TransformResult> {
-    // In DATA phase, pass through the raw source FK value — resolution happens in FOREIGN_KEY_MAPPING phase
+    // In DATA phase, skip transform: resolution happens in FOREIGN_KEY_MAPPING phase
     if (ctx.phase === 'DATA') {
-      return { success: true, value: ctx.sourceValue };
+      return { success: true, skip: true };
     }
 
     const { sourceValue, lookupTools, options } = ctx;

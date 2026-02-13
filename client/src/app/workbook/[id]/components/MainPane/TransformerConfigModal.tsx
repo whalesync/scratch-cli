@@ -101,12 +101,7 @@ export function TransformerConfigModal({
     (type === 'lookup_field' && (!referencedDataFolderId || !referencedFieldPath));
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title="Configure Transformer"
-      size="md"
-    >
+    <Modal opened={opened} onClose={onClose} title="Configure Transformer" size="md">
       <Stack gap="md">
         <Select
           label="Transformer Type"

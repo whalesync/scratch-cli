@@ -10,6 +10,9 @@ import {
   FieldMappingValue,
   FieldMapType,
   LookupFieldOptions,
+  PreviewFieldResult,
+  PreviewRecordDto,
+  PreviewRecordResponse,
   SyncId,
   TableMapping,
   UpdateSyncDto,
@@ -1026,6 +1029,90 @@ export class SyncService {
     `;
 
     return new Set(results.map((r) => r.matchId));
+  }
+
+  /**
+   * Previews how a single source record would be transformed by the given field mappings.
+   * Does not write anything — returns per-field source/transformed pairs.
+   */
+  async previewRecord(workbookId: WorkbookId, dto: PreviewRecordDto, actor: Actor): Promise<PreviewRecordResponse> {
+    const workbook = await this.workbookService.findOne(workbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Workbook not found');
+    }
+
+    const sourceId = dto.sourceId as DataFolderId;
+    const sourceFolder = await this.db.client.dataFolder.findUnique({ where: { id: sourceId } });
+    if (!sourceFolder) {
+      throw new NotFoundException(`Source folder ${dto.sourceId} not found`);
+    }
+
+    const sourceIdColumn = this.getIdColumnFromSchema(sourceFolder.schema);
+
+    // Fetch files from the source folder
+    const files = await this.dataFolderService.getAllFileContentsByFolderId(workbookId, sourceId, actor);
+    const file = files.find((f) => f.path === dto.filePath);
+    if (!file) {
+      throw new NotFoundException(`File not found: ${dto.filePath}`);
+    }
+
+    const record = parseFileToRecord(file, sourceIdColumn);
+    const columnMappings = fieldMapToColumnMappings(dto.fieldMap);
+
+    // Stub lookup tools — FK lookups are not available in preview
+    const notAvailableInPreviewError = new Error('Lookup is not available in preview');
+    const previewLookupTools: LookupTools = {
+      getDestinationIdForSourceFk: () => Promise.reject(notAvailableInPreviewError),
+      lookupFieldFromFkRecord: () => Promise.reject(notAvailableInPreviewError),
+    };
+
+    const fields: PreviewFieldResult[] = [];
+    for (const mapping of columnMappings) {
+      const sourceValue = get(record.fields, mapping.sourceColumnId);
+      let transformedValue: unknown = sourceValue;
+      let warning: string | undefined;
+
+      if (mapping.transformer) {
+        const transformer = getTransformer(mapping.transformer.type);
+        if (transformer) {
+          try {
+            const ctx: TransformContext = {
+              sourceRecord: record,
+              sourceFieldPath: mapping.sourceColumnId,
+              sourceValue,
+              lookupTools: previewLookupTools,
+              options: mapping.transformer.options ?? {},
+              phase: 'DATA',
+            };
+            const result = await transformer.transform(ctx);
+            if (result.success) {
+              transformedValue = result.skip ? 'Not available in preview' : result.value;
+            } else {
+              warning = result.error;
+              transformedValue = sourceValue;
+            }
+          } catch (err) {
+            if (err === notAvailableInPreviewError) {
+              transformedValue = notAvailableInPreviewError.message;
+            } else {
+              warning = `Transform failed: ${err instanceof Error ? err.message : String(err)}`;
+              transformedValue = '';
+            }
+          }
+        }
+      }
+
+      fields.push({
+        sourceField: mapping.sourceColumnId,
+        destinationField: mapping.destinationColumnId,
+        sourceValue,
+        transformedValue,
+        transformerType: mapping.transformer?.type,
+        warning,
+      });
+    }
+
+    return { recordId: record.id, fields };
   }
 
   /**

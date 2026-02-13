@@ -13,7 +13,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { DataFolderId, SyncId, WorkbookId } from '@spinner/shared-types';
-import { CreateSyncDto, UpdateSyncDto, ValidateMappingDto } from '@spinner/shared-types';
+import {
+  CreateSyncDto,
+  PreviewRecordDto,
+  PreviewRecordResponse,
+  UpdateSyncDto,
+  ValidateMappingDto,
+} from '@spinner/shared-types';
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
@@ -106,6 +112,15 @@ export class SyncController {
     @Req() req: RequestWithUser,
   ): Promise<void> {
     return await this.syncService.deleteSync(workbookId, syncId as SyncId, userToActor(req.user));
+  }
+
+  @Post('preview-record')
+  async previewRecord(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() dto: PreviewRecordDto,
+    @Req() req: RequestWithUser,
+  ): Promise<PreviewRecordResponse> {
+    return this.syncService.previewRecord(workbookId, dto, userToActor(req.user));
   }
 
   @Post('validate-mapping')

@@ -1,4 +1,12 @@
-import { CreateSyncDto, Sync, SyncId, UpdateSyncDto, WorkbookId } from '@spinner/shared-types';
+import {
+  CreateSyncDto,
+  FieldMapType,
+  PreviewRecordResponse,
+  Sync,
+  SyncId,
+  UpdateSyncDto,
+  WorkbookId,
+} from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -49,6 +57,25 @@ export const syncApi = {
       handleAxiosError(error, 'Failed to run sync');
     }
   },
+  previewRecord: async (
+    workbookId: WorkbookId,
+    sourceId: string,
+    filePath: string,
+    fieldMap: FieldMapType,
+  ): Promise<PreviewRecordResponse> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post<PreviewRecordResponse>(`/workbooks/${workbookId}/syncs/preview-record`, {
+        sourceId,
+        filePath,
+        fieldMap,
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to preview record');
+    }
+  },
+
   delete: async (workbookId: WorkbookId, syncId: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();

@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { SyncPreviewPanel } from './SyncPreviewPanel';
 import { TransformerConfigModal } from './TransformerConfigModal';
 
 interface SyncEditorProps {
@@ -666,6 +667,12 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                       }}
                       searchable
                       clearable
+                    />
+
+                    <SyncPreviewPanel
+                      workbookId={workbookId}
+                      sourceId={pair.sourceId}
+                      fieldMappings={pair.fieldMappings}
                     />
                   </Stack>
                 </Collapse>
