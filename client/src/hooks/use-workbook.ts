@@ -3,6 +3,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
 import { trackDiscardChanges, trackPublishAll, trackPullFiles } from '@/lib/posthog';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   CreateDataFolderDto,
   DataFolder,
@@ -28,6 +29,7 @@ export interface UseWorkbookReturn {
 }
 
 export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
+  const setWorkbookError = useWorkbookEditorUIStore((state) => state.setWorkbookError);
   const { data, error, isLoading, mutate } = useSWR(
     id ? SWR_KEYS.workbook.detail(id) : null,
     () => (id ? workbookApi.detail(id) : undefined),
@@ -84,10 +86,15 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       trackPublishAll(id, dataFolderIds.length);
       try {
         await dataFolderApi.publish(dataFolderIds, id);
+        // TODO: this notification is just overkill for now, we shouldn't need it at all once the UI is more reactive
         ScratchpadNotifications.info({ message: 'Initiated data publish job for changes' });
       } catch (error) {
-        //TODO: report this error to the user somehow
-        console.debug('Failed to publish changes:', error);
+        console.error('Failed to publish folders:', error);
+        setWorkbookError({
+          scope: 'review',
+          description: 'Failed to start the data publish job for ${dataFolderIds.length} folders',
+          cause: error as Error,
+        });
       }
       await mutate();
       await globalMutate(SWR_KEYS.jobs.activeByWorkbook(id));
@@ -96,7 +103,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
         globalMutate(SWR_KEYS.dataFolders.detail(folderId));
       }
     },
-    [globalMutate, id, mutate],
+    [globalMutate, id, mutate, setWorkbookError],
   );
 
   const discardAllChanges = useCallback(async (): Promise<void> => {
@@ -106,16 +113,23 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
     trackDiscardChanges(id);
     try {
       await workbookApi.discardChanges(id);
+      // TODO: this notification is just overkill for now, we shouldn't need it at all once the UI is more reactive
       ScratchpadNotifications.info({ message: 'All unpublished changes have been discarded' });
     } catch (error) {
-      console.debug('Failed to discard changes:', error);
+      console.error('Failed to discard changes:', error);
+      setWorkbookError({
+        scope: 'files',
+        description: 'Failed to discard all unpublished changes',
+        cause: error as Error,
+      });
+      throw error;
     }
     await mutate();
     await globalMutate(SWR_KEYS.dataFolders.list(id));
     data?.dataFolders?.forEach((folder) => {
       globalMutate(SWR_KEYS.dataFolders.detail(folder.id));
     });
-  }, [globalMutate, id, mutate, data]);
+  }, [globalMutate, id, mutate, data, setWorkbookError]);
 
   const pullFolders = useCallback(
     async (folderIds?: DataFolderId[]): Promise<void> => {
@@ -125,10 +139,15 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       trackPullFiles(id);
       try {
         await workbookApi.pullFiles(id, folderIds);
+        // TODO: this notification is just overkill for now, we shouldn't need it at all once the UI is more reactive
         ScratchpadNotifications.info({ message: 'Initiated data pull for all tables in this workbook' });
       } catch (error) {
-        //TODO: report this error to the user somehow
-        console.debug('Failed to pull files:', error);
+        console.error('Failed to pull files:', error);
+        setWorkbookError({
+          scope: 'files',
+          description: `Failed to start the data pull job for ${folderIds?.length ?? ''} folders`,
+          cause: error as Error,
+        });
       }
       await mutate();
       await globalMutate(SWR_KEYS.jobs.activeByWorkbook(id));
@@ -137,7 +156,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
         globalMutate(SWR_KEYS.dataFolders.detail(folder.id));
       });
     },
-    [globalMutate, id, mutate, data],
+    [globalMutate, id, mutate, data, setWorkbookError],
   );
 
   return {

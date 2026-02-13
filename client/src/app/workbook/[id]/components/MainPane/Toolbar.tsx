@@ -9,12 +9,13 @@ import {
 import { Text12Medium, Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
-import { useWorkbook } from '@/hooks/use-workbook';
+import { useDirtyFiles } from '@/hooks/use-dirty-files';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
-import { workbookApi } from '@/lib/api/workbook';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
+import { RouteUrls } from '@/utils/route-urls';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, DataFolderId, Workbook } from '@spinner/shared-types';
@@ -32,7 +33,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
@@ -42,16 +43,11 @@ interface ToolbarProps {
   workbook: Workbook;
 }
 
-interface DirtyFile {
-  path: string;
-  status: 'added' | 'modified' | 'deleted';
-}
-
 export function Toolbar({ workbook }: ToolbarProps) {
   const params = useParams<{ id: string; path?: string[] }>();
   const pathname = usePathname();
   const router = useRouter();
-  const { publishFolders, discardAllChanges, pullFolders } = useWorkbook(workbook.id);
+  const { publishFolders, discardAllChanges, pullFolders } = useActiveWorkbook();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const { user } = useScratchPadUser();
   const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
@@ -82,26 +78,10 @@ export function Toolbar({ workbook }: ToolbarProps) {
   const [isDiscarding, setIsDiscarding] = useState(false);
 
   // Dirty files for review mode
-  const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
+  const { dirtyFiles, refresh: refreshDirtyFiles } = useDirtyFiles(isReviewPage ? workbook.id : null);
 
   // Confirm dialog
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
-
-  // Fetch dirty files when in review mode
-  useEffect(() => {
-    if (!isReviewPage) return;
-
-    const fetchDirtyFiles = async () => {
-      try {
-        const data = (await workbookApi.getStatus(workbook.id)) as DirtyFile[];
-        setDirtyFiles(data || []);
-      } catch (error) {
-        console.debug('Failed to fetch dirty files:', error);
-      }
-    };
-
-    fetchDirtyFiles();
-  }, [isReviewPage, workbook.id]);
 
   const handlePullAll = useCallback(async () => {
     setIsPulling(true);
@@ -160,13 +140,14 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
         try {
           await discardAllChanges();
-          router.refresh();
+          refreshDirtyFiles();
+          router.push(RouteUrls.workbookReviewPageUrl(workbook.id));
         } finally {
           setIsDiscarding(false);
         }
       },
     });
-  }, [router, openConfirmDialog, discardAllChanges]);
+  }, [router, openConfirmDialog, discardAllChanges, workbook.id, refreshDirtyFiles]);
 
   const toggleColorScheme = () => {
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';

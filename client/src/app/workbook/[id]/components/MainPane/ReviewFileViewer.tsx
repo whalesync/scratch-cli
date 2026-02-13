@@ -2,9 +2,9 @@
 
 import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useFileByPath } from '@/hooks/use-file-path';
-import { dataFolderApi } from '@/lib/api/data-folder';
 import { workbookApi } from '@/lib/api/workbook';
 import { json } from '@codemirror/lang-json';
 import { unifiedMergeView } from '@codemirror/merge';
@@ -26,6 +26,7 @@ interface ReviewFileViewerProps {
 export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps) {
   const router = useRouter();
   const { file: fileResponse, isLoading, updateFile, refreshFile } = useFileByPath(workbookId, filePath);
+  const { publishFolders } = useActiveWorkbook();
   const { folders } = useDataFolders(workbookId);
   const { colorScheme } = useMantineColorScheme();
 
@@ -123,7 +124,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
       }
 
       // Publish via the data folder API which creates a job
-      await dataFolderApi.publish([folder.id], workbookId);
+      await publishFolders([folder.id]);
 
       // Refresh the file data
       await refreshFile();
@@ -134,7 +135,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
     } finally {
       setIsPublishing(false);
     }
-  }, [filePath, workbookId, refreshFile, router, folders]);
+  }, [filePath, workbookId, refreshFile, router, folders, publishFolders]);
 
   // Keyboard shortcut: Cmd+S / Ctrl+S to save
   useEffect(() => {

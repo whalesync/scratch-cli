@@ -3,13 +3,14 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
-import { workbookApi } from '@/lib/api/workbook';
+import { useDirtyFiles } from '@/hooks/use-dirty-files';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Box, Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, Workbook, WorkbookId } from '@spinner/shared-types';
 import { RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { DirtyFile } from '@/hooks/use-dirty-files';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { ConnectionNode, EmptyConnectionNode } from './TreeNode';
@@ -21,10 +22,7 @@ interface FileTreeProps {
   mode?: FileTreeMode;
 }
 
-export interface DirtyFile {
-  path: string;
-  status: 'added' | 'modified' | 'deleted';
-}
+export type { DirtyFile };
 
 const SCRATCH_GROUP_NAME = 'Scratch';
 
@@ -50,25 +48,11 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
   );
 
   // For review mode, fetch dirty files
-  const [dirtyFiles, setDirtyFiles] = useState<DirtyFile[]>([]);
-  const [dirtyFilesLoading, setDirtyFilesLoading] = useState(false);
-
-  const fetchDirtyFiles = useCallback(async () => {
-    if (mode !== 'review') return;
-    setDirtyFilesLoading(true);
-    try {
-      const data = (await workbookApi.getStatus(workbook.id)) as DirtyFile[];
-      setDirtyFiles(data || []);
-    } catch (error) {
-      console.debug('Failed to fetch dirty files:', error);
-    } finally {
-      setDirtyFilesLoading(false);
-    }
-  }, [workbook.id, mode]);
-
-  useEffect(() => {
-    fetchDirtyFiles();
-  }, [fetchDirtyFiles]);
+  const {
+    dirtyFiles,
+    isLoading: dirtyFilesLoading,
+    refresh: refreshDirtyFiles,
+  } = useDirtyFiles(mode === 'review' ? workbook.id : null);
 
   // Create a set of dirty file paths for quick lookup
   const dirtyFilePaths = useMemo(() => {
@@ -196,7 +180,7 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
               <UnstyledButton
                 onClick={() => {
                   if (mode === 'review') {
-                    fetchDirtyFiles();
+                    refreshDirtyFiles();
                   } else {
                     refreshDataFolders();
                   }

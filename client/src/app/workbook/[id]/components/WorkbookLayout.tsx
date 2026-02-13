@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import { Toolbar } from './MainPane/Toolbar';
 import { ResizeHandle } from './shared/ResizeHandle';
+import { WorkbookErrorAlert } from './shared/WorkbookErrorAlert';
 import { FileTree, type FileTreeMode } from './Sidebar/FileTree';
 import { NavTabs } from './Sidebar/NavTabs';
 import { ProjectSwitcher } from './Sidebar/ProjectSwitcher';
@@ -124,7 +125,7 @@ export function WorkbookLayout({ workbook, children }: WorkbookLayoutProps) {
         >
           {/* Toolbar */}
           <Toolbar workbook={workbook} />
-
+          <WorkbookErrorAlert />
           {/* Content */}
           <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{children}</Box>
         </Stack>

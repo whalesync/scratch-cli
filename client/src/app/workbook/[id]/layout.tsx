@@ -26,8 +26,6 @@ export default function NewWorkbookLayout({ children }: LayoutProps) {
   const reset = useNewWorkbookUIStore((state) => state.reset);
 
   // Initialize the workbook editor store so useDataFolders can work
-  // Note: We only set the workbookId, we don't call reconcileWithWorkbook
-  // because it would redirect to the old UI URL
   const openWorkbook = useWorkbookEditorUIStore((state) => state.openWorkbook);
   const closeWorkbook = useWorkbookEditorUIStore((state) => state.closeWorkbook);
 

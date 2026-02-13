@@ -1,29 +1,17 @@
-import { DataFolder, isDataFolderId } from '@spinner/shared-types';
 import { useWorkbookEditorUIStore } from '../stores/workbook-editor-store';
 import { useWorkbook, UseWorkbookReturn } from './use-workbook';
 
-interface UseActiveWorkbookReturn extends UseWorkbookReturn {
-  activeTable: DataFolder | undefined;
-}
-
 /**
- * Hook for the active snapshot and table in the Editor.
+ * Hook for the active workbook in the editor UI so components don't have to pass the workbook ID around.
+ * Generally use this instead of useWorkbook directly as it will handle the context for you
  *
- * UI state is managed in the SnapshotEditorUIStore. This wraps that to provide the data from SWR that is referenced
+ * Global UI state is managed in the WorkbookEditorUIStore. This wraps that to provide the data from SWR that is referenced
  * by the UI state.
  */
-export const useActiveWorkbook = (): UseActiveWorkbookReturn => {
+export const useActiveWorkbook = (): UseWorkbookReturn => {
   const workbookId = useWorkbookEditorUIStore((state) => state.workbookId);
-  const activeTab = useWorkbookEditorUIStore((state) => state.activeTab);
-
   const hookResult = useWorkbook(workbookId);
-
-  const activeTable = isDataFolderId(activeTab)
-    ? hookResult?.workbook?.dataFolders?.find((folder) => folder.id === activeTab)
-    : undefined;
-
   return {
     ...hookResult,
-    activeTable,
   };
 };

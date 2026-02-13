@@ -4,10 +4,11 @@ import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { workbookApi } from '@/lib/api/workbook';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { WorkbookId } from '@spinner/shared-types';
-import { EllipsisVertical, FileCodeIcon, GitGraphIcon, Trash2Icon } from 'lucide-react';
+import { EllipsisVertical, FileCodeIcon, GitGraphIcon, ServerCrashIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { GitFileBrowserModal } from '../modals/GitFileBrowserModal';
 import { GitGraphModal } from '../modals/GitGraphModal';
@@ -21,6 +22,7 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
   const [gitGraphOpen, setGitGraphOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
+  const setWorkbookError = useWorkbookEditorUIStore((state) => state.setWorkbookError);
 
   const handleResetWorkbook = () => {
     openConfirmDialog({
@@ -67,6 +69,18 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
               </Menu.Item>
               <Menu.Item data-devtool leftSection={<FileCodeIcon size={16} />} onClick={() => setFileBrowserOpen(true)}>
                 Git File Browser
+              </Menu.Item>
+              <Menu.Item
+                data-devtool
+                leftSection={<ServerCrashIcon size={16} />}
+                onClick={() =>
+                  setWorkbookError({
+                    description: 'This is a test error',
+                    cause: new Error('Test error'),
+                  })
+                }
+              >
+                Test Workbook Error
               </Menu.Item>
             </>
           )}

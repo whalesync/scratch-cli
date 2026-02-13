@@ -4,11 +4,10 @@ import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { PulsingIcon } from '@/app/components/Icons/PulsingIcon';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { Text12Medium, Text12Regular, TextMono12Regular } from '@/app/components/base/text';
+import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDevTools } from '@/hooks/use-dev-tools';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
-import { useWorkbook } from '@/hooks/use-workbook';
 import { useWorkbookActiveJobs } from '@/hooks/use-workbook-active-jobs';
-import { workbookApi } from '@/lib/api/workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Badge, Box, Collapse, Group, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -65,7 +64,7 @@ export function ConnectionNode({
 }: ConnectionNodeProps) {
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
-  const { workbook, pullFolders } = useWorkbook(workbookId);
+  const { workbook, pullFolders } = useActiveWorkbook();
   const { getJobsForConnector } = useWorkbookActiveJobs(workbookId);
 
   const connectorJobs = useMemo(() => {
@@ -318,6 +317,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
   const { isDevToolsEnabled } = useDevTools();
+  const { pullFolders } = useActiveWorkbook();
 
   const nodeId = `table-${folder.id}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -339,10 +339,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   // Pull handler for this table
   const handlePullTable = async () => {
     try {
-      await workbookApi.pullFiles(workbookId, [folder.id]);
-      router.refresh();
+      await pullFolders([folder.id]);
     } catch (error) {
-      console.debug('Failed to pull table:', error);
+      console.error('Failed to pull table:', error);
     }
   };
 
