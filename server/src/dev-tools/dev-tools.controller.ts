@@ -17,11 +17,13 @@ import {
 } from '@nestjs/common';
 import type { DataFolderId } from '@spinner/shared-types';
 import {
+  ChangeUserOrganizationDto,
   createSubscriptionId,
   ScratchPlanType,
   SyncId,
   UpdateDevSubscriptionDto,
   UpdateSettingsDto,
+  ValidatedChangeUserOrganizationDto,
   ValidatedUpdateSettingsDto,
   WorkbookId,
 } from '@spinner/shared-types';
@@ -66,6 +68,20 @@ export class DevToolsController {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly dataFolderService: DataFolderService,
   ) {}
+
+  @Post('users/change-organization')
+  @HttpCode(204)
+  async changeUserOrganization(
+    @Body() dtoParam: ChangeUserOrganizationDto,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException("Only admins can change a user's organization");
+    }
+
+    const dto = dtoParam as ValidatedChangeUserOrganizationDto;
+    await this.devToolsService.changeUserOrganization(dto.userId, dto.newOrganizationId, dto.deleteOldOrganization);
+  }
 
   @Get('users/search')
   async searchUsers(@Query('query') query: string, @Req() req: RequestWithUser): Promise<User[]> {

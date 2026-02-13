@@ -1,6 +1,6 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
-import { DataFolderId, ScratchPlanType } from '@spinner/shared-types';
+import { ChangeUserOrganizationDto, DataFolderId, ScratchPlanType } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -34,6 +34,14 @@ export const devToolsApi = {
       await axios.patch(`/dev-tools/users/${userId}/settings`, dto);
     } catch (error) {
       handleAxiosError(error, 'Failed to update user settings for user: ' + userId);
+    }
+  },
+  changeUserOrganization: async (dto: ChangeUserOrganizationDto): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post('/dev-tools/users/change-organization', dto);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to change user organization');
     }
   },
   updateUserSubscription: async (newPlan: ScratchPlanType): Promise<void> => {

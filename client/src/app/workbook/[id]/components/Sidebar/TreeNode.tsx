@@ -529,14 +529,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
                 setContextMenu(null);
               },
             },
+            { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal },
             { type: 'divider' },
             { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
-            ...(isDevToolsEnabled
-              ? [
-                  { type: 'divider' as const },
-                  { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal, devtool: true },
-                ]
-              : []),
           ]}
         />
       )}

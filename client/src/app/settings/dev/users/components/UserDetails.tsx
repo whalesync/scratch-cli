@@ -1,15 +1,18 @@
 import { Badge, BadgeError, BadgeOK } from '@/app/components/base/badge';
+import { ButtonPrimaryLight } from '@/app/components/base/buttons';
 import { Text13Book, TextTitle2, TextTitle3 } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { LabelValuePair } from '@/app/components/LabelValuePair';
+import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
 import { ToolIconButton } from '@/app/components/ToolIconButton';
 import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { getBuildFlavor } from '@/utils/build';
-import { Anchor, Card, CloseButton, Group, Stack, Table, Tooltip } from '@mantine/core';
-import { CreditCardIcon, HatGlassesIcon, Trash2Icon } from 'lucide-react';
+import { Accordion, Anchor, Card, Checkbox, CloseButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
+import { IdPrefixes } from '@spinner/shared-types';
+import { CreditCardIcon, HatGlassesIcon, SquarePenIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { clerkUserUrl, stripeCustomerUrl } from '../utils';
 
@@ -23,6 +26,50 @@ export const UserDetailsCard = ({
   onRefreshUser: (userId: string) => void;
 }) => {
   const [saving, setSaving] = useState(false);
+  const [newOrgId, setNewOrgId] = useState('');
+  const [deleteOldOrg, setDeleteOldOrg] = useState(false);
+  const { open: openConfirm, dialogProps } = useConfirmDialog();
+  const orgIdError =
+    newOrgId.trim() && !newOrgId.trim().startsWith(IdPrefixes.ORGANIZATION)
+      ? 'Organization ID must start with "org_"'
+      : undefined;
+
+  const handleChangeOrganization = useCallback(() => {
+    if (!newOrgId.trim() || !newOrgId.trim().startsWith(IdPrefixes.ORGANIZATION)) return;
+
+    openConfirm({
+      title: 'Change Organization',
+      message: `Move user "${details.user.name}" to organization "${newOrgId}"?${deleteOldOrg ? ' The old organization will be deleted if no other users remain.' : ''}`,
+      confirmLabel: 'Change Organization',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setSaving(true);
+          await devToolsApi.changeUserOrganization({
+            userId: details.user.id,
+            newOrganizationId: newOrgId.trim(),
+            deleteOldOrganization: deleteOldOrg,
+          });
+          ScratchpadNotifications.success({
+            title: 'Organization changed',
+            message: 'The user organization has been updated successfully',
+          });
+          setNewOrgId('');
+          setDeleteOldOrg(false);
+          onRefreshUser(details.user.id);
+        } catch (error) {
+          console.error('Failed to change organization', error);
+          ScratchpadNotifications.error({
+            title: 'Failed to change organization',
+            message: 'The user organization has not been updated',
+          });
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  }, [newOrgId, deleteOldOrg, details, openConfirm, onRefreshUser]);
+
   const handleRemoveSetting = useCallback(
     async (key: string) => {
       try {
@@ -91,7 +138,41 @@ export const UserDetailsCard = ({
           <LabelValuePair label="ID" value={details.user.organization?.id} canCopy />
           <LabelValuePair label="Clerk ID" value={details.user.organization?.clerkId} canCopy />
           <LabelValuePair label="Name" value={details.user.organization?.name} />
+          <Accordion variant="contained" defaultValue={null} chevronPosition="right">
+            <Accordion.Item value="change-org">
+              <Accordion.Control icon={<SquarePenIcon size={12} />}>Change Organization</Accordion.Control>
+              <Accordion.Panel>
+                <Group gap="xs" grow justify="space-between" align="center">
+                  <TextInput
+                    placeholder="Enter organization ID"
+                    size="xs"
+                    value={newOrgId}
+                    onChange={(e) => setNewOrgId(e.currentTarget.value)}
+                    error={orgIdError}
+                    disabled={saving}
+                    miw="50%"
+                  />
+                  <Checkbox
+                    label="Remove old org"
+                    checked={deleteOldOrg}
+                    onChange={(e) => setDeleteOldOrg(e.currentTarget.checked)}
+                    disabled={saving}
+                  />
+
+                  <ButtonPrimaryLight
+                    onClick={handleChangeOrganization}
+                    loading={saving}
+                    disabled={!newOrgId.trim() || !!orgIdError}
+                    size="xs"
+                  >
+                    Change Organization
+                  </ButtonPrimaryLight>
+                </Group>
+              </Accordion.Panel>
+            </Accordion.Item>
+          </Accordion>
         </Stack>
+        <ConfirmDialog {...dialogProps} />
       </Card.Section>
       <Card.Section p="xs" withBorder>
         <Stack>

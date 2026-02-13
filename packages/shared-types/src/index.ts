@@ -26,6 +26,7 @@ export * from './dto/data-folder/create-data-folder.dto';
 export * from './dto/data-folder/data-folder-publish-status.dto';
 export * from './dto/data-folder/move-data-folder.dto';
 export * from './dto/data-folder/rename-data-folder.dto';
+export * from './dto/dev-tools/change-user-organization.dto';
 export * from './dto/dev-tools/update-dev-subscription.dto';
 export * from './dto/oauth/oauth-initiate-options.dto';
 export * from './dto/oauth/oauth-state-payload';
