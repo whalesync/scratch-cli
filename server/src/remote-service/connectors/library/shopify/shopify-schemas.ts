@@ -56,6 +56,19 @@ export function buildProductSchema(): TSchema {
       descriptionHtml: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'HTML description' })),
       vendor: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Product vendor' })),
       productType: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: 'Product type' })),
+      category: Type.Optional(
+        Type.Union(
+          [
+            Type.Object({
+              id: Type.String({ description: 'Taxonomy category GID' }),
+              name: Type.String({ description: 'Taxonomy category name (read-only)' }),
+              fullName: Type.String({ description: 'Full taxonomy path (read-only)' }),
+            }),
+            Type.Null(),
+          ],
+          { description: 'Standardized product taxonomy category' },
+        ),
+      ),
       status: Type.Optional(
         Type.Union([Type.Literal('ACTIVE'), Type.Literal('ARCHIVED'), Type.Literal('DRAFT')], {
           description: 'Product status',

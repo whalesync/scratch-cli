@@ -37,7 +37,7 @@ import {
 const LOG_SOURCE = 'ShopifyApiClient';
 
 // GraphQL API version
-const API_VERSION = '2024-10';
+const API_VERSION = '2025-01';
 
 // Retry configuration for rate-limited requests
 const MAX_RETRIES = 5;
@@ -87,6 +87,7 @@ function normalizeDomain(input: string): string {
 const PRODUCT_FIELDS = `
   id handle title description descriptionHtml
   vendor productType status tags templateSuffix
+  category { id name fullName }
   createdAt updatedAt
 `;
 
@@ -250,6 +251,25 @@ const ORDER_CONNECTION_FRAGMENTS: Record<string, string> = {
     }
   `,
 };
+
+/**
+ * Transform category from the stored object format to Shopify's mutation input format.
+ * Queries return `category { id name fullName }`.
+ * Mutations accept `category: ID` (a TaxonomyCategory GID string).
+ */
+function transformCategoryInput(input: ShopifyProductInput): Record<string, unknown> {
+  const raw = { ...input } as Record<string, unknown>;
+  const category = raw.category as { id?: string } | null | undefined;
+
+  if (category === undefined) return raw;
+  if (category === null) {
+    raw.category = null;
+    return raw;
+  }
+
+  raw.category = category.id ?? null;
+  return raw;
+}
 
 /**
  * Shopify GraphQL API client.
@@ -907,6 +927,7 @@ export class ShopifyApiClient {
    * Create a product.
    */
   async createProduct(input: ShopifyProductInput): Promise<ShopifyProduct> {
+    const mutationInput = transformCategoryInput(input);
     const data = await this.query<{
       productCreate: { product: ShopifyProduct | null; userErrors: ShopifyUserError[] };
     }>(
@@ -918,7 +939,7 @@ export class ShopifyApiClient {
         }
       }
     `,
-      { input },
+      { input: mutationInput },
     );
 
     this.throwOnUserErrors(data.productCreate.userErrors);
@@ -934,6 +955,7 @@ export class ShopifyApiClient {
    * Update a product.
    */
   async updateProduct(id: string, input: ShopifyProductInput): Promise<ShopifyProduct> {
+    const mutationInput = transformCategoryInput(input);
     const data = await this.query<{
       productUpdate: { product: ShopifyProduct | null; userErrors: ShopifyUserError[] };
     }>(
@@ -945,7 +967,7 @@ export class ShopifyApiClient {
         }
       }
     `,
-      { input: { ...input, id } },
+      { input: { ...mutationInput, id } },
     );
 
     this.throwOnUserErrors(data.productUpdate.userErrors);

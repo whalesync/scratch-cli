@@ -48,6 +48,11 @@ export interface ShopifyProduct {
   status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
   tags: string[];
   templateSuffix: string | null;
+  category: {
+    id: string;
+    name: string;
+    fullName: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   /** Owned connection - populated by hydration */
@@ -225,6 +230,9 @@ export interface ShopifyProductInput {
   tags?: string[];
   handle?: string;
   templateSuffix?: string;
+  category?: {
+    id: string;
+  } | null;
 }
 
 /**
