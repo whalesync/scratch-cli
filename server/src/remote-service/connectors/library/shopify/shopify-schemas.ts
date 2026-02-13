@@ -18,8 +18,6 @@ export function buildProductSchema(): TSchema {
     price: Type.Optional(Type.String()),
     compareAtPrice: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     inventoryQuantity: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
-    weight: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
-    weightUnit: Type.Optional(Type.String()),
     barcode: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     position: Type.Optional(Type.Number()),
     taxable: Type.Optional(Type.Boolean()),

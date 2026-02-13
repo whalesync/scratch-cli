@@ -652,8 +652,6 @@ export class ShopifyApiClient {
                 price
                 compareAtPrice
                 inventoryQuantity
-                weight
-                weightUnit
                 barcode
                 position
                 taxable
@@ -873,7 +871,7 @@ export class ShopifyApiClient {
         variants(first: $first, after: $after) {
           nodes {
             id title sku price compareAtPrice inventoryQuantity
-            weight weightUnit barcode position taxable createdAt updatedAt
+            barcode position taxable createdAt updatedAt
             selectedOptions { name value }
           }
           pageInfo { hasNextPage endCursor }
