@@ -9,29 +9,23 @@ import {
   NotFoundException,
   Param,
   Post,
-  Query,
   Req,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { DataFolderId, PullFilesResponseDto, Service, WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, PullFilesResponseDto, WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { DbService } from 'src/db/db.service';
 import { JobEntity } from 'src/job/entities/job.entity';
 import { JobService } from 'src/job/job.service';
 import { PostHogService } from 'src/posthog/posthog.service';
-import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { userToActor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
-import {
-  AvailableTablesQueryDto,
-  CreateCliLinkedTableDto,
-  ValidatedCreateCliLinkedTableDto,
-} from './dtos/cli-linked.dto';
+import { CreateCliLinkedTableDto, ValidatedCreateCliLinkedTableDto } from './dtos/cli-linked.dto';
 
 /**
  * Controller for CLI linked table operations.
@@ -44,7 +38,6 @@ import {
 @UseGuards(ScratchAuthGuard)
 export class CliLinkedController {
   constructor(
-    private readonly connectorAccountService: ConnectorAccountService,
     private readonly dataFolderService: DataFolderService,
     private readonly workbookService: WorkbookService,
     private readonly bullEnqueuerService: BullEnqueuerService,
@@ -62,40 +55,6 @@ export class CliLinkedController {
     const actor = userToActor(req.user);
     const result = await this.jobService.getJobProgress(jobId);
     this.posthogService.trackCliGetJobProgress(actor, jobId);
-    return result;
-  }
-
-  /**
-   * List available tables from connections in a specific workbook.
-   */
-  @Get('workbooks/:workbookId/connections/all-tables')
-  async listAvailableTables(
-    @Req() req: RequestWithUser,
-    @Param('workbookId') workbookId: string,
-    @Query() query: AvailableTablesQueryDto,
-  ) {
-    const actor = userToActor(req.user);
-
-    if (query.connectionId) {
-      // List tables for a specific connection
-      const account = await this.connectorAccountService.findOne(workbookId as WorkbookId, query.connectionId, actor);
-      if (!account) {
-        throw new NotFoundException('Connection not found');
-      }
-      const tables = await this.connectorAccountService.listTables(account.service as Service, account.id, actor);
-      this.posthogService.trackCliListTables(actor, workbookId, { connectionId: query.connectionId });
-      return [
-        {
-          service: account.service,
-          connectorAccountId: account.id,
-          displayName: account.displayName,
-          tables,
-        },
-      ];
-    }
-
-    const result = await this.connectorAccountService.listAllUserTables(workbookId as WorkbookId, actor);
-    this.posthogService.trackCliListTables(actor, workbookId);
     return result;
   }
 

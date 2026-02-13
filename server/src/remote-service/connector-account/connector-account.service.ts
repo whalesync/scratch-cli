@@ -243,10 +243,9 @@ export class ConnectorAccountService {
   }
 
   async listAllUserTables(workbookId: WorkbookId, actor: Actor): Promise<TableGroup[]> {
-    // Workbook ownership verified in controller; workbookId provides scoping
-    void actor;
+    // Find accounts for this workbook, ensuring the workbook belongs to the user's organization
     const allAccounts = await this.db.client.connectorAccount.findMany({
-      where: { workbookId },
+      where: { workbookId, workbook: { organizationId: actor.organizationId } },
     });
 
     // Fetch tables from all connector accounts in parallel

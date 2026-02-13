@@ -41,6 +41,20 @@ export class CliConnectionController {
     return accounts.map((a) => this.toResponse(a));
   }
 
+  /**
+   * List all available tables from all connections in the workbook.
+   * Must be defined before @Get(':id') to avoid route conflict.
+   */
+  @Get('all-tables')
+  async listAllTables(@Param('workbookId') workbookId: string, @Req() req: RequestWithUser) {
+    await this.verifyWorkbookAccess(workbookId as WorkbookId, req);
+    const result = await this.connectorAccountService.listAllUserTables(
+      workbookId as WorkbookId,
+      userToActor(req.user),
+    );
+    return result;
+  }
+
   @Post()
   async create(
     @Param('workbookId') workbookId: string,
