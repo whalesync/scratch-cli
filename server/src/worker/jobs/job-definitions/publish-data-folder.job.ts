@@ -66,6 +66,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
   ) {}
 
   async run(params: {
+    jobId: string;
     data: PublishDataFolderJobDefinition['data'];
     progress: Progress<
       PublishDataFolderJobDefinition['publicProgress'],
@@ -82,7 +83,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
       >,
     ) => Promise<void>;
   }) {
-    const { data, checkpoint, progress } = params;
+    const { jobId, data, checkpoint, progress } = params;
 
     // Fetch all DataFolders with their connector accounts
     const dataFolders = await this.prisma.dataFolder.findMany({
@@ -145,9 +146,10 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
     });
 
     this.workbookEventService.sendWorkbookEvent(data.workbookId, {
-      type: 'sync-status-changed',
+      type: 'job-started',
       data: {
-        source: 'user',
+        source: 'job',
+        entityId: jobId,
         message: 'Publish data folder job started',
       },
     });
@@ -268,7 +270,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
             this.workbookEventService.sendWorkbookEvent(data.workbookId, {
               type: 'workbook-updated',
               data: {
-                tableId: dataFolder.id,
+                entityId: dataFolder.id,
                 source: 'user',
                 message: `Updating publishing counts for ${phase}`,
               },
@@ -330,7 +332,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
           type: 'workbook-updated',
           data: {
             source: 'user',
-            tableId: dataFolder.id,
+            entityId: dataFolder.id,
             message: 'Folder publish completed',
           },
         });
@@ -345,10 +347,10 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         });
 
         this.workbookEventService.sendWorkbookEvent(data.workbookId, {
-          type: 'sync-status-changed',
+          type: 'job-failed',
           data: {
             source: 'user',
-            tableId: dataFolder.id,
+            entityId: dataFolder.id,
             message: 'Folder publish failed',
           },
         });

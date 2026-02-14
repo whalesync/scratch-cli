@@ -17,6 +17,7 @@ export type AddTwoNumbersJobDefinition = JobDefinitionBuilder<
 
 export const AddTwoNumbersJobHandler: JobHandler<AddTwoNumbersJobDefinition> = {
   run: async (params: {
+    jobId: string;
     data: AddTwoNumbersJobDefinition['data'];
     progress: Progress<AddTwoNumbersJobDefinition['publicProgress'], AddTwoNumbersJobDefinition['initialJobProgress']>;
     abortSignal: AbortSignal;

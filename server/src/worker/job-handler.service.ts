@@ -58,7 +58,11 @@ export class JobHandlerService {
         ) as JobHandler<JobDefinition>;
 
       case 'sync-data-folders':
-        return new SyncDataFoldersJobHandler(prisma, this.syncService) as JobHandler<JobDefinition>;
+        return new SyncDataFoldersJobHandler(
+          prisma,
+          this.syncService,
+          this.workbookEventService,
+        ) as JobHandler<JobDefinition>;
 
       default:
         throw new Error(`Unknown job type. Data: ${JSON.stringify(data)}`);

@@ -10,26 +10,6 @@ export type Subscriptions = {
   tables: string[];
 };
 
-export interface WorkbookTableEvent {
-  type: 'workbook-updated' | 'filter-changed' | 'page-size-changed' | 'sync-status-changed';
-  data: {
-    tableId?: DataFolderId;
-    source: 'user' | 'agent';
-    message?: string;
-  };
-}
-
-export interface WorkbookTableRecordEvent {
-  type: 'record-changes';
-  data: {
-    tableId: DataFolderId;
-    numRecords: number;
-    changeType: 'suggested' | 'accepted' | 'rejected';
-    source: 'user' | 'agent';
-    message?: string;
-  };
-}
-
 export interface SubscriptionConfirmedEvent {
   workbookId: WorkbookId;
   tableId?: DataFolderId;

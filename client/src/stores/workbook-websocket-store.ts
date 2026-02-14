@@ -2,14 +2,8 @@
 
 import { API_CONFIG } from '@/lib/api/config';
 import { SWR_KEYS } from '@/lib/api/keys';
-import {
-  MessageLogItem,
-  SubscriptionConfirmedEvent,
-  Subscriptions,
-  WorkbookTableEvent,
-  WorkbookTableRecordEvent,
-} from '@/types/workbook-websocket';
-import { WorkbookId } from '@spinner/shared-types';
+import { MessageLogItem, SubscriptionConfirmedEvent, Subscriptions } from '@/types/workbook-websocket';
+import { DataFolderId, isDataFolderId, WorkbookEvent, WorkbookId } from '@spinner/shared-types';
 import { io, Socket } from 'socket.io-client';
 import { mutate } from 'swr';
 import { create } from 'zustand';
@@ -38,8 +32,7 @@ type Actions = {
   sendPing: () => void;
   _addToMessageLog: (message: string) => void;
   _setSubscriptions: (subscriptions: Partial<Subscriptions>) => void;
-  _handleSnapshotEvent: (event: WorkbookTableEvent, workbookId: WorkbookId) => void;
-  _handleRecordEvent: (event: WorkbookTableRecordEvent, workbookId: WorkbookId) => void;
+  _handleWorkbookEvent: (event: WorkbookEvent, workbookId: WorkbookId) => void;
 };
 
 type WorkbookWebSocketStore = State & Actions;
@@ -80,34 +73,71 @@ export const useWorkbookWebSocketStore = create<WorkbookWebSocketStore>((set, ge
     }));
   },
 
-  _handleSnapshotEvent: (event: WorkbookTableEvent, workbookId: WorkbookId) => {
-    console.debug('Snapshot event received:', event);
+  _handleWorkbookEvent: (event: WorkbookEvent, workbookId: WorkbookId) => {
+    console.debug('Workbook event received:', event);
 
-    if (event.type === 'workbook-updated' || event.type === 'filter-changed') {
-      get()._addToMessageLog('Mutate snapshot SWR keys');
-
-      // Invalidate snapshot detail cache
+    if (event.type === 'workbook-updated') {
+      get()._addToMessageLog('Mutate workbook SWR keys');
       mutate(SWR_KEYS.workbook.detail(workbookId), undefined, {
         revalidate: true,
       });
       mutate(SWR_KEYS.workbook.list());
+      return;
+    }
 
-      if (event.data.tableId) {
-        mutate(SWR_KEYS.workbook.recordsKeyMatcher(workbookId, event.data.tableId), undefined, {
+    if (event.type === 'job-started' || event.type === 'job-completed' || event.type === 'job-failed') {
+      get()._addToMessageLog('Mutate job status SWR keys');
+      mutate(SWR_KEYS.jobs.activeByWorkbook(workbookId), undefined, {
+        revalidate: true,
+      });
+      return;
+    }
+
+    if (event.type === 'changes-discarded') {
+      get()._addToMessageLog('Mutate changes discarded SWR keys');
+      mutate(SWR_KEYS.dirtyFiles.list(workbookId), undefined, {
+        revalidate: true,
+      });
+      return;
+    }
+
+    if (event.type === 'folder-created' || event.type === 'folder-deleted') {
+      get()._addToMessageLog('Mutate folder list and workbook detail SWR keys');
+      mutate(SWR_KEYS.dataFolders.list(workbookId), undefined, {
+        revalidate: true,
+      });
+      mutate(SWR_KEYS.workbook.detail(workbookId), undefined, {
+        revalidate: true,
+      });
+      return;
+    }
+
+    if (event.type === 'folder-updated') {
+      get()._addToMessageLog('Mutate folder updated SWR keys');
+      mutate(SWR_KEYS.dataFolders.detail(event.data.entityId as DataFolderId), undefined, {
+        revalidate: true,
+      });
+      return;
+    }
+
+    if (event.type === 'folder-contents-changed') {
+      get()._addToMessageLog('Mutate file list and folder detail SWR keys');
+
+      if (event.data.entityId && isDataFolderId(event.data.entityId)) {
+        mutate(SWR_KEYS.dataFolders.files(event.data.entityId as DataFolderId), undefined, {
+          revalidate: true,
+        });
+        mutate(SWR_KEYS.files.listByFolder(workbookId, event.data.entityId as DataFolderId), undefined, {
           revalidate: true,
         });
       }
+
+      return;
     }
-  },
 
-  _handleRecordEvent: (event: WorkbookTableRecordEvent, workbookId: WorkbookId) => {
-    console.debug('Record event received:', event);
-
-    if (event.type === 'record-changes' && event.data.tableId) {
-      get()._addToMessageLog('Mutate record SWR keys');
-      mutate(SWR_KEYS.workbook.recordsKeyMatcher(workbookId, event.data.tableId), undefined, {
-        revalidate: true,
-      });
+    if (event.type === 'file-changed') {
+      // TODO: Mutate file detail SWR key
+      return;
     }
   },
 
@@ -196,14 +226,9 @@ export const useWorkbookWebSocketStore = create<WorkbookWebSocketStore>((set, ge
       }
     });
 
-    newSocket.on('snapshot-event', (data) => {
+    newSocket.on('workbook-event', (data) => {
       get()._addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
-      get()._handleSnapshotEvent(data as WorkbookTableEvent, workbookId);
-    });
-
-    newSocket.on('record-event', (data) => {
-      get()._addToMessageLog(typeof data === 'string' ? data : JSON.stringify(data));
-      get()._handleRecordEvent(data as WorkbookTableRecordEvent, workbookId);
+      get()._handleWorkbookEvent(data as WorkbookEvent, workbookId);
     });
 
     set({

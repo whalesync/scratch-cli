@@ -92,6 +92,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
   }
 
   async run(params: {
+    jobId: string;
     data: PullLinkedFolderFilesJobDefinition['data'];
     progress: Progress<
       PullLinkedFolderFilesJobDefinition['publicProgress'],
@@ -108,7 +109,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       >,
     ) => Promise<void>;
   }) {
-    const { data, checkpoint, progress } = params;
+    const { jobId, data, checkpoint, progress } = params;
 
     const dataFolder = await this.prisma.dataFolder.findUnique({
       where: { id: data.dataFolderId },
@@ -141,6 +142,16 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       updatedPaths: [],
       deletedPaths: [],
     };
+
+    this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+      type: 'job-started',
+      data: {
+        source: 'job',
+        entityId: dataFolder.id,
+        message: 'Pulling files for data folder',
+        jobId: jobId,
+      },
+    });
 
     // Checkpoint initial status
     await checkpoint({
@@ -235,10 +246,12 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       publicProgress.totalFiles += files.length;
 
       this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
-        type: 'workbook-updated',
+        type: 'folder-contents-changed',
         data: {
-          tableId: dataFolder.id,
-          source: 'user',
+          entityId: dataFolder.id,
+          source: 'job',
+          message: 'Updated data folder progress',
+          jobId: jobId,
         },
       });
 
@@ -326,10 +339,22 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       });
 
       this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
-        type: 'workbook-updated',
+        type: 'folder-updated',
         data: {
-          tableId: dataFolder.id,
-          source: 'agent',
+          entityId: dataFolder.id,
+          source: 'job',
+          message: 'Updated status of folder',
+          jobId: jobId,
+        },
+      });
+
+      this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+        type: 'job-completed',
+        data: {
+          entityId: dataFolder.id,
+          source: 'job',
+          message: 'Pull completed for data folder',
+          jobId: jobId,
         },
       });
     } catch (error) {
@@ -356,6 +381,27 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         dataFolderId: dataFolder.id,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+
+      this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+        type: 'folder-updated',
+        data: {
+          entityId: dataFolder.id,
+          source: 'job',
+          message: 'Updated status of folder',
+          jobId: jobId,
+        },
+      });
+
+      this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+        type: 'job-failed',
+        data: {
+          entityId: dataFolder.id,
+          source: 'job',
+          message: 'Pull failed for data folder',
+          jobId: jobId,
+        },
+      });
+
       throw exceptionForConnectorError(error, connector);
     }
   }

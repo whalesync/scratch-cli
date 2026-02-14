@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import type { DataFolderId, SyncId, SyncMapping, WorkbookId } from '@spinner/shared-types';
+import { WorkbookEventService } from 'src/workbook/workbook-event.service';
 import { WSLogger } from '../../../logger';
 import { SyncService } from '../../../sync/sync.service';
 import { Actor } from '../../../users/types';
@@ -44,9 +45,11 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
   constructor(
     private readonly prisma: PrismaClient,
     private readonly syncService: SyncService,
+    private readonly workbookEventService: WorkbookEventService,
   ) {}
 
   async run(params: {
+    jobId: string;
     data: SyncDataFoldersJobDefinition['data'];
     progress: Progress<
       SyncDataFoldersJobDefinition['publicProgress'],
@@ -68,6 +71,16 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       syncId: data.syncId,
       workbookId: data.workbookId,
       userId: data.userId,
+    });
+
+    this.workbookEventService.sendWorkbookEvent(data.workbookId, {
+      type: 'job-started',
+      data: {
+        source: 'job',
+        entityId: data.syncId,
+        message: 'Syncing data folders',
+        jobId: params.jobId,
+      },
     });
 
     // Load the Sync record
@@ -267,6 +280,16 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         data: { lastSyncTime: new Date() },
       });
     }
+
+    this.workbookEventService.sendWorkbookEvent(data.workbookId, {
+      type: 'job-completed',
+      data: {
+        source: 'job',
+        entityId: data.syncId,
+        message: 'Sync completed',
+        jobId: params.jobId,
+      },
+    });
 
     WSLogger.info({
       source: 'SyncDataFoldersJob',

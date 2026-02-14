@@ -6,6 +6,7 @@ import MainContent from '@/app/components/layouts/MainContent';
 import { useWorkbook } from '@/hooks/use-workbook';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { useWorkbookWebSocketStore } from '@/stores/workbook-websocket-store';
 import { RouteUrls } from '@/utils/route-urls';
 import type { WorkbookId } from '@spinner/shared-types';
 import { ArrowLeftIcon } from 'lucide-react';
@@ -24,20 +25,23 @@ export default function NewWorkbookLayout({ children }: LayoutProps) {
 
   const { workbook, isLoading, error } = useWorkbook(workbookId);
   const reset = useNewWorkbookUIStore((state) => state.reset);
-
   // Initialize the workbook editor store so useDataFolders can work
   const openWorkbook = useWorkbookEditorUIStore((state) => state.openWorkbook);
   const closeWorkbook = useWorkbookEditorUIStore((state) => state.closeWorkbook);
+  const connect = useWorkbookWebSocketStore((state) => state.connect);
+  const disconnect = useWorkbookWebSocketStore((state) => state.disconnect);
 
   // Initialize workbook editor store (just sets workbookId for useDataFolders to work)
   useEffect(() => {
     openWorkbook({ workbookId });
+    connect(workbookId);
 
     return () => {
       closeWorkbook();
       reset();
+      disconnect();
     };
-  }, [workbookId, openWorkbook, closeWorkbook, reset]);
+  }, [workbookId, openWorkbook, closeWorkbook, reset, connect, disconnect]);
 
   if (isLoading && !workbook) {
     return <FullPageLoader message="Loading workbook..." />;

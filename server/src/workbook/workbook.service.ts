@@ -108,6 +108,11 @@ export class WorkbookService {
     const workbook = await this.findOneOrThrow(workbookId, actor);
     await this.scratchGitService.discardChanges(workbookId, path);
 
+    this.workbookEventService.sendWorkbookEvent(workbookId, {
+      type: 'changes-discarded',
+      data: { source: 'user', entityId: workbookId, message: 'Changes discarded', path },
+    });
+
     this.posthogService.trackDiscardWorkbookChanges(actor, workbook, path);
 
     // Track event
@@ -232,7 +237,10 @@ export class WorkbookService {
     });
 
     this.posthogService.trackUpdateWorkbook(actor, updatedWorkbook);
-    this.workbookEventService.sendWorkbookEvent(id, { type: 'workbook-updated', data: { source: 'user' } });
+    this.workbookEventService.sendWorkbookEvent(id, {
+      type: 'workbook-updated',
+      data: { source: 'user', entityId: id, message: 'Workbook modified' },
+    });
 
     await this.auditLogService.logEvent({
       actor,
@@ -282,6 +290,13 @@ export class WorkbookService {
       data: {
         lock: 'pull',
       },
+    });
+
+    foldersToProcess.forEach((folder) => {
+      this.workbookEventService.sendWorkbookEvent(id, {
+        type: 'folder-updated',
+        data: { source: 'user', entityId: folder.id, message: 'Folder status set to pull' },
+      });
     });
 
     // Enqueue a pull job for each data folder

@@ -19,6 +19,7 @@ export class AddThreeNumbersJobHandler implements JobHandlerBuilder<AddThreeNumb
   constructor(private readonly prisma: PrismaClient) {}
 
   async run(params: {
+    jobId: string;
     data: AddThreeNumbersJobDefinition['data'];
     progress: Progress<AddThreeNumbersJobDefinition['publicProgress']>;
     abortSignal: AbortSignal;

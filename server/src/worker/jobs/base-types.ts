@@ -38,12 +38,14 @@ export type JobHandlerBuilder<TDefinition extends JobDefinitionBuilder<any, any,
   TDefinition extends JobDefinitionBuilder<any, infer TData, infer TPublicProgress, infer TJobProgress, infer TResult>
     ? {
         run: (params: {
+          jobId: string;
           data: TData;
           checkpoint: (progress: Omit<Progress<TPublicProgress, TJobProgress>, 'timestamp'>) => Promise<void>;
           progress: Progress<TPublicProgress, TJobProgress>;
           abortSignal: AbortSignal;
         }) => Promise<TResult>;
         terminate?: (params: {
+          jobId: string;
           reason: 'canceled' | 'termina-failure';
           data: TData;
           progress: Progress<TPublicProgress>;

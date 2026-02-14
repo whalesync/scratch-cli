@@ -85,7 +85,7 @@ export class WorkbookDataGateway implements OnGatewayInit, OnGatewayConnection, 
   }
 
   @SubscribeMessage('subscribe')
-  async handleSubscribeToSnapshot(
+  async handleSubscribe(
     @ConnectedSocket() client: SocketWithUser,
     @MessageBody() data: { workbookId: WorkbookId },
   ): Promise<void> {
@@ -113,7 +113,7 @@ export class WorkbookDataGateway implements OnGatewayInit, OnGatewayConnection, 
         source: 'WorkbookDataGateway',
         data,
       });
-      throw new WsException('Snapshot not found');
+      throw new WsException('Workbook not found');
     }
 
     const workbookObservable = this.workbookEventService.getWorkbookEvents(workbook);
@@ -127,8 +127,6 @@ export class WorkbookDataGateway implements OnGatewayInit, OnGatewayConnection, 
       workbookId,
       message: 'subscribed to workbook events',
     });
-
-    // TODO - subscribe to data folders updating
   }
 
   private getServer(): Server {

@@ -11,13 +11,6 @@ export const SWR_KEYS = {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],
     listKeyMatcher: () => (key: Arguments) => Array.isArray(key) && key[0] === 'workbook' && key[1] === 'list',
     detail: (id: WorkbookId) => ['workbook', 'detail', id],
-    // Matches all SWR keys for records for a given workbook and table
-    recordsKeyMatcher: (workbookId: WorkbookId, folderId: DataFolderId) => (key: Arguments) =>
-      Array.isArray(key) &&
-      key[0] === 'workbook' &&
-      key[1] === 'records' &&
-      key[2] === workbookId &&
-      key[3] === folderId,
   },
   users: {
     activeUser: () => ['users', 'activeUser'],

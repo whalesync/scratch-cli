@@ -26,6 +26,7 @@ import { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DIRTY_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { FilesService } from './files.service';
+import { WorkbookEventService } from './workbook-event.service';
 import { WorkbookService } from './workbook.service';
 
 @Injectable()
@@ -41,6 +42,7 @@ export class DataFolderService {
     private readonly posthogService: PostHogService,
     private readonly scratchGitService: ScratchGitService,
     private readonly filesService: FilesService,
+    private readonly workbookEventService: WorkbookEventService,
   ) {}
 
   /**
@@ -301,25 +303,28 @@ export class DataFolderService {
         include: DataFolderCluster._validator.include,
       });
 
+      this.workbookEventService.sendWorkbookEvent(workbookId, {
+        type: 'folder-created',
+        data: { source: 'user', entityId: dataFolderId, message: 'Folder created' },
+      });
+
       // Trigger pull job
-      if (this.configService.getUseJobs()) {
-        try {
-          await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(workbookId, actor, dataFolderId);
-          WSLogger.info({
-            source: 'DataFolderService.createFolder',
-            message: 'Started pulling files for newly created data folder',
-            workbookId,
-            dataFolderId,
-          });
-        } catch (error) {
-          WSLogger.error({
-            source: 'DataFolderService.createFolder',
-            message: 'Failed to start pull job for newly created data folder',
-            error,
-            workbookId,
-            dataFolderId,
-          });
-        }
+      try {
+        await this.bullEnqueuerService.enqueuePullLinkedFolderFilesJob(workbookId, actor, dataFolderId);
+        WSLogger.info({
+          source: 'DataFolderService.createFolder',
+          message: 'Started pulling files for newly created data folder',
+          workbookId,
+          dataFolderId,
+        });
+      } catch (error) {
+        WSLogger.error({
+          source: 'DataFolderService.createFolder',
+          message: 'Failed to start pull job for newly created data folder',
+          error,
+          workbookId,
+          dataFolderId,
+        });
       }
 
       // Log audit event
@@ -398,6 +403,11 @@ export class DataFolderService {
     // Delete the data folder (cascades to children due to schema relation)
     await this.db.client.dataFolder.delete({
       where: { id },
+    });
+
+    this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
+      type: 'folder-deleted',
+      data: { source: 'user', entityId: id, message: 'Folder deleted' },
     });
 
     this.posthogService.trackRemoveDataFolder(actor, dataFolder);
@@ -622,7 +632,7 @@ export class DataFolderService {
       }
     }
 
-    return this.filesService.createFile(
+    const file = await this.filesService.createFile(
       workbookId,
       {
         name: dto.name,
@@ -631,6 +641,13 @@ export class DataFolderService {
       },
       actor,
     );
+
+    this.workbookEventService.sendWorkbookEvent(workbookId, {
+      type: 'folder-contents-changed',
+      data: { source: 'user', entityId: id, message: 'File created', path: file.path },
+    });
+
+    return file;
   }
 
   /**

@@ -466,7 +466,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       expect(mockScratchGitService.commitFilesToBranch).toHaveBeenCalledWith(
         'wkb_123',
@@ -524,7 +524,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       ]);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       // Verify that both batches were committed
       expect(mockScratchGitService.commitFilesToBranch).toHaveBeenCalledTimes(2);
@@ -567,7 +567,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockScratchGitService.deleteFilesFromBranch as jest.Mock).mockResolvedValue(undefined);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       // Verify that the stale file is deleted
       expect(mockScratchGitService.deleteFilesFromBranch).toHaveBeenCalledWith(
@@ -585,7 +585,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(dataFolder);
       (mockConnectorAccountService.findOneById as jest.Mock).mockResolvedValue(null);
 
-      await expect(handler.run(params)).rejects.toThrow('Connector account');
+      await expect(handler.run({ ...params, jobId: 'test-job-id' })).rejects.toThrow('Connector account');
     });
 
     it('should handle missing data folder', async () => {
@@ -593,7 +593,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
 
       (mockPrisma.dataFolder.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(handler.run(params)).rejects.toThrow('DataFolder');
+      await expect(handler.run({ ...params, jobId: 'test-job-id' })).rejects.toThrow('DataFolder');
     });
 
     it('should update dataFolder lock and lastSyncTime on success', async () => {
@@ -616,7 +616,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       expect(mockPrisma.dataFolder.update).toHaveBeenCalledWith({
         where: { id: 'dfld_123' },
@@ -642,7 +642,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
       try {
-        await handler.run(params);
+        await handler.run({ ...params, jobId: 'test-job-id' });
       } catch {
         // Expected to throw
       }
@@ -681,14 +681,34 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       expect(mockSnapshotEventService.sendWorkbookEvent).toHaveBeenCalledWith(
         'wkb_123',
         expect.objectContaining({
-          type: 'workbook-updated',
+          type: 'job-started',
           data: expect.objectContaining({
-            tableId: 'dfld_123',
+            entityId: 'dfld_123',
+          }),
+        }),
+      );
+
+      expect(mockSnapshotEventService.sendWorkbookEvent).toHaveBeenCalledWith(
+        'wkb_123',
+        expect.objectContaining({
+          type: 'folder-contents-changed',
+          data: expect.objectContaining({
+            entityId: 'dfld_123',
+          }),
+        }),
+      );
+
+      expect(mockSnapshotEventService.sendWorkbookEvent).toHaveBeenCalledWith(
+        'wkb_123',
+        expect.objectContaining({
+          type: 'job-completed',
+          data: expect.objectContaining({
+            entityId: 'dfld_123',
           }),
         }),
       );
@@ -721,7 +741,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       (mockScratchGitService.listRepoFiles as jest.Mock).mockResolvedValue([]);
       (mockPrisma.dataFolder.update as jest.Mock).mockResolvedValue(dataFolder);
 
-      await handler.run(params);
+      await handler.run({ ...params, jobId: 'test-job-id' });
 
       expect(params.checkpoint).toHaveBeenCalled();
     });

@@ -161,6 +161,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const result = await handler.run({
+        jobId: jobId,
         data: jobData,
         checkpoint,
         progress: job.progress as Progress<any>,

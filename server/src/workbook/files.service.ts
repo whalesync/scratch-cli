@@ -13,6 +13,7 @@ import { DbService } from '../db/db.service';
 import { DIRTY_BRANCH, MAIN_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { Actor } from '../users/types';
 import { extractFilenameFromPath } from './util';
+import { WorkbookEventService } from './workbook-event.service';
 
 @Injectable()
 export class FilesService {
@@ -20,6 +21,7 @@ export class FilesService {
     private readonly db: DbService,
     private readonly scratchGitService: ScratchGitService,
     private readonly posthogService: PostHogService,
+    private readonly workbookEventService: WorkbookEventService,
   ) {}
 
   /**
@@ -186,6 +188,12 @@ export class FilesService {
       throw new NotFoundException(`Unable to find ${path}`);
     }
     await this.scratchGitService.deleteFile(workbookId, [path], `Delete ${path}`);
+
+    // this.workbookEventService.sendWorkbookEvent(workbookId, {
+    //   type: 'folder-contents-changed',
+    //   data: { source: 'user', entityId: workbookId, message: 'File deleted', path: path },
+    // });
+
     this.posthogService.trackRecordDeleted(actor, workbook, path);
   }
 
