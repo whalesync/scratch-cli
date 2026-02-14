@@ -14,6 +14,7 @@ import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';
 import { JobEntity } from '@/types/server-entities/job';
 import { timeAgo } from '@/utils/helpers';
+import { RouteUrls } from '@/utils/route-urls';
 import {
   ActionIcon,
   Box,
@@ -40,6 +41,7 @@ import {
   CopyIcon,
   RefreshCwIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
@@ -541,61 +543,62 @@ function ProgressDetails({ jobType, progress }: { jobType: JobType; progress: Re
   }
 }
 
-type RecordIdSource = {
-  createdIds?: string[];
-  updatedIds?: string[];
-  deletedIds?: string[];
+type PathSource = {
+  createdPaths?: string[];
+  updatedPaths?: string[];
+  deletedPaths?: string[];
 };
 
-function collectAffectedRecords(sources: RecordIdSource[]): Array<{ id: string; operation: string }> {
-  const records: Array<{ id: string; operation: string }> = [];
+function collectAffectedFiles(sources: PathSource[]): Array<{ path: string; operation: string }> {
+  const files: Array<{ path: string; operation: string }> = [];
   for (const source of sources) {
-    if (source.createdIds) {
-      for (const id of source.createdIds) records.push({ id, operation: 'Created' });
+    if (source.createdPaths) {
+      for (const p of source.createdPaths) files.push({ path: p, operation: 'Created' });
     }
-    if (source.updatedIds) {
-      for (const id of source.updatedIds) records.push({ id, operation: 'Updated' });
+    if (source.updatedPaths) {
+      for (const p of source.updatedPaths) files.push({ path: p, operation: 'Updated' });
     }
-    if (source.deletedIds) {
-      for (const id of source.deletedIds) records.push({ id, operation: 'Deleted' });
+    if (source.deletedPaths) {
+      for (const p of source.deletedPaths) files.push({ path: p, operation: 'Deleted' });
     }
   }
-  return records;
+  return files;
 }
 
-function AffectedRecordsTable({ records }: { records: Array<{ id: string; operation: string }> }) {
-  const [expanded, setExpanded] = useState(false);
+function AffectedFilesTable({ files }: { files: Array<{ path: string; operation: string }> }) {
+  const params = useParams<{ id: string }>();
+  const workbookId = params.id;
 
-  if (records.length === 0) return null;
+  if (files.length === 0) return null;
 
   return (
     <Box mt="xs">
-      <UnstyledButton onClick={() => setExpanded((prev) => !prev)}>
-        <Group gap={4}>
-          <StyledLucideIcon Icon={expanded ? ChevronDownIcon : ChevronRightIcon} size="sm" c="var(--fg-secondary)" />
-          <Text12Medium c="var(--fg-secondary)">Affected Records ({records.length})</Text12Medium>
-        </Group>
-      </UnstyledButton>
-      <Collapse in={expanded}>
-        <Box mt="xs">
-          <Table striped highlightOnHover withColumnBorders>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Record ID</Table.Th>
-                <Table.Th>Operation</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {records.map((record, i) => (
-                <Table.Tr key={i}>
-                  <Table.Td style={{ fontFamily: 'monospace', fontSize: 12 }}>{record.id}</Table.Td>
-                  <Table.Td>{record.operation}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Box>
-      </Collapse>
+      <Text12Medium c="var(--fg-secondary)" mb={4}>
+        Affected Files ({files.length})
+      </Text12Medium>
+      <Table striped highlightOnHover withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>File Path</Table.Th>
+            <Table.Th>Operation</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {files.map((file, i) => (
+            <Table.Tr key={i}>
+              <Table.Td style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                <Link
+                  href={RouteUrls.workbookReviewFileUrl(workbookId, file.path)}
+                  style={{ color: 'inherit', textDecoration: 'underline' }}
+                >
+                  {file.path}
+                </Link>
+              </Table.Td>
+              <Table.Td>{file.operation}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
     </Box>
   );
 }
@@ -608,14 +611,14 @@ function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) 
     creates?: number;
     updates?: number;
     deletes?: number;
-    createdIds?: string[];
-    updatedIds?: string[];
-    deletedIds?: string[];
+    createdPaths?: string[];
+    updatedPaths?: string[];
+    deletedPaths?: string[];
     status?: string;
   }>;
   if (tables.length === 0) return null;
 
-  const affectedRecords = collectAffectedRecords(tables);
+  const affectedFiles = collectAffectedFiles(tables);
 
   return (
     <>
@@ -643,7 +646,7 @@ function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) 
           ))}
         </Table.Tbody>
       </Table>
-      <AffectedRecordsTable records={affectedRecords} />
+      <AffectedFilesTable files={affectedFiles} />
     </>
   );
 }
@@ -659,14 +662,14 @@ function PublishProgressTable({ progress }: { progress: Record<string, unknown> 
     expectedCreates?: number;
     expectedUpdates?: number;
     expectedDeletes?: number;
-    createdIds?: string[];
-    updatedIds?: string[];
-    deletedIds?: string[];
+    createdPaths?: string[];
+    updatedPaths?: string[];
+    deletedPaths?: string[];
     status?: string;
   }>;
   if (folders.length === 0) return null;
 
-  const affectedRecords = collectAffectedRecords(folders);
+  const affectedFiles = collectAffectedFiles(folders);
 
   return (
     <>
@@ -694,7 +697,7 @@ function PublishProgressTable({ progress }: { progress: Record<string, unknown> 
           ))}
         </Table.Tbody>
       </Table>
-      <AffectedRecordsTable records={affectedRecords} />
+      <AffectedFilesTable files={affectedFiles} />
     </>
   );
 }
@@ -706,11 +709,11 @@ function PullProgressTable({ progress }: { progress: Record<string, unknown> }) 
   const status = progress.status as string | undefined;
   if (!folderName && totalFiles === undefined) return null;
 
-  const affectedRecords = collectAffectedRecords([
+  const affectedFiles = collectAffectedFiles([
     {
-      createdIds: progress.createdIds as string[] | undefined,
-      updatedIds: progress.updatedIds as string[] | undefined,
-      deletedIds: progress.deletedIds as string[] | undefined,
+      createdPaths: progress.createdPaths as string[] | undefined,
+      updatedPaths: progress.updatedPaths as string[] | undefined,
+      deletedPaths: progress.deletedPaths as string[] | undefined,
     },
   ]);
 
@@ -734,7 +737,7 @@ function PullProgressTable({ progress }: { progress: Record<string, unknown> }) 
           </Table.Tr>
         </Table.Tbody>
       </Table>
-      <AffectedRecordsTable records={affectedRecords} />
+      <AffectedFilesTable files={affectedFiles} />
     </>
   );
 }

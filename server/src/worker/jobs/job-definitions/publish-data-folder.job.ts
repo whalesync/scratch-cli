@@ -13,8 +13,8 @@ import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 
 export type FolderPublishStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
-/** Maximum number of record IDs to track per category in progress */
-const MAX_PROGRESS_RECORD_IDS = 1000;
+/** Maximum number of file paths to track per category in progress */
+const MAX_PROGRESS_PATHS = 1000;
 
 export type FolderPublishProgress = {
   id: string;
@@ -26,9 +26,9 @@ export type FolderPublishProgress = {
   expectedCreates: number;
   expectedUpdates: number;
   expectedDeletes: number;
-  createdIds: string[];
-  updatedIds: string[];
-  deletedIds: string[];
+  createdPaths: string[];
+  updatedPaths: string[];
+  deletedPaths: string[];
   status: FolderPublishStatus;
 };
 
@@ -122,9 +122,9 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         expectedCreates: initialFolderProgress?.expectedCreates ?? 0,
         expectedUpdates: initialFolderProgress?.expectedUpdates ?? 0,
         expectedDeletes: initialFolderProgress?.expectedDeletes ?? 0,
-        createdIds: [] as string[],
-        updatedIds: [] as string[],
-        deletedIds: [] as string[],
+        createdPaths: [] as string[],
+        updatedPaths: [] as string[],
+        deletedPaths: [] as string[],
         status: 'pending' as FolderPublishStatus,
       };
     });
@@ -285,10 +285,10 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
           },
         );
 
-        // Populate record IDs from publish result
-        currentFolder.createdIds = publishResult.createdPaths.slice(0, MAX_PROGRESS_RECORD_IDS);
-        currentFolder.updatedIds = publishResult.updatedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
-        currentFolder.deletedIds = publishResult.deletedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
+        // Populate file paths from publish result
+        currentFolder.createdPaths = publishResult.createdPaths.slice(0, MAX_PROGRESS_PATHS);
+        currentFolder.updatedPaths = publishResult.updatedPaths.slice(0, MAX_PROGRESS_PATHS);
+        currentFolder.deletedPaths = publishResult.deletedPaths.slice(0, MAX_PROGRESS_PATHS);
 
         // Mark folder as completed
         currentFolder.status = 'completed';

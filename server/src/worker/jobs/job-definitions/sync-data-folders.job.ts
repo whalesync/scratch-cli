@@ -6,8 +6,8 @@ import { Actor } from '../../../users/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 
-/** Maximum number of record IDs to track per category in progress */
-const MAX_PROGRESS_RECORD_IDS = 1000;
+/** Maximum number of file paths to track per category in progress */
+const MAX_PROGRESS_PATHS = 1000;
 
 export type SyncDataFoldersPublicProgress = {
   totalFilesSynced: number;
@@ -18,9 +18,9 @@ export type SyncDataFoldersPublicProgress = {
     creates: number;
     updates: number;
     deletes: number;
-    createdIds: string[];
-    updatedIds: string[];
-    deletedIds: string[];
+    createdPaths: string[];
+    updatedPaths: string[];
+    deletedPaths: string[];
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
   }[];
 };
@@ -121,9 +121,9 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         creates: 0,
         updates: 0,
         deletes: 0,
-        createdIds: [] as string[],
-        updatedIds: [] as string[],
-        deletedIds: [] as string[],
+        createdPaths: [] as string[],
+        updatedPaths: [] as string[],
+        deletedPaths: [] as string[],
         status: 'pending' as const,
       };
     });
@@ -170,8 +170,8 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         // Update progress with results
         tableProgress.creates = result.recordsCreated;
         tableProgress.updates = result.recordsUpdated;
-        tableProgress.createdIds = result.createdIds.slice(0, MAX_PROGRESS_RECORD_IDS);
-        tableProgress.updatedIds = result.updatedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
+        tableProgress.createdPaths = result.createdPaths.slice(0, MAX_PROGRESS_PATHS);
+        tableProgress.updatedPaths = result.updatedPaths.slice(0, MAX_PROGRESS_PATHS);
         tableProgress.status = result.errors.length > 0 ? 'failed' : 'completed';
         totalFilesSynced += result.recordsCreated + result.recordsUpdated;
 

@@ -16,6 +16,14 @@ export class RouteUrls {
   static workbookPageUrl = (id: string) => `/workbook/${id}`;
   static workbookFilesPageUrl = (id: string) => `/workbook/${id}/files`;
   static workbookReviewPageUrl = (id: string) => `/workbook/${id}/review`;
+  static workbookReviewFileUrl = (id: string, filePath: string) => {
+    const encoded = filePath
+      .replace(/^\/+/, '')
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+    return `/workbook/${id}/review/${encoded}`;
+  };
   static workbookSyncsPageUrl = (id: string) => `/workbook/${id}/syncs`;
   static workbookRunsPageUrl = (id: string) => `/workbook/${id}/runs`;
   static settingsPageUrl = '/settings';

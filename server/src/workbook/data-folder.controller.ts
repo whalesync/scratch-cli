@@ -149,9 +149,9 @@ export class DataFolderController {
         expectedCreates,
         expectedUpdates,
         expectedDeletes,
-        createdIds: [],
-        updatedIds: [],
-        deletedIds: [],
+        createdPaths: [],
+        updatedPaths: [],
+        deletedPaths: [],
         status: 'pending',
       });
     }
