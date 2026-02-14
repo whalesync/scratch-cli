@@ -383,7 +383,14 @@ export class DataFolderPublishingService {
     connector: Connector<S>,
     tableSpec: BaseJsonTableSpec,
     onProgress: (phase: 'creates' | 'updates' | 'deletes', count: number) => Promise<void>,
-  ): Promise<{ creates: number; updates: number; deletes: number }> {
+  ): Promise<{
+    creates: number;
+    updates: number;
+    deletes: number;
+    createdPaths: string[];
+    updatedIds: string[];
+    deletedIds: string[];
+  }> {
     // Get files to publish
     const filesToPublish = await this.getFilesToPublish(workbookId, folderPath, tableSpec);
 
@@ -406,6 +413,9 @@ export class DataFolderPublishingService {
       creates: filesToPublish.creates.length,
       updates: filesToPublish.updates.length,
       deletes: filesToPublish.deletes.length,
+      createdPaths: filesToPublish.creates.map((f) => f.path),
+      updatedIds: filesToPublish.updates.map((f) => f.remoteId),
+      deletedIds: filesToPublish.deletes.map((f) => f.remoteId),
     };
   }
 }

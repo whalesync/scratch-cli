@@ -1,21 +1,51 @@
 'use client';
 
 import { IconButtonToolbar } from '@/app/components/base/buttons';
-import { Text12Regular, Text13Medium } from '@/app/components/base/text';
+import {
+  Text12Medium,
+  Text12Regular,
+  Text13Medium,
+  Text13Regular,
+  TextMono12Regular,
+} from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
-import { PublishJobProgressModal } from '@/app/components/jobs/publish/PublishJobProgressModal';
-import { PullProgressModal } from '@/app/components/jobs/pull/PullJobProgressModal';
+import { useDevTools } from '@/hooks/use-dev-tools';
 import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';
 import { JobEntity } from '@/types/server-entities/job';
 import { timeAgo } from '@/utils/helpers';
-import { Center, Group, JsonInput, Loader, Modal, ScrollArea, Stack, Table, Text, UnstyledButton } from '@mantine/core';
+import {
+  ActionIcon,
+  Box,
+  Center,
+  Collapse,
+  CopyButton,
+  Group,
+  JsonInput,
+  Loader,
+  ScrollArea,
+  Stack,
+  Table,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import type { WorkbookId } from '@spinner/shared-types';
-import { AlertCircleIcon, ClockIcon, RefreshCwIcon } from 'lucide-react';
+import {
+  AlertCircleIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  CopyIcon,
+  RefreshCwIcon,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 type JobType = 'sync' | 'publish' | 'pull' | 'unknown';
+
+const ACTIVE_STATES = new Set(['active', 'waiting', 'pending', 'delayed']);
 
 const getJobType = (type: string): JobType => {
   if (type.includes('sync')) return 'sync';
@@ -93,7 +123,6 @@ const getJobDescription = (job: JobEntity): string => {
 
   switch (jobType) {
     case 'sync': {
-      // Check for table count in progress
       if (progress?.tables && Array.isArray(progress.tables)) {
         const count = progress.tables.length;
         return `Synced ${count} table${count !== 1 ? 's' : ''}`;
@@ -141,12 +170,36 @@ const formatDuration = (processedOn?: Date | null, finishedOn?: Date | null): st
   return `${minutes}m ${remainingSeconds}s`;
 };
 
+const formatTimestamp = (date?: Date | null): string => {
+  if (!date) return '-';
+  return new Date(date).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const getJobKey = (job: JobEntity): string => `${job.dbJobId}-${job.bullJobId}`;
+
 export function RunsView() {
   const params = useParams<{ id: string }>();
   const workbookId = params.id as WorkbookId;
   const { jobs, error, isLoading, mutate } = useJobs(50, 0, workbookId);
-  const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);
-  const [viewRawJobId, setViewRawJobId] = useState<string | null>(null);
+  const { isDevToolsEnabled } = useDevTools();
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = useCallback((key: string) => {
+    setExpandedJobs((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   if (isLoading && jobs.length === 0) {
     return (
@@ -182,6 +235,9 @@ export function RunsView() {
     );
   }
 
+  const activeJobs = jobs.filter((job) => ACTIVE_STATES.has(job.state));
+  const completedJobs = jobs.filter((job) => !ACTIVE_STATES.has(job.state));
+
   return (
     <Stack h="100%" gap={0}>
       {/* Header */}
@@ -205,141 +261,480 @@ export function RunsView() {
 
       {/* Table */}
       <ScrollArea style={{ flex: 1 }}>
-        <Table>
-          <Table.Tbody>
-            {jobs.map((job) => {
-              const jobType = getJobType(job.type);
-              const typeColor = getTypeColor(jobType);
-              const statusColor = getStatusColor(job.state);
-              const description = getJobDescription(job);
-              const duration = formatDuration(job.processedOn, job.finishedOn);
-              const time = job.processedOn ? timeAgo(job.processedOn) : '-';
-              const canViewResult = !!job.bullJobId;
+        {activeJobs.length > 0 && (
+          <Box>
+            <Box px="md" py={6}>
+              <Text12Medium c="var(--fg-muted)">Active</Text12Medium>
+            </Box>
+            <Table>
+              <Table.Tbody>
+                {activeJobs.map((job) => (
+                  <JobRow
+                    key={getJobKey(job)}
+                    job={job}
+                    isActive
+                    isExpanded={expandedJobs.has(getJobKey(job))}
+                    onToggle={() => toggleExpanded(getJobKey(job))}
+                    isDevToolsEnabled={isDevToolsEnabled}
+                  />
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Box>
+        )}
 
-              return (
-                <Table.Tr key={`${job.dbJobId}-${job.bullJobId}`}>
-                  {/* Type */}
-                  <Table.Td style={{ width: 100 }}>
-                    <Text size="sm" fw={600} style={{ color: typeColor }}>
-                      {getTypeLabel(jobType)}
-                    </Text>
-                  </Table.Td>
-
-                  {/* Description */}
-                  <Table.Td>
-                    <Text
-                      size="sm"
-                      style={{
-                        maxWidth: 250,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {description}
-                    </Text>
-                  </Table.Td>
-
-                  {/* Time */}
-                  <Table.Td style={{ width: 120 }}>
-                    <Text size="sm" c="dimmed">
-                      {time}
-                    </Text>
-                  </Table.Td>
-
-                  {/* Duration */}
-                  <Table.Td style={{ width: 80 }}>
-                    <Text size="sm" c="dimmed">
-                      {duration}
-                    </Text>
-                  </Table.Td>
-
-                  {/* Status (clickable) */}
-                  <Table.Td style={{ width: 120 }}>
-                    <UnstyledButton
-                      onClick={() => canViewResult && setSelectedJob(job)}
-                      style={{
-                        cursor: canViewResult ? 'pointer' : 'default',
-                        opacity: canViewResult ? 1 : 0.7,
-                      }}
-                    >
-                      <Group gap={6} wrap="nowrap">
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            backgroundColor: statusColor,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <Text
-                          size="sm"
-                          style={{
-                            color: statusColor,
-                            textDecoration: canViewResult ? 'underline' : 'none',
-                            textDecorationStyle: 'dotted',
-                            textUnderlineOffset: 2,
-                          }}
-                        >
-                          {getStatusLabel(job.state)}
-                        </Text>
-                      </Group>
-                    </UnstyledButton>
-                  </Table.Td>
-                </Table.Tr>
-              );
-            })}
-          </Table.Tbody>
-        </Table>
-      </ScrollArea>
-
-      {/* Job Progress Modal */}
-      {selectedJob && selectedJob.bullJobId && (
-        <>
-          {selectedJob.type === 'publish-records' ? (
-            <PublishJobProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
-          ) : (
-            <PullProgressModal jobId={selectedJob.bullJobId} onClose={() => setSelectedJob(null)} />
+        <Box>
+          {activeJobs.length > 0 && completedJobs.length > 0 && (
+            <Box px="md" py={6}>
+              <Text12Medium c="var(--fg-muted)">Recent</Text12Medium>
+            </Box>
           )}
-        </>
-      )}
-
-      {/* Raw JSON Modal */}
-      <JobRawModal jobId={viewRawJobId} onClose={() => setViewRawJobId(null)} />
+          {completedJobs.length > 0 && (
+            <Table>
+              <Table.Tbody>
+                {completedJobs.map((job) => (
+                  <JobRow
+                    key={getJobKey(job)}
+                    job={job}
+                    isActive={false}
+                    isExpanded={expandedJobs.has(getJobKey(job))}
+                    onToggle={() => toggleExpanded(getJobKey(job))}
+                    isDevToolsEnabled={isDevToolsEnabled}
+                  />
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+        </Box>
+      </ScrollArea>
     </Stack>
   );
 }
 
-function JobRawModal({ jobId, onClose }: { jobId: string | null; onClose: () => void }) {
-  const [data, setData] = useState<object | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (jobId) {
-      setLoading(true);
-      jobApi
-        .getJobRaw(jobId)
-        .then(setData)
-        .catch((err) => {
-          console.debug(err);
-          setData({ error: 'Failed to fetch' });
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setData(null);
-    }
-  }, [jobId]);
+function JobRow({
+  job,
+  isActive,
+  isExpanded,
+  onToggle,
+  isDevToolsEnabled,
+}: {
+  job: JobEntity;
+  isActive: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  isDevToolsEnabled: boolean;
+}) {
+  const jobType = getJobType(job.type);
+  const typeColor = getTypeColor(jobType);
+  const statusColor = getStatusColor(job.state);
+  const description = getJobDescription(job);
+  const duration = formatDuration(job.processedOn, job.finishedOn);
+  const time = job.processedOn ? timeAgo(job.processedOn) : '-';
 
   return (
-    <Modal opened={!!jobId} onClose={onClose} title="Raw Job Data" size="xl">
-      {loading ? (
-        <Center p="xl">
-          <Loader />
-        </Center>
-      ) : (
-        <JsonInput value={JSON.stringify(data, null, 2)} formatOnBlur autosize minRows={10} readOnly />
-      )}
-    </Modal>
+    <>
+      <Table.Tr
+        onClick={onToggle}
+        style={{
+          cursor: 'pointer',
+          borderLeft: isActive ? '3px solid var(--mantine-color-yellow-5)' : '3px solid transparent',
+        }}
+      >
+        {/* Chevron */}
+        <Table.Td style={{ width: 32, paddingRight: 0 }}>
+          <StyledLucideIcon Icon={isExpanded ? ChevronDownIcon : ChevronRightIcon} size="sm" c="var(--fg-secondary)" />
+        </Table.Td>
+
+        {/* Type */}
+        <Table.Td style={{ width: 100 }}>
+          <Text size="sm" fw={600} style={{ color: typeColor }}>
+            {getTypeLabel(jobType)}
+          </Text>
+        </Table.Td>
+
+        {/* Description */}
+        <Table.Td>
+          <Text
+            size="sm"
+            style={{
+              maxWidth: 250,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {description}
+          </Text>
+        </Table.Td>
+
+        {/* Time */}
+        <Table.Td style={{ width: 120 }}>
+          <Tooltip label={`Started: ${formatTimestamp(job.processedOn)}`} disabled={!job.processedOn}>
+            <Text size="sm" c="dimmed">
+              {time}
+            </Text>
+          </Tooltip>
+        </Table.Td>
+
+        {/* Duration */}
+        <Table.Td style={{ width: 80 }}>
+          <Tooltip label={`Finished: ${formatTimestamp(job.finishedOn)}`} disabled={!job.finishedOn}>
+            <Text size="sm" c="dimmed">
+              {duration}
+            </Text>
+          </Tooltip>
+        </Table.Td>
+
+        {/* Status */}
+        <Table.Td style={{ width: 120 }}>
+          <Group gap={6} wrap="nowrap">
+            {isActive ? (
+              <Loader size={10} />
+            ) : (
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: statusColor,
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <Text size="sm" style={{ color: statusColor }}>
+              {getStatusLabel(job.state)}
+            </Text>
+          </Group>
+        </Table.Td>
+      </Table.Tr>
+
+      {/* Expanded details row */}
+      <Table.Tr style={{ border: isExpanded ? undefined : 'none' }}>
+        <Table.Td colSpan={6} p={0} style={{ border: isExpanded ? undefined : 'none' }}>
+          <Collapse in={isExpanded}>
+            <ExpandedJobDetails job={job} isDevToolsEnabled={isDevToolsEnabled} />
+          </Collapse>
+        </Table.Td>
+      </Table.Tr>
+    </>
+  );
+}
+
+function ExpandedJobDetails({ job, isDevToolsEnabled }: { job: JobEntity; isDevToolsEnabled: boolean }) {
+  const jobType = getJobType(job.type);
+  const [rawData, setRawData] = useState<object | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
+  const [rawExpanded, setRawExpanded] = useState(false);
+
+  const loadRawData = useCallback(() => {
+    if (!job.bullJobId || rawData) return;
+    setRawLoading(true);
+    jobApi
+      .getJobRaw(job.bullJobId)
+      .then((data) => {
+        const record = data as Record<string, unknown>;
+        if (typeof record.data === 'string') {
+          try {
+            record.data = JSON.parse(record.data);
+          } catch {
+            // leave as-is
+          }
+        }
+        setRawData(record);
+      })
+      .catch((err) => {
+        console.debug(err);
+        setRawData({ error: 'Failed to fetch' });
+      })
+      .finally(() => setRawLoading(false));
+  }, [job.bullJobId, rawData]);
+
+  const toggleRaw = useCallback(() => {
+    if (!rawExpanded) {
+      loadRawData();
+    }
+    setRawExpanded((prev) => !prev);
+  }, [rawExpanded, loadRawData]);
+
+  const progress =
+    job.publicProgress && typeof job.publicProgress === 'object'
+      ? (job.publicProgress as Record<string, unknown>)
+      : null;
+
+  const devToolColor = 'var(--mantine-color-devTool-6)';
+
+  return (
+    <Box px="md" py="sm" style={{ background: 'var(--bg-panel)' }}>
+      <Stack gap="sm">
+        {/* Failed reason */}
+        {job.failedReason && (
+          <Box>
+            <Text12Medium c="var(--fg-secondary)" mb={4}>
+              Failed Reason
+            </Text12Medium>
+            <Text13Regular c="var(--mantine-color-red-6)">{job.failedReason}</Text13Regular>
+          </Box>
+        )}
+
+        {/* Progress details */}
+        {progress && <ProgressDetails jobType={jobType} progress={progress} />}
+
+        {/* Dev tools: Job ID */}
+        {isDevToolsEnabled && job.bullJobId && (
+          <Group gap={4}>
+            <TextMono12Regular c={devToolColor}>{job.bullJobId}</TextMono12Regular>
+            <CopyButton value={job.bullJobId} timeout={2000}>
+              {({ copied, copy }) => (
+                <ActionIcon variant="subtle" size="xs" onClick={copy} c={devToolColor}>
+                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+                </ActionIcon>
+              )}
+            </CopyButton>
+          </Group>
+        )}
+
+        {/* Dev tools: Raw data toggle */}
+        {isDevToolsEnabled && job.bullJobId && (
+          <Box>
+            <UnstyledButton onClick={toggleRaw}>
+              <Group gap={4}>
+                <StyledLucideIcon Icon={rawExpanded ? ChevronDownIcon : ChevronRightIcon} size="sm" c={devToolColor} />
+                <Text12Medium c={devToolColor}>Raw Job Data</Text12Medium>
+              </Group>
+            </UnstyledButton>
+            <Collapse in={rawExpanded}>
+              <Box mt="xs">
+                {rawLoading ? (
+                  <Center p="sm">
+                    <Loader size="sm" />
+                  </Center>
+                ) : rawData ? (
+                  <JsonInput
+                    value={JSON.stringify(rawData, null, 2)}
+                    formatOnBlur
+                    autosize
+                    minRows={4}
+                    maxRows={20}
+                    readOnly
+                    styles={{ input: { fontFamily: 'monospace', fontSize: 12 } }}
+                  />
+                ) : null}
+              </Box>
+            </Collapse>
+          </Box>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+function ProgressDetails({ jobType, progress }: { jobType: JobType; progress: Record<string, unknown> }) {
+  switch (jobType) {
+    case 'sync':
+      return <SyncProgressTable progress={progress} />;
+    case 'publish':
+      return <PublishProgressTable progress={progress} />;
+    case 'pull':
+      return <PullProgressTable progress={progress} />;
+    default:
+      return null;
+  }
+}
+
+type RecordIdSource = {
+  createdIds?: string[];
+  updatedIds?: string[];
+  deletedIds?: string[];
+};
+
+function collectAffectedRecords(sources: RecordIdSource[]): Array<{ id: string; operation: string }> {
+  const records: Array<{ id: string; operation: string }> = [];
+  for (const source of sources) {
+    if (source.createdIds) {
+      for (const id of source.createdIds) records.push({ id, operation: 'Created' });
+    }
+    if (source.updatedIds) {
+      for (const id of source.updatedIds) records.push({ id, operation: 'Updated' });
+    }
+    if (source.deletedIds) {
+      for (const id of source.deletedIds) records.push({ id, operation: 'Deleted' });
+    }
+  }
+  return records;
+}
+
+function AffectedRecordsTable({ records }: { records: Array<{ id: string; operation: string }> }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (records.length === 0) return null;
+
+  return (
+    <Box mt="xs">
+      <UnstyledButton onClick={() => setExpanded((prev) => !prev)}>
+        <Group gap={4}>
+          <StyledLucideIcon Icon={expanded ? ChevronDownIcon : ChevronRightIcon} size="sm" c="var(--fg-secondary)" />
+          <Text12Medium c="var(--fg-secondary)">Affected Records ({records.length})</Text12Medium>
+        </Group>
+      </UnstyledButton>
+      <Collapse in={expanded}>
+        <Box mt="xs">
+          <Table striped highlightOnHover withColumnBorders>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Record ID</Table.Th>
+                <Table.Th>Operation</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {records.map((record, i) => (
+                <Table.Tr key={i}>
+                  <Table.Td style={{ fontFamily: 'monospace', fontSize: 12 }}>{record.id}</Table.Td>
+                  <Table.Td>{record.operation}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
+
+function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) {
+  if (!progress.tables || !Array.isArray(progress.tables)) return null;
+  const tables = progress.tables as Array<{
+    name?: string;
+    connector?: string;
+    creates?: number;
+    updates?: number;
+    deletes?: number;
+    createdIds?: string[];
+    updatedIds?: string[];
+    deletedIds?: string[];
+    status?: string;
+  }>;
+  if (tables.length === 0) return null;
+
+  const affectedRecords = collectAffectedRecords(tables);
+
+  return (
+    <>
+      <Table striped highlightOnHover withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Table</Table.Th>
+            <Table.Th>Source</Table.Th>
+            <Table.Th>Creates</Table.Th>
+            <Table.Th>Updates</Table.Th>
+            <Table.Th>Deletes</Table.Th>
+            <Table.Th>Status</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {tables.map((table, i) => (
+            <Table.Tr key={i}>
+              <Table.Td>{table.name || `Table ${i + 1}`}</Table.Td>
+              <Table.Td>{table.connector ?? '-'}</Table.Td>
+              <Table.Td>{table.creates ?? 0}</Table.Td>
+              <Table.Td>{table.updates ?? 0}</Table.Td>
+              <Table.Td>{table.deletes ?? 0}</Table.Td>
+              <Table.Td>{table.status ?? '-'}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <AffectedRecordsTable records={affectedRecords} />
+    </>
+  );
+}
+
+function PublishProgressTable({ progress }: { progress: Record<string, unknown> }) {
+  if (!progress.folders || !Array.isArray(progress.folders)) return null;
+  const folders = progress.folders as Array<{
+    name?: string;
+    connector?: string;
+    creates?: number;
+    updates?: number;
+    deletes?: number;
+    expectedCreates?: number;
+    expectedUpdates?: number;
+    expectedDeletes?: number;
+    createdIds?: string[];
+    updatedIds?: string[];
+    deletedIds?: string[];
+    status?: string;
+  }>;
+  if (folders.length === 0) return null;
+
+  const affectedRecords = collectAffectedRecords(folders);
+
+  return (
+    <>
+      <Table striped highlightOnHover withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Folder</Table.Th>
+            <Table.Th>Source</Table.Th>
+            <Table.Th>Creates</Table.Th>
+            <Table.Th>Updates</Table.Th>
+            <Table.Th>Deletes</Table.Th>
+            <Table.Th>Status</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {folders.map((folder, i) => (
+            <Table.Tr key={i}>
+              <Table.Td>{folder.name || `Folder ${i + 1}`}</Table.Td>
+              <Table.Td>{folder.connector ?? '-'}</Table.Td>
+              <Table.Td>{(folder.creates ?? 0)} / {(folder.expectedCreates ?? 0)}</Table.Td>
+              <Table.Td>{(folder.updates ?? 0)} / {(folder.expectedUpdates ?? 0)}</Table.Td>
+              <Table.Td>{(folder.deletes ?? 0)} / {(folder.expectedDeletes ?? 0)}</Table.Td>
+              <Table.Td>{folder.status ?? '-'}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <AffectedRecordsTable records={affectedRecords} />
+    </>
+  );
+}
+
+function PullProgressTable({ progress }: { progress: Record<string, unknown> }) {
+  const folderName = progress.folderName as string | undefined;
+  const connector = progress.connector as string | undefined;
+  const totalFiles = progress.totalFiles as number | undefined;
+  const status = progress.status as string | undefined;
+  if (!folderName && totalFiles === undefined) return null;
+
+  const affectedRecords = collectAffectedRecords([
+    {
+      createdIds: progress.createdIds as string[] | undefined,
+      updatedIds: progress.updatedIds as string[] | undefined,
+      deletedIds: progress.deletedIds as string[] | undefined,
+    },
+  ]);
+
+  return (
+    <>
+      <Table striped highlightOnHover withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Folder</Table.Th>
+            <Table.Th>Source</Table.Th>
+            <Table.Th>Files</Table.Th>
+            <Table.Th>Status</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          <Table.Tr>
+            <Table.Td>{folderName || 'Folder'}</Table.Td>
+            <Table.Td>{connector ?? '-'}</Table.Td>
+            <Table.Td>{totalFiles ?? 0}</Table.Td>
+            <Table.Td>{status ?? '-'}</Table.Td>
+          </Table.Tr>
+        </Table.Tbody>
+      </Table>
+      <AffectedRecordsTable records={affectedRecords} />
+    </>
   );
 }

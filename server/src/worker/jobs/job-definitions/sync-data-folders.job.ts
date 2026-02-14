@@ -6,6 +6,9 @@ import { Actor } from '../../../users/types';
 import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 
+/** Maximum number of record IDs to track per category in progress */
+const MAX_PROGRESS_RECORD_IDS = 1000;
+
 export type SyncDataFoldersPublicProgress = {
   totalFilesSynced: number;
   tables: {
@@ -15,6 +18,9 @@ export type SyncDataFoldersPublicProgress = {
     creates: number;
     updates: number;
     deletes: number;
+    createdIds: string[];
+    updatedIds: string[];
+    deletedIds: string[];
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
   }[];
 };
@@ -106,15 +112,21 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
 
     // Initialize progress tracking
     type TableProgress = SyncDataFoldersPublicProgress['tables'][number];
-    const tablesProgress: TableProgress[] = tableMappings.map((tm, index) => ({
-      id: tm.sourceDataFolderId,
-      name: dataTables.get(tm.sourceDataFolderId)?.name ?? `Unknown data source: ${index}`,
-      connector: '',
-      creates: 0,
-      updates: 0,
-      deletes: 0,
-      status: 'pending' as const,
-    }));
+    const tablesProgress: TableProgress[] = tableMappings.map((tm, index) => {
+      const dt = dataTables.get(tm.sourceDataFolderId);
+      return {
+        id: tm.sourceDataFolderId,
+        name: dt?.name ?? `Unknown data source: ${index}`,
+        connector: dt?.connectorService ?? '',
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        createdIds: [] as string[],
+        updatedIds: [] as string[],
+        deletedIds: [] as string[],
+        status: 'pending' as const,
+      };
+    });
 
     let totalFilesSynced = 0;
 
@@ -158,6 +170,8 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         // Update progress with results
         tableProgress.creates = result.recordsCreated;
         tableProgress.updates = result.recordsUpdated;
+        tableProgress.createdIds = result.createdIds.slice(0, MAX_PROGRESS_RECORD_IDS);
+        tableProgress.updatedIds = result.updatedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
         tableProgress.status = result.errors.length > 0 ? 'failed' : 'completed';
         totalFilesSynced += result.recordsCreated + result.recordsUpdated;
 

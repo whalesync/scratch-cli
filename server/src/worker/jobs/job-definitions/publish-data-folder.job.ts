@@ -13,6 +13,9 @@ import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 
 export type FolderPublishStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
+/** Maximum number of record IDs to track per category in progress */
+const MAX_PROGRESS_RECORD_IDS = 1000;
+
 export type FolderPublishProgress = {
   id: string;
   name: string;
@@ -23,6 +26,9 @@ export type FolderPublishProgress = {
   expectedCreates: number;
   expectedUpdates: number;
   expectedDeletes: number;
+  createdIds: string[];
+  updatedIds: string[];
+  deletedIds: string[];
   status: FolderPublishStatus;
 };
 
@@ -116,6 +122,9 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         expectedCreates: initialFolderProgress?.expectedCreates ?? 0,
         expectedUpdates: initialFolderProgress?.expectedUpdates ?? 0,
         expectedDeletes: initialFolderProgress?.expectedDeletes ?? 0,
+        createdIds: [] as string[],
+        updatedIds: [] as string[],
+        deletedIds: [] as string[],
         status: 'pending' as FolderPublishStatus,
       };
     });
@@ -240,7 +249,7 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
         });
 
         // Use the DataFolderPublishingService which reads from scratch-git
-        await this.dataFolderPublishingService.publishAll(
+        const publishResult = await this.dataFolderPublishingService.publishAll(
           data.workbookId,
           folderPath,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -275,6 +284,11 @@ export class PublishDataFolderJobHandler implements JobHandlerBuilder<PublishDat
             });
           },
         );
+
+        // Populate record IDs from publish result
+        currentFolder.createdIds = publishResult.createdPaths.slice(0, MAX_PROGRESS_RECORD_IDS);
+        currentFolder.updatedIds = publishResult.updatedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
+        currentFolder.deletedIds = publishResult.deletedIds.slice(0, MAX_PROGRESS_RECORD_IDS);
 
         // Mark folder as completed
         currentFolder.status = 'completed';

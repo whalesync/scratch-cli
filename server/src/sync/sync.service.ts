@@ -81,6 +81,8 @@ interface FileContent {
 export interface SyncTableMappingResult {
   recordsCreated: number;
   recordsUpdated: number;
+  createdIds: string[];
+  updatedIds: string[];
   errors: Array<{ sourceRemoteId: string; error: string }>;
 }
 
@@ -558,6 +560,8 @@ export class SyncService {
     const result: SyncTableMappingResult = {
       recordsCreated: 0,
       recordsUpdated: 0,
+      createdIds: [],
+      updatedIds: [],
       errors: [],
     };
 
@@ -717,6 +721,7 @@ export class SyncService {
           destinationPath = destinationFolderPath ? `${destinationFolderPath}/${fileName}` : fileName;
 
           result.recordsCreated++;
+          result.createdIds.push(sourceRemoteId);
         } else {
           // This is an existing record - use the existing file path
           const existingPath = destinationIdToFilePath.get(destinationRemoteId);
@@ -737,6 +742,7 @@ export class SyncService {
           }
 
           result.recordsUpdated++;
+          result.updatedIds.push(sourceRemoteId);
         }
 
         const content = serializeRecord(transformedFields);

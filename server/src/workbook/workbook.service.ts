@@ -293,6 +293,9 @@ export class WorkbookService {
         folderName: folder.name,
         connector: folder.connectorService ?? 'unknown',
         status: 'pending',
+        createdIds: [],
+        updatedIds: [],
+        deletedIds: [],
       });
       jobs.push({ id: job.id as string });
     }

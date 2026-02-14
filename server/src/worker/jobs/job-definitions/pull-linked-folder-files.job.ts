@@ -14,12 +14,18 @@ import { deduplicateFileName, resolveBaseFileName } from 'src/workbook/util';
 import { WSLogger } from '../../../logger';
 import { WorkbookEventService } from '../../../workbook/workbook-event.service';
 
+/** Maximum number of record IDs to track per category in progress */
+const MAX_PROGRESS_RECORD_IDS = 1000;
+
 export type PullLinkedFolderFilesPublicProgress = {
   totalFiles: number;
   folderId: string;
   folderName: string;
   connector: string;
   status: 'pending' | 'active' | 'completed' | 'failed';
+  createdIds: string[];
+  updatedIds: string[];
+  deletedIds: string[];
 };
 
 export type PullLinkedFolderFilesJobDefinition = JobDefinitionBuilder<
@@ -131,6 +137,9 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       folderName: dataFolder.name,
       connector: dataFolder.connectorService,
       status: 'active',
+      createdIds: [],
+      updatedIds: [],
+      deletedIds: [],
     };
 
     // Checkpoint initial status
@@ -215,6 +224,16 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         }
       }
 
+      // Track record IDs (all pulled records are "created" from the pull perspective)
+      const idField = tableSpec.idColumnRemoteId;
+      for (const file of files) {
+        const rawId = file[idField];
+        const recordId = typeof rawId === 'string' ? rawId : typeof rawId === 'number' ? String(rawId) : '';
+        if (recordId && publicProgress.createdIds.length < MAX_PROGRESS_RECORD_IDS) {
+          publicProgress.createdIds.push(recordId);
+        }
+      }
+
       publicProgress.totalFiles += files.length;
 
       this.workbookEventService.sendWorkbookEvent(dataFolder.workbookId as WorkbookId, {
@@ -248,6 +267,13 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         const filesToDelete = mainFiles.filter((f) => !downloadedFilePaths.includes(f.path)).map((f) => f.path);
 
         if (filesToDelete.length > 0) {
+          // Track deleted file paths as IDs
+          for (const path of filesToDelete) {
+            if (publicProgress.deletedIds.length < MAX_PROGRESS_RECORD_IDS) {
+              publicProgress.deletedIds.push(path);
+            }
+          }
+
           WSLogger.debug({
             source: 'DownloadLinkedFolderFilesJob',
             message: 'Removing deleted files from main branch',
