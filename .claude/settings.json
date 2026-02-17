@@ -1,14 +1,11 @@
 {
   "permissions": {
     "allow": [
-      // File system commands
       "Bash(cat:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      // Git commands
       "Bash(git log:*)",
-      // Node.js / Package commands
       "Bash(nvm use:*)",
       "Bash(yarn test:*)",
       "Bash(yarn lint:*)",
