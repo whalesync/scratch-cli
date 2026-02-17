@@ -100,6 +100,7 @@ model User {
   invoiceResults          InvoiceResult[]
   jobs                    DbJob[]
   workbooks               Workbook[]
+  publishPipelines        PublishPipeline[]
 }
 
 model APIToken {
@@ -158,6 +159,7 @@ model ConnectorAccount {
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
   dataFolders               DataFolder[]
+  publishPipelines          PublishPipeline[]
 
   @@index([userId])
   @@index([workbookId])
@@ -186,6 +188,7 @@ model Workbook {
   dataFolders        DataFolder[]
   connectorAccounts  ConnectorAccount[]
   usersWithAsDefault User[]             @relation("UserLastWorkbook")
+  publishPipelines   PublishPipeline[]
 
   @@index([userId])
   @@index([organizationId])
@@ -356,6 +359,7 @@ model DataFolder {
   syncsPairsAsDestination SyncTablePair[]        @relation("destinationDataFolder")
   foreignKeyRecords       SyncForeignKeyRecord[]
   remoteIdMappings        SyncRemoteIdMapping[]
+  // publishPipelines        PublishPipeline[] // REMOVED in V2 refactor (scoped to ConnectorAccount)
 
   // Table ID path for connectors that represent tables as a path (e.g., ["database", "schema", "table"])
   // Empty array for scratch folders, populated for linked folders
@@ -436,6 +440,100 @@ model Action {
   @@index([organizationId, actionType, createdAt])
   @@index([organizationId, createdAt])
   @@index([userId, createdAt])
+}
+
+// Tracks mapping between Git files and External Service IDs
+model FileIndex {
+  id         String    @id @default(cuid())
+  workbookId String // Maps to gitBucket/repoId
+  folderPath String
+  recordId   String
+  filename   String
+  lastSeenAt DateTime?
+
+  @@unique([workbookId, folderPath, recordId])
+  @@index([workbookId, folderPath, filename])
+  @@index([workbookId, folderPath, lastSeenAt])
+}
+
+// Tracks dependencies between files
+model FileReference {
+  id                 String  @id @default(cuid())
+  workbookId         String
+  sourceFilePath     String // The file containing the reference
+  targetFolderPath   String // The folder being referenced
+  targetFileName     String? // Set for @/ refs
+  targetFileRecordId String? // Set for resolved ID refs
+  branch             String // "main" or "dirty/..."
+
+  @@index([workbookId, targetFolderPath, targetFileName])
+  @@index([workbookId, targetFolderPath, targetFileRecordId])
+  @@index([workbookId, sourceFilePath, branch])
+}
+
+model PublishPipeline {
+  id        String   @id // type: PipelineId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workbookId String
+  workbook   Workbook @relation(fields: [workbookId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status     String // "planned", "building", "ready", "failed", "running", "completed"
+  branchName String
+
+  phases Json // Stored as JSON
+  result Json?
+
+  connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id])
+  connectorAccountId String?
+
+  entries PublishPipelineEntry[]
+
+  @@index([workbookId])
+  @@index([userId])
+  @@index([connectorAccountId])
+}
+
+model PublishPipelineEntry {
+  id         String          @id @default(cuid())
+  pipelineId String
+  pipeline   PublishPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  filePath String // The logical path of the file
+
+  // The content/operation for each phase. 
+  // If null, this file is not involved in this phase.
+  editOperation     Json? // { content: string }
+  createOperation   Json? // { content: string }
+  deleteOperation   Json? // { } (marker)
+  backfillOperation Json? // { content: string }
+
+  // Status flags for execution
+  editStatus     String? // 'pending', 'success', 'failed'
+  createStatus   String?
+  deleteStatus   String?
+  backfillStatus String?
+
+  // Optimization flags (to avoid checking nulls)
+  hasEdit     Boolean @default(false)
+  hasCreate   Boolean @default(false)
+  hasDelete   Boolean @default(false)
+  hasBackfill Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pipelineId, filePath])
+  @@index([pipelineId])
+  // Indices for optimized phase queries
+  @@index([pipelineId, hasEdit])
+  @@index([pipelineId, hasCreate])
+  @@index([pipelineId, hasDelete])
+  @@index([pipelineId, hasBackfill])
 }
 
 //#region Sync

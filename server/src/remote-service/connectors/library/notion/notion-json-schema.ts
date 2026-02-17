@@ -278,12 +278,17 @@ export function notionPropertyToJsonSchema(property: DatabaseObjectResponse['pro
       break;
 
     case 'relation':
-      schema = Type.Array(Type.Object({ id: Type.String() }), {
-        description,
-        [FOREIGN_KEY_OPTIONS]: property.relation.database_id
-          ? { linkedTableId: property.relation.database_id }
-          : undefined,
-      });
+      schema = Type.Object(
+        {
+          id: Type.String(),
+          relation: Type.Array(Type.Object({ id: Type.String() }), {
+            [FOREIGN_KEY_OPTIONS]: property.relation.database_id
+              ? { linkedTableId: property.relation.database_id, map: 'id' }
+              : undefined,
+          }),
+        },
+        { description },
+      );
       break;
 
     case 'rollup':

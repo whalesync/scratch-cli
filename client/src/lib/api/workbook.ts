@@ -309,4 +309,47 @@ export const workbookApi = {
       throw error;
     }
   },
+
+  planPublishV2: async (
+    workbookId: WorkbookId,
+    connectorAccountId?: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<{ pipelineId: string; status: string; phases: any[] }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.post(`/workbook/${workbookId}/publish-v2/plan`, {
+        userId: 'current',
+        connectorAccountId,
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to plan publish');
+      throw error;
+    }
+  },
+
+  runPublishV2: async (workbookId: WorkbookId, pipelineId: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.post(`/workbook/${workbookId}/publish-v2/run`, { pipelineId });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to run publish');
+      throw error;
+    }
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  listPublishV2Pipelines: async (workbookId: WorkbookId, connectorAccountId?: string): Promise<any[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await axios.get<any[]>(`/workbook/${workbookId}/publish-v2`, {
+        params: { connectorAccountId },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list pipelines');
+      throw error;
+    }
+  },
 };

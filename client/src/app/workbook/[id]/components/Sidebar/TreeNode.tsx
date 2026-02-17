@@ -22,12 +22,14 @@ import {
   FlaskRoundIcon,
   FolderIcon,
   MoreHorizontalIcon,
+  RocketIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, type MouseEvent } from 'react';
+import { TestPublishV2Modal } from '../modals/TestPublishV2Modal';
 import { TestTransformerModal } from '../modals/TestTransformerModal';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
@@ -107,6 +109,9 @@ export function ConnectionNode({
 
   // Remove connection modal state
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
+
+  // Publish V2 modal state
+  const [publishV2ModalOpened, { open: openPublishV2Modal, close: closePublishV2Modal }] = useDisclosure(false);
 
   // Pull handler
   const handlePullAll = useCallback(async () => {
@@ -269,6 +274,16 @@ export function ConnectionNode({
             { label: 'Pull All Tables', icon: DownloadIcon, onClick: handlePullAll },
             ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
             { type: 'divider' as const },
+            ...(connectorAccount
+              ? [
+                  {
+                    label: 'Test Publish V2',
+                    icon: RocketIcon,
+                    onClick: openPublishV2Modal,
+                    color: 'var(--mantine-color-devTool-9)',
+                  },
+                ]
+              : []),
             { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
             ...(connectorAccount && !isScratch
               ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }]
@@ -294,6 +309,17 @@ export function ConnectionNode({
           onClose={closeRemoveModal}
           connectorAccount={connectorAccount}
           workbookId={workbookId}
+        />
+      )}
+
+      {/* Test Publish V2 Modal */}
+      {connectorAccount && (
+        <TestPublishV2Modal
+          opened={publishV2ModalOpened}
+          onClose={closePublishV2Modal}
+          workbookId={workbookId}
+          connectorAccountId={connectorAccount.id}
+          connectorName={group.name}
         />
       )}
     </>

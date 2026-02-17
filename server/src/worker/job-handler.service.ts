@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { FileIndexService } from 'src/publish-pipeline/file-index.service';
+import { FileReferenceService } from 'src/publish-pipeline/file-reference.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SyncService } from 'src/sync/sync.service';
@@ -26,6 +28,8 @@ export class JobHandlerService {
     private readonly dataFolderPublishingService: DataFolderPublishingService,
     private readonly syncService: SyncService,
     private readonly bullEnqueuerService: BullEnqueuerService,
+    private readonly fileIndexService: FileIndexService,
+    private readonly fileReferenceService: FileReferenceService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -45,6 +49,8 @@ export class JobHandlerService {
           this.connectorAccountService,
           this.workbookEventService,
           this.scratchGitService,
+          this.fileIndexService,
+          this.fileReferenceService,
         ) as JobHandler<JobDefinition>;
 
       case 'publish-data-folder':

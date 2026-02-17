@@ -1,0 +1,124 @@
+import { Injectable } from '@nestjs/common';
+import { DbService } from '../db/db.service';
+
+export interface FileIndexEntry {
+  workbookId: string;
+  folderPath: string;
+  recordId: string;
+  filename: string;
+}
+
+@Injectable()
+export class FileIndexService {
+  constructor(private readonly db: DbService) {}
+
+  /**
+   * Bulk upsert index entries.
+   * Uses raw SQL for performance to handle conflicts (update lastSeenAt).
+   */
+  async upsertBatch(entries: FileIndexEntry[]): Promise<void> {
+    if (entries.length === 0) return;
+
+    // Chunking is handled by the caller or we can do it here if needed.
+    // Ideally caller handles chunking (e.g. 500 at a time).
+
+    // We strive to use Prisma's createMany, but it doesn't support "ON CONFLICT UPDATE"
+    // for all databases universally in a clean way via the typed API until recent versions,
+    // and even then, `upsert` is single-row.
+    // Given the prototype used raw SQL, we will implement optimized batching.
+
+    // However, Prisma `createMany` with `skipDuplicates` ignores updates. We want to update `lastSeenAt`.
+    // So we use a transaction of upserts or raw SQL. Raw SQL is faster for bulk.
+
+    const now = new Date();
+
+    // Use Prisma Transaction for upserts.
+    // This is safer than raw SQL and handles generating CUIDs automatically.
+
+    await this.db.client.$transaction(
+      entries.map((entry) =>
+        this.db.client.fileIndex.upsert({
+          where: {
+            workbookId_folderPath_recordId: {
+              workbookId: entry.workbookId,
+              folderPath: entry.folderPath,
+              recordId: entry.recordId,
+            },
+          },
+          update: {
+            filename: entry.filename, // Filename might change (rename)
+            lastSeenAt: now,
+          },
+          create: {
+            workbookId: entry.workbookId,
+            folderPath: entry.folderPath,
+            recordId: entry.recordId,
+            filename: entry.filename,
+            lastSeenAt: now,
+          },
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Find entries that haven't been seen since the given timestamp.
+   * These likely represent records deleted upstream.
+   */
+  async findStaleEntries(workbookId: string, folderPath: string, before: Date, limit: number) {
+    return this.db.client.fileIndex.findMany({
+      where: {
+        workbookId,
+        folderPath,
+        OR: [{ lastSeenAt: { lt: before } }, { lastSeenAt: null }],
+      },
+      take: limit,
+    });
+  }
+
+  /**
+   * Remove specific entries by ID.
+   */
+  async removeBatch(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.db.client.fileIndex.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+  }
+
+  async countEntries(workbookId: string, folderPath: string): Promise<number> {
+    return this.db.client.fileIndex.count({
+      where: { workbookId, folderPath },
+    });
+  }
+
+  async getRecordId(workbookId: string, folderPath: string, filename: string): Promise<string | null> {
+    const entry = await this.db.client.fileIndex.findFirst({
+      where: { workbookId, folderPath, filename },
+      select: { recordId: true },
+    });
+    return entry?.recordId || null;
+  }
+
+  async getFilename(workbookId: string, folderPath: string, recordId: string): Promise<string | null> {
+    const entry = await this.db.client.fileIndex.findUnique({
+      where: { workbookId_folderPath_recordId: { workbookId, folderPath, recordId } },
+      select: { filename: true },
+    });
+    return entry?.filename || null;
+  }
+
+  async removeAll(workbookId: string, folderPath: string): Promise<void> {
+    await this.db.client.fileIndex.deleteMany({
+      where: { workbookId, folderPath },
+    });
+  }
+
+  async deleteForWorkbook(workbookId: string): Promise<void> {
+    await this.db.client.fileIndex.deleteMany({
+      where: { workbookId },
+    });
+  }
+}

@@ -8,6 +8,7 @@ import { RedisModule } from 'src/redis/redis.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { UserModule } from 'src/users/users.module';
 import { WorkerEnqueuerModule } from 'src/worker-enqueuer/worker-enqueuer.module';
+import { PublishPipelineModule } from '../publish-pipeline/publish-pipeline.module';
 import { ConnectorsModule } from '../remote-service/connectors/connectors.module';
 import { ScratchGitModule } from '../scratch-git/scratch-git.module';
 import { FilesPublicController } from './files-public.controller';
@@ -35,6 +36,7 @@ import { DataFolderService } from './data-folder.service';
     WorkerEnqueuerModule,
     AuditLogModule,
     ScratchGitModule,
+    PublishPipelineModule,
   ],
   controllers: [WorkbookController, FilesController, FilesPublicController, DataFolderController],
   providers: [

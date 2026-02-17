@@ -17,6 +17,7 @@ import { JsonBodyMiddleware, RawBodyMiddleware } from './middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { PaymentModule } from './payment/payment.module';
 import { PosthogModule } from './posthog/posthog.module';
+import { PublishPipelineModule } from './publish-pipeline/publish-pipeline.module';
 import { ConnectorAccountModule } from './remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from './remote-service/connectors/connectors.module';
 import { ScratchGitModule } from './scratch-git/scratch-git.module';
@@ -53,7 +54,9 @@ import { WorkerModule } from './worker/workers.module';
     ...(ScratchConfigService.isTaskWorkerService() ? [WorkerModule] : []),
     ...(ScratchConfigService.isCronService() ? [CronModule] : []),
     DevToolsModule,
+    DevToolsModule,
     BugReportModule,
+    PublishPipelineModule,
   ],
   controllers: [],
   providers: [],

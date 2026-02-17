@@ -18,6 +18,9 @@ import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { WorkbookEventService } from './workbook-event.service';
 
+import { FileIndexService } from '../publish-pipeline/file-index.service';
+import { FileReferenceService } from '../publish-pipeline/file-reference.service';
+
 @Injectable()
 export class WorkbookService {
   constructor(
@@ -28,6 +31,8 @@ export class WorkbookService {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly auditLogService: AuditLogService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly fileIndexService: FileIndexService,
+    private readonly fileReferenceService: FileReferenceService,
   ) {}
 
   async create(createWorkbookDto: ValidatedCreateWorkbookDto, actor: Actor): Promise<WorkbookCluster.Workbook> {
@@ -89,6 +94,10 @@ export class WorkbookService {
         workbookId: id,
       });
     }
+
+    // Cleanup index and references
+    await this.fileIndexService.deleteForWorkbook(id);
+    await this.fileReferenceService.deleteForWorkbook(id);
 
     await this.db.client.workbook.delete({
       where: { id },
@@ -152,6 +161,10 @@ export class WorkbookService {
       throw err;
     }
 
+    // Cleanup index and references
+    await this.fileIndexService.deleteForWorkbook(id);
+    await this.fileReferenceService.deleteForWorkbook(id);
+
     // Delete all jobs for this workbook
     await this.db.client.dbJob.deleteMany({
       where: { workbookId: id },
@@ -159,6 +172,11 @@ export class WorkbookService {
 
     // Delete all data folders
     await this.db.client.dataFolder.deleteMany({
+      where: { workbookId: id },
+    });
+
+    // Delete all publish pipelines (V2)
+    await this.db.client.publishPipeline.deleteMany({
       where: { workbookId: id },
     });
 

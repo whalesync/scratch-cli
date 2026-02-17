@@ -75,7 +75,7 @@ export class DataFolderPublishingService {
       deletes: [],
     };
 
-    // Get the diff for this folder
+    // Get the diff for this folder (branch vs main)
     const diff = await this.scratchGitService.getFolderDiff(workbookId, folderPath);
 
     WSLogger.debug({
@@ -269,8 +269,9 @@ export class DataFolderPublishingService {
           workbookId,
           filesToDelete,
         });
-        await this.scratchGitService.deleteFile(
+        await this.scratchGitService.deleteFilesFromBranch(
           workbookId,
+          DIRTY_BRANCH,
           filesToDelete,
           `Renamed ${filesToDelete.length} files after publish`,
         );
@@ -306,6 +307,7 @@ export class DataFolderPublishingService {
     tableSpec: BaseJsonTableSpec,
     files: FileToUpdate[],
     onProgress: (count: number) => Promise<void>,
+    // branch not needed for updates as we don't commit back
   ): Promise<void> {
     if (files.length === 0) {
       return;
@@ -345,6 +347,7 @@ export class DataFolderPublishingService {
     tableSpec: BaseJsonTableSpec,
     files: FileToDelete[],
     onProgress: (count: number) => Promise<void>,
+    // branch not needed
   ): Promise<void> {
     if (files.length === 0) {
       return;

@@ -6,6 +6,8 @@ import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 // Non type imports
 import _ from 'lodash';
+import { FileIndexService } from 'src/publish-pipeline/file-index.service';
+import { FileReferenceService } from 'src/publish-pipeline/file-reference.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { exceptionForConnectorError } from 'src/remote-service/connectors/error';
 import { MAIN_BRANCH, RepoFileRef, ScratchGitService } from 'src/scratch-git/scratch-git.service';
@@ -53,6 +55,8 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
     private readonly connectorAccountService: ConnectorAccountService,
     private readonly workbookEventService: WorkbookEventService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly fileIndexService: FileIndexService,
+    private readonly fileReferenceService: FileReferenceService,
   ) {}
 
   /**
@@ -216,22 +220,62 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
         // Accumulate for deletion tracking
         gitFiles = gitFiles.concat(batchGitFiles);
 
+        await this.scratchGitService.commitFilesToBranch(
+          dataFolder.workbookId as WorkbookId,
+          'main',
+          batchGitFiles,
+          `Sync batch of ${builtFiles.length} files`,
+        );
+
+        await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);
+
+        // Update File Index & References (Best effort, after commit)
         try {
-          await this.scratchGitService.commitFilesToBranch(
-            dataFolder.workbookId as WorkbookId,
-            'main',
-            batchGitFiles,
-            `Sync batch of ${builtFiles.length} files`,
+          // Update File Index
+          await this.fileIndexService.upsertBatch(
+            builtFiles
+              .map((f) => {
+                const content = JSON.parse(f.content) as Record<string, unknown>;
+                // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                const recordId = String(content[tableSpec.idColumnRemoteId] || '');
+
+                // f.path is full path e.g. /folder/file.json
+                // We want folderPath without leading slash, and filename
+                const parts = f.path.split('/');
+                const filename = parts.pop()!;
+                const folderPath = parts.join('/').replace(/^\//, '');
+
+                if (!recordId) return null;
+
+                return {
+                  workbookId: dataFolder.workbookId,
+                  folderPath,
+                  filename,
+                  recordId,
+                };
+              })
+              .filter((x): x is NonNullable<typeof x> => x !== null),
           );
 
-          await this.scratchGitService.rebaseDirty(dataFolder.workbookId as WorkbookId);
+          // Update File References
+          await this.fileReferenceService.updateRefsForFiles(
+            dataFolder.workbookId,
+            MAIN_BRANCH, // Pulled files go to main
+            builtFiles.map((f) => ({
+              path: f.path.startsWith('/') ? f.path.slice(1) : f.path,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              content: JSON.parse(f.content),
+            })),
+            tableSpec.schema, // Schema for Pass 2 (resolved ID refs)
+          );
         } catch (err) {
           WSLogger.error({
             source: 'PullLinkedFolderFilesJob',
-            message: 'Failed to sync batch to git',
+            message: 'Failed to update indices',
             workbookId: dataFolder.workbookId,
             error: err,
           });
+          // Don't fail the job if indexing fails, but log it.
         }
       }
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScratchConfigModule } from 'src/config/scratch-config.module';
+import { PublishPipelineModule } from 'src/publish-pipeline/publish-pipeline.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { ConnectorsModule } from 'src/remote-service/connectors/connectors.module';
 import { SyncModule } from 'src/sync/sync.module';
@@ -24,7 +25,9 @@ import { WorkersController } from './test/workers.controller';
     ConnectorAccountModule,
     UserModule,
     ScratchGitModule,
+    ScratchGitModule,
     SyncModule,
+    PublishPipelineModule,
   ],
   controllers: [WorkersController],
   providers: [WorkerPoolService, QueueService, QueueTestService, JobHandlerService],
