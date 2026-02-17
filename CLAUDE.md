@@ -117,7 +117,7 @@ We use [Linear](https://linear.app/whalesync/team/DEV) for project management.
 
 **Key modules:**
 
-- `remote-service` - Connector abstraction layer for external services
+- `remote-service` - Connector abstraction layer for external services (see [Connector Development Guide](/server/src/remote-service/connectors/CONNECTOR_GUIDE.md))
 - `custom-connector` / `custom-connector-builder` - User-defined and AI-generated connectors
 - `worker` / `worker-enqueuer` - Background job processing (BullMQ + Piscina)
 - `auth` / `clerk` - Multi-strategy authentication
@@ -232,4 +232,5 @@ git checkout master  # Always leave prod immediately
 
 - Main README: `/README.md`
 - Module-specific docs: Each `/server/src/*/README.md`
+- Connector Development Guide: `/server/src/remote-service/connectors/CONNECTOR_GUIDE.md`
 - GitLab Pipeline Schedules: https://gitlab.com/whalesync/spinner/-/pipeline_schedules
