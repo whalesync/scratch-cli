@@ -38,7 +38,11 @@ export class AirtableApiClient {
     return r.data;
   }
 
-  async *listRecords(baseId: string, tableId: string): AsyncGenerator<AirtableRecord[], void> {
+  async *listRecords(
+    baseId: string,
+    tableId: string,
+    options: { filterByFormula?: string; view?: string } = {},
+  ): AsyncGenerator<AirtableRecord[], void> {
     let offset: string | undefined;
     do {
       const r = await axios.get<{
@@ -46,7 +50,7 @@ export class AirtableApiClient {
         offset?: string;
       }>(`${AIRTABLE_API_BASE_URL}/${baseId}/${tableId}`, {
         headers: this.authHeaders,
-        params: { offset },
+        params: { offset, ...options },
       });
       yield r.data.records;
       offset = r.data.offset;

@@ -24,6 +24,7 @@ export type PullLinkedFolderFilesPublicProgress = {
   folderId: string;
   folderName: string;
   connector: string;
+  filter: string | null;
   status: 'pending' | 'active' | 'completed' | 'failed';
   createdPaths: string[];
   updatedPaths: string[];
@@ -141,6 +142,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
       folderId: dataFolder.id,
       folderName: dataFolder.name,
       connector: dataFolder.connectorService,
+      filter: dataFolder.filter ?? null,
       status: 'active',
       createdPaths: [],
       updatedPaths: [],

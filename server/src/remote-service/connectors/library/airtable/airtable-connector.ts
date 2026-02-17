@@ -56,14 +56,24 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
   async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     _progress: JsonSafeObject,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    options: { filter?: string },
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 
-    for await (const rawRecords of this.client.listRecords(baseId, tableId)) {
+    const filterByFormula =
+      options.filter && options.filter.trim() !== '' && !options.filter.startsWith('VIEW:')
+        ? options.filter
+        : undefined;
+
+    // NOTE: this is a bit hacky, the pullRecordFiles options should probably support N custom options that are specific to the connector.
+    const view = options.filter && options.filter.startsWith('VIEW:') ? options.filter.slice(5) : undefined;
+
+    for await (const rawRecords of this.client.listRecords(baseId, tableId, {
+      filterByFormula,
+      view,
+    })) {
       await callback({ files: rawRecords as unknown as ConnectorFile[] });
     }
   }
@@ -162,5 +172,9 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
       userFriendlyMessage: 'An error occurred while connecting to Airtable',
       description: error instanceof Error ? error.message : String(error),
     };
+  }
+
+  supportsFilters(): boolean {
+    return true;
   }
 }

@@ -325,6 +325,7 @@ export class WorkbookService {
         folderId: folder.id,
         folderName: folder.name,
         connector: folder.connectorService ?? 'unknown',
+        filter: folder.filter ?? null,
         status: 'pending',
         createdPaths: [],
         updatedPaths: [],

@@ -6,7 +6,11 @@ import {
   PageObjectResponse,
   RequestTimeoutError,
 } from '@notionhq/client';
-import { BlockObjectResponse, CreatePageParameters } from '@notionhq/client/build/src/api-endpoints';
+import {
+  BlockObjectResponse,
+  CreatePageParameters,
+  QueryDatabaseParameters,
+} from '@notionhq/client/build/src/api-endpoints';
 import { Service } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
@@ -112,8 +116,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    options: { filter?: string },
   ): Promise<void> {
     WSLogger.info({ source: 'NotionConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
 
@@ -121,11 +124,27 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     let hasMore = true;
     let nextCursor = progress?.nextCursor;
 
+    let notionFilter: QueryDatabaseParameters['filter'] = undefined;
+    if (options.filter) {
+      // parse the filter as a Notion Filter object
+      try {
+        notionFilter = JSON.parse(options.filter) as QueryDatabaseParameters['filter'];
+      } catch (error) {
+        WSLogger.error({
+          source: 'NotionConnector',
+          message: `Failed to parse filter ${options.filter}`,
+          error,
+        });
+        throw new Error(`Failed to parse Notion filter ${options.filter}`);
+      }
+    }
+
     while (hasMore) {
       const response = await this.client.databases.query({
         database_id: databaseId,
         start_cursor: nextCursor,
         page_size,
+        filter: notionFilter,
       });
 
       // Return raw page objects as ConnectorFiles
@@ -461,5 +480,9 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
       userFriendlyMessage: 'An unexpected error occurred while connecting to Notion',
       description: error instanceof Error ? error.message : String(error),
     };
+  }
+
+  supportsFilters(): boolean {
+    return true;
   }
 }

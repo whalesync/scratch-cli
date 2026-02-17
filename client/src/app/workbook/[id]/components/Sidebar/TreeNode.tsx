@@ -23,6 +23,7 @@ import {
   FolderIcon,
   MoreHorizontalIcon,
   RocketIcon,
+  SettingsIcon,
   StickyNoteIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveFileModal } from '../shared/RemoveFileModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
+import { AdvancedFolderSettingsModal } from '../shared/AdvancedFolderSettingsModal';
 import { ActiveDataFolderJobIndicator } from './ActiveDataFolderJobIndicator';
 import type { FileTreeMode } from './FileTree';
 
@@ -361,6 +363,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const [newFileModalOpened, { open: openNewFileModal, close: closeNewFileModal }] = useDisclosure(false);
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
   const [schemaModalOpened, { open: openSchemaModal, close: closeSchemaModal }] = useDisclosure(false);
+  const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 
   // Pull handler for this table
   const handlePullTable = async () => {
@@ -549,6 +552,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
               },
             },
             { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal },
+            { label: 'Advanced Settings', icon: SettingsIcon, onClick: openSettings },
             { type: 'divider' },
             { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
           ]}
@@ -565,6 +569,9 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       {isDevToolsEnabled && (
         <DataFolderSchemaModal opened={schemaModalOpened} onClose={closeSchemaModal} folder={folder} />
       )}
+
+      {/* Advanced Folder Settings Modal */}
+      <AdvancedFolderSettingsModal opened={settingsOpened} onClose={closeSettings} folder={folder} />
     </>
   );
 }
