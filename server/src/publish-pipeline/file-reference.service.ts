@@ -211,10 +211,10 @@ export class FileReferenceService {
     if (folderIdsToResolve.size > 0) {
       const folders = await this.db.client.dataFolder.findMany({
         where: { id: { in: Array.from(folderIdsToResolve) } },
-        select: { id: true, name: true },
+        select: { id: true, path: true },
       });
       for (const folder of folders) {
-        folderIdToNameMap.set(folder.id, folder.name);
+        folderIdToNameMap.set(folder.id, folder.path || '');
       }
     }
 
@@ -250,10 +250,16 @@ export class FileReferenceService {
     // This is a complex OR query.
     // For each target, we want to find refs that match (folder AND filename) OR (folder AND recordId).
 
-    const conditions = targets.map((t) => ({
-      targetFolderPath: t.folderPath,
-      OR: [{ targetFileName: t.fileName }, { targetFileRecordId: t.recordId }],
-    }));
+    const conditions = targets.map((t) => {
+      const orList: any[] = [];
+      if (t.fileName && t.folderPath) {
+        orList.push({ targetFolderPath: t.folderPath, targetFileName: t.fileName });
+      }
+      if (t.recordId) {
+        orList.push({ targetFileRecordId: t.recordId });
+      }
+      return { OR: orList };
+    });
 
     return this.db.client.fileReference.findMany({
       where: {

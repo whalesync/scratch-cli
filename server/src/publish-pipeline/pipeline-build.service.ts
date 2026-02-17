@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
 import { randomUUID } from 'crypto';
 import { DbService } from '../db/db.service';
-import { ScratchGitService } from '../scratch-git/scratch-git.service';
+import { DIRTY_BRANCH, MAIN_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
 import { PipelineInfo, PipelinePhase } from './types';
@@ -49,6 +49,7 @@ export class PipelineBuildService {
       const prefixes = dataFolders
         .map((df) => df.path)
         .filter((p): p is string => !!p)
+        .map((p) => (p.startsWith('/') ? p.substring(1) : p)) // Normalize: remove leading slash
         .map((p) => (p.endsWith('/') ? p : p + '/'));
 
       if (prefixes.length > 0) {
@@ -99,19 +100,24 @@ export class PipelineBuildService {
 
     const getSchema = async (folderPath: string) => {
       if (schemaCache.has(folderPath)) return schemaCache.get(folderPath);
+
       try {
-        let file = await this.scratchGitService.getRepoFile(wkbId, 'dirty', `${folderPath}/schema.json`);
-        if (!file) {
-          file = await this.scratchGitService.getRepoFile(wkbId, 'main', `${folderPath}/schema.json`);
+        const dataFolder = await this.db.client.dataFolder.findFirst({
+          where: {
+            workbookId,
+            path: { in: [folderPath, `/${folderPath}`] },
+          },
+          select: { schema: true },
+        });
+
+        if (dataFolder?.schema) {
+          schemaCache.set(folderPath, dataFolder.schema);
+          return dataFolder.schema;
         }
-        if (file?.content) {
-          const schema = JSON.parse(file.content);
-          schemaCache.set(folderPath, schema);
-          return schema;
-        }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error('Error fetching schema for folder:', folderPath, e);
       }
+
       schemaCache.set(folderPath, null);
       return null;
     };
@@ -377,25 +383,20 @@ export class PipelineBuildService {
     const getSchema = async (folderPath: string) => {
       if (schemaCache.has(folderPath)) return schemaCache.get(folderPath);
       try {
-        let file = await this.scratchGitService.getRepoFile(
-          workbookId as WorkbookId,
-          'dirty',
-          `${folderPath}/schema.json`,
-        );
-        if (!file) {
-          file = await this.scratchGitService.getRepoFile(
-            workbookId as WorkbookId,
-            'main',
-            `${folderPath}/schema.json`,
-          );
-        }
-        if (file?.content) {
-          const schema = JSON.parse(file.content);
+        const dataFolder = await this.db.client.dataFolder.findFirst({
+          where: {
+            workbookId,
+            path: { in: [folderPath, `/${folderPath}`] },
+          },
+          select: { schema: true },
+        });
+        const schema = (dataFolder?.schema as any)?.schema;
+        if (schema) {
           schemaCache.set(folderPath, schema);
           return schema;
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error('Error fetching schema for folder:', folderPath, e);
       }
       schemaCache.set(folderPath, null);
       return null;
@@ -422,8 +423,8 @@ export class PipelineBuildService {
     // 2. Find inbound references
     // We check both 'main' and 'dirty' to be safe, but primarily we care about what's currently referring to them.
     const inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targets, [
-      'main',
-      `dirty/${userId}`,
+      MAIN_BRANCH,
+      DIRTY_BRANCH,
     ]);
 
     if (inboundRefs.length === 0) {
