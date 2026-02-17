@@ -7,6 +7,7 @@ import {
   DataFolderPublishStatus,
   Service,
   ValidatedCreateDataFolderDto,
+  ValidatedUpdateDataFolderDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import { AuditLogService } from 'src/audit/audit-log.service';
@@ -230,7 +231,7 @@ export class DataFolderService {
   }
 
   async createFolder(dto: ValidatedCreateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {
-    const { name, workbookId, connectorAccountId } = dto;
+    const { name, workbookId, connectorAccountId, filter } = dto;
     const parentFolderId = (dto as { parentFolderId?: string }).parentFolderId;
 
     // Get the workbook (already verified in controller, but need the data)
@@ -276,6 +277,11 @@ export class DataFolderService {
         decryptedCredentials: connectorAccount as unknown as DecryptedCredentials,
       });
 
+      // Validate filter support
+      if (filter && !connector.supportsFilters()) {
+        throw new BadRequestException('This connector does not support filters');
+      }
+
       // Fetch table spec for the first tableId
       let tableSpec: BaseJsonTableSpec;
       try {
@@ -299,6 +305,7 @@ export class DataFolderService {
           lastSchemaRefreshAt: new Date(),
           version: 1,
           tableId: dto.tableId,
+          filter: filter ?? undefined,
         },
         include: DataFolderCluster._validator.include,
       });
@@ -356,6 +363,7 @@ export class DataFolderService {
           path: folderPath,
           lastSchemaRefreshAt: new Date(),
           version: 1,
+          filter: filter ?? null,
         },
         include: DataFolderCluster._validator.include,
       });
@@ -550,6 +558,51 @@ export class DataFolderService {
         oldPath: dataFolder.path,
         newPath,
       },
+    });
+
+    return new DataFolderEntity(updatedDataFolder);
+  }
+
+  async updateFolder(id: DataFolderId, dto: ValidatedUpdateDataFolderDto, actor: Actor): Promise<DataFolderEntity> {
+    const dataFolder = await this.db.client.dataFolder.findUnique({
+      where: { id },
+      include: DataFolderCluster._validator.include,
+    });
+
+    if (!dataFolder) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // Verify user has access to the workbook
+    const workbook = await this.workbookService.findOne(dataFolder.workbookId as WorkbookId, actor);
+    if (!workbook) {
+      throw new NotFoundException('Data folder not found');
+    }
+
+    // When setting a filter, verify the connector supports filters
+    if (dto.filter && dataFolder.connectorAccountId) {
+      const connectorAccount = await this.connectorAccountService.findOneById(dataFolder.connectorAccountId, actor);
+      if (!connectorAccount) {
+        throw new NotFoundException('Connector account not found');
+      }
+
+      const connector = await this.connectorService.getConnector({
+        service: dataFolder.connectorService as Service,
+        connectorAccount: connectorAccount as ConnectorAccount,
+        decryptedCredentials: connectorAccount as unknown as DecryptedCredentials,
+      });
+
+      if (!connector.supportsFilters()) {
+        throw new BadRequestException('This connector does not support filters');
+      }
+    }
+
+    const updatedDataFolder = await this.db.client.dataFolder.update({
+      where: { id },
+      data: {
+        filter: dto.filter ?? null,
+      },
+      include: DataFolderCluster._validator.include,
     });
 
     return new DataFolderEntity(updatedDataFolder);

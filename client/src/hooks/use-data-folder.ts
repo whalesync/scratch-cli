@@ -9,6 +9,7 @@ export interface UseDataFolderReturn {
   isLoading: boolean;
   error: Error | undefined;
   refresh: () => Promise<void>;
+  updateFilter: (filter: string | null) => Promise<void>;
 }
 
 /**
@@ -28,10 +29,27 @@ export const useDataFolder = (dataFolderId: DataFolderId | null): UseDataFolderR
     await mutate();
   }, [mutate]);
 
+  const updateFilter = useCallback(
+    async (filter: string | null) => {
+      if (!dataFolderId) {
+        return;
+      }
+
+      if (filter && filter.trim() === '') {
+        throw new Error('Filter cannot be empty');
+      }
+
+      await dataFolderApi.update(dataFolderId, { filter });
+      await mutate();
+    },
+    [dataFolderId, mutate],
+  );
+
   return {
     dataFolder: data,
     isLoading,
     error,
     refresh,
+    updateFilter,
   };
 };

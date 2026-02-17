@@ -71,7 +71,9 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
   async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
-    progress?: WordPressDownloadProgress,
+    progress: WordPressDownloadProgress,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
     let offset = progress?.nextOffset ?? 0;

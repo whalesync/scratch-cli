@@ -365,6 +365,9 @@ model DataFolder {
   // Empty array for scratch folders, populated for linked folders
   tableId String[] @default([])
 
+  // A filter expression for the data folder, specific to the connector and table
+  filter String?
+
   @@unique([workbookId, parentId, name])
   @@index([workbookId])
   @@index([connectorAccountId])

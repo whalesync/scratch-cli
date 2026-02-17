@@ -389,6 +389,7 @@ describe('PullLinkedFolderFilesJobHandler', () => {
       path: '/test-folder',
       connectorService: 'airtable',
       connectorAccountId: 'coa_123',
+      filter: null as string | null,
       schema: {
         idColumnRemoteId: 'id',
         slugColumnRemoteId: 'slug',

@@ -133,6 +133,8 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     WSLogger.info({ source: 'WebflowConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     const [, collectionId] = tableSpec.id.remoteId;

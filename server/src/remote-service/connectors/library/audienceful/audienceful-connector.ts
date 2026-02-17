@@ -85,6 +85,8 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     for await (const people of this.client.listPeople()) {
       await callback({ files: people as unknown as ConnectorFile[] });

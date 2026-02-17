@@ -112,6 +112,8 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     WSLogger.info({ source: 'NotionConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
 

@@ -76,6 +76,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
+    options: { filter?: string },
   ): Promise<void>;
 
   /**
@@ -94,6 +95,13 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   ): Promise<
     { filename: string; id?: string; data: Record<string, unknown>; publishable: boolean; errors?: string[] }[]
   >;
+
+  /**
+   * Whether the connector supports filter expressions for pulling records.
+   */
+  supportsFilters(): boolean {
+    return false;
+  }
 
   /**
    * Get the batch size for a given operation.

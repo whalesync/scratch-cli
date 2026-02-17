@@ -307,7 +307,7 @@ export class PullLinkedFolderFilesJobHandler implements JobHandlerBuilder<PullLi
     };
 
     try {
-      await connector.pullRecordFiles(tableSpec, callback, progress);
+      await connector.pullRecordFiles(tableSpec, callback, progress, { filter: dataFolder.filter ?? undefined });
 
       // After download, remove files from main that no longer exist in remote
       // This ensures deleted items don't keep showing up in future diffs

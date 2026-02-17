@@ -212,6 +212,8 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     const entityType = tableSpec.id.wsId as ShopifyEntityType;
     const config = ENTITY_CONFIG[entityType];

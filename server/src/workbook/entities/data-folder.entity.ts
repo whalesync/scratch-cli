@@ -18,6 +18,7 @@ export class DataFolderEntity implements DataFolder {
   lastSyncTime: string | null;
   version: number;
   tableId: string[];
+  filter: string | null;
 
   constructor(dataFolder: DataFolderCluster.DataFolder) {
     this.id = dataFolder.id as DataFolderId;
@@ -35,7 +36,7 @@ export class DataFolderEntity implements DataFolder {
     this.lastSyncTime = dataFolder.lastSyncTime ? dataFolder.lastSyncTime.toISOString() : null;
     this.version = dataFolder.version;
     this.tableId = dataFolder.tableId;
-
+    this.filter = dataFolder.filter ?? null;
     this.schema = {};
   }
 }

@@ -22,7 +22,11 @@ export class CreateDataFolderDto {
   @IsOptional()
   @IsString()
   parentFolderId?: string;
+
+  @IsOptional()
+  @IsString()
+  filter?: string;
 }
 
 export type ValidatedCreateDataFolderDto = Required<Pick<CreateDataFolderDto, 'name' | 'workbookId'>> &
-  Pick<CreateDataFolderDto, 'connectorAccountId' | 'tableId' | 'parentFolderId'>;
+  Pick<CreateDataFolderDto, 'connectorAccountId' | 'tableId' | 'parentFolderId' | 'filter'>;

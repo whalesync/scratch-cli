@@ -20,9 +20,15 @@ import type {
   ValidatedCreateDataFolderDto,
   ValidatedMoveDataFolderDto,
   ValidatedRenameDataFolderDto,
+  ValidatedUpdateDataFolderDto,
   WorkbookId,
 } from '@spinner/shared-types';
-import { CreateDataFolderDto, MoveDataFolderDto, RenameDataFolderDto } from '@spinner/shared-types';
+import {
+  CreateDataFolderDto,
+  MoveDataFolderDto,
+  RenameDataFolderDto,
+  UpdateDataFolderDto,
+} from '@spinner/shared-types';
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { DbService } from '../db/db.service';
@@ -185,6 +191,16 @@ export class DataFolderController {
   @Delete(':id')
   async delete(@Param('id') id: DataFolderId, @Req() req: RequestWithUser): Promise<void> {
     await this.dataFolderService.deleteFolder(id, userToActor(req.user));
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: DataFolderId,
+    @Body() updateDto: UpdateDataFolderDto,
+    @Req() req: RequestWithUser,
+  ): Promise<DataFolder> {
+    const dto = updateDto as ValidatedUpdateDataFolderDto;
+    return await this.dataFolderService.updateFolder(id, dto, userToActor(req.user));
   }
 
   @Patch(':id/rename')

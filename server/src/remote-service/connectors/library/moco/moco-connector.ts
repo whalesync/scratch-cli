@@ -89,6 +89,8 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 

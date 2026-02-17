@@ -4,6 +4,7 @@ import {
   DataFolderId,
   MoveDataFolderDto,
   RenameDataFolderDto,
+  UpdateDataFolderDto,
   WorkbookId,
 } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
@@ -46,6 +47,16 @@ export const dataFolderApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to rename data folder');
+    }
+  },
+
+  update: async (id: DataFolderId, dto: UpdateDataFolderDto): Promise<DataFolder> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.patch<DataFolder>(`/data-folder/${id}`, dto);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to update data folder');
     }
   },
 

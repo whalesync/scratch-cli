@@ -176,6 +176,8 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: { filter?: string },
   ): Promise<void> {
     const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
     let offset = 0;

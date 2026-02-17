@@ -117,6 +117,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     progress: JsonSafeObject,
+    _options: { filter?: string },
   ): Promise<void> {
     WSLogger.info({ source: 'YouTubeConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });
