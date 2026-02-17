@@ -1,7 +1,6 @@
 import { Injectable, InternalServerErrorException, NotFoundException, NotImplementedException } from '@nestjs/common';
-import type { DataFolderId, FileId, FileRefEntity, WorkbookId } from '@spinner/shared-types';
+import type { DataFolderId, FileRefEntity, WorkbookId } from '@spinner/shared-types';
 import {
-  createFileId,
   FileDetailsResponseDto,
   ListFilesResponseDto,
   ValidatedCreateFileDto,
@@ -79,11 +78,8 @@ export class FilesService {
 
     this.posthogService.trackRecordCreated(actor, workbook, fullPath);
 
-    const fileId = createFileId();
-
     return {
       type: 'file',
-      id: fileId,
       name: createFileDto.name,
       parentFolderId: createFileDto.parentFolderId ?? null,
       path: fullPath,
@@ -127,7 +123,6 @@ export class FilesService {
     // Convert files to FileRefEntity
     const fileEntities: FileRefEntity[] = repoFiles.map((f) => ({
       type: 'file',
-      id: f.path as FileId,
       name: f.name,
       parentFolderId: null,
       path: f.path,
@@ -159,7 +154,6 @@ export class FilesService {
       file: {
         ref: {
           type: 'file',
-          id: path as FileId, // The git variant uses the full path as the ID, since it should be unique
           name: extractFilenameFromPath(path),
           parentFolderId: null,
           path: path,

@@ -3,19 +3,19 @@
  */
 
 import { Service } from './enums';
-import { DataFolderId, FileId } from './ids';
+import { DataFolderId } from './ids';
 
 /**
  * Reference to a file in the workbook
  */
 export interface FileRefEntity {
   type: 'file';
-  id: FileId;
+  /** Full path of the file and the unique identifier, e.g. "/folder/file.md" */
+  path: string;
+  /** Name of the file, e.g. "file.md" */
   name: string;
   /** ID of the parent folder, or null if at workbook root */
   parentFolderId: DataFolderId | null;
-  /** Full path of the file, e.g. "/folder/file.md" */
-  path: string;
   /** Whether the file has unpublished changes */
   dirty?: boolean;
   /** a marker showing if this file has been modified */

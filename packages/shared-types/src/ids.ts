@@ -24,7 +24,6 @@ export enum IdPrefixes {
   ORGANIZATION = 'org_', // Organization
   JOB = 'job_', // Job
   ACTION = 'act_', // Action
-  FILE = 'fil_', // File
   DATA_FOLDER = 'dfd_', // Data folder
   AUTHORIZATION_CODE = 'aut_', // Authorization code for CLI login
   SYNC = 'syn_', // Sync
@@ -212,26 +211,6 @@ export function isActionId(id: unknown): id is ActionId {
 
 export function createActionId(): ActionId {
   return createId(IdPrefixes.ACTION) as ActionId;
-}
-
-// ------- File -------
-/**
- * @deprecated
- */
-export type FileId = PrefixedId<IdPrefixes.FILE>;
-
-/**
- * @deprecated
- */
-export function isFileId(id: unknown): id is FileId {
-  return isId(id, IdPrefixes.FILE);
-}
-
-/**
- * @deprecated
- */
-export function createFileId(): FileId {
-  return createId(IdPrefixes.FILE) as FileId;
 }
 
 // ------- DataFolder -------

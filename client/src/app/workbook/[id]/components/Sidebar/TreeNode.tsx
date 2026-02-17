@@ -500,7 +500,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 
           {/* File list */}
           {displayedFiles.map((file) => (
-            <FileNode key={file.id} file={file} mode={mode} />
+            <FileNode key={file.path} file={file} mode={mode} />
           ))}
 
           {/* Hidden count indicator - links to folder view */}

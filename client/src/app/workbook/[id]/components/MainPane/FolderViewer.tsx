@@ -85,7 +85,7 @@ export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' 
       <Box style={{ flex: 1, overflow: 'auto' }} p="md">
         <SimpleGrid cols={COLUMN_COUNT} spacing="xs" verticalSpacing="xs">
           {displayedFiles.map((file) => (
-            <FileCard key={file.id} file={file} workbookId={workbookId} mode={mode} />
+            <FileCard key={file.path} file={file} workbookId={workbookId} mode={mode} />
           ))}
         </SimpleGrid>
       </Box>
