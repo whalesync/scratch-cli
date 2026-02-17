@@ -19,8 +19,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 *.tfstate.lock.info
 local
 
+
 # Claude local files.
-.claude/
+settings.local.json
 
 # Node.js compiled output and packages.
 dist/
@@ -34,3 +35,6 @@ node_modules/
 
 # Docker image exports from CI builds.
 *.tar
+
+# Developer local files
+.local

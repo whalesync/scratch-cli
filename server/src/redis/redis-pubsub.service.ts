@@ -3,6 +3,11 @@ import IORedis from 'ioredis';
 import { Observable } from 'rxjs';
 import { ScratchConfigService } from 'src/config/scratch-config.service';
 
+/**
+ * This service provides a pub/sub mechanism for the application and primarily powers the real-time event distribution across different components.
+ *
+ * The main consumer is the WebSocket gateway for pushing events back to connected client UI's and CLI services.
+ */
 @Injectable()
 export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
   private publisher?: IORedis;
