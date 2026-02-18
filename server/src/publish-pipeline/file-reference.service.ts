@@ -256,39 +256,6 @@ export class FileReferenceService {
    * Returns a deep copy of content with matching refs replaced by null.
    */
 
-  /**
-   * Legacy string matching stripper (kept for fallback or non-schema cases if needed, but deprecated for V2)
-   */
-  stripReferences(content: any, pathsToStrip: Set<string>): any {
-    if (!content) return content;
-
-    if (typeof content === 'string') {
-      if (content.startsWith('@/')) {
-        // defined as @/path/to/file.json
-        const refPath = content.substring(2);
-        // Normalize check: pathsToStrip might be "path/to/file.json" or "/path/to/file.json"
-        // We check both.
-        if (pathsToStrip.has(refPath) || pathsToStrip.has('/' + refPath)) {
-          return null;
-        }
-      }
-      return content;
-    }
-
-    if (Array.isArray(content)) {
-      return content.map((item) => this.stripReferences(item, pathsToStrip));
-    }
-
-    if (typeof content === 'object') {
-      const result: any = {};
-      for (const [key, value] of Object.entries(content)) {
-        result[key] = this.stripReferences(value, pathsToStrip);
-      }
-      return result;
-    }
-
-    return content;
-  }
   async deleteForWorkbook(workbookId: string): Promise<void> {
     await this.db.client.fileReference.deleteMany({
       where: { workbookId },

@@ -3,6 +3,7 @@ import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
 import { PlanPublishV2Dto, RunPublishV2Dto } from './dto/publish-v2.dto';
+import { PipelineAdminService } from './pipeline-admin.service';
 import { PipelineBuildService } from './pipeline-build.service';
 import { PipelineRunService } from './pipeline-run.service';
 
@@ -12,6 +13,7 @@ export class PublishPipelineController {
   constructor(
     private readonly pipelineBuildService: PipelineBuildService,
     private readonly pipelineRunService: PipelineRunService,
+    private readonly pipelineAdminService: PipelineAdminService,
   ) {}
 
   @Post('plan')
@@ -28,26 +30,26 @@ export class PublishPipelineController {
 
   @Get()
   async list(@Param('workbookId') workbookId: WorkbookId, @Query('connectorAccountId') connectorAccountId?: string) {
-    return this.pipelineBuildService.listPipelines(workbookId, connectorAccountId);
+    return this.pipelineAdminService.listPipelines(workbookId, connectorAccountId);
   }
 
   @Get(':pipelineId/entries')
   async entries(@Param('pipelineId') pipelineId: string) {
-    return this.pipelineBuildService.listPipelineEntries(pipelineId);
+    return this.pipelineAdminService.listPipelineEntries(pipelineId);
   }
 
   @Get('index/files')
   async fileIndex(@Param('workbookId') workbookId: WorkbookId) {
-    return this.pipelineBuildService.listFileIndex(workbookId);
+    return this.pipelineAdminService.listFileIndex(workbookId);
   }
 
   @Get('index/refs')
   async refIndex(@Param('workbookId') workbookId: WorkbookId) {
-    return this.pipelineBuildService.listRefIndex(workbookId);
+    return this.pipelineAdminService.listRefIndex(workbookId);
   }
 
   @Delete(':pipelineId')
   async delete(@Param('pipelineId') pipelineId: string) {
-    return this.pipelineBuildService.deletePipeline(pipelineId);
+    return this.pipelineAdminService.deletePipeline(pipelineId);
   }
 }

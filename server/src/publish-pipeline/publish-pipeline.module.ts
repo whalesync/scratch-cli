@@ -7,6 +7,7 @@ import { FileReferenceService } from './file-reference.service';
 
 import { ScratchGitModule } from '../scratch-git/scratch-git.module';
 import { WorkerEnqueuerModule } from '../worker-enqueuer/worker-enqueuer.module';
+import { PipelineAdminService } from './pipeline-admin.service';
 import { PipelineBuildService } from './pipeline-build.service';
 import { PipelineRunService } from './pipeline-run.service';
 import { PublishPipelineController } from './publish-pipeline.controller';
@@ -20,6 +21,7 @@ import { PipelineSchemaService } from './pipeline-schema.service';
   providers: [
     FileIndexService,
     FileReferenceService,
+    PipelineAdminService,
     PipelineBuildService,
     PipelineRunService,
     RefCleanerService,
@@ -28,6 +30,7 @@ import { PipelineSchemaService } from './pipeline-schema.service';
   exports: [
     FileIndexService,
     FileReferenceService,
+    PipelineAdminService,
     PipelineBuildService,
     PipelineRunService,
     RefCleanerService,

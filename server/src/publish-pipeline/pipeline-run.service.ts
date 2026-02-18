@@ -168,28 +168,8 @@ export class PipelineRunService {
   ): Promise<BaseJsonTableSpec> {
     // Extract folder path from file path (e.g. "articles/my-post.json" → "articles")
     const { folderPath } = parsePath(filePath);
-
     const spec = await this.schemaService.getTableSpec(workbookId, folderPath, cache);
     if (!spec) {
-      // Return dummy or empty spec if not found, or throw? The original code returned minimal object if not found (implied by cache.set(folderPath, {...} as any)).
-      // Actually, original code didn't handle not found explicitly in the visible snippet, but would return undefined from findFirst.
-      // Let's return a safe fallback or allow null if the caller handles it.
-      // The return type is Promise<BaseJsonTableSpec>.
-      // Let's look at the original code's behavior for 'not found'.
-      // It likely just returned undefined/null which might crash downstream if not handled, or it had fallback logic I didn't see.
-      // Usage in dispatchEntry: const tableSpec = await this.getTableSpecForEntry(...)
-      // If null, it might be an issue.
-      // But for now, let's return a dummy object or throw.
-      // If folder has no schema, it's not a connected folder (scratch).
-      // Scratch folders don't have table specs.
-      // So we should return a mock spec or throw if expected.
-      // original code:
-      // const dataFolder = await ...
-      // if (dataFolder?.schema) ...
-      // return (dataFolder?.schema as unknown as BaseJsonTableSpec) ?? { name: 'unknown', schema: {} };
-      // Wait, I saw "cache.set(folderPath, (dataFolder.schema as unknown as BaseJsonTableSpec));" in original?
-      // No, I saw "cache.set(folderPath, tableSpec);"
-      // Let's assume returning a minimal object is safer if null.
       return { name: 'unknown', schema: {} } as BaseJsonTableSpec;
     }
     return spec;
@@ -261,8 +241,10 @@ export class PipelineRunService {
     workbookId: string,
     planId: string,
   ): Promise<void> {
-    let operation = entry.operation as Record<string, unknown>;
-    if (!operation) {
+    const operation = entry.operation as Record<string, unknown>;
+
+    // Skip if no operation (except delete)
+    if (phase !== 'delete' && !operation) {
       WSLogger.warn({
         source: 'PipelineRunService.dispatchEntry',
         message: `Skipping entry with no operation: ${entry.filePath}`,
@@ -272,120 +254,169 @@ export class PipelineRunService {
       return;
     }
 
-    // console.log(`[Run] Dispatching ${phase}: ${entry.filePath}`);
-
     switch (phase) {
       case 'edit':
-      case 'backfill': {
-        // Resolve any remaining pseudo-references before sending
-        operation = await this.resolvePseudoRefs(workbookId, operation);
-        await connector.updateRecords(tableSpec, [operation]);
-
-        // After edit/backfill: update reference index with new content
-        await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
-          { path: entry.filePath, content: operation },
-        ]);
-
-        // Commit to main immediately
-        await this.scratchGitService.commitFilesToBranch(
-          workbookId as WorkbookId,
-          'main',
-          [{ path: entry.filePath, content: JSON.stringify(operation, null, 2) }],
-          `Publish V2 ${phase}: ${entry.filePath}`,
-        );
-
-        // If this is the final operation for this file, also commit to dirty
-        await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(operation, null, 2));
+      case 'backfill':
+        await this.dispatchEditOrBackfill(phase, { ...entry, operation }, connector, tableSpec, workbookId, planId);
         break;
-      }
-      case 'create': {
-        // Strip temporary IDs before sending to connector
-        const idField = tableSpec.idColumnRemoteId || 'id';
-        const content = { ...operation };
-        const idValue = content[idField];
-        if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
-          delete content[idField];
-        }
-        const returned = await connector.createRecords(tableSpec, [content]);
-
-        // After create: add file to FileIndex with the real ID
-        if (returned[0]) {
-          const realId = (returned[0] as Record<string, unknown>)[idField];
-          if (realId && typeof realId === 'string') {
-            const { folderPath, filename } = parsePath(entry.filePath);
-
-            await this.fileIndexService.upsertBatch([
-              {
-                workbookId,
-                folderPath,
-                recordId: realId,
-                filename,
-              },
-            ]);
-            console.log(`[Run] Added to FileIndex: ${entry.filePath} → ${realId}`);
-          }
-        }
-
-        // Update reference index with new content (use returned data which has the real ID)
-        const finalContent = returned[0] || operation;
-        await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
-          { path: entry.filePath, content: finalContent },
-        ]);
-        console.log(`[Run] Updated refs for created file: ${entry.filePath}`);
-
-        // Commit to main immediately (with real ID)
-        await this.scratchGitService.commitFilesToBranch(
-          workbookId as WorkbookId,
-          'main',
-          [{ path: entry.filePath, content: JSON.stringify(finalContent, null, 2) }],
-          `Publish V2 create: ${entry.filePath}`,
-        );
-        console.log(`[Run] Committed create to main: ${entry.filePath}`);
-
-        // If this is the final operation for this file, also commit to dirty
-        await this.commitToDirtyIfFinal(
-          workbookId,
-          planId,
-          phase,
-          entry.filePath,
-          JSON.stringify(finalContent, null, 2),
-        );
+      case 'create':
+        await this.dispatchCreate(phase, { ...entry, operation }, connector, tableSpec, workbookId, planId);
         break;
-      }
-      case 'delete': {
-        const idField = tableSpec.idColumnRemoteId || 'id';
-        const remoteId = entry.remoteRecordId;
-        if (remoteId) {
-          await connector.deleteRecords(tableSpec, [{ [idField]: remoteId }]);
-
-          // After delete: remove refs where this file is the source
-          await this.db.client.fileReference.deleteMany({
-            where: { workbookId, sourceFilePath: entry.filePath },
-          });
-          console.log(`[Run] Deleted refs for file: ${entry.filePath}`);
-
-          // Remove from FileIndex
-          const { folderPath, filename } = parsePath(entry.filePath);
-          await this.db.client.fileIndex.deleteMany({
-            where: { workbookId, folderPath, filename },
-          });
-          console.log(`[Run] Removed from FileIndex: ${entry.filePath}`);
-
-          // Delete from main immediately
-          await this.scratchGitService.deleteFilesFromBranch(
-            workbookId as WorkbookId,
-            'main',
-            [entry.filePath],
-            `Publish V2 delete: ${entry.filePath}`,
-          );
-          console.log(`[Run] Deleted from main: ${entry.filePath}`);
-        } else {
-          console.warn(`[Run] Delete entry has no remoteRecordId: ${entry.filePath}`);
-        }
+      case 'delete':
+        await this.dispatchDelete(entry, connector, tableSpec, workbookId);
         break;
-      }
       default:
         throw new Error(`Unknown phase: ${phase}`);
+    }
+  }
+
+  private async dispatchEditOrBackfill(
+    phase: string,
+    entry: { filePath: string; operation: Record<string, unknown> },
+    connector: Connector<Service, any>,
+    tableSpec: BaseJsonTableSpec,
+    workbookId: string,
+    planId: string,
+  ): Promise<void> {
+    // Resolve any remaining pseudo-references before sending
+    const operation = await this.resolvePseudoRefs(workbookId, entry.operation);
+    await connector.updateRecords(tableSpec, [operation]);
+
+    // After edit/backfill: update reference index with new content
+    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
+      { path: entry.filePath, content: operation },
+    ]);
+
+    // Commit to main immediately
+    await this.scratchGitService.commitFilesToBranch(
+      workbookId as WorkbookId,
+      'main',
+      [{ path: entry.filePath, content: JSON.stringify(operation, null, 2) }],
+      `Publish V2 ${phase}: ${entry.filePath}`,
+    );
+
+    // If this is the final operation for this file, also commit to dirty
+    await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(operation, null, 2));
+  }
+
+  private async dispatchCreate(
+    phase: string,
+    entry: { filePath: string; operation: Record<string, unknown> },
+    connector: Connector<Service, any>,
+    tableSpec: BaseJsonTableSpec,
+    workbookId: string,
+    planId: string,
+  ): Promise<void> {
+    // Strip temporary IDs before sending to connector
+    const idField = tableSpec.idColumnRemoteId || 'id';
+    const content = { ...entry.operation };
+    const idValue = content[idField];
+    if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
+      delete content[idField];
+    }
+    const returned = await connector.createRecords(tableSpec, [content]);
+
+    // After create: add file to FileIndex with the real ID
+    if (returned[0]) {
+      const realId = (returned[0] as Record<string, unknown>)[idField];
+      if (realId && typeof realId === 'string') {
+        const { folderPath, filename } = parsePath(entry.filePath);
+
+        await this.fileIndexService.upsertBatch([
+          {
+            workbookId,
+            folderPath,
+            recordId: realId,
+            filename,
+          },
+        ]);
+        WSLogger.info({
+          source: 'PipelineRunService.dispatchCreate',
+          message: `Added to FileIndex: ${entry.filePath} -> ${realId}`,
+          workbookId,
+        });
+      }
+    }
+
+    // Update reference index with new content (use returned data which has the real ID)
+    const finalContent = returned[0] || entry.operation;
+    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
+      { path: entry.filePath, content: finalContent },
+    ]);
+    WSLogger.info({
+      source: 'PipelineRunService.dispatchCreate',
+      message: `Updated refs for created file: ${entry.filePath}`,
+      workbookId,
+    });
+
+    // Commit to main immediately (with real ID)
+    await this.scratchGitService.commitFilesToBranch(
+      workbookId as WorkbookId,
+      'main',
+      [{ path: entry.filePath, content: JSON.stringify(finalContent, null, 2) }],
+      `Publish V2 create: ${entry.filePath}`,
+    );
+    WSLogger.info({
+      source: 'PipelineRunService.dispatchCreate',
+      message: `Committed create to main: ${entry.filePath}`,
+      workbookId,
+    });
+
+    // If this is the final operation for this file, also commit to dirty
+    await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(finalContent, null, 2));
+  }
+
+  private async dispatchDelete(
+    entry: { filePath: string; remoteRecordId?: string | null },
+    connector: Connector<Service, any>,
+    tableSpec: BaseJsonTableSpec,
+    workbookId: string,
+  ): Promise<void> {
+    const idField = tableSpec.idColumnRemoteId || 'id';
+    const remoteId = entry.remoteRecordId;
+
+    if (remoteId) {
+      await connector.deleteRecords(tableSpec, [{ [idField]: remoteId }]);
+
+      // After delete: remove refs where this file is the source
+      await this.db.client.fileReference.deleteMany({
+        where: { workbookId, sourceFilePath: entry.filePath },
+      });
+      WSLogger.info({
+        source: 'PipelineRunService.dispatchDelete',
+        message: `Deleted refs for file: ${entry.filePath}`,
+        workbookId,
+      });
+
+      // Remove from FileIndex
+      const { folderPath, filename } = parsePath(entry.filePath);
+      await this.db.client.fileIndex.deleteMany({
+        where: { workbookId, folderPath, filename },
+      });
+      WSLogger.info({
+        source: 'PipelineRunService.dispatchDelete',
+        message: `Removed from FileIndex: ${entry.filePath}`,
+        workbookId,
+      });
+
+      // Delete from main immediately
+      await this.scratchGitService.deleteFilesFromBranch(
+        workbookId as WorkbookId,
+        'main',
+        [entry.filePath],
+        `Publish V2 delete: ${entry.filePath}`,
+      );
+      WSLogger.info({
+        source: 'PipelineRunService.dispatchDelete',
+        message: `Deleted from main: ${entry.filePath}`,
+        workbookId,
+      });
+    } else {
+      WSLogger.warn({
+        source: 'PipelineRunService.dispatchDelete',
+        message: `Delete entry has no remoteRecordId: ${entry.filePath}`,
+        workbookId,
+      });
     }
   }
 
