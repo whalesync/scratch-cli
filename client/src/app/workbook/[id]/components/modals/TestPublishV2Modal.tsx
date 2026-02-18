@@ -33,9 +33,7 @@ export function TestPublishV2Modal({ opened, onClose, workbookId }: TestPublishV
 
   const { connectorAccounts } = useConnectorAccounts(opened ? workbookId : undefined);
 
-  const connectorMap = new Map<string, ConnectorAccount>(
-    (connectorAccounts ?? []).map((ca) => [ca.id, ca]),
-  );
+  const connectorMap = new Map<string, ConnectorAccount>((connectorAccounts ?? []).map((ca) => [ca.id, ca]));
 
   const fetchPipelines = useCallback(async () => {
     setIsLoading(true);
@@ -221,7 +219,8 @@ export function TestPublishV2Modal({ opened, onClose, workbookId }: TestPublishV
                       <Table.Td>
                         <Text size="xs" c={p.connectorAccountId ? undefined : 'dimmed'}>
                           {p.connectorAccountId
-                            ? (connectorMap.get(p.connectorAccountId)?.displayName ?? p.connectorAccountId.substring(0, 8) + '…')
+                            ? (connectorMap.get(p.connectorAccountId)?.displayName ??
+                              p.connectorAccountId.substring(0, 8) + '…')
                             : 'All'}
                         </Text>
                       </Table.Td>

@@ -3,6 +3,7 @@
 import { Text12Regular } from '@/app/components/base/text';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
+import type { DirtyFile } from '@/hooks/use-dirty-files';
 import { useDirtyFiles } from '@/hooks/use-dirty-files';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Box, Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
@@ -10,7 +11,6 @@ import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, Workbook, WorkbookId } from '@spinner/shared-types';
 import { RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DirtyFile } from '@/hooks/use-dirty-files';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
 import { ConnectionNode, EmptyConnectionNode } from './TreeNode';

@@ -8,7 +8,15 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { WorkbookId } from '@spinner/shared-types';
-import { DatabaseIcon, EllipsisVertical, FileCodeIcon, GitGraphIcon, LinkIcon, ServerCrashIcon, Trash2Icon } from 'lucide-react';
+import {
+  DatabaseIcon,
+  EllipsisVertical,
+  FileCodeIcon,
+  GitGraphIcon,
+  LinkIcon,
+  ServerCrashIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { FileIndexModal } from '../modals/FileIndexModal';
 import { GitFileBrowserModal } from '../modals/GitFileBrowserModal';
@@ -74,18 +82,10 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
               <Menu.Item data-devtool leftSection={<FileCodeIcon size={16} />} onClick={() => setFileBrowserOpen(true)}>
                 Git File Browser
               </Menu.Item>
-              <Menu.Item
-                data-devtool
-                leftSection={<DatabaseIcon size={16} />}
-                onClick={() => setFileIndexOpen(true)}
-              >
+              <Menu.Item data-devtool leftSection={<DatabaseIcon size={16} />} onClick={() => setFileIndexOpen(true)}>
                 File Index
               </Menu.Item>
-              <Menu.Item
-                data-devtool
-                leftSection={<LinkIcon size={16} />}
-                onClick={() => setRefIndexOpen(true)}
-              >
+              <Menu.Item data-devtool leftSection={<LinkIcon size={16} />} onClick={() => setRefIndexOpen(true)}>
                 Ref Index
               </Menu.Item>
               <Menu.Item

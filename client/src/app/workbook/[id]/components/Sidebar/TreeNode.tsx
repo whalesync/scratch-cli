@@ -22,8 +22,8 @@ import {
   FlaskRoundIcon,
   FolderIcon,
   MoreHorizontalIcon,
-  RouteIcon,
   RocketIcon,
+  RouteIcon,
   SettingsIcon,
   StickyNoteIcon,
   Trash2Icon,
@@ -33,6 +33,7 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState, type MouseEvent } from 'react';
 import { TestPublishV2Modal } from '../modals/TestPublishV2Modal';
 import { TestTransformerModal } from '../modals/TestTransformerModal';
+import { AdvancedFolderSettingsModal } from '../shared/AdvancedFolderSettingsModal';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
 import { DataFolderSchemaModal } from '../shared/DataFolderSchemaModal';
@@ -40,7 +41,6 @@ import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveFileModal } from '../shared/RemoveFileModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
-import { AdvancedFolderSettingsModal } from '../shared/AdvancedFolderSettingsModal';
 import { ActiveDataFolderJobIndicator } from './ActiveDataFolderJobIndicator';
 import type { FileTreeMode } from './FileTree';
 
@@ -317,11 +317,7 @@ export function ConnectionNode({
 
       {/* Test Publish V2 Modal */}
       {connectorAccount && (
-        <TestPublishV2Modal
-          opened={publishV2ModalOpened}
-          onClose={closePublishV2Modal}
-          workbookId={workbookId}
-        />
+        <TestPublishV2Modal opened={publishV2ModalOpened} onClose={closePublishV2Modal} workbookId={workbookId} />
       )}
     </>
   );

@@ -1,3 +1,10 @@
+/**
+ * Shopify Connector
+ *
+ * Connector for the Shopify e-commerce platform.
+ * Uses generated GraphQL schemas and mutations from codegen.
+ */
+
 import { type TSchema } from '@sinclair/typebox';
 import { Service } from '@spinner/shared-types';
 import { isAxiosError } from 'axios';
@@ -6,134 +13,77 @@ import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import { ALL_ENTITY_TYPES, ENTITY_REGISTRY, EntityType, getEntityConfig, isChildEntity } from './graphql';
 import { ShopifyApiClient, ShopifyError } from './shopify-api-client';
-import {
-  buildArticleSchema,
-  buildBlogSchema,
-  buildCollectionSchema,
-  buildCustomerSchema,
-  buildFileSchema,
-  buildMetaobjectSchema,
-  buildOrderSchema,
-  buildPageSchema,
-  buildProductSchema,
-} from './shopify-schemas';
-import {
-  ShopifyCredentials,
-  ShopifyEntityType,
-  ShopifyOrder,
-  ShopifyProduct,
-  ShopifyWritableEntityType,
-} from './shopify-types';
+import { ShopifyCredentials } from './shopify-types';
 
 const LOG_SOURCE = 'ShopifyConnector';
 
-// ============= Entity Configuration =============
+// Schema imports - these are the generated TypeBox schemas
+import { ArticlesSchema } from './graphql/schemas/articles.schema';
+import { BlogsSchema } from './graphql/schemas/blogs.schema';
+import { CollectionsSchema } from './graphql/schemas/collections.schema';
+import { CustomersSchema } from './graphql/schemas/customers.schema';
+import { FilesSchema } from './graphql/schemas/files.schema';
+import { MetaobjectsSchema } from './graphql/schemas/metaobjects.schema';
+import { OrderLineItemsSchema } from './graphql/schemas/order-line-items.schema';
+import { OrderShippingLinesSchema } from './graphql/schemas/order-shipping-lines.schema';
+import { OrdersSchema } from './graphql/schemas/orders.schema';
+import { PagesSchema } from './graphql/schemas/pages.schema';
+import { ProductMediaSchema } from './graphql/schemas/product-media.schema';
+import { ProductVariantsSchema } from './graphql/schemas/product-variants.schema';
+import { ProductsSchema } from './graphql/schemas/products.schema';
 
-interface EntityConfig {
-  displayName: string;
-  description: string;
-  slugColumnRemoteId?: string;
-  titleColumnRemoteId?: string[];
-  mainContentColumnRemoteId?: string[];
-  buildSchema: () => TSchema;
-}
-
-const ENTITY_CONFIG: Record<ShopifyEntityType, EntityConfig> = {
-  products: {
-    displayName: 'Products',
-    description: 'Products in your Shopify store',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['title'],
-    mainContentColumnRemoteId: ['products', 'descriptionHtml'],
-    buildSchema: buildProductSchema,
-  },
-  collections: {
-    displayName: 'Collections',
-    description: 'Product collections',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['title'],
-    mainContentColumnRemoteId: ['collections', 'descriptionHtml'],
-    buildSchema: buildCollectionSchema,
-  },
-  pages: {
-    displayName: 'Pages',
-    description: 'Static content pages',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['title'],
-    mainContentColumnRemoteId: ['pages', 'body'],
-    buildSchema: buildPageSchema,
-  },
-  blogs: {
-    displayName: 'Blogs',
-    description: 'Blog channels',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['title'],
-    buildSchema: buildBlogSchema,
-  },
-  articles: {
-    displayName: 'Articles',
-    description: 'Blog articles',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['title'],
-    mainContentColumnRemoteId: ['articles', 'body'],
-    buildSchema: buildArticleSchema,
-  },
-  customers: {
-    displayName: 'Customers',
-    description: 'Store customers (read-only)',
-    titleColumnRemoteId: ['displayName'],
-    buildSchema: buildCustomerSchema,
-  },
-  orders: {
-    displayName: 'Orders',
-    description: 'Store orders with line items (read-only)',
-    titleColumnRemoteId: ['name'],
-    buildSchema: buildOrderSchema,
-  },
-  files: {
-    displayName: 'Files',
-    description: 'Uploaded files and media (read-only)',
-    slugColumnRemoteId: 'fileSlug',
-    buildSchema: buildFileSchema,
-  },
-  metaobjects: {
-    displayName: 'Metaobjects',
-    description: 'Custom metaobject entries (read-only)',
-    slugColumnRemoteId: 'handle',
-    titleColumnRemoteId: ['displayName'],
-    buildSchema: buildMetaobjectSchema,
-  },
-};
-
-const ALL_ENTITY_TYPES = Object.keys(ENTITY_CONFIG) as ShopifyEntityType[];
+// Read-only field imports from generated mutations
+import { ARTICLES_READ_ONLY_FIELDS, ARTICLES_STRIP_ON_UPDATE_FIELDS } from './graphql/mutations/articles.mutations';
+import { BLOGS_READ_ONLY_FIELDS } from './graphql/mutations/blogs.mutations';
+import { COLLECTIONS_READ_ONLY_FIELDS } from './graphql/mutations/collections.mutations';
+import { PAGES_READ_ONLY_FIELDS } from './graphql/mutations/pages.mutations';
+import { PRODUCTS_READ_ONLY_FIELDS } from './graphql/mutations/products.mutations';
 
 /**
- * Read-only fields per entity type that must be stripped before create/update mutations.
+ * Map entity types to their TypeBox schemas
  */
-const READ_ONLY_FIELDS: Record<ShopifyWritableEntityType, Set<string>> = {
-  products: new Set(['id', 'createdAt', 'updatedAt', 'description', 'variants', 'images', 'media']),
-  collections: new Set(['id', 'updatedAt', 'description']),
-  pages: new Set(['id', 'createdAt', 'updatedAt', 'bodySummary', 'publishedAt']),
-  blogs: new Set(['id', 'createdAt', 'updatedAt']),
-  articles: new Set(['id', 'createdAt', 'updatedAt', 'publishedAt']),
+const SCHEMA_MAP: Record<EntityType, TSchema> = {
+  products: ProductsSchema,
+  product_variants: ProductVariantsSchema,
+  product_media: ProductMediaSchema,
+  collections: CollectionsSchema,
+  pages: PagesSchema,
+  blogs: BlogsSchema,
+  articles: ArticlesSchema,
+  customers: CustomersSchema,
+  orders: OrdersSchema,
+  order_line_items: OrderLineItemsSchema,
+  order_shipping_lines: OrderShippingLinesSchema,
+  files: FilesSchema,
+  metaobjects: MetaobjectsSchema,
 };
 
 /**
- * Additional fields to strip on update (but keep on create).
- * Articles need blog.id for creation, but blog and author are not accepted on update.
+ * Map entity types to their read-only field sets (for writable entities)
  */
-const STRIP_ON_UPDATE_FIELDS: Partial<Record<ShopifyWritableEntityType, Set<string>>> = {
-  articles: new Set(['blog', 'author']),
+const READ_ONLY_FIELDS_MAP: Partial<Record<EntityType, Set<string>>> = {
+  products: PRODUCTS_READ_ONLY_FIELDS,
+  collections: COLLECTIONS_READ_ONLY_FIELDS,
+  pages: PAGES_READ_ONLY_FIELDS,
+  blogs: BLOGS_READ_ONLY_FIELDS,
+  articles: ARTICLES_READ_ONLY_FIELDS,
 };
 
-const READ_ONLY_ENTITIES: Set<ShopifyEntityType> = new Set(['customers', 'orders', 'files', 'metaobjects']);
+/**
+ * Map entity types to their strip-on-update field sets
+ */
+const STRIP_ON_UPDATE_MAP: Partial<Record<EntityType, Set<string>>> = {
+  articles: ARTICLES_STRIP_ON_UPDATE_FIELDS,
+};
 
 /**
  * Connector for the Shopify e-commerce platform.
  *
  * Supports full CRUD for Products, Collections, Pages, Blogs, Articles.
  * Read-only access for Customers, Orders, Files, Metaobjects.
+ * Normalized child entities: Product Variants, Product Media, Order Line Items, Order Shipping Lines.
  */
 export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
   readonly service = Service.SHOPIFY;
@@ -154,12 +104,21 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
   }
 
   /**
-   * List available tables - all 9 entity types.
+   * List available tables - all entity types from generated registry.
+   * Excludes Plus-only entities (customers, orders, etc.) as they require special access.
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async listTables(): Promise<TablePreview[]> {
-    return ALL_ENTITY_TYPES.map((entityType) => {
-      const config = ENTITY_CONFIG[entityType];
+    return ALL_ENTITY_TYPES.filter((entityType) => {
+      const config = getEntityConfig(entityType);
+      // Exclude Plus-only entities - they require Shopify Plus subscription
+      if ('metadata' in config && config.metadata) {
+        const metadata = config.metadata as { plusOnly?: boolean };
+        if (metadata.plusOnly) return false;
+      }
+      return true;
+    }).map((entityType) => {
+      const config = getEntityConfig(entityType);
       return {
         id: { wsId: entityType, remoteId: [entityType] },
         displayName: config.displayName,
@@ -175,37 +134,47 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
-    const entityType = id.wsId as ShopifyEntityType;
-    const config = ENTITY_CONFIG[entityType];
+    const entityType = id.wsId as EntityType;
+    const config = ENTITY_REGISTRY[entityType];
 
     if (!config) {
       const supported = ALL_ENTITY_TYPES.join(', ');
       throw new ShopifyError(`Entity type '${id.wsId}' not found. Supported types: ${supported}`, 404);
     }
 
+    const schema = SCHEMA_MAP[entityType];
+    if (!schema) {
+      throw new ShopifyError(`Schema not found for entity type '${entityType}'`, 500);
+    }
+
     const spec: BaseJsonTableSpec = {
       id,
       slug: entityType,
       name: config.displayName,
-      schema: config.buildSchema(),
+      schema,
       idColumnRemoteId: 'id',
     };
 
-    if (config.slugColumnRemoteId) {
-      spec.slugColumnRemoteId = config.slugColumnRemoteId;
+    // Safely access columns - TypeScript union types make direct access difficult
+    const columns = config.columns as
+      | { slug?: string; title?: readonly string[]; mainContent?: readonly string[] }
+      | undefined;
+    if (columns?.slug) {
+      spec.slugColumnRemoteId = columns.slug;
     }
-    if (config.titleColumnRemoteId) {
-      spec.titleColumnRemoteId = config.titleColumnRemoteId;
+    if (columns?.title) {
+      spec.titleColumnRemoteId = [...columns.title];
     }
-    if (config.mainContentColumnRemoteId) {
-      spec.mainContentColumnRemoteId = config.mainContentColumnRemoteId;
+    if (columns?.mainContent) {
+      spec.mainContentColumnRemoteId = [...columns.mainContent];
     }
 
     return spec;
   }
 
   /**
-   * Pull all entities of the given type as JSON files, with hydration for products and orders.
+   * Pull all entities of the given type as JSON files.
+   * Child entities (variants, media, line items) are pulled via their parent.
    */
   async pullRecordFiles(
     tableSpec: BaseJsonTableSpec,
@@ -215,37 +184,71 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options: { filter?: string },
   ): Promise<void> {
-    const entityType = tableSpec.id.wsId as ShopifyEntityType;
-    const config = ENTITY_CONFIG[entityType];
+    const entityType = tableSpec.id.wsId as EntityType;
 
-    if (!config) {
+    if (!ENTITY_REGISTRY[entityType]) {
       throw new ShopifyError(`Unsupported table: ${tableSpec.id.wsId}`, 400);
     }
 
+    // Check if this is a child entity
+    if (isChildEntity(entityType)) {
+      await this.pullChildRecords(entityType, callback);
+    } else {
+      await this.pullParentRecords(entityType, callback);
+    }
+  }
+
+  /**
+   * Pull records for a top-level (parent) entity.
+   */
+  private async pullParentRecords(
+    entityType: EntityType,
+    callback: (params: { files: ConnectorFile[] }) => Promise<void>,
+  ): Promise<void> {
     for await (const entities of this.client.listEntities(entityType)) {
-      let files: ConnectorFile[];
+      await callback({ files: entities as ConnectorFile[] });
+    }
+  }
 
-      if (entityType === 'products') {
-        // Hydrate product connections (variants, images, media)
-        const hydrated: ConnectorFile[] = [];
-        for (const entity of entities) {
-          const product = await this.client.hydrateProductConnections(entity as unknown as ShopifyProduct);
-          hydrated.push(product as unknown as ConnectorFile);
+  /**
+   * Pull records for a child entity by iterating through parents and extracting children.
+   */
+  private async pullChildRecords(
+    entityType: EntityType,
+    callback: (params: { files: ConnectorFile[] }) => Promise<void>,
+  ): Promise<void> {
+    const config = ENTITY_REGISTRY[entityType];
+    if (!('parent' in config) || !config.parent) {
+      throw new ShopifyError(`Entity ${entityType} is marked as child but has no parent config`, 500);
+    }
+
+    const parentType = config.parent.entityType as EntityType;
+    const foreignKey = config.parent.foreignKey;
+    const connectionField = config.parent.connectionField;
+
+    WSLogger.info({
+      source: LOG_SOURCE,
+      message: `Pulling ${entityType} via parent ${parentType}.${connectionField}`,
+    });
+
+    // Iterate through all parents
+    for await (const parents of this.client.listEntities(parentType)) {
+      for (const parent of parents) {
+        const parentId = String(parent.id);
+
+        // Fetch the connection data for this parent
+        const children = await this.client.fetchConnection(parentId, parentType, connectionField);
+
+        if (children.length > 0) {
+          // Add foreign key to each child
+          const normalizedChildren = children.map((child) => ({
+            ...child,
+            [foreignKey]: parentId,
+          })) as ConnectorFile[];
+
+          await callback({ files: normalizedChildren });
         }
-        files = hydrated;
-      } else if (entityType === 'orders') {
-        // Hydrate order connections (lineItems, shippingLines)
-        const hydrated: ConnectorFile[] = [];
-        for (const entity of entities) {
-          const order = await this.client.hydrateOrderConnections(entity as unknown as ShopifyOrder);
-          hydrated.push(order as unknown as ConnectorFile);
-        }
-        files = hydrated;
-      } else {
-        files = entities as ConnectorFile[];
       }
-
-      await callback({ files });
     }
   }
 
@@ -262,14 +265,13 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
    * Create records from JSON files.
    */
   async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
-    const entityType = tableSpec.id.wsId as ShopifyEntityType;
+    const entityType = tableSpec.id.wsId as EntityType;
     this.assertWritable(entityType);
-    const writableType = entityType as ShopifyWritableEntityType;
 
     const results: ConnectorFile[] = [];
     for (const file of files) {
-      const input = this.stripReadOnlyFields(file, writableType);
-      const created = await this.client.createEntity(writableType, input);
+      const input = this.stripReadOnlyFields(file, entityType);
+      const created = await this.client.createEntity(entityType, input);
       results.push(created as ConnectorFile);
     }
 
@@ -280,14 +282,13 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
    * Update records from JSON files.
    */
   async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
-    const entityType = tableSpec.id.wsId as ShopifyEntityType;
+    const entityType = tableSpec.id.wsId as EntityType;
     this.assertWritable(entityType);
-    const writableType = entityType as ShopifyWritableEntityType;
 
     for (const file of files) {
       const entityId = String(file.id);
-      const input = this.stripReadOnlyFields(file, writableType, 'update');
-      await this.client.updateEntity(writableType, entityId, input);
+      const input = this.stripReadOnlyFields(file, entityType, 'update');
+      await this.client.updateEntity(entityType, entityId, input);
     }
   }
 
@@ -295,19 +296,20 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
    * Delete records.
    */
   async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
-    const entityType = tableSpec.id.wsId as ShopifyEntityType;
+    const entityType = tableSpec.id.wsId as EntityType;
     this.assertWritable(entityType);
-    const writableType = entityType as ShopifyWritableEntityType;
+
+    const config = getEntityConfig(entityType);
 
     for (const file of files) {
       try {
-        await this.client.deleteEntity(writableType, String(file.id));
+        await this.client.deleteEntity(entityType, String(file.id));
       } catch (error) {
         // Ignore 404s - the entity may already be deleted
         if (error instanceof ShopifyError && error.statusCode === 404) {
           WSLogger.warn({
             source: LOG_SOURCE,
-            message: `${ENTITY_CONFIG[entityType].displayName} ${String(file.id)} already deleted, skipping`,
+            message: `${config.displayName} ${String(file.id)} already deleted, skipping`,
           });
           continue;
         }
@@ -319,10 +321,11 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
   /**
    * Assert that the entity type supports write operations.
    */
-  private assertWritable(entityType: ShopifyEntityType): void {
-    if (READ_ONLY_ENTITIES.has(entityType)) {
+  private assertWritable(entityType: EntityType): void {
+    const config = getEntityConfig(entityType);
+    if (config.readOnly) {
       throw new ShopifyError(
-        `${ENTITY_CONFIG[entityType].displayName} are read-only and cannot be created, updated, or deleted`,
+        `${config.displayName} are read-only and cannot be created, updated, or deleted`,
         400,
         'READ_ONLY',
       );
@@ -334,18 +337,20 @@ export class ShopifyConnector extends Connector<typeof Service.SHOPIFY> {
    */
   private stripReadOnlyFields(
     file: ConnectorFile,
-    entityType: ShopifyWritableEntityType,
+    entityType: EntityType,
     operation: 'create' | 'update' = 'create',
   ): Record<string, unknown> {
-    const readOnly = READ_ONLY_FIELDS[entityType];
-    const updateOnly = operation === 'update' ? STRIP_ON_UPDATE_FIELDS[entityType] : undefined;
+    const readOnly = READ_ONLY_FIELDS_MAP[entityType] ?? new Set<string>();
+    const updateOnly = operation === 'update' ? STRIP_ON_UPDATE_MAP[entityType] : undefined;
     const result: Record<string, unknown> = {};
+
     for (const [key, value] of Object.entries(file)) {
       if (readOnly.has(key) || (updateOnly && updateOnly.has(key)) || value === undefined) {
         continue;
       }
       result[key] = value;
     }
+
     return result;
   }
 

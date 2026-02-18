@@ -1,0 +1,21 @@
+{
+  "name": "graphql-codegen",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GraphQL schema introspection and TypeBox code generation",
+  "scripts": {
+    "codegen:shopify": "ts-node src/shopify/run.ts"
+  },
+  "dependencies": {
+    "@graphql-codegen/core": "^4.0.0",
+    "@graphql-codegen/plugin-helpers": "^5.0.0",
+    "@sinclair/typebox": "^0.32.0",
+    "axios": "^1.6.0",
+    "graphql": "^16.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
