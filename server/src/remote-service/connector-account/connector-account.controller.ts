@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -23,7 +24,7 @@ import type { RequestWithUser } from '../../auth/types';
 import { userToActor } from '../../users/types';
 import { ConnectorAccountService } from './connector-account.service';
 import { ConnectorAccount } from './entities/connector-account.entity';
-import { TableList } from './entities/table-list.entity';
+import { TableList, TableSearchResult } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('workbooks/:workbookId/connections')
@@ -62,8 +63,16 @@ export class ConnectorAccountController {
     @Param('connectorAccountId') connectorAccountId: string,
     @Req() req: RequestWithUser,
   ): Promise<TableList> {
-    const tables = await this.service.listTables(connectorAccountId, userToActor(req.user));
-    return { tables };
+    return this.service.listTables(connectorAccountId, userToActor(req.user));
+  }
+
+  @Get(':connectorAccountId/tables/search')
+  async searchTables(
+    @Param('connectorAccountId') connectorAccountId: string,
+    @Query('searchTerm') searchTerm: string,
+    @Req() req: RequestWithUser,
+  ): Promise<TableSearchResult> {
+    return this.service.searchTables(connectorAccountId, searchTerm, userToActor(req.user));
   }
 
   @Post(':id/test')

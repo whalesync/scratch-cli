@@ -82,8 +82,7 @@ export class CliConnectionController {
     @Req() req: RequestWithUser,
   ): Promise<TableList> {
     await this.verifyWorkbookAccess(workbookId as WorkbookId, req);
-    const tables = await this.connectorAccountService.listTables(connectorAccountId, userToActor(req.user));
-    return { tables };
+    return this.connectorAccountService.listTables(connectorAccountId, userToActor(req.user));
   }
 
   @Delete(':id')

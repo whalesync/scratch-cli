@@ -1,4 +1,4 @@
-import { Service } from '@spinner/shared-types';
+import { Service, TableDiscoveryMode } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from './types';
 
@@ -33,6 +33,14 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
   static readonly displayName: string;
 
   /**
+   * The discovery mode for listing tables. Defaults to LIST.
+   * Connectors with slow list APIs (e.g. Notion) should override this to SEARCH.
+   */
+  get tableDiscoveryMode(): TableDiscoveryMode {
+    return TableDiscoveryMode.LIST;
+  }
+
+  /**
    * Test the current state of the connection to the Datasource.
    * @throws Error if the connection is not valid.
    */
@@ -44,6 +52,17 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
    * @throws Error if the tables cannot be listed.
    */
   abstract listTables(): Promise<TablePreview[]>;
+
+  /**
+   * Search for tables by name. Only used when tableDiscoveryMode is SEARCH.
+   * Connectors opting into SEARCH mode must override this method.
+   * @param searchTerm The search term to filter tables by.
+   * @returns A list of matching table previews and whether more results exist.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  searchTables(searchTerm: string): Promise<{ tables: TablePreview[]; hasMore: boolean }> {
+    throw new Error('searchTables is not implemented for this connector');
+  }
 
   /**
    * Fetch the JSON Table Spec for a table directly from the remote API.

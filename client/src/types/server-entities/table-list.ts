@@ -1,4 +1,4 @@
-import { EntityId } from '@spinner/shared-types';
+import { EntityId, TableDiscoveryMode } from '@spinner/shared-types';
 
 export interface TablePreview {
   id: EntityId;
@@ -7,4 +7,10 @@ export interface TablePreview {
 
 export interface TableList {
   tables: TablePreview[];
+  discoveryMode: TableDiscoveryMode;
+}
+
+export interface TableSearchResult {
+  tables: TablePreview[];
+  hasMore: boolean;
 }

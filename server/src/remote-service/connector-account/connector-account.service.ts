@@ -1,9 +1,16 @@
-import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
 import {
   ConnectorAccountId,
   createConnectorAccountId,
   Service,
+  TableDiscoveryMode,
   UpdateConnectorAccountDto,
   ValidatedCreateConnectorAccountDto,
   WorkbookId,
@@ -22,6 +29,7 @@ import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
 import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
+import { TableSearchResult } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 import { DecryptedCredentials } from './types/encrypted-credentials.interface';
 
@@ -241,7 +249,10 @@ export class ConnectorAccountService {
     });
   }
 
-  async listTables(connectorAccountId: string, actor: Actor): Promise<TablePreview[]> {
+  async listTables(
+    connectorAccountId: string,
+    actor: Actor,
+  ): Promise<{ tables: TablePreview[]; discoveryMode: TableDiscoveryMode }> {
     const account = await this.findOneById(connectorAccountId, actor);
 
     let connector: Connector<Service, any>;
@@ -259,7 +270,42 @@ export class ConnectorAccountService {
     }
 
     try {
-      return connector.listTables().then((tables) => tables.sort((a, b) => a.displayName.localeCompare(b.displayName)));
+      const tables = await connector
+        .listTables()
+        .then((tables) => tables.sort((a, b) => a.displayName.localeCompare(b.displayName)));
+      return { tables, discoveryMode: connector.tableDiscoveryMode };
+    } catch (error) {
+      throw exceptionForConnectorError(error, connector);
+    }
+  }
+
+  async searchTables(connectorAccountId: string, searchTerm: string, actor: Actor): Promise<TableSearchResult> {
+    const account = await this.findOneById(connectorAccountId, actor);
+
+    let connector: Connector<Service, any>;
+    try {
+      connector = await this.connectorsService.getConnector({
+        service: account.service as Service,
+        connectorAccount: account,
+        decryptedCredentials: account,
+        userId: actor.userId,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    if (connector.tableDiscoveryMode !== TableDiscoveryMode.SEARCH) {
+      throw new BadRequestException('This connector does not support table search');
+    }
+
+    if (!searchTerm?.trim()) {
+      return { tables: [], hasMore: false };
+    }
+
+    try {
+      return await connector.searchTables(searchTerm);
     } catch (error) {
       throw exceptionForConnectorError(error, connector);
     }

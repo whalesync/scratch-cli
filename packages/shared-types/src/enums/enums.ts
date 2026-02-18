@@ -53,3 +53,8 @@ export enum SyncState {
   OFF = 'OFF',
   ON = 'ON',
 }
+
+export enum TableDiscoveryMode {
+  LIST = 'LIST',
+  SEARCH = 'SEARCH',
+}
