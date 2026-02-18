@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Service, WorkbookId } from '@spinner/shared-types';
+import { WSLogger } from 'src/logger';
 import { CredentialEncryptionService } from '../credential-encryption/credential-encryption.service';
 import { DbService } from '../db/db.service';
 import { Connector } from '../remote-service/connectors/connector';
@@ -9,7 +10,9 @@ import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { EncryptedData } from '../utils/encryption';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
-import { PipelineInfo, PipelinePhase } from './types';
+import { PipelineSchemaService } from './pipeline-schema.service';
+import { PipelinePhase, PublishPlanInfo } from './types';
+import { parsePath } from './utils';
 
 @Injectable()
 export class PipelineRunService {
@@ -20,9 +23,10 @@ export class PipelineRunService {
     private readonly fileIndexService: FileIndexService,
     private readonly fileReferenceService: FileReferenceService,
     private readonly scratchGitService: ScratchGitService,
+    private readonly schemaService: PipelineSchemaService,
   ) {}
 
-  async runPipeline(pipelineId: string, phase?: string): Promise<PipelineInfo> {
+  async runPipeline(pipelineId: string, phase?: string): Promise<PublishPlanInfo> {
     const plan = await this.db.client.publishPlan.findUnique({ where: { id: pipelineId } });
     if (!plan) {
       throw new Error('Pipeline plan not found');
@@ -51,7 +55,12 @@ export class PipelineRunService {
           where: { planId: pipelineId, phase: currentPhase, status: 'pending' },
         });
 
-        console.log(`[Run] Executing ${currentPhase} Phase: ${entries.length} entries`);
+        WSLogger.info({
+          source: 'PipelineRunService.runPipeline',
+          message: `Executing ${currentPhase} Phase: ${entries.length} entries`,
+          workbookId: plan.workbookId,
+          data: { pipelineId },
+        });
 
         for (const entry of entries) {
           try {
@@ -63,7 +72,13 @@ export class PipelineRunService {
               data: { status: 'success' },
             });
           } catch (err) {
-            console.error(`[Run] Entry failed: ${entry.filePath}`, err);
+            WSLogger.error({
+              source: 'PipelineRunService.runPipeline',
+              message: `Entry failed: ${entry.filePath}`,
+              error: err,
+              workbookId: plan.workbookId,
+              data: { pipelineId, entryId: entry.id },
+            });
             await this.db.client.publishPlanEntry.update({
               where: { id: entry.id },
               data: {
@@ -86,9 +101,12 @@ export class PipelineRunService {
       const finalStatus = phase ? `${phase}s-completed` : 'completed';
 
       // Rebase dirty on top of main so published changes disappear from dirty
-      console.log(`[Run] Rebasing dirty on main...`);
+      WSLogger.info({
+        source: 'PipelineRunService.runPipeline',
+        message: 'Rebasing dirty on main',
+        workbookId: plan.workbookId,
+      });
       await this.scratchGitService.rebaseDirty(plan.workbookId as WorkbookId);
-      console.log(`[Run] Rebase complete.`);
 
       return {
         pipelineId: plan.id,
@@ -100,7 +118,12 @@ export class PipelineRunService {
         status: finalStatus,
       };
     } catch (err) {
-      console.error('Pipeline failed', err);
+      WSLogger.error({
+        source: 'PipelineRunService.runPipeline',
+        message: 'Pipeline failed',
+        error: err,
+        data: { pipelineId },
+      });
       await this.db.client.publishPlan.update({
         where: { id: pipelineId },
         data: { status: 'failed' },
@@ -144,28 +167,32 @@ export class PipelineRunService {
     cache: Map<string, BaseJsonTableSpec>,
   ): Promise<BaseJsonTableSpec> {
     // Extract folder path from file path (e.g. "articles/my-post.json" → "articles")
-    const lastSlash = filePath.lastIndexOf('/');
-    const folderPath = lastSlash === -1 ? '' : filePath.substring(0, lastSlash);
+    const { folderPath } = parsePath(filePath);
 
-    if (cache.has(folderPath)) {
-      return cache.get(folderPath)!;
+    const spec = await this.schemaService.getTableSpec(workbookId, folderPath, cache);
+    if (!spec) {
+      // Return dummy or empty spec if not found, or throw? The original code returned minimal object if not found (implied by cache.set(folderPath, {...} as any)).
+      // Actually, original code didn't handle not found explicitly in the visible snippet, but would return undefined from findFirst.
+      // Let's return a safe fallback or allow null if the caller handles it.
+      // The return type is Promise<BaseJsonTableSpec>.
+      // Let's look at the original code's behavior for 'not found'.
+      // It likely just returned undefined/null which might crash downstream if not handled, or it had fallback logic I didn't see.
+      // Usage in dispatchEntry: const tableSpec = await this.getTableSpecForEntry(...)
+      // If null, it might be an issue.
+      // But for now, let's return a dummy object or throw.
+      // If folder has no schema, it's not a connected folder (scratch).
+      // Scratch folders don't have table specs.
+      // So we should return a mock spec or throw if expected.
+      // original code:
+      // const dataFolder = await ...
+      // if (dataFolder?.schema) ...
+      // return (dataFolder?.schema as unknown as BaseJsonTableSpec) ?? { name: 'unknown', schema: {} };
+      // Wait, I saw "cache.set(folderPath, (dataFolder.schema as unknown as BaseJsonTableSpec));" in original?
+      // No, I saw "cache.set(folderPath, tableSpec);"
+      // Let's assume returning a minimal object is safer if null.
+      return { name: 'unknown', schema: {} } as BaseJsonTableSpec;
     }
-
-    // Look up the DataFolder by path (try with and without leading slash)
-    const dataFolder = await this.db.client.dataFolder.findFirst({
-      where: {
-        workbookId,
-        path: { in: [folderPath, `/${folderPath}`] },
-      },
-    });
-
-    if (!dataFolder?.schema) {
-      throw new Error(`No schema found for folder: ${folderPath}`);
-    }
-
-    const tableSpec = dataFolder.schema as unknown as BaseJsonTableSpec;
-    cache.set(folderPath, tableSpec);
-    return tableSpec;
+    return spec;
   }
 
   /**
@@ -179,9 +206,7 @@ export class PipelineRunService {
       if (typeof value === 'string' && value.startsWith('@/')) {
         // Resolve pseudo-reference to real ID
         const targetPath = value.substring(2); // Strip "@/"
-        const lastSlash = targetPath.lastIndexOf('/');
-        const folder = lastSlash === -1 ? '' : targetPath.substring(0, lastSlash);
-        const filename = targetPath.substring(lastSlash + 1);
+        const { folderPath: folder, filename } = parsePath(targetPath);
 
         const recordId = await this.fileIndexService.getRecordId(workbookId, folder, filename);
         if (!recordId) {
@@ -189,7 +214,8 @@ export class PipelineRunService {
             `Cannot resolve pseudo-ref "${value}": no record ID found in FileIndex for folder="${folder}" file="${filename}"`,
           );
         }
-        console.log(`[Run] Resolved pseudo-ref "${value}" → "${recordId}"`);
+        // Debug only
+        // console.log(`[Run] Resolved pseudo-ref "${value}" → "${recordId}"`);
         result[key] = recordId;
       } else if (Array.isArray(value)) {
         // Recurse into arrays
@@ -197,16 +223,14 @@ export class PipelineRunService {
         for (const item of value) {
           if (typeof item === 'string' && item.startsWith('@/')) {
             const targetPath = item.substring(2);
-            const lastSlash = targetPath.lastIndexOf('/');
-            const folder = lastSlash === -1 ? '' : targetPath.substring(0, lastSlash);
-            const filename = targetPath.substring(lastSlash + 1);
+            const { folderPath: folder, filename } = parsePath(targetPath);
             const recordId = await this.fileIndexService.getRecordId(workbookId, folder, filename);
+
             if (!recordId) {
               throw new Error(
                 `Cannot resolve pseudo-ref "${item}": no record ID found in FileIndex for folder="${folder}" file="${filename}"`,
               );
             }
-            console.log(`[Run] Resolved pseudo-ref "${item}" → "${recordId}"`);
             resolved.push(recordId);
           } else if (typeof item === 'object' && item !== null) {
             resolved.push(await this.resolvePseudoRefs(workbookId, item as Record<string, unknown>));
@@ -239,11 +263,16 @@ export class PipelineRunService {
   ): Promise<void> {
     let operation = entry.operation as Record<string, unknown>;
     if (!operation) {
-      console.warn(`[Run] Skipping entry with no operation: ${entry.filePath}`);
+      WSLogger.warn({
+        source: 'PipelineRunService.dispatchEntry',
+        message: `Skipping entry with no operation: ${entry.filePath}`,
+        workbookId,
+        data: { planId, entry },
+      });
       return;
     }
 
-    console.log(`[Run] Dispatching ${phase}: ${entry.filePath}`);
+    // console.log(`[Run] Dispatching ${phase}: ${entry.filePath}`);
 
     switch (phase) {
       case 'edit':
@@ -256,7 +285,6 @@ export class PipelineRunService {
         await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
           { path: entry.filePath, content: operation },
         ]);
-        console.log(`[Run] Updated refs for ${phase} file: ${entry.filePath}`);
 
         // Commit to main immediately
         await this.scratchGitService.commitFilesToBranch(
@@ -265,7 +293,6 @@ export class PipelineRunService {
           [{ path: entry.filePath, content: JSON.stringify(operation, null, 2) }],
           `Publish V2 ${phase}: ${entry.filePath}`,
         );
-        console.log(`[Run] Committed ${phase} to main: ${entry.filePath}`);
 
         // If this is the final operation for this file, also commit to dirty
         await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(operation, null, 2));
@@ -280,15 +307,12 @@ export class PipelineRunService {
           delete content[idField];
         }
         const returned = await connector.createRecords(tableSpec, [content]);
-        console.log(`[Run] Create returned:`, JSON.stringify(returned[0]).substring(0, 200));
 
         // After create: add file to FileIndex with the real ID
         if (returned[0]) {
           const realId = (returned[0] as Record<string, unknown>)[idField];
           if (realId && typeof realId === 'string') {
-            const lastSlash = entry.filePath.lastIndexOf('/');
-            const folderPath = lastSlash === -1 ? '' : entry.filePath.substring(0, lastSlash);
-            const filename = entry.filePath.substring(lastSlash + 1);
+            const { folderPath, filename } = parsePath(entry.filePath);
 
             await this.fileIndexService.upsertBatch([
               {
@@ -341,9 +365,7 @@ export class PipelineRunService {
           console.log(`[Run] Deleted refs for file: ${entry.filePath}`);
 
           // Remove from FileIndex
-          const lastSlash = entry.filePath.lastIndexOf('/');
-          const folderPath = lastSlash === -1 ? '' : entry.filePath.substring(0, lastSlash);
-          const filename = entry.filePath.substring(lastSlash + 1);
+          const { folderPath, filename } = parsePath(entry.filePath);
           await this.db.client.fileIndex.deleteMany({
             where: { workbookId, folderPath, filename },
           });

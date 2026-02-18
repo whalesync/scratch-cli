@@ -1,27 +1,30 @@
 import { Injectable } from '@nestjs/common';
 
+import { ParsedContent, Schema } from 'src/utils/objects';
+import { FileIndexService } from './file-index.service';
+import { parsePath } from './utils';
+
 export type StripMode = 'ALL' | 'IDS_ONLY' | 'PSEUDO_ONLY';
 
 @Injectable()
 export class RefCleanerService {
+  constructor(private readonly fileIndexService: FileIndexService) {}
   /**
    * Strip references that point to any of the paths in the set or are unresolvable pseudo-refs.
    * Returns a deep copy of content with matching refs replaced by null.
    */
   async stripReferencesWithSchema(
     workbookId: string,
-    content: any,
-    schema: any,
+    content: ParsedContent,
+    schema: Schema | null,
     addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
     idsToStrip?: Set<string>,
     mode: StripMode = 'ALL',
-  ): Promise<any> {
+  ): Promise<ParsedContent> {
     if (!content || !schema) return content;
 
     // Deep copy to avoid mutating original
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const result = JSON.parse(JSON.stringify(content));
+    const result = structuredClone(content);
 
     // 1. Find all FK paths in the schema
     const fkPaths = this.extractForeignKeyPaths(schema);
@@ -30,7 +33,7 @@ export class RefCleanerService {
       // 2. Get nodes at this path in the content
       // We need to modify them in place, so getNodesByPath might not be enough if it returns values.
       // We'll write a specific traverser that can update values.
-      await this.stripAtNodes(workbookId, result, fk.path, addedPaths, fileIndexService, idsToStrip, mode);
+      await this.stripAtNodes(workbookId, result, fk.path, addedPaths, idsToStrip, mode);
     }
 
     return result;
@@ -39,7 +42,7 @@ export class RefCleanerService {
   /**
    * Traverses the schema to find all paths that are marked as foreign keys.
    */
-  extractForeignKeyPaths(schema: any): Array<{ path: string[]; targetFolderId: string; map?: string }> {
+  extractForeignKeyPaths(schema: Schema): Array<{ path: string[]; targetFolderId: string; map?: string }> {
     const results: Array<{ path: string[]; targetFolderId: string; map?: string }> = [];
 
     const walk = (schemaNode: any, currentPath: string[]) => {
@@ -116,7 +119,6 @@ export class RefCleanerService {
     root: any,
     path: string[],
     addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
     idsToStrip?: Set<string>,
     mode: StripMode = 'ALL',
   ): Promise<void> {
@@ -131,9 +133,9 @@ export class RefCleanerService {
           if (tail.length === 0) {
             // Reached the leaf node (FK value) inside array
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            root[i] = await this.checkAndStrip(workbookId, root[i], addedPaths, fileIndexService, idsToStrip, mode);
+            root[i] = await this.checkAndStrip(workbookId, root[i], addedPaths, idsToStrip, mode);
           } else {
-            await this.stripAtNodes(workbookId, root[i], tail, addedPaths, fileIndexService, idsToStrip, mode);
+            await this.stripAtNodes(workbookId, root[i], tail, addedPaths, idsToStrip, mode);
           }
         }
       }
@@ -143,10 +145,10 @@ export class RefCleanerService {
         if (tail.length === 0) {
           // Reached the leaf node (FK value)
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-          root[head] = await this.checkAndStrip(workbookId, root[head], addedPaths, fileIndexService, idsToStrip, mode);
+          root[head] = await this.checkAndStrip(workbookId, root[head], addedPaths, idsToStrip, mode);
         } else {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          await this.stripAtNodes(workbookId, root[head], tail, addedPaths, fileIndexService, idsToStrip, mode);
+          await this.stripAtNodes(workbookId, root[head], tail, addedPaths, idsToStrip, mode);
         }
       }
     }
@@ -156,7 +158,6 @@ export class RefCleanerService {
     workbookId: string,
     value: any,
     addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
     idsToStrip?: Set<string>,
     mode: StripMode = 'ALL',
   ): Promise<any> {
@@ -167,12 +168,12 @@ export class RefCleanerService {
     if (Array.isArray(value)) {
       const newArray = [];
       for (const item of value) {
-        const stripped = await this.shouldStrip(workbookId, item, addedPaths, fileIndexService, idsToStrip, mode);
+        const stripped = await this.shouldStrip(workbookId, item, addedPaths, idsToStrip, mode);
         if (!stripped) newArray.push(item);
       }
       return newArray;
     } else {
-      const stripped = await this.shouldStrip(workbookId, value, addedPaths, fileIndexService, idsToStrip, mode);
+      const stripped = await this.shouldStrip(workbookId, value, addedPaths, idsToStrip, mode);
       return stripped ? null : value;
     }
   }
@@ -181,7 +182,6 @@ export class RefCleanerService {
     workbookId: string,
     value: any,
     addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
     idsToStrip?: Set<string>,
     mode: StripMode = 'ALL',
   ): Promise<boolean> {
@@ -206,11 +206,9 @@ export class RefCleanerService {
         }
 
         // If it points to a file that DOES NOT EXIST in FileIndex, STRIP IT.
-        const lastSlash = targetPath.lastIndexOf('/');
-        const folder = lastSlash === -1 ? '' : targetPath.substring(0, lastSlash);
-        const filename = targetPath.substring(lastSlash + 1);
+        const { folderPath: folder, filename } = parsePath(targetPath);
 
-        const recordId = await fileIndexService.getRecordId(workbookId, folder, filename);
+        const recordId = await this.fileIndexService.getRecordId(workbookId, folder, filename);
         if (!recordId) {
           return true; // Strip unresolvable
         }

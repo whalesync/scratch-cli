@@ -12,10 +12,26 @@ import { PipelineRunService } from './pipeline-run.service';
 import { PublishPipelineController } from './publish-pipeline.controller';
 import { RefCleanerService } from './ref-cleaner.service';
 
+import { PipelineSchemaService } from './pipeline-schema.service';
+
 @Module({
   imports: [DbModule, ScratchGitModule, WorkerEnqueuerModule, ConnectorsModule, CredentialEncryptionModule],
   controllers: [PublishPipelineController],
-  providers: [FileIndexService, FileReferenceService, PipelineBuildService, PipelineRunService, RefCleanerService],
-  exports: [FileIndexService, FileReferenceService, PipelineBuildService, PipelineRunService, RefCleanerService],
+  providers: [
+    FileIndexService,
+    FileReferenceService,
+    PipelineBuildService,
+    PipelineRunService,
+    RefCleanerService,
+    PipelineSchemaService,
+  ],
+  exports: [
+    FileIndexService,
+    FileReferenceService,
+    PipelineBuildService,
+    PipelineRunService,
+    RefCleanerService,
+    PipelineSchemaService,
+  ],
 })
 export class PublishPipelineModule {}

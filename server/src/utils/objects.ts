@@ -14,3 +14,6 @@ export type JsonSafeValue =
 export type JsonSafeObject = {
   [Key in string]?: JsonSafeValue;
 };
+
+export type ParsedContent = JsonSafeObject;
+export type Schema = JsonSafeObject;

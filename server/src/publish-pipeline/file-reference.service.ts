@@ -4,7 +4,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
+import { PipelineSchemaService } from './pipeline-schema.service';
 import { RefCleanerService } from './ref-cleaner.service';
+import { parsePath } from './utils';
 
 export interface ExtractedRef {
   sourceFilePath: string;
@@ -19,6 +21,7 @@ export class FileReferenceService {
   constructor(
     private readonly db: DbService,
     private readonly refCleanerService: RefCleanerService,
+    private readonly schemaService: PipelineSchemaService,
   ) {}
 
   /**
@@ -155,29 +158,8 @@ export class FileReferenceService {
       let fileSchema = schema;
       if (!fileSchema) {
         // Determine folder path
-        const lastSlash = file.path.lastIndexOf('/');
-        const folderPath = lastSlash === -1 ? '' : file.path.substring(0, lastSlash);
-
-        if (schemaCache.has(folderPath)) {
-          fileSchema = schemaCache.get(folderPath);
-        } else {
-          try {
-            const df = await this.db.client.dataFolder.findFirst({
-              where: {
-                workbookId,
-                path: { in: [folderPath, `/${folderPath}`] },
-              },
-              select: { schema: true },
-            });
-            // DataFolder.schema is a BaseJsonTableSpec — we need the inner .schema
-            // property which is the JSON Schema with properties/x-scratch-foreign-key
-            const tableSpec = df?.schema as Record<string, any> | undefined;
-            fileSchema = tableSpec?.schema ?? tableSpec;
-          } catch {
-            // ignore error
-          }
-          schemaCache.set(folderPath, fileSchema);
-        }
+        const { folderPath } = parsePath(file.path);
+        fileSchema = await this.schemaService.getJsonSchema(workbookId, folderPath, schemaCache);
       }
 
       const refs = this.extractReferences(file.path, file.content, fileSchema);
@@ -228,7 +210,16 @@ export class FileReferenceService {
     workbookId: string,
     targets: Array<{ folderPath: string; fileName?: string; recordId?: string }>,
     branches: string[] = ['main', 'dirty'],
-  ) {
+  ): Promise<
+    {
+      sourceFilePath: string;
+      branch: string;
+    }[]
+  > {
+    if (targets.length === 0) {
+      return [];
+    }
+
     // This is a complex OR query.
     // For each target, we want to find refs that match (folder AND filename) OR (folder AND recordId).
 

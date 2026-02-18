@@ -1,15 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+// /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
 import { randomUUID } from 'crypto';
+import { ParsedContent } from 'src/utils/objects';
 import { DbService } from '../db/db.service';
+import { WSLogger } from '../logger';
 import { DIRTY_BRANCH, MAIN_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
+import { PipelineSchemaService } from './pipeline-schema.service';
 import { RefCleanerService } from './ref-cleaner.service';
-import { PipelineInfo, PipelinePhase } from './types';
+import { PipelinePhase, PublishPlanInfo, PublishPlanPhase } from './types';
+import { parsePath } from './utils';
 
 @Injectable()
 export class PipelineBuildService {
@@ -19,12 +21,13 @@ export class PipelineBuildService {
     private readonly fileIndexService: FileIndexService,
     private readonly fileReferenceService: FileReferenceService,
     private readonly refCleanerService: RefCleanerService,
+    private readonly schemaService: PipelineSchemaService,
   ) {}
 
   /**
    * Builds the publish pipeline for a given workbook.
    */
-  async buildPipeline(workbookId: string, userId: string, connectorAccountId?: string): Promise<PipelineInfo> {
+  async buildPipeline(workbookId: string, userId: string, connectorAccountId?: string): Promise<PublishPlanInfo> {
     const pipelineId = randomUUID();
     const branchName = `publish/${userId}/${pipelineId}`;
     const wkbId = workbookId as WorkbookId;
@@ -65,27 +68,7 @@ export class PipelineBuildService {
     const schemaCache = new Map<string, any>();
 
     const getSchema = async (folderPath: string) => {
-      if (schemaCache.has(folderPath)) return schemaCache.get(folderPath);
-
-      try {
-        const dataFolder = await this.db.client.dataFolder.findFirst({
-          where: {
-            workbookId,
-            path: { in: [folderPath, `/${folderPath}`] },
-          },
-          select: { schema: true },
-        });
-
-        if (dataFolder?.schema) {
-          schemaCache.set(folderPath, (dataFolder.schema as any)?.schema);
-          return (dataFolder.schema as any)?.schema;
-        }
-      } catch (e) {
-        console.error('Error fetching schema for folder:', folderPath, e);
-      }
-
-      schemaCache.set(folderPath, null);
-      return null;
+      return this.schemaService.getJsonSchema(workbookId, folderPath, schemaCache);
     };
 
     const addedPathsSet = new Set(addedFiles.map((f) => f.path));
@@ -93,71 +76,78 @@ export class PipelineBuildService {
 
     // --- Prepare for "Delete Ref Clearing" ---
     // 1. Identify Deleted Record IDs
+
     const deletedRecordIds = new Set<string>();
+    const deletedFileRecordIds = new Map<string, string | null>();
     const targetsForRefCheck: Array<{ folderPath: string; fileName: string; recordId?: string }> = [];
 
     for (const del of deletedFiles) {
-      const lastSlash = del.path.lastIndexOf('/');
-      const folderPath = lastSlash === -1 ? '' : del.path.substring(0, lastSlash);
-      const fileName = del.path.substring(lastSlash + 1);
+      const { folderPath, filename: fileName } = parsePath(del.path);
       const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
 
       if (recordId) deletedRecordIds.add(recordId);
+      deletedFileRecordIds.set(del.path, recordId || null);
       targetsForRefCheck.push({ folderPath, fileName, recordId: recordId || undefined });
     }
 
     // 2. Identify Inbound Refs to Deleted Files
+    // TODO: do we need to search in both branches?
     const searchBranches = [MAIN_BRANCH, DIRTY_BRANCH];
-    let inboundRefs: any[] = [];
-    if (targetsForRefCheck.length > 0) {
-      inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targetsForRefCheck, searchBranches);
-    }
+    const inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targetsForRefCheck, searchBranches);
 
     // Identify files that need editing because they reference a deleted file
-    const refClearingFilePaths = new Set<string>();
+    const filesReferringToDeletedFiles = new Set<string>();
     for (const ref of inboundRefs) {
       // Exclude files that are themselves being deleted
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (!deletedPathsSet.has(ref.sourceFilePath)) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        refClearingFilePaths.add(ref.sourceFilePath);
+        filesReferringToDeletedFiles.add(ref.sourceFilePath);
       }
     }
 
     // --- Phase 1: [edit] ---
     // Process Union of Modified Files and Ref-Clearing Candidate Files
     const filesToProcessInEditPhase = new Set(modifiedFiles.map((f) => f.path));
-    for (const p of refClearingFilePaths) filesToProcessInEditPhase.add(p);
+    for (const p of filesReferringToDeletedFiles) filesToProcessInEditPhase.add(p);
 
     let editCount = 0;
     const planEntries: Array<{
       filePath: string;
-      phase: string;
-      operation: any;
+      phase: PublishPlanPhase;
+      operation: ParsedContent;
       remoteRecordId?: string | null;
       status: string;
     }> = [];
 
     for (const filePath of filesToProcessInEditPhase) {
-      console.log(`[PipelineBuildService] Processing file in edit phase: ${filePath}`);
+      WSLogger.info({
+        source: 'PipelineBuildService.buildPipeline',
+        message: `Processing file in edit phase: ${filePath}`,
+        workbookId,
+      });
       // Fetch content: try Dirty first, fallback to main
+      // Fallback is needed since we might need to clear refs from files that are deleted in dirty.
       let fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', filePath);
       if (!fileData) {
-        console.warn(`[PipelineBuildService] File not found in dirty branch, falling back to main: ${filePath}`);
+        WSLogger.warn({
+          source: 'PipelineBuildService.buildPipeline',
+          message: `File not found in dirty branch, falling back to main: ${filePath}`,
+          workbookId,
+        });
         fileData = await this.scratchGitService.getRepoFile(wkbId, 'main', filePath);
       }
 
       if (fileData?.content) {
-        let contentObj: any;
+        let contentObj: ParsedContent;
         try {
-          contentObj = JSON.parse(fileData.content);
+          contentObj = JSON.parse(fileData.content) as ParsedContent;
         } catch {
           // Not JSON? Just commit as is if it was user-modified.
+          // TODO: review
           if (filesToProcessInEditPhase.has(filePath) && modifiedFiles.some((m) => m.path === filePath)) {
             planEntries.push({
               filePath,
               phase: 'edit',
-              operation: JSON.parse(fileData.content),
+              operation: JSON.parse(fileData.content) as ParsedContent,
               status: 'pending',
             });
             editCount++;
@@ -165,8 +155,7 @@ export class PipelineBuildService {
           continue;
         }
 
-        const lastSlash = filePath.lastIndexOf('/');
-        const folderPath = lastSlash === -1 ? '' : filePath.substring(0, lastSlash);
+        const { folderPath } = parsePath(filePath);
         const schema = await getSchema(folderPath);
 
         // --- TWO PASS STRIPPING ---
@@ -180,7 +169,7 @@ export class PipelineBuildService {
           contentObj,
           schema,
           deletedPathsSet,
-          this.fileIndexService,
+
           deletedRecordIds,
           'IDS_ONLY', // Strip Deleted IDs and Deleted Pseudo-refs
         );
@@ -193,7 +182,7 @@ export class PipelineBuildService {
           pass1ContentObj, // Input is result of Pass 1
           schema,
           addedPathsSet,
-          this.fileIndexService,
+
           undefined, // No ID stripping in this pass
           'PSEUDO_ONLY',
         );
@@ -239,22 +228,21 @@ export class PipelineBuildService {
     for (const add of addedFiles) {
       const fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
       if (fileData?.content) {
-        let contentObj: any;
+        let contentObj: ParsedContent;
         try {
-          contentObj = JSON.parse(fileData.content);
+          contentObj = JSON.parse(fileData.content) as ParsedContent;
         } catch {
           planEntries.push({
             filePath: add.path,
             phase: 'create',
-            operation: JSON.parse(fileData.content),
+            operation: JSON.parse(fileData.content) as ParsedContent,
             status: 'pending',
           });
           createCount++;
           continue;
         }
 
-        const lastSlash = add.path.lastIndexOf('/');
-        const folderPath = lastSlash === -1 ? '' : add.path.substring(0, lastSlash);
+        const { folderPath } = parsePath(add.path);
         const schema = await getSchema(folderPath);
 
         // Pass 1: Strip Deleted
@@ -263,7 +251,6 @@ export class PipelineBuildService {
           contentObj,
           schema,
           deletedPathsSet,
-          this.fileIndexService,
         );
         const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
 
@@ -273,7 +260,6 @@ export class PipelineBuildService {
           pass1ContentObj,
           schema,
           addedPathsSet,
-          this.fileIndexService,
           undefined,
           'PSEUDO_ONLY',
         );
@@ -282,14 +268,18 @@ export class PipelineBuildService {
         // Determine Edit Operation
         const originalContentStr = JSON.stringify(contentObj, null, 2);
 
-        console.log(`[PipelineBuildService] Debug Stripping:
-          File: ${add.path}
-          AddedPaths: ${Array.from(addedPathsSet).join(', ')}
-          Original: ${originalContentStr}
-          Pass1: ${pass1ContentStr}
-          Pass2: ${pass2ContentStr}
-          SchemaFound: ${!!schema}
-        `);
+        WSLogger.info({
+          source: 'PipelineBuildService.buildPipeline',
+          message: `Debug Stripping: ${add.path}`,
+          workbookId,
+          data: {
+            addedPaths: Array.from(addedPathsSet),
+            original: originalContentStr,
+            pass1: pass1ContentStr,
+            pass2: pass2ContentStr,
+            schemaFound: !!schema,
+          },
+        });
 
         planEntries.push({
           filePath: add.path,
@@ -317,10 +307,7 @@ export class PipelineBuildService {
     // --- Phase 3: [delete] ---
     for (const del of deletedFiles) {
       // recordId was already looked up above when building deletedRecordIds
-      const lastSlash = del.path.lastIndexOf('/');
-      const folderPath = lastSlash === -1 ? '' : del.path.substring(0, lastSlash);
-      const fileName = del.path.substring(lastSlash + 1);
-      const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
+      const recordId = deletedFileRecordIds.get(del.path);
 
       planEntries.push({
         filePath: del.path,
@@ -343,7 +330,7 @@ export class PipelineBuildService {
         userId,
         status: 'planning',
         branchName,
-        phases: phases as any,
+        phases: [],
         connectorAccountId: connectorAccountId || null,
       },
     });

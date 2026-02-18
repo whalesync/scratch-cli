@@ -1,12 +1,12 @@
-export type PipelinePhaseType = 'edit' | 'create' | 'delete' | 'backfill';
+export type PublishPlanPhase = 'edit' | 'create' | 'delete' | 'backfill';
 
 export interface PipelinePhase {
-  type: PipelinePhaseType;
+  type: PublishPlanPhase;
   recordCount: number;
   commitHash?: string;
 }
 
-export interface PipelineInfo {
+export interface PublishPlanInfo {
   pipelineId: string;
   workbookId: string;
   userId: string;
