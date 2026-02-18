@@ -133,6 +133,7 @@ export class JobService {
         return {
           dbJobId: dbJob.id,
           bullJobId: dbJob.bullJobId,
+          dataFolderId: dbJob.dataFolderId,
           type: dbJob.type,
           state,
           publicProgress:
@@ -188,36 +189,14 @@ export class JobService {
     };
   }
 
-  async getJobsProgress(jobIds: string[]): Promise<JobEntity[]> {
-    const queue = new (await import('bullmq')).Queue('worker-queue', {
-      connection: this.getRedis(),
+  async getJobsProgress(bullJobIds: string[]): Promise<JobEntity[]> {
+    if (bullJobIds.length === 0) return [];
+
+    const dbJobs = await this.db.client.dbJob.findMany({
+      where: { bullJobId: { in: bullJobIds } },
     });
 
-    const jobs = await Promise.all(jobIds.map((id) => queue.getJob(id)));
-    const results: JobEntity[] = [];
-
-    await Promise.all(
-      jobs.map(async (job) => {
-        if (!job) return;
-
-        const state = await job.getState();
-        results.push({
-          bullJobId: job.id as string,
-          dbJobId: job.id as string,
-          type: job.name,
-          publicProgress:
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
-            (job.progress as Progress).publicProgress || (job.data as any).initialPublicProgress || undefined,
-          state: state,
-          processedOn: job.processedOn ? new Date(job.processedOn) : null,
-          finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
-          failedReason: job.failedReason,
-        });
-      }),
-    );
-
-    await queue.close();
-    return results;
+    return dbJobs.map((dbJob) => dbJobToJobEntity(dbJob));
   }
 
   async getJobRaw(jobId: string): Promise<any> {
@@ -228,12 +207,19 @@ export class JobService {
     const job = await queue.getJob(jobId);
     await queue.close();
 
-    if (!job) {
+    if (job) {
+      return job.asJSON();
+    }
+
+    // BullMQ job may have been cleaned up — fall back to DbJob.
+    // Note: the shape differs from JobJson (e.g. `data` is an object here, not a JSON string;
+    // `progress` is an object, not a number/object; timestamps are ISO strings, not epoch ms).
+    const dbJob = await this.getJobByBullJobId(jobId);
+    if (!dbJob) {
       throw new NotFoundException(`Job with id ${jobId} not found`);
     }
 
-    // Return the full JSON representation
-    return job.asJSON();
+    return dbJob;
   }
 
   async cancelJob(jobId: string): Promise<{ success: boolean; message: string }> {

@@ -198,6 +198,11 @@ async function notifyCompletedJobs(workbookId: string, disappearedIds: string[])
  * - publish-data-folder / sync-data-folders: tables[].id
  */
 export function getDataFolderIdsFromJob(job: JobEntity): string[] {
+  // Prefer the canonical dataFolderId from the database
+  if (job.dataFolderId) {
+    return [job.dataFolderId];
+  }
+
   const progress = job.publicProgress as Record<string, unknown> | undefined;
   if (!progress) return [];
 
