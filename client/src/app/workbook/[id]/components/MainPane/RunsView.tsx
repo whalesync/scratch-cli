@@ -14,6 +14,7 @@ import { useJobs } from '@/hooks/use-jobs';
 import { jobApi } from '@/lib/api/job';
 import { JobEntity } from '@/types/server-entities/job';
 import { timeAgo } from '@/utils/helpers';
+import { getJobDescription, getJobType, getTypeLabel, JobType } from '@/utils/job-helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import {
   ActionIcon,
@@ -42,32 +43,10 @@ import {
   RefreshCwIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
-type JobType = 'sync' | 'publish' | 'pull' | 'unknown';
-
 const ACTIVE_STATES = new Set(['active', 'waiting', 'pending', 'delayed']);
-
-const getJobType = (type: string): JobType => {
-  if (type.includes('sync')) return 'sync';
-  if (type.includes('publish')) return 'publish';
-  if (type.includes('pull')) return 'pull';
-  return 'unknown';
-};
-
-const getTypeLabel = (jobType: JobType): string => {
-  switch (jobType) {
-    case 'sync':
-      return 'SYNC';
-    case 'publish':
-      return 'PUBLISH';
-    case 'pull':
-      return 'PULL';
-    default:
-      return 'JOB';
-  }
-};
 
 const getTypeColor = (jobType: JobType): string => {
   switch (jobType) {
@@ -116,47 +95,6 @@ const getStatusLabel = (status: JobEntity['state']): string => {
   }
 };
 
-const getJobDescription = (job: JobEntity): string => {
-  const jobType = getJobType(job.type);
-  const progress =
-    job.publicProgress && typeof job.publicProgress === 'object'
-      ? (job.publicProgress as Record<string, unknown>)
-      : null;
-
-  switch (jobType) {
-    case 'sync': {
-      if (progress?.tables && Array.isArray(progress.tables)) {
-        const count = progress.tables.length;
-        return `Synced ${count} table${count !== 1 ? 's' : ''}`;
-      }
-      if (progress?.syncName) {
-        return `Synced ${progress.syncName}`;
-      }
-      return 'Synced';
-    }
-    case 'publish': {
-      if (progress?.totalFiles !== undefined) {
-        const count = Number(progress.totalFiles) || 0;
-        return `Published ${count} change${count !== 1 ? 's' : ''}`;
-      }
-      return 'Published changes';
-    }
-    case 'pull': {
-      if (progress?.totalFiles !== undefined) {
-        const count = Number(progress.totalFiles) || 0;
-        return `Discovered ${count} change${count !== 1 ? 's' : ''}`;
-      }
-      if (progress?.tables && Array.isArray(progress.tables)) {
-        const count = progress.tables.length;
-        return `Discovered ${count} table${count !== 1 ? 's' : ''}`;
-      }
-      return 'Pulled data';
-    }
-    default:
-      return job.type;
-  }
-};
-
 const formatDuration = (processedOn?: Date | null, finishedOn?: Date | null): string => {
   if (!processedOn) return '-';
   if (!finishedOn) return '-';
@@ -182,14 +120,18 @@ const formatTimestamp = (date?: Date | null): string => {
   });
 };
 
-const getJobKey = (job: JobEntity): string => `${job.dbJobId}-${job.bullJobId}`;
+const getJobKey = (job: JobEntity): string => `${job.bullJobId}`;
 
 export function RunsView() {
   const params = useParams<{ id: string }>();
   const workbookId = params.id as WorkbookId;
+  const searchParams = useSearchParams();
   const { jobs, error, isLoading, mutate } = useJobs(50, 0, workbookId);
   const { isDevToolsEnabled } = useDevTools();
-  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(() => {
+    const jobId = searchParams.get('jobId');
+    return jobId ? new Set([jobId]) : new Set();
+  });
 
   const toggleExpanded = useCallback((key: string) => {
     setExpandedJobs((prev) => {
@@ -547,6 +489,7 @@ type PathSource = {
   createdPaths?: string[];
   updatedPaths?: string[];
   deletedPaths?: string[];
+  refreshedPaths?: string[];
 };
 
 function collectAffectedFiles(sources: PathSource[]): Array<{ path: string; operation: string }> {
@@ -560,6 +503,9 @@ function collectAffectedFiles(sources: PathSource[]): Array<{ path: string; oper
     }
     if (source.deletedPaths) {
       for (const p of source.deletedPaths) files.push({ path: p, operation: 'Deleted' });
+    }
+    if (source.refreshedPaths) {
+      for (const p of source.refreshedPaths) files.push({ path: p, operation: 'Refreshed' });
     }
   }
   return files;
@@ -689,9 +635,15 @@ function PublishProgressTable({ progress }: { progress: Record<string, unknown> 
             <Table.Tr key={i}>
               <Table.Td>{folder.name || `Folder ${i + 1}`}</Table.Td>
               <Table.Td>{folder.connector ?? '-'}</Table.Td>
-              <Table.Td>{(folder.creates ?? 0)} / {(folder.expectedCreates ?? 0)}</Table.Td>
-              <Table.Td>{(folder.updates ?? 0)} / {(folder.expectedUpdates ?? 0)}</Table.Td>
-              <Table.Td>{(folder.deletes ?? 0)} / {(folder.expectedDeletes ?? 0)}</Table.Td>
+              <Table.Td>
+                {folder.creates ?? 0} / {folder.expectedCreates ?? 0}
+              </Table.Td>
+              <Table.Td>
+                {folder.updates ?? 0} / {folder.expectedUpdates ?? 0}
+              </Table.Td>
+              <Table.Td>
+                {folder.deletes ?? 0} / {folder.expectedDeletes ?? 0}
+              </Table.Td>
               <Table.Td>{folder.status ?? '-'}</Table.Td>
             </Table.Tr>
           ))}
@@ -711,9 +663,7 @@ function PullProgressTable({ progress }: { progress: Record<string, unknown> }) 
 
   const affectedFiles = collectAffectedFiles([
     {
-      createdPaths: progress.createdPaths as string[] | undefined,
-      updatedPaths: progress.updatedPaths as string[] | undefined,
-      deletedPaths: progress.deletedPaths as string[] | undefined,
+      refreshedPaths: progress.createdPaths as string[] | undefined,
     },
   ]);
 

@@ -25,7 +25,8 @@ export class RouteUrls {
     return `/workbook/${id}/review/${encoded}`;
   };
   static workbookSyncsPageUrl = (id: string) => `/workbook/${id}/syncs`;
-  static workbookRunsPageUrl = (id: string) => `/workbook/${id}/runs`;
+  static workbookRunsPageUrl = (id: string, jobKey?: string) =>
+    `/workbook/${id}/runs${jobKey ? `?jobId=${encodeURIComponent(jobKey)}` : ''}`;
   static settingsPageUrl = '/settings';
   static settingsUserPageUrl = '/settings/user';
   static settingsApiKeyPageUrl = '/settings/api-key';

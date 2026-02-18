@@ -11,5 +11,6 @@ export type ValidatedPullFilesDto = PullFilesDto;
 
 export interface PullFilesResponseDto {
   jobId?: string;
+  jobIds?: string[];
   warning?: string;
 }

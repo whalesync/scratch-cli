@@ -73,10 +73,10 @@ export const workbookApi = {
     }
   },
 
-  async pullFiles(id: WorkbookId, dataFolderIds?: string[]): Promise<{ jobId: string }> {
+  async pullFiles(id: WorkbookId, dataFolderIds?: string[]): Promise<{ jobIds?: string[] }> {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<{ jobId: string }>(`/workbook/${id}/pull-files`, { dataFolderIds });
+      const res = await axios.post<{ jobIds?: string[] }>(`/workbook/${id}/pull-files`, { dataFolderIds });
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to start files pull');

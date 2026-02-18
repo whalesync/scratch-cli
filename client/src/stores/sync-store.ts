@@ -1,11 +1,10 @@
-import { ScratchpadNotifications } from '@/app/components/ScratchpadNotifications';
-import { SyncDataFoldersPublicProgress } from '@/app/components/jobs/SyncStatus/SyncJobProgress';
 import { jobApi } from '@/lib/api/job';
 import { syncApi } from '@/lib/api/sync';
 import { trackRunSync } from '@/lib/posthog';
 import { JobEntity } from '@/types/server-entities/job';
 import { Sync, SyncId, WorkbookId } from '@spinner/shared-types';
 import { create } from 'zustand';
+import { useActiveJobsStore } from './active-jobs-store';
 
 interface SyncStoreState {
   syncs: Sync[];
@@ -46,6 +45,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
       set({ workbookId }); // Ensure it's set
       trackRunSync(syncId, workbookId);
       const { jobId } = await syncApi.run(workbookId, syncId);
+      useActiveJobsStore.getState().trackJobIds([jobId]);
 
       set((state) => ({
         activeJobs: { ...state.activeJobs, [syncId]: jobId },
@@ -101,40 +101,6 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
               finishedSyncIds.push(syncId);
               if (job.state === 'completed') {
                 shouldRefreshSyncs = true;
-                // Show success notification with counts
-                const progress = job.publicProgress as SyncDataFoldersPublicProgress | undefined;
-                if (progress?.tables) {
-                  const failedTables = progress.tables.filter((t) => t.status === 'failed');
-                  const succeededTables = progress.tables.filter((t) => t.status !== 'failed');
-                  const totals = succeededTables.reduce(
-                    (acc, table) => ({
-                      creates: acc.creates + table.creates,
-                      updates: acc.updates + table.updates,
-                      deletes: acc.deletes + table.deletes,
-                    }),
-                    { creates: 0, updates: 0, deletes: 0 },
-                  );
-                  const parts: string[] = [];
-                  if (totals.creates > 0) parts.push(`${totals.creates} created`);
-                  if (totals.updates > 0) parts.push(`${totals.updates} updated`);
-                  if (totals.deletes > 0) parts.push(`${totals.deletes} deleted`);
-                  if (failedTables.length > 0) {
-                    parts.push(`${failedTables.length} table${failedTables.length > 1 ? 's' : ''} failed`);
-                  }
-                  const message = parts.length > 0 ? parts.join(', ') : 'No changes';
-                  if (failedTables.length > 0) {
-                    ScratchpadNotifications.warning({ title: 'Sync completed with errors', message });
-                  } else {
-                    ScratchpadNotifications.success({ title: 'Sync completed', message });
-                  }
-                } else {
-                  ScratchpadNotifications.success({ title: 'Sync completed', message: 'Sync finished successfully' });
-                }
-              } else if (job.state === 'failed') {
-                ScratchpadNotifications.error({
-                  title: 'Sync failed',
-                  message: job.failedReason || 'Unknown error',
-                });
               }
             }
           }

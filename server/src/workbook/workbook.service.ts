@@ -338,10 +338,10 @@ export class WorkbookService {
       dataFolderCount: foldersToProcess.length,
     });
 
-    // Return the first job ID for backward compatibility
-    // TODO: Consider returning all job IDs in the future
     return {
+      // Return the first job ID for backward compatibility
       jobId: jobs[0].id,
+      jobIds: jobs.map((j) => j.id),
     };
   }
 }

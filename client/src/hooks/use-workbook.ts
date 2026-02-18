@@ -3,6 +3,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
 import { trackDiscardChanges, trackPublishAll, trackPullFiles } from '@/lib/posthog';
+import { useActiveJobsStore } from '@/stores/active-jobs-store';
 import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import {
   CreateDataFolderDto,
@@ -85,7 +86,8 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       }
       trackPublishAll(id, dataFolderIds.length);
       try {
-        await dataFolderApi.publish(dataFolderIds, id);
+        const result = await dataFolderApi.publish(dataFolderIds, id);
+        useActiveJobsStore.getState().trackJobIds([result.jobId]);
         // TODO: this notification is just overkill for now, we shouldn't need it at all once the UI is more reactive
         ScratchpadNotifications.info({ message: 'Initiated data publish job for changes' });
       } catch (error) {
@@ -97,7 +99,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
         });
       }
       await mutate();
-      await globalMutate(SWR_KEYS.jobs.activeByWorkbook(id));
+      await useActiveJobsStore.getState().refreshJobs();
       await globalMutate(SWR_KEYS.dataFolders.list(id));
       for (const folderId of dataFolderIds) {
         globalMutate(SWR_KEYS.dataFolders.detail(folderId));
@@ -138,9 +140,10 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
       }
       trackPullFiles(id);
       try {
-        await workbookApi.pullFiles(id, folderIds);
-        // TODO: this notification is just overkill for now, we shouldn't need it at all once the UI is more reactive
-        ScratchpadNotifications.info({ message: 'Initiated data pull for all tables in this workbook' });
+        const result = await workbookApi.pullFiles(id, folderIds);
+        if (result.jobIds?.length) {
+          useActiveJobsStore.getState().trackJobIds(result.jobIds);
+        }
       } catch (error) {
         console.error('Failed to pull files:', error);
         setWorkbookError({
@@ -150,7 +153,7 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
         });
       }
       await mutate();
-      await globalMutate(SWR_KEYS.jobs.activeByWorkbook(id));
+      await useActiveJobsStore.getState().refreshJobs();
       await globalMutate(SWR_KEYS.dataFolders.list(id));
       data.dataFolders?.forEach((folder) => {
         globalMutate(SWR_KEYS.dataFolders.detail(folder.id));
