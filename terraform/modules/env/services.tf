@@ -225,7 +225,9 @@ resource "google_cloud_run_v2_service" "api_service" {
           "WEBFLOW_CLIENT_ID",
           "WEBFLOW_CLIENT_SECRET",
           "WIX_CLIENT_ID",
-          "WIX_CLIENT_SECRET"
+          "WIX_CLIENT_SECRET",
+          "SUPABASE_CLIENT_ID",
+          "SUPABASE_CLIENT_SECRET",
         ]
         content {
           name = env.value
