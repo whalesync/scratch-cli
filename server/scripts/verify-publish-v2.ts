@@ -122,21 +122,20 @@ async function bootstrap() {
     // console.log(`Phases:`, JSON.stringify(plan.phases, null, 2));
 
     // 6. Verify Entries
-    const entries = await dbService.client.publishPipelineEntry.findMany({
-      where: { pipelineId: plan.pipelineId },
+    const entries = await dbService.client.publishPlanEntry.findMany({
+      where: { planId: plan.pipelineId },
     });
     console.log(`Entries found: ${entries.length}`);
 
     // Check existing file for Edit + Backfill
     // existingPath is already defined above
-    const editEntry = entries.find((e) => e.filePath === existingPath);
+    const editEntry = entries.find((e) => e.filePath === existingPath && e.phase === 'edit');
     if (editEntry) {
       console.log('Found edit entry:', editEntry.filePath);
 
       // Check Edit Operation (Should be stripped)
-      if (editEntry.hasEdit && editEntry.editOperation) {
-        const op = editEntry.editOperation as any;
-        const json = JSON.parse(op.content);
+      if (editEntry.operation) {
+        const json = editEntry.operation as any;
         if (json.ref === null || json.ref === undefined) {
           console.log('SUCCESS: Edit Ref was stripped!');
         } else {
@@ -145,11 +144,15 @@ async function bootstrap() {
       } else {
         console.error('FAILURE: No edit operation found');
       }
+    } else {
+      console.error('FAILURE: Edit entry not found for path ' + existingPath);
+    }
 
+    const backfillEntry = entries.find((e) => e.filePath === existingPath && e.phase === 'backfill');
+    if (backfillEntry) {
       // Check Backfill Operation (Should exist and have ref)
-      if (editEntry.hasBackfill && editEntry.backfillOperation) {
-        const op = editEntry.backfillOperation as any;
-        const json = JSON.parse(op.content);
+      if (backfillEntry.operation) {
+        const json = backfillEntry.operation as any;
         if (json.ref === '@/folder/new.json') {
           console.log('SUCCESS: Backfill has Ref!');
         } else {
@@ -159,7 +162,7 @@ async function bootstrap() {
         console.error('FAILURE: No backfill operation found');
       }
     } else {
-      console.error('FAILURE: Edit entry not found for path ' + existingPath);
+      console.error('FAILURE: Backfill entry not found for path ' + existingPath);
     }
 
     // Cleanup

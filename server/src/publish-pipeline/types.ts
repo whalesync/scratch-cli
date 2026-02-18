@@ -13,5 +13,5 @@ export interface PipelineInfo {
   phases: PipelinePhase[];
   branchName: string;
   createdAt: Date;
-  status: 'planned' | 'building' | 'ready' | 'failed' | 'running' | 'completed';
+  status: string;
 }

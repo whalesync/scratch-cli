@@ -176,7 +176,7 @@ export class WorkbookService {
     });
 
     // Delete all publish pipelines (V2)
-    await this.db.client.publishPipeline.deleteMany({
+    await this.db.client.publishPlan.deleteMany({
       where: { workbookId: id },
     });
 

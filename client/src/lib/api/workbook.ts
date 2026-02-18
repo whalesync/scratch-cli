@@ -328,10 +328,10 @@ export const workbookApi = {
     }
   },
 
-  runPublishV2: async (workbookId: WorkbookId, pipelineId: string): Promise<void> => {
+  runPublishV2: async (workbookId: WorkbookId, pipelineId: string, phase?: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/publish-v2/run`, { pipelineId });
+      await axios.post(`/workbook/${workbookId}/publish-v2/run`, { pipelineId, phase });
     } catch (error) {
       handleAxiosError(error, 'Failed to run publish');
       throw error;
@@ -349,6 +349,55 @@ export const workbookApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list pipelines');
+      throw error;
+    }
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  listFileIndex: async (workbookId: WorkbookId): Promise<any[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await axios.get<any[]>(`/workbook/${workbookId}/publish-v2/index/files`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list file index');
+      throw error;
+    }
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  listRefIndex: async (workbookId: WorkbookId): Promise<any[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await axios.get<any[]>(`/workbook/${workbookId}/publish-v2/index/refs`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list ref index');
+      throw error;
+    }
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  listPublishV2PipelineEntries: async (workbookId: WorkbookId, pipelineId: string): Promise<any[]> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await axios.get<any[]>(`/workbook/${workbookId}/publish-v2/${pipelineId}/entries`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to list pipeline entries');
+      throw error;
+    }
+  },
+
+  deletePublishV2Pipeline: async (workbookId: WorkbookId, pipelineId: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/workbook/${workbookId}/publish-v2/${pipelineId}`);
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete pipeline');
       throw error;
     }
   },

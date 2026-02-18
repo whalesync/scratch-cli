@@ -97,14 +97,14 @@ export class ScratchGitClient {
 
   async getFile(repoId: string, branch: string, path: string): Promise<{ content: string } | null> {
     try {
+      console.log(`[ScratchGitClient] getFile: ${path} branch=${branch}`);
       const response = await this.callGitApi(
         `/api/repo/read/${repoId}/file?branch=${branch}&path=${encodeURIComponent(path)}`,
         'GET',
       );
       return response as { content: string };
-    } catch {
-      // TODO: handle error properly
-      return null;
+    } catch (err) {
+      console.error(`[ScratchGitClient] getFile error for ${path} (${branch}):`, err);
       return null;
     }
   }

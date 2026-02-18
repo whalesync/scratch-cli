@@ -72,8 +72,8 @@ async function bootstrap() {
     console.log(`Built Pipeline: ${plan.pipelineId}`);
 
     // Verify Entries
-    const entries = await dbService.client.publishPipelineEntry.findMany({
-      where: { pipelineId: plan.pipelineId },
+    const entries = await dbService.client.publishPlanEntry.findMany({
+      where: { planId: plan.pipelineId },
     });
     console.log(`Entries found: ${entries.length}`);
 

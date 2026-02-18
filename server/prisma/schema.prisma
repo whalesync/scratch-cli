@@ -100,7 +100,7 @@ model User {
   invoiceResults          InvoiceResult[]
   jobs                    DbJob[]
   workbooks               Workbook[]
-  publishPipelines        PublishPipeline[]
+  publishPlans            PublishPlan[]
 }
 
 model APIToken {
@@ -159,7 +159,7 @@ model ConnectorAccount {
   modifier                  String? // ID of the custom connector or other modifier entity
   extras                    Json? // Additional service-specific configuration
   dataFolders               DataFolder[]
-  publishPipelines          PublishPipeline[]
+  publishPlans              PublishPlan[]
 
   @@index([userId])
   @@index([workbookId])
@@ -188,7 +188,7 @@ model Workbook {
   dataFolders        DataFolder[]
   connectorAccounts  ConnectorAccount[]
   usersWithAsDefault User[]             @relation("UserLastWorkbook")
-  publishPipelines   PublishPipeline[]
+  publishPlans       PublishPlan[]
 
   @@index([userId])
   @@index([organizationId])
@@ -474,8 +474,8 @@ model FileReference {
   @@index([workbookId, sourceFilePath, branch])
 }
 
-model PublishPipeline {
-  id        String   @id // type: PipelineId
+model PublishPlan {
+  id        String   @id // type: PublishPlanId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -494,49 +494,29 @@ model PublishPipeline {
   connectorAccount   ConnectorAccount? @relation(fields: [connectorAccountId], references: [id])
   connectorAccountId String?
 
-  entries PublishPipelineEntry[]
+  entries PublishPlanEntry[]
 
   @@index([workbookId])
   @@index([userId])
   @@index([connectorAccountId])
 }
 
-model PublishPipelineEntry {
-  id         String          @id @default(cuid())
-  pipelineId String
-  pipeline   PublishPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+model PublishPlanEntry {
+  id     String      @id @default(cuid())
+  planId String
+  plan   PublishPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   filePath String // The logical path of the file
 
-  // The content/operation for each phase. 
-  // If null, this file is not involved in this phase.
-  editOperation     Json? // { content: string }
-  createOperation   Json? // { content: string }
-  deleteOperation   Json? // { } (marker)
-  backfillOperation Json? // { content: string }
-
-  // Status flags for execution
-  editStatus     String? // 'pending', 'success', 'failed'
-  createStatus   String?
-  deleteStatus   String?
-  backfillStatus String?
-
-  // Optimization flags (to avoid checking nulls)
-  hasEdit     Boolean @default(false)
-  hasCreate   Boolean @default(false)
-  hasDelete   Boolean @default(false)
-  hasBackfill Boolean @default(false)
+  phase     String // "create", "edit", "delete", "backfill"
+  operation Json?
+  status    String @default("pending") // "pending", "success", "failed"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([pipelineId, filePath])
-  @@index([pipelineId])
-  // Indices for optimized phase queries
-  @@index([pipelineId, hasEdit])
-  @@index([pipelineId, hasCreate])
-  @@index([pipelineId, hasDelete])
-  @@index([pipelineId, hasBackfill])
+  @@index([planId])
+  @@index([planId, phase, status])
 }
 
 //#region Sync

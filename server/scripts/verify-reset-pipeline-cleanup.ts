@@ -11,8 +11,8 @@ async function main() {
     console.log('1. Setting up test data...');
 
     // Ensure cleanup first
-    await prisma.publishPipelineEntry.deleteMany({ where: { pipeline: { workbookId } } });
-    await prisma.publishPipeline.deleteMany({ where: { workbookId } });
+    await prisma.publishPlanEntry.deleteMany({ where: { plan: { workbookId } } });
+    await prisma.publishPlan.deleteMany({ where: { workbookId } });
     await prisma.workbook.deleteMany({ where: { id: workbookId } });
     await prisma.user.deleteMany({ where: { id: userId } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
@@ -44,7 +44,7 @@ async function main() {
     });
 
     // Create a Pipeline
-    await prisma.publishPipeline.create({
+    await prisma.publishPlan.create({
       data: {
         id: pipelineId,
         workbookId: workbookId,
@@ -56,7 +56,7 @@ async function main() {
     });
 
     console.log('2. Verifying pipeline exists...');
-    const p1 = await prisma.publishPipeline.findUnique({ where: { id: pipelineId } });
+    const p1 = await prisma.publishPlan.findUnique({ where: { id: pipelineId } });
     if (!p1) throw new Error('Pipeline failed to create');
     console.log('   Pipeline created successfully.');
 
@@ -76,7 +76,7 @@ async function main() {
     // So we expect the pipeline to STILL EXIST after this "simulation".
 
     console.log('4. Checking if pipeline still exists (it should, confirming the issue)...');
-    const p2 = await prisma.publishPipeline.findUnique({ where: { id: pipelineId } });
+    const p2 = await prisma.publishPlan.findUnique({ where: { id: pipelineId } });
 
     if (p2) {
       console.log('   [FAILURE] Pipeline STILL EXISTS after simulated reset logic.');
@@ -88,8 +88,8 @@ async function main() {
     console.error(e);
   } finally {
     // Cleanup
-    await prisma.publishPipelineEntry.deleteMany({ where: { pipeline: { workbookId } } });
-    await prisma.publishPipeline.deleteMany({ where: { workbookId } });
+    await prisma.publishPlanEntry.deleteMany({ where: { plan: { workbookId } } });
+    await prisma.publishPlan.deleteMany({ where: { workbookId } });
     await prisma.workbook.deleteMany({ where: { id: workbookId } });
     await prisma.user.deleteMany({ where: { id: userId } });
     await prisma.organization.deleteMany({ where: { id: orgId } });

@@ -8,10 +8,12 @@ import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
 import { ActionIcon, Menu } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { WorkbookId } from '@spinner/shared-types';
-import { EllipsisVertical, FileCodeIcon, GitGraphIcon, ServerCrashIcon, Trash2Icon } from 'lucide-react';
+import { DatabaseIcon, EllipsisVertical, FileCodeIcon, GitGraphIcon, LinkIcon, ServerCrashIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
+import { FileIndexModal } from '../modals/FileIndexModal';
 import { GitFileBrowserModal } from '../modals/GitFileBrowserModal';
 import { GitGraphModal } from '../modals/GitGraphModal';
+import { RefIndexModal } from '../modals/RefIndexModal';
 
 interface DebugMenuProps {
   workbookId: WorkbookId;
@@ -21,6 +23,8 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
   const { isDevToolsEnabled } = useDevTools();
   const [gitGraphOpen, setGitGraphOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const [fileIndexOpen, setFileIndexOpen] = useState(false);
+  const [refIndexOpen, setRefIndexOpen] = useState(false);
   const { open: openConfirmDialog, dialogProps } = useConfirmDialog();
   const setWorkbookError = useWorkbookEditorUIStore((state) => state.setWorkbookError);
 
@@ -72,6 +76,20 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
               </Menu.Item>
               <Menu.Item
                 data-devtool
+                leftSection={<DatabaseIcon size={16} />}
+                onClick={() => setFileIndexOpen(true)}
+              >
+                File Index
+              </Menu.Item>
+              <Menu.Item
+                data-devtool
+                leftSection={<LinkIcon size={16} />}
+                onClick={() => setRefIndexOpen(true)}
+              >
+                Ref Index
+              </Menu.Item>
+              <Menu.Item
+                data-devtool
                 leftSection={<ServerCrashIcon size={16} />}
                 onClick={() =>
                   setWorkbookError({
@@ -90,6 +108,10 @@ export function DebugMenu({ workbookId }: DebugMenuProps) {
       <GitGraphModal opened={gitGraphOpen} onClose={() => setGitGraphOpen(false)} workbookId={workbookId} />
 
       <GitFileBrowserModal opened={fileBrowserOpen} onClose={() => setFileBrowserOpen(false)} workbookId={workbookId} />
+
+      <FileIndexModal opened={fileIndexOpen} onClose={() => setFileIndexOpen(false)} workbookId={workbookId} />
+
+      <RefIndexModal opened={refIndexOpen} onClose={() => setRefIndexOpen(false)} workbookId={workbookId} />
 
       {/* Confirm Dialog */}
       <ConfirmDialog {...dialogProps} />

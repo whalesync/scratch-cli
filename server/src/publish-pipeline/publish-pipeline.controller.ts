@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
@@ -23,11 +23,31 @@ export class PublishPipelineController {
 
   @Post('run')
   async run(@Param('workbookId') workbookId: WorkbookId, @Body() body: RunPublishV2Dto) {
-    return this.pipelineRunService.runPipeline(body.pipelineId);
+    return this.pipelineRunService.runPipeline(body.pipelineId, body.phase);
   }
 
   @Get()
   async list(@Param('workbookId') workbookId: WorkbookId, @Query('connectorAccountId') connectorAccountId?: string) {
     return this.pipelineBuildService.listPipelines(workbookId, connectorAccountId);
+  }
+
+  @Get(':pipelineId/entries')
+  async entries(@Param('pipelineId') pipelineId: string) {
+    return this.pipelineBuildService.listPipelineEntries(pipelineId);
+  }
+
+  @Get('index/files')
+  async fileIndex(@Param('workbookId') workbookId: WorkbookId) {
+    return this.pipelineBuildService.listFileIndex(workbookId);
+  }
+
+  @Get('index/refs')
+  async refIndex(@Param('workbookId') workbookId: WorkbookId) {
+    return this.pipelineBuildService.listRefIndex(workbookId);
+  }
+
+  @Delete(':pipelineId')
+  async delete(@Param('pipelineId') pipelineId: string) {
+    return this.pipelineBuildService.deletePipeline(pipelineId);
   }
 }

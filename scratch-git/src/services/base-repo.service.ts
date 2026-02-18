@@ -17,7 +17,13 @@ export class BaseRepoService {
 
   protected async resolveRef(ref: string): Promise<string> {
     const dir = this.getRepoPath();
-    return git.resolveRef({ fs, dir, gitdir: dir, ref });
+    // Sometimes isomorphic-git fails to resolve short refs like 'dirty' (possibly due to packed-refs or ambiguity).
+    // If resolution fails, we attempt to resolve the full ref 'refs/heads/dirty'.
+    try {
+      return await git.resolveRef({ fs, dir, gitdir: dir, ref });
+    } catch {
+      return await git.resolveRef({ fs, dir, gitdir: dir, ref: `refs/heads/${ref}` });
+    }
   }
 
   protected async forceRef(ref: string, oid: string): Promise<void> {
@@ -81,7 +87,8 @@ export class BaseRepoService {
         filepath: filePath,
       });
       return new TextDecoder().decode(blob);
-    } catch {
+    } catch (err) {
+      console.error(`Error getting file content for ${filePath} on branch ${branch}:`, err);
       return null;
     }
   }

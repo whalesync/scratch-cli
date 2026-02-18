@@ -8,6 +8,7 @@ import { DbService } from '../db/db.service';
 import { DIRTY_BRANCH, MAIN_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
+import { RefCleanerService } from './ref-cleaner.service';
 import { PipelineInfo, PipelinePhase } from './types';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class PipelineBuildService {
     private readonly scratchGitService: ScratchGitService,
     private readonly fileIndexService: FileIndexService,
     private readonly fileReferenceService: FileReferenceService,
+    private readonly refCleanerService: RefCleanerService,
   ) {}
 
   /**
@@ -24,13 +26,6 @@ export class PipelineBuildService {
    */
   async buildPipeline(workbookId: string, userId: string, connectorAccountId?: string): Promise<PipelineInfo> {
     const pipelineId = randomUUID();
-    // Branch name is still useful for the 'Run' phase to have a reference point,
-    // but we might not create it here anymore if we don't need it for the pipeline itself.
-    // The previous plan said "Dropping Git Branch".
-    // However, the *content* of the files comes from the "dirty" branch.
-    // We will store the operations in the DB.
-
-    // We keep a consistent branch name format for future use or logging
     const branchName = `publish/${userId}/${pipelineId}`;
     const wkbId = workbookId as WorkbookId;
 
@@ -66,35 +61,6 @@ export class PipelineBuildService {
 
     const phases: PipelinePhase[] = [];
 
-    // Map to store all entries before bulk insert
-    const pipelineEntries = new Map<
-      string,
-      {
-        filePath: string;
-        editOperation?: any;
-        createOperation?: any;
-        deleteOperation?: any;
-        backfillOperation?: any;
-        hasEdit: boolean;
-        hasCreate: boolean;
-        hasDelete: boolean;
-        hasBackfill: boolean;
-      }
-    >();
-
-    const getOrCreateEntry = (filePath: string) => {
-      if (!pipelineEntries.has(filePath)) {
-        pipelineEntries.set(filePath, {
-          filePath,
-          hasEdit: false,
-          hasCreate: false,
-          hasDelete: false,
-          hasBackfill: false,
-        });
-      }
-      return pipelineEntries.get(filePath)!;
-    };
-
     // Cache schemas to avoid repeated reads
     const schemaCache = new Map<string, any>();
 
@@ -111,8 +77,8 @@ export class PipelineBuildService {
         });
 
         if (dataFolder?.schema) {
-          schemaCache.set(folderPath, dataFolder.schema);
-          return dataFolder.schema;
+          schemaCache.set(folderPath, (dataFolder.schema as any)?.schema);
+          return (dataFolder.schema as any)?.schema;
         }
       } catch (e) {
         console.error('Error fetching schema for folder:', folderPath, e);
@@ -123,53 +89,141 @@ export class PipelineBuildService {
     };
 
     const addedPathsSet = new Set(addedFiles.map((f) => f.path));
-    let backfillCount = 0;
+    const deletedPathsSet = new Set(deletedFiles.map((f) => f.path));
+
+    // --- Prepare for "Delete Ref Clearing" ---
+    // 1. Identify Deleted Record IDs
+    const deletedRecordIds = new Set<string>();
+    const targetsForRefCheck: Array<{ folderPath: string; fileName: string; recordId?: string }> = [];
+
+    for (const del of deletedFiles) {
+      const lastSlash = del.path.lastIndexOf('/');
+      const folderPath = lastSlash === -1 ? '' : del.path.substring(0, lastSlash);
+      const fileName = del.path.substring(lastSlash + 1);
+      const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
+
+      if (recordId) deletedRecordIds.add(recordId);
+      targetsForRefCheck.push({ folderPath, fileName, recordId: recordId || undefined });
+    }
+
+    // 2. Identify Inbound Refs to Deleted Files
+    const searchBranches = [MAIN_BRANCH, DIRTY_BRANCH];
+    let inboundRefs: any[] = [];
+    if (targetsForRefCheck.length > 0) {
+      inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targetsForRefCheck, searchBranches);
+    }
+
+    // Identify files that need editing because they reference a deleted file
+    const refClearingFilePaths = new Set<string>();
+    for (const ref of inboundRefs) {
+      // Exclude files that are themselves being deleted
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      if (!deletedPathsSet.has(ref.sourceFilePath)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        refClearingFilePaths.add(ref.sourceFilePath);
+      }
+    }
 
     // --- Phase 1: [edit] ---
-    // Read modified content
+    // Process Union of Modified Files and Ref-Clearing Candidate Files
+    const filesToProcessInEditPhase = new Set(modifiedFiles.map((f) => f.path));
+    for (const p of refClearingFilePaths) filesToProcessInEditPhase.add(p);
+
     let editCount = 0;
-    for (const mod of modifiedFiles) {
-      const content = await this.scratchGitService.getRepoFile(wkbId, 'dirty', mod.path);
-      if (content) {
+    const planEntries: Array<{
+      filePath: string;
+      phase: string;
+      operation: any;
+      status: string;
+    }> = [];
+
+    for (const filePath of filesToProcessInEditPhase) {
+      console.log(`[PipelineBuildService] Processing file in edit phase: ${filePath}`);
+      // Fetch content: try Dirty first, fallback to main
+      let fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', filePath);
+      if (!fileData) {
+        console.warn(`[PipelineBuildService] File not found in dirty branch, falling back to main: ${filePath}`);
+        fileData = await this.scratchGitService.getRepoFile(wkbId, 'main', filePath);
+      }
+
+      if (fileData?.content) {
         let contentObj: any;
         try {
-          contentObj = JSON.parse(content.content);
+          contentObj = JSON.parse(fileData.content);
         } catch {
-          // Not JSON? Just commit as is.
-          const entry = getOrCreateEntry(mod.path);
-          entry.editOperation = { content: content.content };
-          entry.hasEdit = true;
-          editCount++;
+          // Not JSON? Just commit as is if it was user-modified.
+          if (filesToProcessInEditPhase.has(filePath) && modifiedFiles.some((m) => m.path === filePath)) {
+            planEntries.push({
+              filePath,
+              phase: 'edit',
+              operation: JSON.parse(fileData.content),
+              status: 'pending',
+            });
+            editCount++;
+          }
           continue;
         }
 
-        // Determine folder path
-        const lastSlash = mod.path.lastIndexOf('/');
-        const folderPath = lastSlash === -1 ? '' : mod.path.substring(0, lastSlash);
+        const lastSlash = filePath.lastIndexOf('/');
+        const folderPath = lastSlash === -1 ? '' : filePath.substring(0, lastSlash);
         const schema = await getSchema(folderPath);
 
-        // Strip refs to NEW files using Schema
-        // This prevents FK errors if we point to a record that is created in Phase 2
-        const strippedObj = await this.fileReferenceService.stripReferencesWithSchema(
+        // --- TWO PASS STRIPPING ---
+
+        // Pass 1: Strip references to DELETED records.
+        // We use deletedPathsSet as "addedPaths" (masking) so pseudo-refs to them are stripped.
+        // We use deletedRecordIds to strip by ID.
+        // Mode = ALL (strips both IDs and Pseudo-refs to 'addedPaths').
+        const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
           workbookId,
           contentObj,
           schema,
+          deletedPathsSet,
+          this.fileIndexService,
+          deletedRecordIds,
+          'IDS_ONLY', // Strip Deleted IDs and Deleted Pseudo-refs
+        );
+        const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
+
+        // Pass 2: Strip references to NEW records (Pseudo-refs).
+        // Mode = PSEUDO_ONLY.
+        const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+          workbookId,
+          pass1ContentObj, // Input is result of Pass 1
+          schema,
           addedPathsSet,
           this.fileIndexService,
+          undefined, // No ID stripping in this pass
+          'PSEUDO_ONLY',
         );
-        const strippedContent = JSON.stringify(strippedObj, null, 2);
+        const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
 
-        const entry = getOrCreateEntry(mod.path);
-        entry.editOperation = { content: strippedContent };
-        entry.hasEdit = true;
-        editCount++;
+        // Determine Edit Operation
+        const originalContentStr = JSON.stringify(contentObj, null, 2);
+        const isUserModified = modifiedFiles.some((m) => m.path === filePath);
+        const isRefCleared = pass1ContentStr !== originalContentStr;
+        const isPseudoStripped = pass2ContentStr !== pass1ContentStr;
 
-        // Check if backfill needed (compare normalized strings)
-        const originalContentNormalized = JSON.stringify(contentObj, null, 2);
-        if (strippedContent !== originalContentNormalized) {
-          entry.backfillOperation = { content: originalContentNormalized };
-          entry.hasBackfill = true;
-          backfillCount++;
+        if (isUserModified || isRefCleared || isPseudoStripped) {
+          planEntries.push({
+            filePath,
+            phase: 'edit',
+            operation: pass2ContentObj,
+            status: 'pending',
+          });
+          editCount++;
+
+          // Backfill Logic
+          // If Pass 2 != Pass 1, it means we stripped pseudo-refs.
+          // We backfill with Pass 1 content.
+          if (pass2ContentStr !== pass1ContentStr) {
+            planEntries.push({
+              filePath,
+              phase: 'backfill',
+              operation: pass1ContentObj,
+              status: 'pending',
+            });
+          }
         }
       }
     }
@@ -180,49 +234,77 @@ export class PipelineBuildService {
 
     // --- Phase 2: [create] ---
     let createCount = 0;
-    // backfillCount, addedPathsSet, getSchema, schemaCache already defined above
 
     for (const add of addedFiles) {
       const fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
-      if (fileData) {
+      if (fileData?.content) {
         let contentObj: any;
         try {
           contentObj = JSON.parse(fileData.content);
         } catch {
-          // Not JSON? Just commit as is.
-          const entry = getOrCreateEntry(add.path);
-          entry.createOperation = { content: fileData.content };
-          entry.hasCreate = true;
+          planEntries.push({
+            filePath: add.path,
+            phase: 'create',
+            operation: JSON.parse(fileData.content),
+            status: 'pending',
+          });
           createCount++;
           continue;
         }
 
-        // Determine folder path
         const lastSlash = add.path.lastIndexOf('/');
         const folderPath = lastSlash === -1 ? '' : add.path.substring(0, lastSlash);
         const schema = await getSchema(folderPath);
 
-        // Strip refs to other new files using Schema
-        const strippedObj = await this.fileReferenceService.stripReferencesWithSchema(
+        // Pass 1: Strip Deleted
+        const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
           workbookId,
           contentObj,
           schema,
-          addedPathsSet,
+          deletedPathsSet,
           this.fileIndexService,
         );
-        const strippedContent = JSON.stringify(strippedObj, null, 2);
+        const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
 
-        const entry = getOrCreateEntry(add.path);
-        entry.createOperation = { content: strippedContent };
-        entry.hasCreate = true;
+        // Pass 2: Strip Pseudo
+        const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+          workbookId,
+          pass1ContentObj,
+          schema,
+          addedPathsSet,
+          this.fileIndexService,
+          undefined,
+          'PSEUDO_ONLY',
+        );
+        const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
+
+        // Determine Edit Operation
+        const originalContentStr = JSON.stringify(contentObj, null, 2);
+
+        console.log(`[PipelineBuildService] Debug Stripping:
+          File: ${add.path}
+          AddedPaths: ${Array.from(addedPathsSet).join(', ')}
+          Original: ${originalContentStr}
+          Pass1: ${pass1ContentStr}
+          Pass2: ${pass2ContentStr}
+          SchemaFound: ${!!schema}
+        `);
+
+        planEntries.push({
+          filePath: add.path,
+          phase: 'create',
+          operation: pass2ContentObj,
+          status: 'pending',
+        });
         createCount++;
 
-        // Check if backfill needed (compare normalized strings)
-        const originalContentNormalized = JSON.stringify(contentObj, null, 2);
-        if (strippedContent !== originalContentNormalized) {
-          entry.backfillOperation = { content: originalContentNormalized };
-          entry.hasBackfill = true;
-          backfillCount++;
+        if (pass2ContentStr !== pass1ContentStr) {
+          planEntries.push({
+            filePath: add.path,
+            phase: 'backfill',
+            operation: pass1ContentObj,
+            status: 'pending',
+          });
         }
       }
     }
@@ -230,274 +312,66 @@ export class PipelineBuildService {
     if (createCount > 0) {
       phases.push({ type: 'create', recordCount: createCount });
     }
+
     // --- Phase 3: [delete] ---
     for (const del of deletedFiles) {
-      const entry = getOrCreateEntry(del.path);
-      entry.deleteOperation = {}; // Marker
-      entry.hasDelete = true;
+      planEntries.push({
+        filePath: del.path,
+        phase: 'delete',
+        operation: {},
+        status: 'pending',
+      });
     }
 
     if (deletedFiles.length > 0) {
       phases.push({ type: 'delete', recordCount: deletedFiles.length });
     }
 
-    // --- Phase 4: [backfill] ---
-    // Identify files that need backfill (were stripped in Phase 2)
-    // We compare the stripped content with the original content.
-    for (const add of addedFiles) {
-      const entry = pipelineEntries.get(add.path);
-      if (entry && entry.hasCreate) {
-        const rawContent = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
-        if (rawContent?.content) {
-          const originalJson = JSON.parse(rawContent.content);
-          const strippedJson = entry.createOperation.content;
-
-          // Simple deep equality check or JSON string comparison
-          if (JSON.stringify(originalJson) !== JSON.stringify(strippedJson)) {
-            entry.backfillOperation = { content: originalJson };
-            entry.hasBackfill = true;
-            backfillCount++;
-          }
-        }
-      }
-    }
-
-    if (backfillCount > 0) {
-      phases.push({ type: 'backfill', recordCount: backfillCount });
-    }
-
-    // --- Phase 0: Ref-Clearing Edits (Inserted into Phase 1) ---
-    // This must happen AFTER we know all deleted files, but modifying the [edit] phase entries.
-    // We already have `pipelineEntries` populated with user edits.
-    // Now we add "synthetic" edits for ref clearing.
-
-    if (deletedFiles.length > 0) {
-      const refClearingEdits = await this.buildRefClearingEdits(wkbId, userId, deletedFiles);
-
-      for (const edit of refClearingEdits) {
-        // If the user ALREADY edited this file (hasEdit=true), we need to merge the ref-clearing changes
-        // into the user's edit based on the DIRTY content (which includes user's edit).
-        // If the user did NOT edit this file, we create a new entry based on DIRTY content (which is same as Main for this file).
-
-        // Actually, `buildRefClearingEdits` should read from DIRTY, so it gets the latest state (including user edits).
-        // So we just overwrite/set the editOperation with the cleared content.
-
-        const entry = getOrCreateEntry(edit.path);
-        entry.editOperation = { content: edit.content };
-        entry.hasEdit = true;
-        // If it wasn't counted yet (not in modifiedFiles), increment count??
-        // Wait, modifiedFiles loop above already counted user edits.
-        // We need to be careful not to double count or miss counting.
-        // Simplest: Recalculate editCount based on map at the end.
-      }
-    }
-
-    // Recalculate phases based on final map state
-    const finalEditCount = Array.from(pipelineEntries.values()).filter((e) => e.hasEdit).length;
-
-    // Update the 'edit' phase count in the array (it's the first one if exists)
-    const editPhaseIndex = phases.findIndex((p) => p.type === 'edit');
-    if (finalEditCount > 0) {
-      if (editPhaseIndex !== -1) {
-        phases[editPhaseIndex].recordCount = finalEditCount;
-      } else {
-        // Insert at beginning
-        phases.unshift({ type: 'edit', recordCount: finalEditCount });
-      }
-    }
-
-    // Persist Pipeline
-    await this.db.client.publishPipeline.create({
+    // Persist Pipeline (PublishPlan)
+    await this.db.client.publishPlan.create({
       data: {
         id: pipelineId,
         workbookId: wkbId,
         userId,
-        status: 'building',
+        status: 'planning',
         branchName,
-        phases: [], // Initial empty phases
+        phases: phases as any,
         connectorAccountId: connectorAccountId || null,
       },
     });
 
     // Create Entries
-    // Prisma createMany is supported for some DBs, and we assume Postgres here.
-    if (pipelineEntries.size > 0) {
-      await this.db.client.publishPipelineEntry.createMany({
-        data: Array.from(pipelineEntries.values()).map((e) => ({
-          pipelineId,
+    if (planEntries.length > 0) {
+      await this.db.client.publishPlanEntry.createMany({
+        data: planEntries.map((e) => ({
+          planId: pipelineId,
           filePath: e.filePath,
-          editOperation: e.editOperation ?? undefined,
-          createOperation: e.createOperation ?? undefined,
-          deleteOperation: e.deleteOperation ?? undefined,
-          backfillOperation: e.backfillOperation ?? undefined,
-          hasEdit: e.hasEdit,
-          hasCreate: e.hasCreate,
-          hasDelete: e.hasDelete,
-          hasBackfill: e.hasBackfill,
-          editStatus: e.hasEdit ? 'pending' : undefined,
-          createStatus: e.hasCreate ? 'pending' : undefined,
-          deleteStatus: e.hasDelete ? 'pending' : undefined,
-          backfillStatus: e.hasBackfill ? 'pending' : undefined,
+          phase: e.phase,
+          operation: e.operation,
+          status: e.status,
         })),
       });
     }
+
+    // Mark as planned (ready to run)
+    await this.db.client.publishPlan.update({
+      where: { id: pipelineId },
+      data: { status: 'planned' },
+    });
 
     return {
       pipelineId,
       workbookId,
       userId,
-      branchName,
-      status: 'ready',
       phases,
+      branchName,
       createdAt: new Date(),
+      status: 'planned',
     };
-  }
-
-  /**
-   * Generates synthetic edits to clear references to records that are about to be deleted.
-   * This prevents foreign key constraint errors during the delete phase.
-   */
-  private async buildRefClearingEdits(
-    workbookId: string,
-    userId: string,
-    deletedFiles: Array<{ path: string }>,
-  ): Promise<Array<{ path: string; content: object }>> {
-    const deletedPaths = new Set(deletedFiles.map((f) => f.path));
-
-    // 1. Identify targets (files being deleted)
-    // We need to find references to these files.
-    // References can be by:
-    // - Path (for @/ refs)
-    // - Record ID (for resolved refs)
-
-    // Also caching schemas here might be useful if we process many files in same folder.
-    // But we can reuse the `getSchema` helper if we move it to class level or pass it?
-    // `getSchema` is defined inside `buildPipeline`.
-    // I should move `getSchema` to class private method or duplicate logic?
-    // Better to have it as a private method or simple helper.
-    // For now I'll duplicate the simple logic or better yet, make schemaCache a class property?
-    // No, scope it to request.
-    // I can just re-instantiate a local cache here.
-
-    const schemaCache = new Map<string, any>();
-    const getSchema = async (folderPath: string) => {
-      if (schemaCache.has(folderPath)) return schemaCache.get(folderPath);
-      try {
-        const dataFolder = await this.db.client.dataFolder.findFirst({
-          where: {
-            workbookId,
-            path: { in: [folderPath, `/${folderPath}`] },
-          },
-          select: { schema: true },
-        });
-        const schema = (dataFolder?.schema as any)?.schema;
-        if (schema) {
-          schemaCache.set(folderPath, schema);
-          return schema;
-        }
-      } catch (e) {
-        console.error('Error fetching schema for folder:', folderPath, e);
-      }
-      schemaCache.set(folderPath, null);
-      return null;
-    };
-
-    const targets: Array<{ folderPath: string; fileName?: string; recordId?: string }> = [];
-
-    for (const del of deletedFiles) {
-      // Parse path to get folder and filename
-      const lastSlash = del.path.lastIndexOf('/');
-      const folderPath = lastSlash === -1 ? '' : del.path.substring(0, lastSlash);
-      const fileName = del.path.substring(lastSlash + 1);
-
-      // Get Record ID from FileIndex
-      const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
-
-      targets.push({
-        folderPath,
-        fileName,
-        recordId: recordId ?? undefined,
-      });
-    }
-
-    // 2. Find inbound references
-    // We check both 'main' and 'dirty' to be safe, but primarily we care about what's currently referring to them.
-    const inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targets, [
-      MAIN_BRANCH,
-      DIRTY_BRANCH,
-    ]);
-
-    if (inboundRefs.length === 0) {
-      return [];
-    }
-
-    // 3. Filter out refs from files that are ALSO being deleted
-    const sourceFilesToFix = new Set<string>();
-    for (const ref of inboundRefs) {
-      if (!deletedPaths.has(ref.sourceFilePath)) {
-        sourceFilesToFix.add(ref.sourceFilePath);
-      }
-    }
-
-    if (sourceFilesToFix.size === 0) {
-      return [];
-    }
-
-    // 4. Generate edits for each source file
-    const edits: Array<{ path: string; content: object }> = [];
-    const deletedRecordIds = new Set(targets.map((t) => t.recordId).filter(Boolean) as string[]);
-
-    for (const sourcePath of sourceFilesToFix) {
-      // Read current content from DIRTY (so we include any user edits)
-
-      let rawContent = await this.scratchGitService.getRepoFile(workbookId as WorkbookId, 'dirty', sourcePath);
-
-      if (!rawContent) {
-        rawContent = await this.scratchGitService.getRepoFile(workbookId as WorkbookId, 'main', sourcePath);
-      }
-
-      if (!rawContent?.content) continue;
-
-      let jsonContent: any;
-      try {
-        jsonContent = JSON.parse(rawContent.content);
-      } catch {
-        continue; // Skip invalid JSON
-      }
-
-      // Determine folder path for source file to get its schema
-      const lastSlash = sourcePath.lastIndexOf('/');
-      const folderPath = lastSlash === -1 ? '' : sourcePath.substring(0, lastSlash);
-      const schema = await getSchema(folderPath);
-
-      // Apply stripping logic using Schema
-      // We pass `deletedPaths` as `addedPaths` (to strip @/ refs pointing to them)
-      // We pass `deletedRecordIds` as `idsToStrip`
-
-      const newContentIdx = await this.fileReferenceService.stripReferencesWithSchema(
-        workbookId,
-        jsonContent,
-        schema,
-        deletedPaths,
-        this.fileIndexService,
-        deletedRecordIds,
-      );
-
-      // Compare to check if changed
-      // Simple stringify comparison
-      const originalStr = JSON.stringify(jsonContent);
-      const newStr = JSON.stringify(newContentIdx);
-
-      if (originalStr !== newStr) {
-        edits.push({ path: sourcePath, content: newContentIdx });
-      }
-    }
-
-    return edits;
   }
 
   async listPipelines(workbookId: string, connectorAccountId?: string) {
-    return this.db.client.publishPipeline.findMany({
+    return await this.db.client.publishPlan.findMany({
       where: {
         workbookId,
         connectorAccountId: connectorAccountId || undefined,
@@ -509,6 +383,33 @@ export class PipelineBuildService {
           select: { entries: true },
         },
       },
+    });
+  }
+
+  async listFileIndex(workbookId: string) {
+    return await this.db.client.fileIndex.findMany({
+      where: { workbookId },
+      orderBy: [{ folderPath: 'asc' }, { filename: 'asc' }],
+    });
+  }
+
+  async listRefIndex(workbookId: string) {
+    return await this.db.client.fileReference.findMany({
+      where: { workbookId },
+      orderBy: [{ sourceFilePath: 'asc' }, { targetFolderPath: 'asc' }],
+    });
+  }
+
+  async listPipelineEntries(pipelineId: string) {
+    return await this.db.client.publishPlanEntry.findMany({
+      where: { planId: pipelineId },
+      orderBy: [{ phase: 'asc' }, { filePath: 'asc' }],
+    });
+  }
+
+  async deletePipeline(pipelineId: string) {
+    return await this.db.client.publishPlan.delete({
+      where: { id: pipelineId },
     });
   }
 }

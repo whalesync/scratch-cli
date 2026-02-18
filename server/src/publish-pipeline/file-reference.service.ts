@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
+import { RefCleanerService } from './ref-cleaner.service';
 
 export interface ExtractedRef {
   sourceFilePath: string;
@@ -15,7 +16,10 @@ export interface ExtractedRef {
 
 @Injectable()
 export class FileReferenceService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly refCleanerService: RefCleanerService,
+  ) {}
 
   /**
    * Extract references from a JSON object.
@@ -26,7 +30,7 @@ export class FileReferenceService {
 
     // Pass 2: Use schema paths to find x-scratch-foreign-key refs
     if (schema) {
-      const fkPaths = this.extractForeignKeyPaths(schema);
+      const fkPaths = this.refCleanerService.extractForeignKeyPaths(schema);
 
       for (const fk of fkPaths) {
         // Get all nodes at this path (handles arrays)
@@ -56,58 +60,6 @@ export class FileReferenceService {
     }
 
     return Array.from(uniqueRefs.values());
-  }
-
-  /**
-   * Traverses the schema to find all paths that are marked as foreign keys.
-   */
-  extractForeignKeyPaths(schema: any): Array<{ path: string[]; targetFolderId: string; map?: string }> {
-    const results: Array<{ path: string[]; targetFolderId: string; map?: string }> = [];
-
-    const walk = (schemaNode: any, currentPath: string[]) => {
-      if (!schemaNode || typeof schemaNode !== 'object') return;
-
-      // Check for x-scratch-foreign-key
-      const foreignKey = schemaNode['x-scratch-foreign-key'];
-
-      if (foreignKey) {
-        let linkedTableId: string | undefined;
-        let map: string | undefined;
-
-        if (typeof foreignKey === 'string') {
-          linkedTableId = foreignKey;
-        } else if (typeof foreignKey === 'object' && foreignKey.linkedTableId) {
-          linkedTableId = foreignKey.linkedTableId;
-          map = foreignKey.map;
-        }
-
-        if (linkedTableId) {
-          results.push({
-            path: currentPath,
-            targetFolderId: linkedTableId,
-            map: map,
-          });
-        }
-      }
-
-      // Recurse
-      if (schemaNode.properties) {
-        for (const [key, prop] of Object.entries(schemaNode.properties)) {
-          walk(prop, [...currentPath, key]);
-        }
-      }
-
-      if (schemaNode.items) {
-        if (Array.isArray(schemaNode.items)) {
-          // tuple validation not supported for now in this simple walker
-        } else {
-          walk(schemaNode.items, [...currentPath, '[]']);
-        }
-      }
-    };
-
-    walk(schema, []);
-    return results;
   }
 
   /**
@@ -197,8 +149,35 @@ export class FileReferenceService {
 
     // 2. Extract new refs
     const allRefs: ExtractedRef[] = [];
+    const schemaCache = new Map<string, any>();
+
     for (const file of files) {
-      const refs = this.extractReferences(file.path, file.content, schema);
+      let fileSchema = schema;
+      if (!fileSchema) {
+        // Determine folder path
+        const lastSlash = file.path.lastIndexOf('/');
+        const folderPath = lastSlash === -1 ? '' : file.path.substring(0, lastSlash);
+
+        if (schemaCache.has(folderPath)) {
+          fileSchema = schemaCache.get(folderPath);
+        } else {
+          try {
+            const df = await this.db.client.dataFolder.findFirst({
+              where: {
+                workbookId,
+                path: { in: [folderPath, `/${folderPath}`] },
+              },
+              select: { schema: true },
+            });
+            fileSchema = df?.schema;
+          } catch {
+            // ignore error
+          }
+          schemaCache.set(folderPath, fileSchema);
+        }
+      }
+
+      const refs = this.extractReferences(file.path, file.content, fileSchema);
       allRefs.push(...refs);
     }
 
@@ -282,138 +261,6 @@ export class FileReferenceService {
    * Strip references that point to any of the paths in the set or are unresolvable pseudo-refs.
    * Returns a deep copy of content with matching refs replaced by null.
    */
-  async stripReferencesWithSchema(
-    workbookId: string,
-    content: any,
-    schema: any,
-    addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
-    idsToStrip?: Set<string>,
-  ): Promise<any> {
-    if (!content || !schema) return content;
-
-    // Deep copy to avoid mutating original
-    const result = JSON.parse(JSON.stringify(content));
-
-    // 1. Find all FK paths in the schema
-    const fkPaths = this.extractForeignKeyPaths(schema);
-
-    for (const fk of fkPaths) {
-      // 2. Get nodes at this path in the content
-      // We need to modify them in place, so getNodesByPath might not be enough if it returns values.
-      // We'll write a specific traverser that can update values.
-      await this.stripAtNodes(workbookId, result, fk.path, addedPaths, fileIndexService, idsToStrip);
-    }
-
-    return result;
-  }
-
-  // Helper to traverse and strip at specific path
-  private async stripAtNodes(
-    workbookId: string,
-    root: any,
-    path: string[],
-    addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
-    idsToStrip?: Set<string>,
-  ): Promise<void> {
-    if (!root) return;
-    if (path.length === 0) return;
-
-    const [head, ...tail] = path;
-
-    if (head === '[]') {
-      if (Array.isArray(root)) {
-        for (let i = 0; i < root.length; i++) {
-          if (tail.length === 0) {
-            // Reached the leaf node (FK value) inside array
-            root[i] = await this.checkAndStrip(workbookId, root[i], addedPaths, fileIndexService, idsToStrip);
-          } else {
-            await this.stripAtNodes(workbookId, root[i], tail, addedPaths, fileIndexService, idsToStrip);
-          }
-        }
-      }
-    } else {
-      if (root[head] !== undefined) {
-        if (tail.length === 0) {
-          // Reached the leaf node (FK value)
-          root[head] = await this.checkAndStrip(workbookId, root[head], addedPaths, fileIndexService, idsToStrip);
-        } else {
-          await this.stripAtNodes(workbookId, root[head], tail, addedPaths, fileIndexService, idsToStrip);
-        }
-      }
-    }
-  }
-
-  private async checkAndStrip(
-    workbookId: string,
-    value: any,
-    addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
-    idsToStrip?: Set<string>,
-  ): Promise<any> {
-    // Helper to check a single value (string or array of strings)
-    // Actually schema usually points to the specific field.
-    // Multiref might be an array of strings.
-
-    if (Array.isArray(value)) {
-      const newArray = [];
-      for (const item of value) {
-        const stripped = await this.shouldStrip(workbookId, item, addedPaths, fileIndexService, idsToStrip);
-        if (!stripped) newArray.push(item);
-      }
-      return newArray;
-    } else {
-      const stripped = await this.shouldStrip(workbookId, value, addedPaths, fileIndexService, idsToStrip);
-      return stripped ? null : value;
-    }
-  }
-
-  private async shouldStrip(
-    workbookId: string,
-    value: any,
-    addedPaths: Set<string>,
-    fileIndexService: { getRecordId: (wkbId: string, folder: string, file: string) => Promise<string | null> },
-    idsToStrip?: Set<string>,
-  ): Promise<boolean> {
-    if (typeof value !== 'string') return false;
-
-    // Check 0: Is it in idsToStrip?
-    if (idsToStrip && idsToStrip.has(value)) {
-      return true;
-    }
-
-    // Check 1: Is it a pseudo-ref?
-    if (value.startsWith('@/')) {
-      const targetPath = value.substring(2);
-
-      // If it points to an added file, STRIP IT.
-      // (Normalize check: targetPath matching addedPaths)
-      if (addedPaths.has(targetPath) || addedPaths.has('/' + targetPath)) {
-        return true;
-      }
-
-      // If it points to a file that DOES NOT EXIST in FileIndex, STRIP IT.
-      // (This handles the case where it's a ref to a non-existent file, or a file not in addedFiles and not in DB)
-      // To check logic:
-      // If it exists in FileIndex -> valid ref to existing record -> KEEP.
-      // If it is in addedFiles -> valid ref to FUTURE record -> STRIP (and backfill later).
-      // If neither -> INVALID ref -> STRIP (and backfill later? or just lose it?
-      // Mackerel logic was: "stripUnresolvableAtRefs". If !recordId, strip.
-      // Here: if !recordId AND !addedFiles.has(targetPath), then it is truly unresolvable.
-
-      const lastSlash = targetPath.lastIndexOf('/');
-      const folder = lastSlash === -1 ? '' : targetPath.substring(0, lastSlash);
-      const filename = targetPath.substring(lastSlash + 1);
-
-      const recordId = await fileIndexService.getRecordId(workbookId, folder, filename);
-      if (!recordId) {
-        return true; // Strip unresolvable
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Legacy string matching stripper (kept for fallback or non-schema cases if needed, but deprecated for V2)

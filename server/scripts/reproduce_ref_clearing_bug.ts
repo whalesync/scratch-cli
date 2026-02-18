@@ -212,17 +212,16 @@ async function bootstrap() {
     console.log(`Pipeline ID: ${pipeline.pipelineId}`);
 
     // --- Step 4: Verify Entries ---
-    const entries = await dbService.client.publishPipelineEntry.findMany({
-      where: { pipelineId: pipeline.pipelineId },
+    const entries = await dbService.client.publishPlanEntry.findMany({
+      where: { planId: pipeline.pipelineId },
     });
 
     console.log(`Entries found: ${entries.length}`);
     entries.forEach((e) => {
-      console.log(`- ${e.filePath} [${e.hasDelete ? 'DELETE' : ''} ${e.hasEdit ? 'EDIT' : ''}]`);
-      if (e.hasEdit && e.editOperation) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const op = e.editOperation as any;
-        console.log('  Content:', JSON.stringify(op.content));
+      console.log(`- ${e.filePath} [${e.phase.toUpperCase()}]`);
+      if (e.phase === 'edit' && e.operation) {
+        const json = e.operation as any;
+        console.log('  Content:', JSON.stringify(json));
       }
     });
 
