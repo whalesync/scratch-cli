@@ -97,8 +97,7 @@ POST   /connector-accounts                              # Create connection
 GET    /connector-accounts/:id                          # Get connection
 PATCH  /connector-accounts/:id                          # Update connection
 DELETE /connector-accounts/:id                          # Delete connection
-GET    /connector-accounts/all-tables                   # List all tables
-POST   /connector-accounts/tables                       # List tables for service
+GET    /connector-accounts/:id/tables                    # List tables for connection
 POST   /connector-accounts/:id/test                     # Test connection
 ```
 
@@ -1297,49 +1296,13 @@ Deletes a connection.
 
 **Response:** `204 No Content`
 
-### List All Tables
+### List Tables for Connection
 
 ```
-GET /connector-accounts/all-tables
+GET /connector-accounts/:connectorAccountId/tables
 ```
 
-Returns all tables from all connections, grouped by connection.
-
-**Response:**
-
-```json
-[
-  {
-    "connectorAccountId": "conn_123",
-    "service": "airtable",
-    "displayName": "My Airtable",
-    "tables": [
-      {
-        "id": "tbl_abc",
-        "name": "Blog Posts",
-        "schema": {...}
-      }
-    ]
-  }
-]
-```
-
-### List Tables for Service
-
-```
-POST /connector-accounts/tables
-```
-
-Lists tables for a specific service or connection.
-
-**Request Body:**
-
-```json
-{
-  "service": "airtable",
-  "connectorAccountId": "conn_123"
-}
-```
+Lists tables available from a specific connection.
 
 **Response:**
 

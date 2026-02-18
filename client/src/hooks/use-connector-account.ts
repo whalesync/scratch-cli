@@ -25,7 +25,6 @@ export const useConnectorAccounts = (workbookId: string | undefined) => {
     }
     const newAccount = await connectorAccountsApi.create(workbookId, dto);
     mutate(SWR_KEYS.connectorAccounts.list(workbookId));
-    mutate(SWR_KEYS.connectorAccounts.allTables(workbookId));
     return newAccount;
   };
 

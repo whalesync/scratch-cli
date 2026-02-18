@@ -2,16 +2,18 @@
 
 import { Text13Regular } from '@/app/components/base/text';
 import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
-import { useAllTables } from '@/hooks/use-all-tables';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useWorkbook } from '@/hooks/use-workbook';
+import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { dataFolderApi } from '@/lib/api/data-folder';
+import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { TablePreview } from '@/types/server-entities/table-list';
+import { TableList, TablePreview } from '@/types/server-entities/table-list';
 import { Alert, Button, Checkbox, Group, List, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import type { ConnectorAccount, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { AlertTriangleIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
 
 interface ChooseTablesModalProps {
   opened: boolean;
@@ -21,26 +23,25 @@ interface ChooseTablesModalProps {
 }
 
 export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccount }: ChooseTablesModalProps) {
-  const { tables: allTableGroups, isLoading, isValidating } = useAllTables(workbookId);
+  const { data, isLoading, isValidating } = useSWR<TableList>(
+    opened ? SWR_KEYS.connectorAccounts.tables(workbookId, connectorAccount.id) : null,
+    () => connectorAccountsApi.listTables(workbookId, connectorAccount.id),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
+  );
+  const availableTables = data?.tables || [];
+  const tablesLoading = isLoading || (isValidating && availableTables.length === 0);
+
   const { dataFolderGroups, refresh: refreshDataFolders } = useDataFolders();
   const { addLinkedDataFolder } = useWorkbook(workbookId);
-
-  // Check if tables for this specific connector account are available
-  const hasTablesForAccount = allTableGroups.some((g) => g.connectorAccountId === connectorAccount.id);
-  // Show loading if: initial load, or validating and we don't have tables for this account yet
-  const tablesLoading = isLoading || (isValidating && !hasTablesForAccount);
 
   const [selectedTableIds, setSelectedTableIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [foldersToRemove, setFoldersToRemove] = useState<{ id: DataFolderId; name: string; tableId: string[] }[]>([]);
   const [dirtyFileCount, setDirtyFileCount] = useState(0);
-
-  // Get tables for this specific connector account
-  const availableTables = useMemo(() => {
-    const group = allTableGroups.find((g) => g.connectorAccountId === connectorAccount.id);
-    return group?.tables || [];
-  }, [allTableGroups, connectorAccount.id]);
 
   // Get currently linked data folders for this connector account
   const linkedFolders = useMemo(() => {

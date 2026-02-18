@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -53,12 +52,9 @@ type TablePreview struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TableGroup represents a group of tables from a single connector account.
-type TableGroup struct {
-	Service            string         `json:"service"`
-	ConnectorAccountID string         `json:"connectorAccountId"`
-	DisplayName        string         `json:"displayName"`
-	Tables             []TablePreview `json:"tables"`
+// TableList represents the response from listing tables for a single connection.
+type TableList struct {
+	Tables []TablePreview `json:"tables"`
 }
 
 // LinkedTable represents a linked data folder in a workbook.
@@ -107,18 +103,13 @@ type JobResponse struct {
 
 // --- Linked Table Methods ---
 
-// ListAvailableTables lists tables available from connections in a specific workbook.
-func (c *Client) ListAvailableTables(workbookID string, connectionID string) ([]TableGroup, error) {
-	params := url.Values{}
-	if connectionID != "" {
-		params.Set("connectionId", connectionID)
-	}
-
-	var result []TableGroup
-	if err := c.doRequestWithQuery(http.MethodGet, "workbooks/"+workbookID+"/connections/all-tables", params, nil, &result); err != nil {
+// ListConnectionTables lists tables available from a specific connection.
+func (c *Client) ListConnectionTables(workbookID string, connectionID string) ([]TablePreview, error) {
+	var result TableList
+	if err := c.doRequest(http.MethodGet, "workbooks/"+workbookID+"/connections/"+connectionID+"/tables", nil, &result); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return result.Tables, nil
 }
 
 // ListLinkedTables lists linked tables in a workbook, grouped by connector.

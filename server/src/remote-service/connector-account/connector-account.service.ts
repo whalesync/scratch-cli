@@ -22,7 +22,6 @@ import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
 import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
 import { TablePreview } from '../connectors/types';
-import { TableGroup } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 import { DecryptedCredentials } from './types/encrypted-credentials.interface';
 
@@ -242,54 +241,13 @@ export class ConnectorAccountService {
     });
   }
 
-  async listAllUserTables(workbookId: WorkbookId, actor: Actor): Promise<TableGroup[]> {
-    // Find accounts for this workbook, ensuring the workbook belongs to the user's organization
-    const allAccounts = await this.db.client.connectorAccount.findMany({
-      where: { workbookId, workbook: { organizationId: actor.organizationId } },
-    });
-
-    // Fetch tables from all connector accounts in parallel
-    const tablePromises = allAccounts.map((account) =>
-      this.listTables(account.service as Service, account.id, actor)
-        .then((tables) => ({
-          service: account.service as Service,
-          connectorAccountId: account.id,
-          displayName: account.displayName,
-          tables,
-        }))
-        .catch(() => ({
-          // Return empty tables if listTables fails
-          service: account.service as Service,
-          connectorAccountId: account.id,
-          displayName: account.displayName,
-          tables: [] as TablePreview[],
-        })),
-    );
-
-    try {
-      const groups = await Promise.all(tablePromises);
-      return groups;
-    } catch (error) {
-      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error), {
-        cause: error instanceof Error ? error : new Error(String(error)),
-      });
-    }
-  }
-
-  async listTables(service: Service, connectorAccountId: string | null, actor: Actor): Promise<TablePreview[]> {
-    // When connectorAccountId is null, we're dealing with a service that doesn't require a connector account (formerly CSV, but not anymore?)
-    // When connectorAccountId is provided, load the account and pass it to the connector
-    let account: (ConnectorAccount & DecryptedCredentials) | null = null;
-
-    if (connectorAccountId !== null) {
-      // Use findOneById since we don't have workbook context here
-      account = await this.findOneById(connectorAccountId, actor);
-    }
+  async listTables(connectorAccountId: string, actor: Actor): Promise<TablePreview[]> {
+    const account = await this.findOneById(connectorAccountId, actor);
 
     let connector: Connector<Service, any>;
     try {
       connector = await this.connectorsService.getConnector({
-        service,
+        service: account.service as Service,
         connectorAccount: account,
         decryptedCredentials: account,
         userId: actor.userId,

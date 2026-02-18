@@ -1,6 +1,6 @@
 import { TestConnectionResponse } from '@/types/server-entities/connector-accounts';
 import { ConnectorAccount, CreateConnectorAccountDto, UpdateConnectorAccountDto } from '@spinner/shared-types';
-import { TableGroup, TableList } from '../../types/server-entities/table-list';
+import { TableList } from '../../types/server-entities/table-list';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -58,25 +58,11 @@ export const connectorAccountsApi = {
     }
   },
 
-  // GET all tables from all workbook connections
-  listAllTables: async (workbookId: string): Promise<TableGroup[]> => {
+  // GET tables for a specific connection
+  listTables: async (workbookId: string, connectorAccountId: string): Promise<TableList> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<TableGroup[]>(`/workbooks/${workbookId}/connections/all-tables`);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to list all tables');
-    }
-  },
-
-  // POST to list tables for a connection or service
-  listTables: async (workbookId: string, service: string, connectorAccountId: string | null): Promise<TableList> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post<TableList>(`/workbooks/${workbookId}/connections/tables`, {
-        service,
-        connectorAccountId,
-      });
+      const res = await axios.get<TableList>(`/workbooks/${workbookId}/connections/${connectorAccountId}/tables`);
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to list tables');

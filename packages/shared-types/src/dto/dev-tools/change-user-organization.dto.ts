@@ -17,5 +17,7 @@ export class ChangeUserOrganizationDto {
   deleteOldOrganization?: boolean;
 }
 
-export type ValidatedChangeUserOrganizationDto = Required<Pick<ChangeUserOrganizationDto, 'userId' | 'newOrganizationId'>> &
+export type ValidatedChangeUserOrganizationDto = Required<
+  Pick<ChangeUserOrganizationDto, 'userId' | 'newOrganizationId'>
+> &
   Pick<ChangeUserOrganizationDto, 'deleteOldOrganization'>;

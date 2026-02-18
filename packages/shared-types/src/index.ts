@@ -21,7 +21,6 @@ export * from './workbook-events';
 export * from './dto/bug-report/create-bug-report.dto';
 export * from './dto/code-migrations/code-migrations.dto';
 export * from './dto/connector-account/create-connector-account.dto';
-export * from './dto/connector-account/list-tables.dto';
 export * from './dto/connector-account/update-connector-account.dto';
 export * from './dto/data-folder/create-data-folder.dto';
 export * from './dto/data-folder/data-folder-publish-status.dto';

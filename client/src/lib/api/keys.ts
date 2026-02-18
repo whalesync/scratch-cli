@@ -5,7 +5,12 @@ export const SWR_KEYS = {
   connectorAccounts: {
     list: (workbookId: string) => ['connector-accounts', 'list', workbookId],
     detail: (workbookId: string, id: string) => ['connector-accounts', 'detail', workbookId, id],
-    allTables: (workbookId: string) => ['connector-accounts', 'all-tables', workbookId],
+    tables: (workbookId: string, connectorAccountId: string) => [
+      'connector-accounts',
+      'tables',
+      workbookId,
+      connectorAccountId,
+    ],
   },
   workbook: {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],

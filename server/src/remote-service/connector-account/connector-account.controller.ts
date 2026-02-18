@@ -14,9 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateConnectorAccountDto,
-  ListTablesDto,
   UpdateConnectorAccountDto,
-  ValidatedListTablesDto,
   WorkbookId,
   type ValidatedCreateConnectorAccountDto,
 } from '@spinner/shared-types';
@@ -25,7 +23,7 @@ import type { RequestWithUser } from '../../auth/types';
 import { userToActor } from '../../users/types';
 import { ConnectorAccountService } from './connector-account.service';
 import { ConnectorAccount } from './entities/connector-account.entity';
-import { TableGroup, TableList } from './entities/table-list.entity';
+import { TableList } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
 
 @Controller('workbooks/:workbookId/connections')
@@ -49,12 +47,6 @@ export class ConnectorAccountController {
     return this.service.findAll(workbookId as WorkbookId, userToActor(req.user));
   }
 
-  @Get('all-tables')
-  async listAllTables(@Param('workbookId') workbookId: string, @Req() req: RequestWithUser): Promise<TableGroup[]> {
-    const result = await this.service.listAllUserTables(workbookId as WorkbookId, userToActor(req.user));
-    return result;
-  }
-
   @Get(':id')
   async findOne(
     @Param('workbookId') workbookId: string,
@@ -64,14 +56,13 @@ export class ConnectorAccountController {
     return this.service.findOne(workbookId as WorkbookId, id, userToActor(req.user));
   }
 
-  @Post('tables')
+  @Get(':connectorAccountId/tables')
   async listTables(
     @Param('workbookId') workbookId: string,
-    @Body() dtoParam: ListTablesDto,
+    @Param('connectorAccountId') connectorAccountId: string,
     @Req() req: RequestWithUser,
   ): Promise<TableList> {
-    const dto = dtoParam as ValidatedListTablesDto;
-    const tables = await this.service.listTables(dto.service, dto.connectorAccountId ?? null, userToActor(req.user));
+    const tables = await this.service.listTables(connectorAccountId, userToActor(req.user));
     return { tables };
   }
 

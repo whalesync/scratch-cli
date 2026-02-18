@@ -1,4 +1,4 @@
-import { EntityId, Service } from '@spinner/shared-types';
+import { EntityId } from '@spinner/shared-types';
 
 export interface TablePreview {
   id: EntityId;
@@ -6,12 +6,5 @@ export interface TablePreview {
 }
 
 export interface TableList {
-  tables: TablePreview[];
-}
-
-export interface TableGroup {
-  service: Service;
-  connectorAccountId: string | null;
-  displayName: string;
   tables: TablePreview[];
 }

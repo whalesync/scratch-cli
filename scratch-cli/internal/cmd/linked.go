@@ -32,15 +32,16 @@ Commands:
 }
 
 var linkedAvailableCmd = &cobra.Command{
-	Use:   "available [connection-id]",
-	Short: "List available tables from connections in the current workbook",
-	Long: `List tables available from connections in the current workbook.
+	Use:   "available <connection-id>",
+	Short: "List available tables from a connection in the current workbook",
+	Long: `List tables available from a specific connection in the current workbook.
+
+If no connection ID is provided, lists all connections so you can pick one.
 
 This command requires a workbook context — run from inside a workbook directory
 or use the --workbook flag.
 
 Examples:
-  scratchmd linked available
   scratchmd linked available conn_abc123
   scratchmd linked available --workbook wb_abc123`,
 	Args: cobra.MaximumNArgs(1),
@@ -310,12 +311,39 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	connectionID := ""
-	if len(args) > 0 {
-		connectionID = args[0]
+	// If no connection ID provided, list connections
+	if len(args) == 0 {
+		connections, err := client.ListConnections(workbookID)
+		if err != nil {
+			return fmt.Errorf("failed to list connections: %w", err)
+		}
+
+		if jsonOutput {
+			encoder := json.NewEncoder(os.Stdout)
+			encoder.SetIndent("", "  ")
+			return encoder.Encode(connections)
+		}
+
+		if len(connections) == 0 {
+			fmt.Println("No connections found in this workbook.")
+			fmt.Println()
+			fmt.Println("Add a connection in your workbook at https://app.scratch.md to see available tables.")
+			return nil
+		}
+
+		fmt.Println()
+		fmt.Println("Connections in this workbook:")
+		for _, conn := range connections {
+			fmt.Printf("  - %s (%s)  ID: %s\n", conn.DisplayName, conn.Service, conn.ID)
+		}
+		fmt.Println()
+		fmt.Println("To list tables for a connection, run: scratchmd linked available <connection-id>")
+		return nil
 	}
 
-	groups, err := client.ListAvailableTables(workbookID, connectionID)
+	// Connection ID provided — list tables for that connection
+	connectionID := args[0]
+	tables, err := client.ListConnectionTables(workbookID, connectionID)
 	if err != nil {
 		return fmt.Errorf("failed to list available tables: %w", err)
 	}
@@ -323,29 +351,19 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(groups)
+		return encoder.Encode(tables)
 	}
 
-	if len(groups) == 0 {
-		fmt.Println("No connections found in this workbook.")
-		fmt.Println()
-		fmt.Println("Add a connection in your workbook at https://app.scratch.md to see available tables.")
+	if len(tables) == 0 {
+		fmt.Println("No tables found for this connection.")
 		return nil
 	}
 
 	fmt.Println()
-	for _, group := range groups {
-		fmt.Printf("  %s (%s)\n", group.DisplayName, group.Service)
-		fmt.Printf("  Connection ID: %s\n", group.ConnectorAccountID)
-		if len(group.Tables) == 0 {
-			fmt.Println("    No tables found")
-		} else {
-			for _, table := range group.Tables {
-				fmt.Printf("    - %s (ID: %s)\n", table.DisplayName, table.ID)
-			}
-		}
-		fmt.Println()
+	for _, table := range tables {
+		fmt.Printf("  - %s (ID: %s)\n", table.DisplayName, table.ID)
 	}
+	fmt.Println()
 
 	return nil
 }
@@ -457,24 +475,25 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Interactive mode
-	groups, err := client.ListAvailableTables(workbookID, "")
+
+	// Step 1: Select connection
+	connections, err := client.ListConnections(workbookID)
 	if err != nil {
-		return fmt.Errorf("failed to list available tables: %w", err)
+		return fmt.Errorf("failed to list connections: %w", err)
 	}
 
-	if len(groups) == 0 {
+	if len(connections) == 0 {
 		return fmt.Errorf("no connections found in this workbook. Add a connection in your workbook at https://app.scratch.md first")
 	}
 
-	// Step 1: Select connection
-	var selectedGroup api.TableGroup
-	if len(groups) == 1 {
-		selectedGroup = groups[0]
-		fmt.Printf("Using connection: %s (%s)\n", selectedGroup.DisplayName, selectedGroup.Service)
+	var selectedConnection api.Connection
+	if len(connections) == 1 {
+		selectedConnection = connections[0]
+		fmt.Printf("Using connection: %s (%s)\n", selectedConnection.DisplayName, selectedConnection.Service)
 	} else {
-		connectionOptions := make([]string, len(groups))
-		for i, g := range groups {
-			connectionOptions[i] = fmt.Sprintf("%s (%s)", g.DisplayName, g.Service)
+		connectionOptions := make([]string, len(connections))
+		for i, c := range connections {
+			connectionOptions[i] = fmt.Sprintf("%s (%s)", c.DisplayName, c.Service)
 		}
 
 		var selectedIdx int
@@ -485,16 +504,22 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		if err := survey.AskOne(prompt, &selectedIdx); err != nil {
 			return fmt.Errorf("prompt cancelled: %w", err)
 		}
-		selectedGroup = groups[selectedIdx]
+		selectedConnection = connections[selectedIdx]
 	}
 
-	if len(selectedGroup.Tables) == 0 {
-		return fmt.Errorf("no tables found for connection '%s'", selectedGroup.DisplayName)
+	// Step 2: List tables for selected connection
+	tables, err := client.ListConnectionTables(workbookID, selectedConnection.ID)
+	if err != nil {
+		return fmt.Errorf("failed to list tables: %w", err)
 	}
 
-	// Step 2: Select table(s)
-	tableOptions := make([]string, len(selectedGroup.Tables))
-	for i, t := range selectedGroup.Tables {
+	if len(tables) == 0 {
+		return fmt.Errorf("no tables found for connection '%s'", selectedConnection.DisplayName)
+	}
+
+	// Step 3: Select table(s)
+	tableOptions := make([]string, len(tables))
+	for i, t := range tables {
 		tableOptions[i] = fmt.Sprintf("%s (ID: %s)", t.DisplayName, t.ID)
 	}
 
@@ -512,12 +537,12 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	var selectedTableIDs []string
-	defaultName := selectedGroup.Tables[selectedTableIdxs[0]].DisplayName
+	defaultName := tables[selectedTableIdxs[0]].DisplayName
 	for _, idx := range selectedTableIdxs {
-		selectedTableIDs = append(selectedTableIDs, selectedGroup.Tables[idx].ID.Parts()...)
+		selectedTableIDs = append(selectedTableIDs, tables[idx].ID.Parts()...)
 	}
 
-	// Step 3: Prompt for name
+	// Step 4: Prompt for name
 	var folderName string
 	namePrompt := &survey.Input{
 		Message: "Name for the linked table:",
@@ -533,7 +558,7 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 
 	req := &api.CreateLinkedTableRequest{
 		Name:               folderName,
-		ConnectorAccountID: selectedGroup.ConnectorAccountID,
+		ConnectorAccountID: selectedConnection.ID,
 		TableID:            selectedTableIDs,
 	}
 

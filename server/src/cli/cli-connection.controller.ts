@@ -17,6 +17,7 @@ import { AuthType, type WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from 'src/auth/scratch-auth.guard';
 import type { RequestWithUser } from 'src/auth/types';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
+import { TableList } from 'src/remote-service/connector-account/entities/table-list.entity';
 import { userToActor } from 'src/users/types';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { CreateCliConnectionDto, type ValidatedCreateCliConnectionDto } from './dtos/cli-connection.dto';
@@ -39,20 +40,6 @@ export class CliConnectionController {
     await this.verifyWorkbookAccess(workbookId as WorkbookId, req);
     const accounts = await this.connectorAccountService.findAll(workbookId as WorkbookId, userToActor(req.user));
     return accounts.map((a) => this.toResponse(a));
-  }
-
-  /**
-   * List all available tables from all connections in the workbook.
-   * Must be defined before @Get(':id') to avoid route conflict.
-   */
-  @Get('all-tables')
-  async listAllTables(@Param('workbookId') workbookId: string, @Req() req: RequestWithUser) {
-    await this.verifyWorkbookAccess(workbookId as WorkbookId, req);
-    const result = await this.connectorAccountService.listAllUserTables(
-      workbookId as WorkbookId,
-      userToActor(req.user),
-    );
-    return result;
   }
 
   @Post()
@@ -86,6 +73,17 @@ export class CliConnectionController {
       throw new NotFoundException('Connection not found');
     }
     return this.toResponse(account);
+  }
+
+  @Get(':connectorAccountId/tables')
+  async listTables(
+    @Param('workbookId') workbookId: string,
+    @Param('connectorAccountId') connectorAccountId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<TableList> {
+    await this.verifyWorkbookAccess(workbookId as WorkbookId, req);
+    const tables = await this.connectorAccountService.listTables(connectorAccountId, userToActor(req.user));
+    return { tables };
   }
 
   @Delete(':id')
