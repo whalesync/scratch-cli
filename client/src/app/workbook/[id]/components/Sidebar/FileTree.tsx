@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { Text12Regular } from '@/app/components/base/text';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
@@ -9,7 +10,7 @@ import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
 import { Box, Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import type { ConnectorAccount, Workbook, WorkbookId } from '@spinner/shared-types';
-import { RefreshCwIcon } from 'lucide-react';
+import { PlusIcon, RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
@@ -120,41 +121,19 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
     );
   }
 
-  if (!hasAnyConnections && mode === 'files') {
-    return (
-      <>
-        <Box p="md">
-          <UnstyledButton onClick={openConnectionModal}>
-            <Text size="sm" c="var(--mantine-color-blue-6)" style={{ cursor: 'pointer' }}>
-              Connect to your first service
-            </Text>
-          </UnstyledButton>
-        </Box>
-        <CreateConnectionModal
-          opened={connectionModalOpened}
-          onClose={closeConnectionModal}
-          workbookId={workbook.id}
-          returnUrl={`/workbook/${workbook.id}/files`}
-          onConnectionCreated={handleConnectionCreated}
-        />
-        {newlyCreatedAccount && (
-          <ChooseTablesModal
-            opened={chooseTablesOpened}
-            onClose={() => {
-              closeChooseTables();
-              setNewlyCreatedAccount(null);
-            }}
-            workbookId={workbook.id as WorkbookId}
-            connectorAccount={newlyCreatedAccount}
-          />
-        )}
-      </>
-    );
-  }
+  // Determine which content to render
+  let content: React.ReactNode;
 
-  // In review mode, show empty state if no dirty files
-  if (mode === 'review' && !dirtyFilesLoading && dirtyFiles.length === 0) {
-    return (
+  if (!hasAnyConnections && mode === 'files') {
+    content = (
+      <Box p="md">
+        <ButtonCompactSecondary leftSection={<PlusIcon size={12} />} onClick={openConnectionModal}>
+          Connect your first service
+        </ButtonCompactSecondary>
+      </Box>
+    );
+  } else if (mode === 'review' && !dirtyFilesLoading && dirtyFiles.length === 0) {
+    content = (
       <Box p="md">
         <Text size="sm">No changes to review</Text>
         <Text size="sm" c="dimmed">
@@ -162,10 +141,8 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
         </Text>
       </Box>
     );
-  }
-
-  return (
-    <>
+  } else {
+    content = (
       <ScrollArea h="100%" type="auto">
         <Stack gap={0} py="xs">
           {/* Section title */}
@@ -218,6 +195,31 @@ export function FileTree({ workbook, mode = 'files' }: FileTreeProps) {
             ))}
         </Stack>
       </ScrollArea>
+    );
+  }
+
+  return (
+    <>
+      {content}
+
+      <CreateConnectionModal
+        opened={connectionModalOpened}
+        onClose={closeConnectionModal}
+        workbookId={workbook.id}
+        returnUrl={`/workbook/${workbook.id}/files`}
+        onConnectionCreated={handleConnectionCreated}
+      />
+      {newlyCreatedAccount && (
+        <ChooseTablesModal
+          opened={chooseTablesOpened}
+          onClose={() => {
+            closeChooseTables();
+            setNewlyCreatedAccount(null);
+          }}
+          workbookId={workbook.id as WorkbookId}
+          connectorAccount={newlyCreatedAccount}
+        />
+      )}
     </>
   );
 }
