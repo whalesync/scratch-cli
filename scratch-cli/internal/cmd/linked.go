@@ -343,24 +343,37 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 
 	// Connection ID provided — list tables for that connection
 	connectionID := args[0]
-	tables, err := client.ListConnectionTables(workbookID, connectionID)
+	tableList, err := client.ListConnectionTables(workbookID, connectionID)
 	if err != nil {
 		return fmt.Errorf("failed to list available tables: %w", err)
+	}
+
+	if tableList.DiscoveryMode == "SEARCH" {
+		if jsonOutput {
+			encoder := json.NewEncoder(os.Stdout)
+			encoder.SetIndent("", "  ")
+			return encoder.Encode(tableList)
+		}
+		fmt.Println()
+		fmt.Println("This connection uses search-based table discovery.")
+		fmt.Println("Use `scratchmd linked add` to interactively search for and link tables.")
+		fmt.Println()
+		return nil
 	}
 
 	if jsonOutput {
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(tables)
+		return encoder.Encode(tableList.Tables)
 	}
 
-	if len(tables) == 0 {
+	if len(tableList.Tables) == 0 {
 		fmt.Println("No tables found for this connection.")
 		return nil
 	}
 
 	fmt.Println()
-	for _, table := range tables {
+	for _, table := range tableList.Tables {
 		fmt.Printf("  - %s (ID: %s)\n", table.DisplayName, table.ID)
 	}
 	fmt.Println()
@@ -507,10 +520,38 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		selectedConnection = connections[selectedIdx]
 	}
 
-	// Step 2: List tables for selected connection
-	tables, err := client.ListConnectionTables(workbookID, selectedConnection.ID)
+	// Step 2: List or search tables for selected connection
+	tableList, err := client.ListConnectionTables(workbookID, selectedConnection.ID)
 	if err != nil {
 		return fmt.Errorf("failed to list tables: %w", err)
+	}
+
+	var tables []api.TablePreview
+
+	if tableList.DiscoveryMode == "SEARCH" {
+		// Prompt for search term
+		var searchTerm string
+		searchPrompt := &survey.Input{
+			Message: "Search for a table:",
+		}
+		if err := survey.AskOne(searchPrompt, &searchTerm); err != nil {
+			return fmt.Errorf("prompt cancelled: %w", err)
+		}
+		if searchTerm == "" {
+			return fmt.Errorf("search term is required")
+		}
+
+		searchResult, err := client.SearchConnectionTables(workbookID, selectedConnection.ID, searchTerm)
+		if err != nil {
+			return fmt.Errorf("failed to search tables: %w", err)
+		}
+		tables = searchResult.Tables
+
+		if searchResult.HasMore {
+			fmt.Printf("Showing first %d results. Refine your search for more specific results.\n", len(tables))
+		}
+	} else {
+		tables = tableList.Tables
 	}
 
 	if len(tables) == 0 {

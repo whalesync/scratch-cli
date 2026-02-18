@@ -11,6 +11,13 @@ export const SWR_KEYS = {
       workbookId,
       connectorAccountId,
     ],
+    searchTables: (workbookId: string, connectorAccountId: string, searchTerm: string) => [
+      'connector-accounts',
+      'search-tables',
+      workbookId,
+      connectorAccountId,
+      searchTerm,
+    ],
   },
   workbook: {
     list: (sortBy?: string, sortOrder?: string) => ['workbook', 'list', sortBy ?? 'all', sortOrder ?? 'all'],

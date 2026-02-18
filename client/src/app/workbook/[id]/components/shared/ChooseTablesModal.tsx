@@ -8,10 +8,24 @@ import { connectorAccountsApi } from '@/lib/api/connector-accounts';
 import { dataFolderApi } from '@/lib/api/data-folder';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
-import { TableList, TablePreview } from '@/types/server-entities/table-list';
-import { Alert, Button, Checkbox, Group, List, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
+import { TableList, TablePreview, TableSearchResult } from '@/types/server-entities/table-list';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Group,
+  List,
+  Loader,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import type { ConnectorAccount, DataFolderId, WorkbookId } from '@spinner/shared-types';
-import { AlertTriangleIcon } from 'lucide-react';
+import { TableDiscoveryMode } from '@spinner/shared-types';
+import { AlertTriangleIcon, SearchIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
@@ -31,8 +45,26 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
       revalidateOnReconnect: false,
     },
   );
+  const discoveryMode = data?.discoveryMode ?? TableDiscoveryMode.LIST;
+  const isSearchMode = discoveryMode === TableDiscoveryMode.SEARCH;
   const availableTables = data?.tables || [];
   const tablesLoading = isLoading || (isValidating && availableTables.length === 0);
+
+  // Search state for SEARCH mode
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm] = useDebouncedValue(searchTerm, 300);
+
+  const { data: searchData, isLoading: searchLoading } = useSWR<TableSearchResult>(
+    opened && isSearchMode && debouncedSearchTerm
+      ? SWR_KEYS.connectorAccounts.searchTables(workbookId, connectorAccount.id, debouncedSearchTerm)
+      : null,
+    () => connectorAccountsApi.searchTables(workbookId, connectorAccount.id, debouncedSearchTerm),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      keepPreviousData: true,
+    },
+  );
 
   const { dataFolderGroups, refresh: refreshDataFolders } = useDataFolders();
   const { addLinkedDataFolder } = useWorkbook(workbookId);
@@ -56,6 +88,21 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
     return folders;
   }, [dataFolderGroups, connectorAccount.id]);
 
+  // Build TablePreview[] from linked folders (for SEARCH mode — these always show so user can unlink)
+  const linkedTablePreviews: TablePreview[] = useMemo(
+    () =>
+      linkedFolders.map((folder) => ({
+        id: { wsId: folder.name, remoteId: folder.tableId },
+        displayName: folder.name,
+      })),
+    [linkedFolders],
+  );
+
+  // Search results (including already-linked tables, which appear pre-checked)
+  const searchResultTables: TablePreview[] = useMemo(() => {
+    return searchData?.tables ?? [];
+  }, [searchData]);
+
   // Initialize selected tables based on currently linked folders
   useEffect(() => {
     if (opened) {
@@ -66,6 +113,7 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
         }
       });
       setSelectedTableIds(linked);
+      setSearchTerm('');
     }
   }, [opened, linkedFolders]);
 
@@ -86,8 +134,11 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
     // Determine which tables to add and which to remove
     const currentlyLinkedKeys = new Set(linkedFolders.map((f) => f.tableId.join('/')));
 
+    // Build the full set of tables we can reference for adding
+    const allKnownTables = isSearchMode ? [...linkedTablePreviews, ...searchResultTables] : availableTables;
+
     // Tables to add: selected but not currently linked
-    const tablesToAdd = availableTables.filter((table) => {
+    const tablesToAdd = allKnownTables.filter((table) => {
       const tableKey = table.id.remoteId.join('/');
       return selectedTableIds.has(tableKey) && !currentlyLinkedKeys.has(tableKey);
     });
@@ -192,6 +243,101 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
             </Button>
             <Button color="red" onClick={handleSave} loading={isSaving}>
               Remove
+            </Button>
+          </Group>
+        </Stack>
+      ) : isSearchMode ? (
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Search for databases in {connectionName} to make available in Scratch.
+          </Text>
+
+          {tablesLoading ? (
+            <Group justify="center" py="xl">
+              <Loader size="sm" />
+              <Text size="sm" c="dimmed">
+                Loading...
+              </Text>
+            </Group>
+          ) : (
+            <>
+              {!debouncedSearchTerm && linkedTablePreviews.length > 0 && (
+                <Stack gap="xs">
+                  <Text size="sm" fw={500}>
+                    Linked tables
+                  </Text>
+                  {linkedTablePreviews.map((table) => {
+                    const tableKey = table.id.remoteId.join('/');
+                    const isChecked = selectedTableIds.has(tableKey);
+                    return (
+                      <Checkbox
+                        key={tableKey}
+                        label={<Text13Regular>{table.displayName}</Text13Regular>}
+                        checked={isChecked}
+                        onChange={() => handleToggleTable(table)}
+                      />
+                    );
+                  })}
+                </Stack>
+              )}
+
+              <TextInput
+                placeholder="Search for databases..."
+                leftSection={<SearchIcon size={16} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                autoFocus
+              />
+
+              {searchLoading && debouncedSearchTerm ? (
+                <Group justify="center" py="md">
+                  <Loader size="sm" />
+                  <Text size="sm" c="dimmed">
+                    Searching...
+                  </Text>
+                </Group>
+              ) : debouncedSearchTerm && searchResultTables.length > 0 ? (
+                <>
+                  <ScrollArea.Autosize mah={300}>
+                    <Stack gap="xs">
+                      {searchResultTables.map((table) => {
+                        const tableKey = table.id.remoteId.join('/');
+                        const isChecked = selectedTableIds.has(tableKey);
+                        return (
+                          <Checkbox
+                            key={tableKey}
+                            label={<Text13Regular>{table.displayName}</Text13Regular>}
+                            checked={isChecked}
+                            onChange={() => handleToggleTable(table)}
+                          />
+                        );
+                      })}
+                    </Stack>
+                  </ScrollArea.Autosize>
+                  {searchData?.hasMore && (
+                    <Text size="xs" c="dimmed">
+                      Showing first {searchResultTables.length} results. Refine your search for more specific results.
+                    </Text>
+                  )}
+                </>
+              ) : debouncedSearchTerm ? (
+                <Text size="sm" c="dimmed" ta="center" py="md">
+                  No databases found
+                </Text>
+              ) : (
+                <Text size="sm" c="dimmed" ta="center" py="md">
+                  Type to search for databases
+                </Text>
+              )}
+            </>
+          )}
+
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button variant="subtle" color="gray" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} loading={isSaving}>
+              Save
             </Button>
           </Group>
         </Stack>

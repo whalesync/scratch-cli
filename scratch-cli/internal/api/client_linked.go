@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -54,7 +55,14 @@ type TablePreview struct {
 
 // TableList represents the response from listing tables for a single connection.
 type TableList struct {
-	Tables []TablePreview `json:"tables"`
+	Tables        []TablePreview `json:"tables"`
+	DiscoveryMode string         `json:"discoveryMode"`
+}
+
+// TableSearchResult represents the response from searching tables for a connection.
+type TableSearchResult struct {
+	Tables  []TablePreview `json:"tables"`
+	HasMore bool           `json:"hasMore"`
 }
 
 // LinkedTable represents a linked data folder in a workbook.
@@ -104,12 +112,22 @@ type JobResponse struct {
 // --- Linked Table Methods ---
 
 // ListConnectionTables lists tables available from a specific connection.
-func (c *Client) ListConnectionTables(workbookID string, connectionID string) ([]TablePreview, error) {
+func (c *Client) ListConnectionTables(workbookID string, connectionID string) (*TableList, error) {
 	var result TableList
 	if err := c.doRequest(http.MethodGet, "workbooks/"+workbookID+"/connections/"+connectionID+"/tables", nil, &result); err != nil {
 		return nil, err
 	}
-	return result.Tables, nil
+	return &result, nil
+}
+
+// SearchConnectionTables searches for tables in a specific connection.
+func (c *Client) SearchConnectionTables(workbookID string, connectionID string, searchTerm string) (*TableSearchResult, error) {
+	var result TableSearchResult
+	query := url.Values{"searchTerm": {searchTerm}}
+	if err := c.doRequestWithQuery(http.MethodGet, "workbooks/"+workbookID+"/connections/"+connectionID+"/tables/search", query, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // ListLinkedTables lists linked tables in a workbook, grouped by connector.

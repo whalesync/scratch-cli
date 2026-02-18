@@ -11,7 +11,7 @@ import {
   CreatePageParameters,
   QueryDatabaseParameters,
 } from '@notionhq/client/build/src/api-endpoints';
-import { Service } from '@spinner/shared-types';
+import { Service, TableDiscoveryMode } from '@spinner/shared-types';
 import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
@@ -44,6 +44,10 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
   constructor(apiKey: string) {
     super();
     this.client = new Client({ auth: apiKey });
+  }
+
+  get tableDiscoveryMode(): TableDiscoveryMode {
+    return TableDiscoveryMode.SEARCH;
   }
 
   async testConnection(): Promise<void> {
@@ -90,14 +94,19 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     return blocks;
   }
 
-  async listTables(): Promise<TablePreview[]> {
+  listTables(): Promise<TablePreview[]> {
+    return Promise.resolve([]);
+  }
+
+  async searchTables(searchTerm: string): Promise<{ tables: TablePreview[]; hasMore: boolean }> {
     const response = await this.client.search({
+      query: searchTerm,
       filter: { property: 'object', value: 'database' },
     });
 
     const databases = response.results.filter((r): r is DatabaseObjectResponse => r.object === 'database');
-    const databaseTables = databases.map((db) => this.schemaParser.parseDatabaseTablePreview(db));
-    return databaseTables;
+    const tables = databases.map((db) => this.schemaParser.parseDatabaseTablePreview(db));
+    return { tables, hasMore: response.has_more };
   }
 
   /**
