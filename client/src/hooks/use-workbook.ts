@@ -23,7 +23,12 @@ export interface UseWorkbookReturn {
   error: Error | undefined;
   refreshWorkbook: () => Promise<void>;
   updateWorkbook: (updateDto: UpdateWorkbookDto) => Promise<void>;
-  addLinkedDataFolder: (tableId: string[], folderName: string, connectorAccountId: string) => Promise<DataFolder>;
+  addLinkedDataFolder: (
+    tableId: string[],
+    folderName: string,
+    connectorAccountId: string,
+    filter?: string,
+  ) => Promise<DataFolder>;
   pullFolders: (dataFolderIds?: DataFolderId[]) => Promise<void>;
   publishFolders: (dataFolderIds: DataFolderId[]) => Promise<void>;
   discardAllChanges: () => Promise<void>;
@@ -66,12 +71,12 @@ export const useWorkbook = (id: WorkbookId | null): UseWorkbookReturn => {
   );
 
   const addLinkedDataFolder = useCallback(
-    async (tableId: string[], folderName: string, connectorAccountId: string): Promise<DataFolder> => {
+    async (tableId: string[], folderName: string, connectorAccountId: string, filter?: string): Promise<DataFolder> => {
       if (!id) {
         throw new Error('Workbook not found');
       }
 
-      const dto: CreateDataFolderDto = { tableId, workbookId: id, name: folderName, connectorAccountId };
+      const dto: CreateDataFolderDto = { tableId, workbookId: id, name: folderName, connectorAccountId, filter };
       const dataFolder = await dataFolderApi.create(dto);
       await mutate();
       return dataFolder;
