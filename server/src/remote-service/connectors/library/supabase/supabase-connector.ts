@@ -1,0 +1,570 @@
+/**
+ * Supabase connector.
+ *
+ * Hybrid architecture:
+ * - SupabaseApiClient (REST) for Management API operations (project listing, DDL, pooler config)
+ * - KnexPGClient (Knex/pg) for all DML operations (schema discovery, CRUD)
+ *
+ * Authenticates via OAuth 2.0 with the Supabase Management API.
+ * Data access uses a dedicated PostgreSQL role created during setup.
+ */
+import { Type, type TObject, type TSchema } from '@sinclair/typebox';
+import { PostgresColumnType, Service } from '@spinner/shared-types';
+import { JsonSafeObject } from 'src/utils/objects';
+import { Connector } from '../../connector';
+import { sanitizeForTableWsId } from '../../ids';
+import {
+  type BaseJsonTableSpec,
+  type ConnectorErrorDetails,
+  type ConnectorFile,
+  type EntityId,
+  type TablePreview,
+} from '../../types';
+import {
+  isGeneratedColumn,
+  KnexPGClient,
+  KnexPGClientError,
+  SUPABASE_SYSTEM_SCHEMA_PATTERNS,
+  SUPABASE_SYSTEM_SCHEMAS,
+  type InformationSchemaColumn,
+} from '../pg-common';
+import { SupabaseApiClient, SupabaseApiError } from './supabase-api-client';
+import { SupabaseCredentials } from './supabase-types';
+
+const READ_BATCH_SIZE = 500;
+
+// ---------------------------------------------------------------------------
+// SQL filter sanitization
+// ---------------------------------------------------------------------------
+
+/**
+ * SQL keywords that must NEVER appear in a user-provided WHERE filter.
+ * Matched as whole words (case-insensitive) to prevent injection attacks.
+ */
+const DANGEROUS_SQL_KEYWORDS = [
+  'SELECT',
+  'INSERT',
+  'UPDATE',
+  'DELETE',
+  'DROP',
+  'ALTER',
+  'CREATE',
+  'TRUNCATE',
+  'GRANT',
+  'REVOKE',
+  'EXECUTE',
+  'COPY',
+  'SET',
+  'EXPLAIN',
+  'VACUUM',
+  'REINDEX',
+  'COMMENT',
+  'LOCK',
+  'NOTIFY',
+  'LISTEN',
+  'UNLISTEN',
+  'LOAD',
+  'DO',
+  'CALL',
+  'IMPORT',
+  'EXPORT',
+  'RAISE',
+  'PERFORM',
+  'RETURNING',
+  'INTO',
+  'WITH',
+  'UNION',
+  'EXCEPT',
+  'INTERSECT',
+  'VALUES',
+  'TABLE',
+];
+
+/**
+ * Dangerous PostgreSQL functions that could cause side-effects or data exfiltration.
+ * Matched case-insensitively followed by an opening parenthesis.
+ */
+const DANGEROUS_FUNCTIONS = [
+  'pg_sleep',
+  'pg_read_file',
+  'pg_read_binary_file',
+  'pg_ls_dir',
+  'pg_stat_file',
+  'pg_terminate_backend',
+  'pg_cancel_backend',
+  'pg_reload_conf',
+  'pg_rotate_logfile',
+  'lo_import',
+  'lo_export',
+  'lo_unlink',
+  'dblink',
+  'dblink_exec',
+  'dblink_connect',
+  'copy_to',
+  'copy_from',
+  'query_to_xml',
+  'query_to_xml_and_xmlschema',
+  'query_to_json',
+  'currval',
+  'nextval',
+  'setval',
+  'txid_current',
+  'set_config',
+  'current_setting',
+  'pg_advisory_lock',
+  'pg_advisory_unlock',
+  'pg_advisory_xact_lock',
+  'inet_server_addr',
+  'inet_server_port',
+];
+
+const DANGEROUS_KEYWORDS_PATTERN = new RegExp(`\\b(${DANGEROUS_SQL_KEYWORDS.join('|')})\\b`, 'i');
+const DANGEROUS_FUNCTIONS_PATTERN = new RegExp(`\\b(${DANGEROUS_FUNCTIONS.join('|')})\\s*\\(`, 'i');
+
+/**
+ * Validate that a user-provided SQL filter expression is safe for use in a WHERE clause.
+ *
+ * Allows: column comparisons, AND/OR/NOT, IS NULL, IN (...), BETWEEN, LIKE/ILIKE,
+ *         string/number literals, parenthesized grouping, boolean TRUE/FALSE.
+ *
+ * Rejects: DDL/DML statements, subqueries, dangerous functions, multi-statement injection,
+ *          SQL comments, and escape sequences.
+ *
+ * @throws {KnexPGClientError} if the filter contains dangerous SQL constructs.
+ */
+function validateWhereFilter(filter: string): void {
+  // Block semicolons (multi-statement injection)
+  if (filter.includes(';')) {
+    throw new KnexPGClientError('Filter contains invalid character: ";"', 'INVALID_FILTER');
+  }
+
+  // Block SQL comments
+  if (filter.includes('--') || filter.includes('/*')) {
+    throw new KnexPGClientError('Filter must not contain SQL comments', 'INVALID_FILTER');
+  }
+
+  // Block dollar-quoting (PostgreSQL alternative string syntax that can bypass keyword checks)
+  if (filter.includes('$$') || /\$[a-zA-Z_]\w*\$/.test(filter)) {
+    throw new KnexPGClientError('Filter must not contain dollar-quoting', 'INVALID_FILTER');
+  }
+
+  // Block dangerous SQL keywords
+  if (DANGEROUS_KEYWORDS_PATTERN.test(filter)) {
+    throw new KnexPGClientError('Filter contains disallowed SQL keyword', 'INVALID_FILTER');
+  }
+
+  // Block dangerous functions
+  if (DANGEROUS_FUNCTIONS_PATTERN.test(filter)) {
+    throw new KnexPGClientError('Filter contains disallowed SQL function', 'INVALID_FILTER');
+  }
+}
+
+/** JSON Schema extension keys (from CONNECTOR_GUIDE.md). */
+const READONLY_FLAG = 'x-scratch-readonly';
+const CONNECTOR_DATA_TYPE = 'x-scratch-connector-data-type';
+
+// ---------------------------------------------------------------------------
+// PostgreSQL type mapping (same logic as the existing PostgresConnector)
+// ---------------------------------------------------------------------------
+
+const PG_NUMERIC_TYPES = new Set([
+  'integer',
+  'bigint',
+  'smallint',
+  'serial',
+  'bigserial',
+  'numeric',
+  'decimal',
+  'real',
+  'double precision',
+  'float',
+  'float4',
+  'float8',
+  'int2',
+  'int4',
+  'int8',
+]);
+const PG_BOOLEAN_TYPES = new Set(['boolean', 'bool']);
+const PG_TEXT_TYPES = new Set(['text', 'varchar', 'char', 'character varying', 'character', 'uuid', 'citext']);
+const PG_TIMESTAMP_TYPES = new Set([
+  'timestamp',
+  'timestamp without time zone',
+  'timestamp with time zone',
+  'timestamptz',
+]);
+const PG_DATE_TYPES = new Set(['date']);
+const PG_JSON_TYPES = new Set(['json', 'jsonb']);
+
+function mapScalarPgType(typeName: string): { schema: TSchema; pgType: PostgresColumnType } {
+  const t = typeName.toLowerCase();
+  if (PG_NUMERIC_TYPES.has(t)) return { schema: Type.Number(), pgType: PostgresColumnType.NUMERIC };
+  if (PG_BOOLEAN_TYPES.has(t)) return { schema: Type.Boolean(), pgType: PostgresColumnType.BOOLEAN };
+  if (PG_TEXT_TYPES.has(t)) return { schema: Type.String(), pgType: PostgresColumnType.TEXT };
+  if (PG_TIMESTAMP_TYPES.has(t))
+    return { schema: Type.String({ format: 'date-time' }), pgType: PostgresColumnType.TIMESTAMP };
+  if (PG_DATE_TYPES.has(t)) return { schema: Type.String({ format: 'date' }), pgType: PostgresColumnType.TIMESTAMP };
+  if (PG_JSON_TYPES.has(t)) return { schema: Type.Unknown(), pgType: PostgresColumnType.JSONB };
+  return { schema: Type.Unknown(), pgType: PostgresColumnType.TEXT };
+}
+
+function mapPgType(
+  dataType: string,
+  udtName: string,
+  isNullable: boolean,
+): { schema: TSchema; pgType: PostgresColumnType } {
+  let schema: TSchema;
+  let pgType: PostgresColumnType;
+
+  if (dataType === 'ARRAY' || udtName.startsWith('_')) {
+    const elementUdtName = udtName.startsWith('_') ? udtName.slice(1) : udtName;
+    const elementMapping = mapScalarPgType(elementUdtName);
+    if (elementMapping.pgType === PostgresColumnType.NUMERIC) {
+      schema = Type.Array(Type.Number());
+      pgType = PostgresColumnType.NUMERIC_ARRAY;
+    } else if (elementMapping.pgType === PostgresColumnType.BOOLEAN) {
+      schema = Type.Array(Type.Boolean());
+      pgType = PostgresColumnType.BOOLEAN_ARRAY;
+    } else {
+      schema = Type.Array(Type.String());
+      pgType = PostgresColumnType.TEXT_ARRAY;
+    }
+  } else {
+    const mapping = mapScalarPgType(udtName.length > 0 ? udtName : dataType);
+    schema = mapping.schema;
+    pgType = mapping.pgType;
+  }
+
+  if (isNullable) {
+    schema = Type.Union([schema, Type.Null()]);
+  }
+
+  return { schema, pgType };
+}
+
+// ---------------------------------------------------------------------------
+// Connector
+// ---------------------------------------------------------------------------
+
+export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
+  readonly service = Service.SUPABASE;
+  static readonly displayName = 'Supabase';
+
+  private readonly connectionString: string;
+  private readonly apiClient: SupabaseApiClient | undefined;
+  private readonly projectRef: string | undefined;
+
+  constructor(credentials: SupabaseCredentials) {
+    super();
+    this.connectionString = credentials.connectionString;
+    this.apiClient = credentials.oauthAccessToken ? new SupabaseApiClient(credentials.oauthAccessToken) : undefined;
+    this.projectRef = credentials.projectRef;
+  }
+
+  /**
+   * Run an operation with a short-lived KnexPGClient that is automatically
+   * disposed when the operation completes (or throws).
+   */
+  private async withPgClient<T>(fn: (client: KnexPGClient) => Promise<T>): Promise<T> {
+    const client = new KnexPGClient(this.connectionString, { sslNoVerify: true });
+    try {
+      return await fn(client);
+    } finally {
+      try {
+        await client.dispose();
+      } catch {
+        // Swallow dispose errors so they don't mask the original error
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Connection
+  // -------------------------------------------------------------------------
+
+  async testConnection(): Promise<void> {
+    await this.withPgClient((client) => client.testQuery());
+  }
+
+  // -------------------------------------------------------------------------
+  // Table discovery
+  // -------------------------------------------------------------------------
+
+  async listTables(): Promise<TablePreview[]> {
+    return this.withPgClient(async (client) => {
+      const tables = await client.findAllTablesExcludingSchemas(
+        SUPABASE_SYSTEM_SCHEMAS,
+        SUPABASE_SYSTEM_SCHEMA_PATTERNS,
+      );
+
+      // Only include base tables (exclude views)
+      const baseTables = tables.filter((t) => t.table_type === 'BASE TABLE');
+
+      return baseTables.map((t) => {
+        const displayName = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
+        return {
+          id: {
+            wsId: sanitizeForTableWsId(`${t.table_schema}__${t.table_name}`),
+            remoteId: [t.table_schema, t.table_name],
+          },
+          displayName,
+          metadata: {
+            schema: t.table_schema,
+            description: `Table "${t.table_name}" in schema "${t.table_schema}"`,
+          },
+        };
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Schema
+  // -------------------------------------------------------------------------
+
+  async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
+    return this.withPgClient(async (client) => {
+      const schema = id.remoteId[0] ?? 'public';
+      const tableName = id.remoteId[1] ?? id.wsId;
+
+      const [columns, pkCandidates] = await Promise.all([
+        client.findAllColumnsInTable(schema, tableName),
+        client.findPrimaryColumnCandidates(schema, tableName),
+      ]);
+
+      const primaryKey = this.pickPrimaryKey(pkCandidates, columns);
+
+      const schemaProperties: Record<string, TSchema> = {};
+      for (const col of columns) {
+        const isNullable = col.is_nullable === 'YES';
+        const hasDefault = col.column_default !== null;
+        const { schema: colSchema, pgType } = mapPgType(col.data_type, col.udt_name, isNullable);
+
+        // Annotate with connector data type
+        const annotated = { ...colSchema, [CONNECTOR_DATA_TYPE]: pgType } as TSchema;
+
+        // Generated/identity columns are read-only
+        if (isGeneratedColumn(col) || col.is_updatable === 'NO') {
+          (annotated as Record<string, unknown>)[READONLY_FLAG] = true;
+        }
+
+        schemaProperties[col.column_name] = isNullable || hasDefault ? Type.Optional(annotated) : annotated;
+      }
+
+      const tableSchema = Type.Object(schemaProperties, {
+        $id: `supabase/${schema}.${tableName}`,
+        title: tableName,
+      });
+
+      const displayName = schema === 'public' ? tableName : `${schema}.${tableName}`;
+
+      return {
+        id,
+        slug: tableName,
+        name: displayName,
+        schema: tableSchema,
+        idColumnRemoteId: primaryKey,
+      };
+    });
+  }
+
+  /**
+   * Pick the best primary key column. Prefers a single auto-generated PK.
+   * Falls back to first PK candidate, then 'id'.
+   */
+  private pickPrimaryKey(candidates: string[], columns: InformationSchemaColumn[]): string {
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    // If multiple PK candidates, prefer one that is auto-generated
+    if (candidates.length > 1) {
+      const colMap = new Map(columns.map((c) => [c.column_name, c]));
+      const generated = candidates.find((name) => {
+        const col = colMap.get(name);
+        return col && isGeneratedColumn(col);
+      });
+      return generated ?? candidates[0];
+    }
+
+    // No PK found — fall back to 'id'
+    return 'id';
+  }
+
+  // -------------------------------------------------------------------------
+  // Pull
+  // -------------------------------------------------------------------------
+
+  async pullRecordFiles(
+    tableSpec: BaseJsonTableSpec,
+    callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
+    _progress: JsonSafeObject,
+    options: { filter?: string },
+  ): Promise<void> {
+    const rawFilter = options.filter?.trim() || undefined;
+    if (rawFilter) {
+      validateWhereFilter(rawFilter);
+    }
+
+    return this.withPgClient(async (client) => {
+      const schema = tableSpec.id.remoteId[0] ?? 'public';
+      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
+      const pk = tableSpec.idColumnRemoteId;
+      const filter = rawFilter;
+      let offset = 0;
+
+      while (true) {
+        const rows = await client.selectAll(schema, tableName, columns, pk, READ_BATCH_SIZE, offset, filter);
+        if (rows.length === 0) break;
+
+        await callback({ files: rows as ConnectorFile[] });
+        offset += rows.length;
+
+        if (rows.length < READ_BATCH_SIZE) break;
+      }
+    });
+  }
+
+  public pullRecordDeep = undefined;
+
+  // -------------------------------------------------------------------------
+  // Batch size
+  // -------------------------------------------------------------------------
+
+  supportsFilters(): boolean {
+    return true;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getBatchSize(_operation: 'create' | 'update' | 'delete'): number {
+    return 100;
+  }
+
+  // -------------------------------------------------------------------------
+  // Create
+  // -------------------------------------------------------------------------
+
+  async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
+    return this.withPgClient(async (client) => {
+      const schema = tableSpec.id.remoteId[0] ?? 'public';
+      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
+      const pk = tableSpec.idColumnRemoteId;
+
+      return client.insertMany(schema, tableName, columns, pk, files);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Update
+  // -------------------------------------------------------------------------
+
+  async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    return this.withPgClient(async (client) => {
+      const schema = tableSpec.id.remoteId[0] ?? 'public';
+      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
+      const pk = tableSpec.idColumnRemoteId;
+
+      const records = files.map((file) => ({
+        id: file[pk] as string | number,
+        data: file,
+      }));
+
+      await client.updateMany(schema, tableName, columns, pk, records);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Delete
+  // -------------------------------------------------------------------------
+
+  async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    return this.withPgClient(async (client) => {
+      const schema = tableSpec.id.remoteId[0] ?? 'public';
+      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const pk = tableSpec.idColumnRemoteId;
+
+      for (const file of files) {
+        await client.deleteOne(schema, tableName, file[pk] as string | number, pk);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Error handling
+  // -------------------------------------------------------------------------
+
+  extractConnectorErrorDetails(error: unknown): ConnectorErrorDetails {
+    if (error instanceof KnexPGClientError) {
+      return {
+        userFriendlyMessage: error.message,
+        description: error.message,
+        additionalContext: { code: error.code },
+      };
+    }
+
+    if (error instanceof SupabaseApiError) {
+      return {
+        userFriendlyMessage: error.message,
+        description: error.message,
+        additionalContext: { statusCode: error.statusCode },
+      };
+    }
+
+    // Handle pg library errors with error codes
+    if (error && typeof error === 'object' && 'code' in error) {
+      const pgError = error as { code: string; message: string; detail?: string };
+      return {
+        userFriendlyMessage: this.getPgErrorMessage(pgError.code, pgError.message),
+        description: pgError.detail ?? pgError.message,
+        additionalContext: { code: pgError.code },
+      };
+    }
+
+    // Handle Knex timeout errors
+    if (error instanceof Error && error.name === 'KnexTimeoutError') {
+      return {
+        userFriendlyMessage: 'Connection to Supabase timed out. Please check your connection settings.',
+        description: error.message,
+      };
+    }
+
+    return {
+      userFriendlyMessage: 'An error occurred while connecting to Supabase',
+      description: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  private getPgErrorMessage(code: string, fallbackMessage: string): string {
+    switch (code) {
+      case '28P01':
+      case '28000':
+        return 'Authentication failed. Please reconnect your Supabase account.';
+      case '3D000':
+        return 'Database does not exist. Please check your Supabase project settings.';
+      case '08001':
+      case '08006':
+        return 'Could not connect to the Supabase database. The service may be temporarily unavailable.';
+      case '42P01':
+        return 'Table not found in Supabase.';
+      case '23505':
+        return 'A record with this ID already exists (unique constraint violation).';
+      case '23503':
+        return 'Cannot complete this operation due to a foreign key constraint.';
+      case '23502':
+        return 'A required field is missing (NOT NULL constraint violation).';
+      case '42501':
+        return 'Insufficient permissions. This may occur during Supabase maintenance periods.';
+      default:
+        return fallbackMessage;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Cleanup
+  // -------------------------------------------------------------------------
+
+  async disconnect(): Promise<void> {
+    // No-op: connections are automatically disposed after each operation via withPgClient()
+  }
+}

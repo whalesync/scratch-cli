@@ -141,6 +141,19 @@ export const ServiceNamingConventions: Record<Service, ServiceNamingConvention> 
     pushOperationName: 'Publish',
     pullOperationName: 'Download',
   },
+  [Service.SUPABASE]: {
+    service: 'Supabase',
+    table: 'table',
+    record: 'row',
+    base: 'project',
+    tables: 'tables',
+    records: 'rows',
+    bases: 'projects',
+    logo: 'supabase.svg',
+    oauthLabel: 'OAuth',
+    pushOperationName: 'Publish',
+    pullOperationName: 'Download',
+  },
 };
 
 export const serviceName = (serviceCode: Service): string => {

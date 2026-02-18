@@ -75,6 +75,23 @@ export class ConnectorAccountController {
     return this.service.searchTables(connectorAccountId, searchTerm, userToActor(req.user));
   }
 
+  @Get(':id/supabase/projects')
+  async listSupabaseProjects(@Param('id') id: string, @Req() req: RequestWithUser) {
+    const projects = await this.service.listSupabaseProjects(id, userToActor(req.user));
+    return { projects };
+  }
+
+  @Post(':id/supabase/setup')
+  async setupSupabaseProject(
+    @Param('workbookId') workbookId: string,
+    @Param('id') id: string,
+    @Body() body: { projectRef: string },
+    @Req() req: RequestWithUser,
+  ) {
+    await this.service.setupSupabaseProject(workbookId as WorkbookId, id, body.projectRef, userToActor(req.user));
+    return { success: true };
+  }
+
   @Post(':id/test')
   async testConnection(
     @Param('workbookId') workbookId: string,

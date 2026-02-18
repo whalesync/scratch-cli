@@ -11,6 +11,7 @@ import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { PostgresConnector } from './library/postgres/postgres-connector';
 import { ShopifyConnector } from './library/shopify/shopify-connector';
+import { SupabaseConnector } from './library/supabase/supabase-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
 import { WordPressAuthParser } from './library/wordpress/wordpress-auth-parser';
@@ -169,6 +170,35 @@ export class ConnectorsService {
           return new ShopifyConnector({
             shopDomain: decryptedCredentials.shopDomain,
             accessToken: decryptedCredentials.apiKey,
+          });
+        }
+      }
+      case Service.SUPABASE: {
+        if (!connectorAccount) {
+          throw new ConnectorInstantiationError('Connector account is required for Supabase', service);
+        }
+        if (!decryptedCredentials?.connectionString) {
+          throw new ConnectorInstantiationError(
+            'Connection string is required for Supabase. Please complete project setup.',
+            service,
+          );
+        }
+        if (connectorAccount.authType === AuthType.OAUTH) {
+          const supabaseAccessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
+          if (!decryptedCredentials?.supabaseProjectRef) {
+            throw new ConnectorInstantiationError(
+              'Supabase project is required. Please complete project setup.',
+              service,
+            );
+          }
+          return new SupabaseConnector({
+            connectionString: decryptedCredentials.connectionString,
+            oauthAccessToken: supabaseAccessToken,
+            projectRef: decryptedCredentials.supabaseProjectRef,
+          });
+        } else {
+          return new SupabaseConnector({
+            connectionString: decryptedCredentials.connectionString,
           });
         }
       }

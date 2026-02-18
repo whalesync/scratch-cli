@@ -12,6 +12,10 @@ export interface DecryptedCredentials {
   shopDomain?: string;
   // PostgreSQL specific
   connectionString?: string;
+  // Supabase specific
+  supabaseProjectRef?: string;
+  supabaseDbUsername?: string;
+  supabaseDbPassword?: string;
 
   oauthAccessToken?: string;
   oauthRefreshToken?: string;

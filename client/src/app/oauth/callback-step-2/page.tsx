@@ -145,7 +145,7 @@ export default function OAuthCallbackPage() {
   };
 
   const isValidOAuthService = (service: string): service is OAuthService => {
-    return ['NOTION', 'AIRTABLE', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG', 'SHOPIFY'].includes(service);
+    return ['NOTION', 'AIRTABLE', 'YOUTUBE', 'WEBFLOW', 'WIX_BLOG', 'SHOPIFY', 'SUPABASE'].includes(service);
   };
 
   return (

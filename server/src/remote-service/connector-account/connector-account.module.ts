@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from 'src/audit/audit-log.module';
 import { CredentialEncryptionModule } from 'src/credential-encryption/credential-encryption.module';
+import { OAuthModule } from 'src/oauth/oauth.module';
 import { UserModule } from 'src/users/users.module';
 import { DbModule } from '../../db/db.module';
 import { PosthogModule } from '../../posthog/posthog.module';
@@ -9,7 +10,15 @@ import { ConnectorAccountController } from './connector-account.controller';
 import { ConnectorAccountService } from './connector-account.service';
 
 @Module({
-  imports: [DbModule, ConnectorsModule, PosthogModule, AuditLogModule, CredentialEncryptionModule, UserModule],
+  imports: [
+    DbModule,
+    ConnectorsModule,
+    OAuthModule,
+    PosthogModule,
+    AuditLogModule,
+    CredentialEncryptionModule,
+    UserModule,
+  ],
   controllers: [ConnectorAccountController],
   providers: [ConnectorAccountService],
   exports: [ConnectorAccountService],

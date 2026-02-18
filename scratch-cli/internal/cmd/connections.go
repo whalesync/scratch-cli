@@ -48,11 +48,14 @@ var serviceAuthConfig = map[string][]authField{
 	"POSTGRES": {
 		{Key: "connectionString", DisplayName: "Connection String", Description: "PostgreSQL connection string (e.g. postgresql://user:pass@host:5432/dbname)", Required: true, Sensitive: true},
 	},
+	"SUPABASE": {
+		{Key: "connectionString", DisplayName: "Connection String", Description: "Supabase connection string (find in Settings > Database > Connection string)", Required: true, Sensitive: true},
+	},
 }
 
 // supportedServices returns the list of service names in display order.
 func supportedServices() []string {
-	return []string{"AIRTABLE", "WEBFLOW", "SHOPIFY", "MOCO", "AUDIENCEFUL", "WORDPRESS", "POSTGRES"}
+	return []string{"AIRTABLE", "WEBFLOW", "SHOPIFY", "MOCO", "AUDIENCEFUL", "WORDPRESS", "POSTGRES", "SUPABASE"}
 }
 
 var connectionsCmd = &cobra.Command{
@@ -96,7 +99,8 @@ Non-interactive examples:
   scratchmd connections add --service SHOPIFY --param shopDomain=my-store --param apiKey=<key>
   scratchmd connections add --service WORDPRESS --param endpoint=https://example.com --param username=admin --param password=<app-password>
   scratchmd connections add --service MOCO --param domain=yourcompany --param apiKey=<key>
-  scratchmd connections add --service POSTGRES --param connectionString=postgresql://user:pass@host:5432/db`,
+  scratchmd connections add --service POSTGRES --param connectionString=postgresql://user:pass@host:5432/db
+  scratchmd connections add --service SUPABASE --param connectionString=postgresql://postgres.[ref]:[password]@aws-1-us-east-1.pooler.supabase.com:6543/postgres`,
 	RunE: runConnectionsAdd,
 }
 
@@ -141,7 +145,7 @@ func init() {
 
 	// Command-specific flags
 	connectionsRemoveCmd.Flags().Bool("yes", false, "Skip confirmation prompt")
-	connectionsAddCmd.Flags().String("service", "", "Service type (AIRTABLE, WEBFLOW, SHOPIFY, MOCO, AUDIENCEFUL, WORDPRESS, POSTGRES)")
+	connectionsAddCmd.Flags().String("service", "", "Service type (AIRTABLE, WEBFLOW, SHOPIFY, MOCO, AUDIENCEFUL, WORDPRESS, POSTGRES, SUPABASE)")
 	connectionsAddCmd.Flags().StringSlice("param", nil, "Credential parameter as key=value (repeatable)")
 	connectionsAddCmd.Flags().String("name", "", "Display name for the connection")
 }

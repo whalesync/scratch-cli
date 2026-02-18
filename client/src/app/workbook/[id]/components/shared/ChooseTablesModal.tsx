@@ -9,19 +9,7 @@ import { dataFolderApi } from '@/lib/api/data-folder';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { workbookApi } from '@/lib/api/workbook';
 import { TableList, TablePreview, TableSearchResult } from '@/types/server-entities/table-list';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Group,
-  List,
-  Loader,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Button, Checkbox, Group, List, Loader, Modal, ScrollArea, Stack, Text, TextInput } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import type { ConnectorAccount, DataFolderId, WorkbookId } from '@spinner/shared-types';
 import { TableDiscoveryMode } from '@spinner/shared-types';

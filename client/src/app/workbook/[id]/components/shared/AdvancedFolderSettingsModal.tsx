@@ -15,7 +15,7 @@ interface AdvancedFolderSettingsModalProps {
   folder: DataFolder;
 }
 
-const FILTER_SUPPORTED_SERVICES = new Set([Service.NOTION, Service.AIRTABLE]);
+const FILTER_SUPPORTED_SERVICES = new Set([Service.NOTION, Service.AIRTABLE, Service.SUPABASE]);
 
 export function AdvancedFolderSettingsModal({ opened, onClose, folder }: AdvancedFolderSettingsModalProps) {
   const [filter, setFilter] = useState('');
@@ -71,7 +71,7 @@ export function AdvancedFolderSettingsModal({ opened, onClose, folder }: Advance
           description={
             supportsFilter
               ? 'Filter expression applied when pulling records from this table.'
-              : 'Filters are only supported for Notion and Airtable connectors.'
+              : 'Filters are only supported for Notion, Airtable, and Supabase connectors.'
           }
           placeholder={supportsFilter ? 'Enter filter expression...' : ''}
           value={filter}

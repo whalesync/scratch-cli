@@ -15,10 +15,12 @@ import {
   ValidatedCreateConnectorAccountDto,
   WorkbookId,
 } from '@spinner/shared-types';
+import { randomUUID } from 'crypto';
 import _ from 'lodash';
 import { AuditLogService } from 'src/audit/audit-log.service';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
 import { WSLogger } from 'src/logger';
+import { OAuthService } from 'src/oauth/oauth.service';
 import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../../db/db.service';
@@ -28,6 +30,13 @@ import { Connector } from '../connectors/connector';
 import { ConnectorsService } from '../connectors/connectors.service';
 import { getServiceDisplayName } from '../connectors/display-names';
 import { ConnectorAuthError, exceptionForConnectorError, isUserFriendlyError } from '../connectors/error';
+import { KnexPGClient } from '../connectors/library/pg-common';
+import {
+  buildConnectionString,
+  buildCreateUserSQL,
+  SupabaseApiClient,
+  SupabaseProject,
+} from '../connectors/library/supabase';
 import { TablePreview } from '../connectors/types';
 import { TableSearchResult } from './entities/table-list.entity';
 import { TestConnectionResponse } from './entities/test-connection.entity';
@@ -38,6 +47,7 @@ export class ConnectorAccountService {
   constructor(
     private readonly db: DbService,
     private readonly connectorsService: ConnectorsService,
+    private readonly oauthService: OAuthService,
     private readonly posthogService: PostHogService,
     private readonly auditLogService: AuditLogService,
     private readonly credentialEncryptionService: CredentialEncryptionService,
@@ -336,6 +346,114 @@ export class ConnectorAccountService {
       );
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Supabase setup
+  // ---------------------------------------------------------------------------
+
+  /**
+   * List Supabase projects accessible via the connector account's OAuth token.
+   * Filters to ACTIVE_HEALTHY projects only.
+   */
+  async listSupabaseProjects(connectorAccountId: string, actor: Actor): Promise<SupabaseProject[]> {
+    const account = await this.findOneById(connectorAccountId, actor);
+    if ((account.service as Service) !== Service.SUPABASE) {
+      throw new BadRequestException('This endpoint is only available for Supabase connections');
+    }
+
+    const accessToken = await this.oauthService.getValidAccessToken(connectorAccountId);
+    const apiClient = new SupabaseApiClient(accessToken);
+    const projects = await apiClient.getProjects();
+
+    return projects.filter((p) => p.status === 'ACTIVE_HEALTHY');
+  }
+
+  /**
+   * Set up a Supabase connection for a specific project.
+   * Creates a dedicated PostgreSQL role, retrieves the pooler connection string,
+   * and stores the credentials in the connector account.
+   */
+  async setupSupabaseProject(
+    workbookId: WorkbookId,
+    connectorAccountId: string,
+    projectRef: string,
+    actor: Actor,
+  ): Promise<void> {
+    const account = await this.findOne(workbookId, connectorAccountId, actor);
+    if ((account.service as Service) !== Service.SUPABASE) {
+      throw new BadRequestException('This endpoint is only available for Supabase connections');
+    }
+
+    const accessToken = await this.oauthService.getValidAccessToken(connectorAccountId);
+    const apiClient = new SupabaseApiClient(accessToken);
+
+    // 1. Generate credentials for the service account
+    const dbUsername = `scratch_service_account_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    const dbPassword = randomUUID() + randomUUID().replace(/-/g, '');
+
+    // 2. Create the PostgreSQL role via Management API
+    const createUserSQL = buildCreateUserSQL(dbUsername, dbPassword);
+    await apiClient.executeQuery(projectRef, createUserSQL);
+
+    // 3. Get pooler connection config
+    const poolerConfigs = await apiClient.getPoolerConfig(projectRef);
+    if (!poolerConfigs || poolerConfigs.length === 0) {
+      throw new InternalServerErrorException('Could not retrieve Supabase pooler configuration');
+    }
+
+    // 4. Build connection string from pooler config
+    const connectionString = buildConnectionString(
+      poolerConfigs[0].connection_string,
+      dbUsername,
+      dbPassword,
+      projectRef,
+    );
+
+    // 5. Test the connection
+    const pgClient = new KnexPGClient(connectionString, { sslNoVerify: true });
+    try {
+      await pgClient.testQuery();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to connect to Supabase with the created credentials: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      await pgClient.dispose();
+    }
+
+    // 6. Update encrypted credentials with all Supabase-specific fields
+    const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
+      account.encryptedCredentials as unknown as EncryptedData,
+    );
+    decryptedCredentials.supabaseProjectRef = projectRef;
+    decryptedCredentials.supabaseDbUsername = dbUsername;
+    decryptedCredentials.supabaseDbPassword = dbPassword;
+    decryptedCredentials.connectionString = connectionString;
+
+    const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(decryptedCredentials);
+
+    await this.db.client.connectorAccount.update({
+      where: { id: connectorAccountId },
+      data: {
+        encryptedCredentials: encryptedCredentials as Record<string, any>,
+        healthStatus: 'OK',
+        healthStatusLastCheckedAt: new Date(),
+        healthStatusMessage: null,
+      },
+    });
+
+    await this.auditLogService.logEvent({
+      actor,
+      eventType: 'update',
+      message: `Configured Supabase project for connection ${account.displayName}`,
+      entityId: connectorAccountId as ConnectorAccountId,
+      context: { service: Service.SUPABASE, projectRef },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Test connection
+  // ---------------------------------------------------------------------------
 
   async testConnection(workbookId: WorkbookId, id: string, actor: Actor): Promise<TestConnectionResponse> {
     const account = await this.findOne(workbookId, id, actor);

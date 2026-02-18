@@ -20,7 +20,8 @@ export type OAuthService =
   | Service.YOUTUBE
   | Service.WEBFLOW
   | Service.WIX_BLOG
-  | Service.SHOPIFY;
+  | Service.SHOPIFY
+  | Service.SUPABASE;
 
 export interface OAuthError {
   error: string;

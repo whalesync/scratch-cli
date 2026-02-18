@@ -19,6 +19,7 @@ import { EncryptedData } from '../utils/encryption';
 import { OAuthProvider, OAuthTokenResponse } from './oauth-provider.interface';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { ShopifyOAuthProvider } from './providers/shopify-oauth.provider';
+import { SupabaseOAuthProvider } from './providers/supabase-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
@@ -44,6 +45,7 @@ export class OAuthService {
     private readonly db: DbService,
     private readonly notionProvider: NotionOAuthProvider,
     private readonly shopifyProvider: ShopifyOAuthProvider,
+    private readonly supabaseProvider: SupabaseOAuthProvider,
     private readonly webflowProvider: WebflowOAuthProvider,
     private readonly wixProvider: WixOAuthProvider,
     private readonly youTubeProvider: YouTubeOAuthProvider,
@@ -53,6 +55,7 @@ export class OAuthService {
     // Register OAuth providers
     this.providers.set('NOTION', this.notionProvider);
     this.providers.set('SHOPIFY', this.shopifyProvider);
+    this.providers.set('SUPABASE', this.supabaseProvider);
     this.providers.set('WEBFLOW', this.webflowProvider);
     this.providers.set('WIX_BLOG', this.wixProvider);
     this.providers.set('YOUTUBE', this.youTubeProvider);
@@ -354,6 +357,8 @@ export class OAuthService {
         return Service.WIX_BLOG;
       case 'shopify':
         return Service.SHOPIFY;
+      case 'supabase':
+        return Service.SUPABASE;
       default:
         throw new BadRequestException(`Unsupported service: ${service}`);
     }

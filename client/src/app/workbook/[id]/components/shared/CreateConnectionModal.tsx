@@ -70,6 +70,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
         oauthSupportedServices.push(Service.SHOPIFY);
       }
+      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
+        oauthSupportedServices.push(Service.SUPABASE);
+      }
 
       // Services that use generic parameters
       const genericParametersSupportedServices = [
@@ -81,6 +84,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.AUDIENCEFUL,
         Service.MOCO,
         Service.POSTGRES,
+        Service.SUPABASE,
       ];
       if (oauthSupportedServices.includes(service)) {
         return 'oauth';
@@ -90,7 +94,11 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         return 'oauth'; // Default fallback
       }
     },
-    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH, user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH],
+    [
+      user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
+      user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
+      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
+    ],
   );
 
   const getSupportedAuthMethods = useCallback(
@@ -103,6 +111,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
         oauthSupportedServices.push(Service.SHOPIFY);
       }
+      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
+        oauthSupportedServices.push(Service.SUPABASE);
+      }
 
       const userProvidedParamsSupportedServices = [
         Service.NOTION,
@@ -113,6 +124,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
         Service.AUDIENCEFUL,
         Service.MOCO,
         Service.POSTGRES,
+        Service.SUPABASE,
       ];
       const methods: AuthMethod[] = [];
       if (oauthSupportedServices.includes(service)) {
@@ -127,7 +139,11 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       }
       return methods;
     },
-    [user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH, user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH],
+    [
+      user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
+      user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
+      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
+    ],
   );
 
   const handleSelectNewService = (service: Service) => {
@@ -201,13 +217,18 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
       newService !== Service.MOCO &&
       newService !== Service.POSTGRES &&
       newService !== Service.SHOPIFY &&
+      newService !== Service.SUPABASE &&
       !newApiKey
     ) {
       setError('API key is required for this service.');
       return;
     }
-    if (authMethod === 'user_provided_params' && newService === Service.POSTGRES && !connectionString) {
-      setError('Connection string is required for PostgreSQL.');
+    if (
+      authMethod === 'user_provided_params' &&
+      (newService === Service.POSTGRES || newService === Service.SUPABASE) &&
+      !connectionString
+    ) {
+      setError('Connection string is required.');
       return;
     }
     if (
@@ -245,7 +266,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               ? { domain, apiKey: newApiKey }
               : newService === Service.SHOPIFY
                 ? { shopDomain, apiKey: newApiKey }
-                : newService === Service.POSTGRES
+                : newService === Service.POSTGRES || newService === Service.SUPABASE
                   ? { connectionString }
                   : { apiKey: newApiKey },
         modifier: newModifier || undefined,
@@ -359,7 +380,14 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
                   <Radio value="oauth" label={getOauthLabel(newService)} />
                 )}
                 {getSupportedAuthMethods(newService).includes('user_provided_params') && (
-                  <Radio value="user_provided_params" label="API Key" />
+                  <Radio
+                    value="user_provided_params"
+                    label={
+                      newService === Service.SUPABASE || newService === Service.POSTGRES
+                        ? 'Connection String'
+                        : 'API Key'
+                    }
+                  />
                 )}
                 {newService === Service.YOUTUBE && showOAuthCustom && (
                   <Radio value="oauth_custom" label={getOauthPrivateLabel(newService)} />
@@ -473,11 +501,22 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
               type="password"
             />
           )}
+          {authMethod === 'user_provided_params' && newService === Service.SUPABASE && (
+            <TextInput
+              label="Connection String"
+              placeholder="postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres"
+              description="Find this in your Supabase project under Settings > Database > Connection string"
+              value={connectionString}
+              onChange={(e) => setConnectionString(e.currentTarget.value)}
+              type="password"
+            />
+          )}
           {newService &&
             newService !== Service.WORDPRESS &&
             newService !== Service.MOCO &&
             newService !== Service.SHOPIFY &&
             newService !== Service.POSTGRES &&
+            newService !== Service.SUPABASE &&
             getSupportedAuthMethods(newService).includes('user_provided_params') &&
             authMethod === 'user_provided_params' && (
               <TextInput

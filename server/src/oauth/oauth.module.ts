@@ -8,6 +8,7 @@ import { OAuthController } from './oauth.controller';
 import { OAuthService } from './oauth.service';
 import { NotionOAuthProvider } from './providers/notion-oauth.provider';
 import { ShopifyOAuthProvider } from './providers/shopify-oauth.provider';
+import { SupabaseOAuthProvider } from './providers/supabase-oauth.provider';
 import { WebflowOAuthProvider } from './providers/webflow-oauth.provider';
 import { WixOAuthProvider } from './providers/wix-oauth.provider';
 import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
@@ -19,6 +20,7 @@ import { YouTubeOAuthProvider } from './providers/youtube-oauth.provider';
     OAuthService,
     NotionOAuthProvider,
     ShopifyOAuthProvider,
+    SupabaseOAuthProvider,
     WebflowOAuthProvider,
     WixOAuthProvider,
     YouTubeOAuthProvider,

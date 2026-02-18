@@ -47,6 +47,7 @@ enum Service {
   AUDIENCEFUL
   MOCO
   SHOPIFY
+  SUPABASE
 }
 
 enum AuthType {
