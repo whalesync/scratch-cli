@@ -1,7 +1,8 @@
+import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { workbookApi } from '@/lib/api/workbook';
 import { Badge, Button, Group, Menu, Modal, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { WorkbookId } from '@spinner/shared-types';
+import { ConnectorAccount, WorkbookId } from '@spinner/shared-types';
 import { ChevronDownIcon, ListIcon, PlayIcon, PlusIcon, RefreshCwIcon, RocketIcon, Trash2Icon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { PlanEntriesModal } from './PlanEntriesModal';
@@ -10,8 +11,6 @@ interface TestPublishV2ModalProps {
   opened: boolean;
   onClose: () => void;
   workbookId: WorkbookId;
-  connectorAccountId?: string;
-  connectorName?: string;
 }
 
 // Define interface locally for now as it matches server return
@@ -25,23 +24,24 @@ interface PublishPipeline {
 
 const PHASES = ['edit', 'create', 'delete', 'backfill'] as const;
 
-export function TestPublishV2Modal({
-  opened,
-  onClose,
-  workbookId,
-  connectorAccountId,
-  connectorName,
-}: TestPublishV2ModalProps) {
+export function TestPublishV2Modal({ opened, onClose, workbookId }: TestPublishV2ModalProps) {
   const [pipelines, setPipelines] = useState<PublishPipeline[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlanning, setIsPlanning] = useState(false);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [entriesModalPipelineId, setEntriesModalPipelineId] = useState<string | null>(null);
 
+  const { connectorAccounts } = useConnectorAccounts(opened ? workbookId : undefined);
+
+  const connectorMap = new Map<string, ConnectorAccount>(
+    (connectorAccounts ?? []).map((ca) => [ca.id, ca]),
+  );
+
   const fetchPipelines = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await workbookApi.listPublishV2Pipelines(workbookId, connectorAccountId);
+      // Fetch all pipelines for the workbook (no connector filter)
+      const data = await workbookApi.listPublishV2Pipelines(workbookId);
       setPipelines(data);
     } catch (error) {
       console.error(error);
@@ -53,7 +53,7 @@ export function TestPublishV2Modal({
     } finally {
       setIsLoading(false);
     }
-  }, [workbookId, connectorAccountId]);
+  }, [workbookId]);
 
   useEffect(() => {
     if (opened) {
@@ -61,23 +61,38 @@ export function TestPublishV2Modal({
     }
   }, [opened, fetchPipelines]);
 
-  const handlePlan = async () => {
+  const handlePlanAll = async () => {
     setIsPlanning(true);
     try {
-      await workbookApi.planPublishV2(workbookId, connectorAccountId);
-      notifications.show({
-        title: 'Success',
-        message: 'Publish pipeline planner started',
-        color: 'green',
-      });
+      const accounts = connectorAccounts ?? [];
+      if (accounts.length === 0) {
+        // Plan with no connector filter (workbook-wide)
+        await workbookApi.planPublishV2(workbookId);
+      } else {
+        for (const ca of accounts) {
+          await workbookApi.planPublishV2(workbookId, ca.id);
+        }
+      }
+      notifications.show({ title: 'Success', message: 'Planning started for all connections', color: 'green' });
       fetchPipelines();
     } catch (error) {
       console.error(error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to plan publish',
-        color: 'red',
-      });
+      notifications.show({ title: 'Error', message: 'Failed to plan publish', color: 'red' });
+    } finally {
+      setIsPlanning(false);
+    }
+  };
+
+  const handlePlanOne = async (connectorAccountId: string) => {
+    setIsPlanning(true);
+    try {
+      await workbookApi.planPublishV2(workbookId, connectorAccountId);
+      const name = connectorMap.get(connectorAccountId)?.displayName ?? connectorAccountId;
+      notifications.show({ title: 'Success', message: `Planning started for ${name}`, color: 'green' });
+      fetchPipelines();
+    } catch (error) {
+      console.error(error);
+      notifications.show({ title: 'Error', message: 'Failed to plan publish', color: 'red' });
     } finally {
       setIsPlanning(false);
     }
@@ -95,15 +110,13 @@ export function TestPublishV2Modal({
       setTimeout(fetchPipelines, 1000);
     } catch (error) {
       console.error(error);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to run publish',
-        color: 'red',
-      });
+      notifications.show({ title: 'Error', message: 'Failed to run publish', color: 'red' });
     } finally {
       setRunningId(null);
     }
   };
+
+  const accounts = connectorAccounts ?? [];
 
   return (
     <>
@@ -114,7 +127,7 @@ export function TestPublishV2Modal({
         title={
           <Group gap="xs">
             <RocketIcon size={20} />
-            <Title order={4}>Test Publish V2 {connectorName ? `(${connectorName})` : ''}</Title>
+            <Title order={4}>Test Publish V2</Title>
           </Group>
         }
         size="90%"
@@ -134,9 +147,45 @@ export function TestPublishV2Modal({
               >
                 Refresh
               </Button>
-              <Button size="xs" leftSection={<PlusIcon size={14} />} loading={isPlanning} onClick={handlePlan}>
-                Plan New Publish
-              </Button>
+
+              {/* Split Plan button */}
+              <Group gap={0}>
+                <Button
+                  size="xs"
+                  leftSection={<PlusIcon size={14} />}
+                  loading={isPlanning}
+                  onClick={handlePlanAll}
+                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                >
+                  Plan New Publish
+                </Button>
+                {accounts.length > 0 && (
+                  <Menu position="bottom-end" withinPortal>
+                    <Menu.Target>
+                      <Button
+                        size="xs"
+                        px={6}
+                        disabled={isPlanning}
+                        style={{
+                          borderTopLeftRadius: 0,
+                          borderBottomLeftRadius: 0,
+                          borderLeft: '1px solid var(--mantine-color-blue-light-hover)',
+                        }}
+                      >
+                        <ChevronDownIcon size={12} />
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Label>Plan single connection</Menu.Label>
+                      {accounts.map((ca) => (
+                        <Menu.Item key={ca.id} onClick={() => handlePlanOne(ca.id)}>
+                          {ca.displayName}
+                        </Menu.Item>
+                      ))}
+                    </Menu.Dropdown>
+                  </Menu>
+                )}
+              </Group>
             </Group>
           </Group>
 
@@ -145,6 +194,7 @@ export function TestPublishV2Modal({
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>ID</Table.Th>
+                  <Table.Th>Connection</Table.Th>
                   <Table.Th>Created At</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th>Entries</Table.Th>
@@ -154,7 +204,7 @@ export function TestPublishV2Modal({
               <Table.Tbody>
                 {pipelines.length === 0 ? (
                   <Table.Tr>
-                    <Table.Td colSpan={5}>
+                    <Table.Td colSpan={6}>
                       <Text size="sm" c="dimmed" ta="center" py="md">
                         No pipelines found. Click Plan New Publish to start one.
                       </Text>
@@ -166,6 +216,13 @@ export function TestPublishV2Modal({
                       <Table.Td>
                         <Text size="xs" ff="monospace">
                           {p.id.substring(0, 8)}...
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" c={p.connectorAccountId ? undefined : 'dimmed'}>
+                          {p.connectorAccountId
+                            ? (connectorMap.get(p.connectorAccountId)?.displayName ?? p.connectorAccountId.substring(0, 8) + '…')
+                            : 'All'}
                         </Text>
                       </Table.Td>
                       <Table.Td>

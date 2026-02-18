@@ -49,7 +49,7 @@ export function RefIndexModal({ opened, onClose, workbookId }: RefIndexModalProp
           </Text>
         </Group>
       }
-      size="xl"
+      size="90%"
     >
       {isLoading ? (
         <Text size="sm" c="dimmed" ta="center" py="md">

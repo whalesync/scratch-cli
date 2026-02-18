@@ -508,9 +508,11 @@ model PublishPlanEntry {
 
   filePath String // The logical path of the file
 
-  phase     String // "create", "edit", "delete", "backfill"
-  operation Json?
-  status    String @default("pending") // "pending", "success", "failed"
+  phase          String // "create", "edit", "delete", "backfill"
+  operation      Json?
+  remoteRecordId String? // The remote record ID (set for delete entries)
+  status         String  @default("pending") // "pending", "success", "failed"
+  error          String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

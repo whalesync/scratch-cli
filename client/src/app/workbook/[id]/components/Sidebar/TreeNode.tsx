@@ -22,6 +22,7 @@ import {
   FlaskRoundIcon,
   FolderIcon,
   MoreHorizontalIcon,
+  RouteIcon,
   RocketIcon,
   SettingsIcon,
   StickyNoteIcon,
@@ -320,8 +321,6 @@ export function ConnectionNode({
           opened={publishV2ModalOpened}
           onClose={closePublishV2Modal}
           workbookId={workbookId}
-          connectorAccountId={connectorAccount.id}
-          connectorName={group.name}
         />
       )}
     </>
@@ -702,6 +701,11 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
           ...(showSecretButton
             ? [{ label: 'Test Transformer', icon: FlaskRoundIcon, onClick: openTestTransformer }]
             : []),
+          {
+            label: 'Copy Path',
+            icon: RouteIcon,
+            onClick: () => void navigator.clipboard.writeText(`/${filePath}`),
+          },
           { type: 'divider' },
           { label: 'Delete', icon: Trash2Icon, onClick: openRemoveFile, delete: true },
         ]}

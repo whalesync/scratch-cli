@@ -169,7 +169,10 @@ export class FileReferenceService {
               },
               select: { schema: true },
             });
-            fileSchema = df?.schema;
+            // DataFolder.schema is a BaseJsonTableSpec — we need the inner .schema
+            // property which is the JSON Schema with properties/x-scratch-foreign-key
+            const tableSpec = df?.schema as Record<string, any> | undefined;
+            fileSchema = tableSpec?.schema ?? tableSpec;
           } catch {
             // ignore error
           }

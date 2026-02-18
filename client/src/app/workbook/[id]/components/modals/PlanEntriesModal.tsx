@@ -3,12 +3,23 @@
 import { workbookApi } from '@/lib/api/workbook';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
-import { Badge, Button, Group, Modal, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
-import { useMantineColorScheme } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Table,
+  Text,
+  Title,
+  useMantineColorScheme,
+} from '@mantine/core';
 import { WorkbookId } from '@spinner/shared-types';
 import CodeMirror from '@uiw/react-codemirror';
-import { CodeIcon, ListIcon } from 'lucide-react';
+import { AlertTriangleIcon, CodeIcon, ListIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RecordPlanModal } from './RecordPlanModal';
 
 interface PlanEntry {
   id: string;
@@ -17,6 +28,7 @@ interface PlanEntry {
   phase: string;
   operation: unknown;
   status: string;
+  error?: string | null;
 }
 
 type SortField = 'phase' | 'filePath';
@@ -79,6 +91,8 @@ export function PlanEntriesModal({ opened, onClose, workbookId, pipelineId }: Pl
   const [sortField, setSortField] = useState<SortField>('phase');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [viewingEntry, setViewingEntry] = useState<PlanEntry | null>(null);
+  const [viewingError, setViewingError] = useState<string | null>(null);
+  const [viewingRecordPath, setViewingRecordPath] = useState<string | null>(null);
 
   const fetchEntries = useCallback(async () => {
     setIsLoading(true);
@@ -127,7 +141,7 @@ export function PlanEntriesModal({ opened, onClose, workbookId, pipelineId }: Pl
       <Modal
         opened={opened}
         onClose={onClose}
-        closeOnEscape={!viewingEntry}
+        closeOnEscape={!viewingEntry && !viewingError && !viewingRecordPath}
         title={
           <Group gap="xs">
             <ListIcon size={20} />
@@ -156,20 +170,18 @@ export function PlanEntriesModal({ opened, onClose, workbookId, pipelineId }: Pl
                     >
                       Phase{sortIndicator('phase')}
                     </Table.Th>
-                    <Table.Th
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSort('filePath')}
-                    >
+                    <Table.Th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('filePath')}>
                       File{sortIndicator('filePath')}
                     </Table.Th>
                     <Table.Th>Status</Table.Th>
+                    <Table.Th>Error</Table.Th>
                     <Table.Th>Operation</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {sorted.length === 0 ? (
                     <Table.Tr>
-                      <Table.Td colSpan={4}>
+                      <Table.Td colSpan={5}>
                         <Text size="sm" c="dimmed" ta="center" py="md">
                           No entries found.
                         </Text>
@@ -184,20 +196,37 @@ export function PlanEntriesModal({ opened, onClose, workbookId, pipelineId }: Pl
                           </Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="xs" ff="monospace">
+                          <Text
+                            size="xs"
+                            ff="monospace"
+                            c="blue"
+                            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                            onClick={() => setViewingRecordPath(entry.filePath)}
+                          >
                             {entry.filePath}
                           </Text>
                         </Table.Td>
                         <Table.Td>
                           <Badge
-                            color={
-                              entry.status === 'success' ? 'green' : entry.status === 'failed' ? 'red' : 'gray'
-                            }
+                            color={entry.status === 'success' ? 'green' : entry.status === 'failed' ? 'red' : 'gray'}
                             variant="outline"
                             size="sm"
                           >
                             {entry.status}
                           </Badge>
+                        </Table.Td>
+                        <Table.Td>
+                          {entry.error && (
+                            <Button
+                              size="xs"
+                              variant="subtle"
+                              color="red"
+                              leftSection={<AlertTriangleIcon size={12} />}
+                              onClick={() => setViewingError(entry.error!)}
+                            >
+                              View Error
+                            </Button>
+                          )}
                         </Table.Td>
                         <Table.Td>
                           <Button
@@ -220,6 +249,39 @@ export function PlanEntriesModal({ opened, onClose, workbookId, pipelineId }: Pl
       </Modal>
 
       {viewingEntry && <JsonViewerModal entry={viewingEntry} onClose={() => setViewingEntry(null)} />}
+
+      {viewingError && (
+        <Modal
+          opened
+          onClose={() => setViewingError(null)}
+          title={
+            <Group gap="xs">
+              <AlertTriangleIcon size={18} color="var(--mantine-color-red-6)" />
+              <Title order={5} c="red">
+                Error Details
+              </Title>
+            </Group>
+          }
+          size="lg"
+          zIndex={310}
+        >
+          <ScrollArea h={300}>
+            <Text size="sm" ff="monospace" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {viewingError}
+            </Text>
+          </ScrollArea>
+        </Modal>
+      )}
+
+      {viewingRecordPath && (
+        <RecordPlanModal
+          opened
+          onClose={() => setViewingRecordPath(null)}
+          workbookId={workbookId}
+          pipelineId={pipelineId}
+          filePath={viewingRecordPath}
+        />
+      )}
     </>
   );
 }

@@ -134,6 +134,7 @@ export class PipelineBuildService {
       filePath: string;
       phase: string;
       operation: any;
+      remoteRecordId?: string | null;
       status: string;
     }> = [];
 
@@ -315,10 +316,17 @@ export class PipelineBuildService {
 
     // --- Phase 3: [delete] ---
     for (const del of deletedFiles) {
+      // recordId was already looked up above when building deletedRecordIds
+      const lastSlash = del.path.lastIndexOf('/');
+      const folderPath = lastSlash === -1 ? '' : del.path.substring(0, lastSlash);
+      const fileName = del.path.substring(lastSlash + 1);
+      const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
+
       planEntries.push({
         filePath: del.path,
         phase: 'delete',
         operation: {},
+        remoteRecordId: recordId || null,
         status: 'pending',
       });
     }
@@ -348,6 +356,7 @@ export class PipelineBuildService {
           filePath: e.filePath,
           phase: e.phase,
           operation: e.operation,
+          remoteRecordId: e.remoteRecordId ?? null,
           status: e.status,
         })),
       });

@@ -48,7 +48,7 @@ export function FileIndexModal({ opened, onClose, workbookId }: FileIndexModalPr
           </Text>
         </Group>
       }
-      size="xl"
+      size="90%"
     >
       {isLoading ? (
         <Text size="sm" c="dimmed" ta="center" py="md">
