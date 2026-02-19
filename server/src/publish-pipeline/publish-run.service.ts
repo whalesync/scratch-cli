@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Service, WorkbookId } from '@spinner/shared-types';
+import { WSLogger } from 'src/logger';
 import { CredentialEncryptionService } from '../credential-encryption/credential-encryption.service';
 import { DbService } from '../db/db.service';
-import { WSLogger } from '../logger';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
@@ -15,7 +15,7 @@ import { PipelinePhase, PublishPlanInfo } from './types';
 import { parsePath } from './utils';
 
 @Injectable()
-export class PipelineRunService {
+export class PublishRunService {
   constructor(
     private readonly db: DbService,
     private readonly connectorsService: ConnectorsService,
@@ -56,7 +56,7 @@ export class PipelineRunService {
         });
 
         WSLogger.info({
-          source: 'PipelineRunService.runPipeline',
+          source: 'PublishRunService.runPipeline',
           message: `Executing ${currentPhase} Phase: ${entries.length} entries`,
           workbookId: plan.workbookId,
           data: { pipelineId },
@@ -73,7 +73,7 @@ export class PipelineRunService {
             });
           } catch (err) {
             WSLogger.error({
-              source: 'PipelineRunService.runPipeline',
+              source: 'PublishRunService.runPipeline',
               message: `Entry failed: ${entry.filePath}`,
               error: err,
               workbookId: plan.workbookId,
@@ -102,7 +102,7 @@ export class PipelineRunService {
 
       // Rebase dirty on top of main so published changes disappear from dirty
       WSLogger.info({
-        source: 'PipelineRunService.runPipeline',
+        source: 'PublishRunService.runPipeline',
         message: 'Rebasing dirty on main',
         workbookId: plan.workbookId,
       });
@@ -119,7 +119,7 @@ export class PipelineRunService {
       };
     } catch (err) {
       WSLogger.error({
-        source: 'PipelineRunService.runPipeline',
+        source: 'PublishRunService.runPipeline',
         message: 'Pipeline failed',
         error: err,
         data: { pipelineId },
@@ -246,7 +246,7 @@ export class PipelineRunService {
     // Skip if no operation (except delete)
     if (phase !== 'delete' && !operation) {
       WSLogger.warn({
-        source: 'PipelineRunService.dispatchEntry',
+        source: 'PublishRunService.dispatchEntry',
         message: `Skipping entry with no operation: ${entry.filePath}`,
         workbookId,
         data: { planId, entry },
@@ -331,7 +331,7 @@ export class PipelineRunService {
           },
         ]);
         WSLogger.info({
-          source: 'PipelineRunService.dispatchCreate',
+          source: 'PublishRunService.dispatchCreate',
           message: `Added to FileIndex: ${entry.filePath} -> ${realId}`,
           workbookId,
         });
@@ -344,7 +344,7 @@ export class PipelineRunService {
       { path: entry.filePath, content: finalContent },
     ]);
     WSLogger.info({
-      source: 'PipelineRunService.dispatchCreate',
+      source: 'PublishRunService.dispatchCreate',
       message: `Updated refs for created file: ${entry.filePath}`,
       workbookId,
     });
@@ -357,7 +357,7 @@ export class PipelineRunService {
       `Publish V2 create: ${entry.filePath}`,
     );
     WSLogger.info({
-      source: 'PipelineRunService.dispatchCreate',
+      source: 'PublishRunService.dispatchCreate',
       message: `Committed create to main: ${entry.filePath}`,
       workbookId,
     });
@@ -383,7 +383,7 @@ export class PipelineRunService {
         where: { workbookId, sourceFilePath: entry.filePath },
       });
       WSLogger.info({
-        source: 'PipelineRunService.dispatchDelete',
+        source: 'PublishRunService.dispatchDelete',
         message: `Deleted refs for file: ${entry.filePath}`,
         workbookId,
       });
@@ -394,7 +394,7 @@ export class PipelineRunService {
         where: { workbookId, folderPath, filename },
       });
       WSLogger.info({
-        source: 'PipelineRunService.dispatchDelete',
+        source: 'PublishRunService.dispatchDelete',
         message: `Removed from FileIndex: ${entry.filePath}`,
         workbookId,
       });
@@ -407,13 +407,13 @@ export class PipelineRunService {
         `Publish V2 delete: ${entry.filePath}`,
       );
       WSLogger.info({
-        source: 'PipelineRunService.dispatchDelete',
+        source: 'PublishRunService.dispatchDelete',
         message: `Deleted from main: ${entry.filePath}`,
         workbookId,
       });
     } else {
       WSLogger.warn({
-        source: 'PipelineRunService.dispatchDelete',
+        source: 'PublishRunService.dispatchDelete',
         message: `Delete entry has no remoteRecordId: ${entry.filePath}`,
         workbookId,
       });

@@ -4,7 +4,7 @@ import { JobEntity } from '../types/server-entities/job';
 
 export const useJobs = (limit?: number, offset?: number, workbookId?: string) => {
   const { data, error, isLoading, mutate } = useSWR<JobEntity[]>(
-    workbookId ? `jobs-${limit}-${offset}-${workbookId}` : null,
+    `jobs-${limit}-${offset}-${workbookId || 'all'}`,
     () => jobApi.getJobs(limit, offset, workbookId),
     {
       refreshInterval: 5000, // Poll every 5 seconds

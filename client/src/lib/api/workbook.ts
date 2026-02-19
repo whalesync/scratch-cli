@@ -313,27 +313,33 @@ export const workbookApi = {
   planPublishV2: async (
     workbookId: WorkbookId,
     connectorAccountId?: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<{ pipelineId: string; status: string; phases: any[] }> => {
+  ): Promise<{ jobId: string; pipelineId: string }> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.post(`/workbook/${workbookId}/publish-v2/plan`, {
-        userId: 'current',
-        connectorAccountId,
-      });
+      const res = await axios.post<{ jobId: string; pipelineId: string }>(
+        `/workbook/${workbookId}/publish-v2/plan-job`,
+        {
+          userId: 'current',
+          connectorAccountId,
+        },
+      );
       return res.data;
     } catch (error) {
-      handleAxiosError(error, 'Failed to plan publish');
+      handleAxiosError(error, 'Failed to start plan job');
       throw error;
     }
   },
 
-  runPublishV2: async (workbookId: WorkbookId, pipelineId: string, phase?: string): Promise<void> => {
+  runPublishV2: async (workbookId: WorkbookId, pipelineId: string, phase?: string): Promise<{ jobId: string }> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
-      await axios.post(`/workbook/${workbookId}/publish-v2/run`, { pipelineId, phase });
+      const res = await axios.post<{ jobId: string }>(`/workbook/${workbookId}/publish-v2/run-job`, {
+        pipelineId,
+        phase,
+      });
+      return res.data;
     } catch (error) {
-      handleAxiosError(error, 'Failed to run publish');
+      handleAxiosError(error, 'Failed to start run job');
       throw error;
     }
   },

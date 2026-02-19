@@ -7,6 +7,8 @@ import { JobService } from 'src/job/job.service';
 import { Actor } from 'src/users/types';
 import { JobData } from 'src/worker/jobs/union-types';
 import { PublishDataFolderJobDefinition } from '../worker/jobs/job-definitions/publish-data-folder.job';
+import { PublishPlanJobDefinition } from '../worker/jobs/job-definitions/publish-plan.job';
+import { PublishRunJobDefinition } from '../worker/jobs/job-definitions/publish-run.job';
 import { PullLinkedFolderFilesJobDefinition } from '../worker/jobs/job-definitions/pull-linked-folder-files.job';
 import { SyncDataFoldersJobDefinition } from '../worker/jobs/job-definitions/sync-data-folders.job';
 
@@ -116,6 +118,49 @@ export class BullEnqueuerService implements OnModuleDestroy {
       organizationId: actor.organizationId,
       type: 'sync-data-folders',
       initialPublicProgress,
+    };
+    await this.jobService.createJob({
+      userId: actor.userId,
+      type: data.type,
+      data,
+      bullJobId: id,
+      workbookId,
+    });
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueuePlanPipelineJob(
+    workbookId: WorkbookId,
+    actor: Actor,
+    pipelineId: string,
+    connectorAccountId?: string,
+  ): Promise<Job> {
+    const id = `publish-plan-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PublishPlanJobDefinition['data'] = {
+      workbookId,
+      userId: actor.userId,
+      pipelineId,
+      type: 'publish-plan',
+      ...(connectorAccountId && { connectorAccountId }),
+    };
+    await this.jobService.createJob({
+      userId: actor.userId,
+      type: data.type,
+      data,
+      bullJobId: id,
+      workbookId,
+    });
+    return await this.enqueueJobWithId(data, id);
+  }
+
+  async enqueueRunPipelineJob(workbookId: WorkbookId, actor: Actor, pipelineId: string, phase?: string): Promise<Job> {
+    const id = `publish-run-${actor.userId}-${workbookId}-${createPlainId()}`;
+    const data: PublishRunJobDefinition['data'] = {
+      pipelineId,
+      workbookId,
+      userId: actor.userId,
+      type: 'publish-run',
+      ...(phase && { phase }),
     };
     await this.jobService.createJob({
       userId: actor.userId,

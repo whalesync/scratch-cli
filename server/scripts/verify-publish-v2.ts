@@ -9,8 +9,8 @@ import { randomUUID } from 'crypto';
 import 'dotenv/config';
 import { AppModule } from '../src/app.module';
 import { DbService } from '../src/db/db.service';
-import { PipelineBuildService } from '../src/publish-pipeline/pipeline-build.service';
-import { PipelineRunService } from '../src/publish-pipeline/pipeline-run.service';
+import { PublishBuildService } from '../src/publish-pipeline/publish-build.service';
+import { PublishRunService } from '../src/publish-pipeline/publish-run.service';
 import { ScratchGitService } from '../src/scratch-git/scratch-git.service';
 
 async function bootstrap() {
@@ -19,8 +19,8 @@ async function bootstrap() {
     const app = await NestFactory.createApplicationContext(AppModule, {
       logger: ['error', 'warn'],
     });
-    const buildService = app.get(PipelineBuildService);
-    const runService = app.get(PipelineRunService);
+    const buildService = app.get(PublishBuildService);
+    const runService = app.get(PublishRunService);
     const gitService = app.get(ScratchGitService);
     const dbService = app.get(DbService);
 

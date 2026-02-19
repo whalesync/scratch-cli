@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { FileIndexService } from 'src/publish-pipeline/file-index.service';
 import { FileReferenceService } from 'src/publish-pipeline/file-reference.service';
+import { PublishBuildService } from 'src/publish-pipeline/publish-build.service';
+import { PublishRunService } from 'src/publish-pipeline/publish-run.service';
 import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ConnectorsService } from 'src/remote-service/connectors/connectors.service';
 import { SyncService } from 'src/sync/sync.service';
@@ -13,6 +15,8 @@ import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { AddThreeNumbersJobHandler } from './jobs/job-definitions/add-three-numbers.job';
 import { AddTwoNumbersJobHandler } from './jobs/job-definitions/add-two-numbers.job';
 import { PublishDataFolderJobHandler } from './jobs/job-definitions/publish-data-folder.job';
+import { PublishPlanJobHandler } from './jobs/job-definitions/publish-plan.job';
+import { PublishRunJobHandler } from './jobs/job-definitions/publish-run.job';
 import { PullLinkedFolderFilesJobHandler } from './jobs/job-definitions/pull-linked-folder-files.job';
 import { SyncDataFoldersJobHandler } from './jobs/job-definitions/sync-data-folders.job';
 import { JobData, JobDefinition, JobHandler } from './jobs/union-types';
@@ -30,6 +34,8 @@ export class JobHandlerService {
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly fileIndexService: FileIndexService,
     private readonly fileReferenceService: FileReferenceService,
+    private readonly pipelineBuildService: PublishBuildService,
+    private readonly pipelineRunService: PublishRunService,
   ) {}
 
   getHandler = (data: JobData): JobHandler<JobDefinition> => {
@@ -69,6 +75,12 @@ export class JobHandlerService {
           this.syncService,
           this.workbookEventService,
         ) as JobHandler<JobDefinition>;
+
+      case 'publish-plan':
+        return new PublishPlanJobHandler(this.pipelineBuildService) as JobHandler<JobDefinition>;
+
+      case 'publish-run':
+        return new PublishRunJobHandler(this.pipelineRunService) as JobHandler<JobDefinition>;
 
       default:
         throw new Error(`Unknown job type. Data: ${JSON.stringify(data)}`);

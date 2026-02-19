@@ -34,6 +34,7 @@ import {
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
+import { TestPublishV2Modal } from '../modals/TestPublishV2Modal';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
 import { CreateConnectionModal } from '../shared/CreateConnectionModal';
@@ -71,6 +72,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
   // CLI modal state
   const [cliModalOpened, { open: openCLIModal, close: closeCLIModal }] = useDisclosure(false);
+
+  // Publish V2 modal state
+  const [publishV2ModalOpened, { open: openPublishV2Modal, close: closePublishV2Modal }] = useDisclosure(false);
 
   // Action states
   const [isPulling, setIsPulling] = useState(false);
@@ -274,6 +278,9 @@ export function Toolbar({ workbook }: ToolbarProps) {
             >
               Publish all
             </ButtonCompactPrimary>
+            <ButtonCompactSecondary onClick={openPublishV2Modal} leftSection={<CloudUploadIcon size={12} />}>
+              Publish V2 (beta)
+            </ButtonCompactSecondary>
             <ButtonCompactDanger
               leftSection={<RotateCcwIcon size={12} />}
               onClick={handleDiscardAll}
@@ -328,6 +335,12 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
       {/* CLI Modal */}
       <ConnectToCLIModal opened={cliModalOpened} onClose={closeCLIModal} workbookId={workbook.id} />
+
+      <TestPublishV2Modal
+        opened={publishV2ModalOpened}
+        onClose={closePublishV2Modal}
+        workbookId={workbook.id as WorkbookId}
+      />
 
       {/* Confirm Dialog */}
       <ConfirmDialog {...dialogProps} />

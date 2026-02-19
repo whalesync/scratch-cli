@@ -14,7 +14,7 @@ import { PipelinePhase, PublishPlanInfo, PublishPlanPhase } from './types';
 import { parsePath } from './utils';
 
 @Injectable()
-export class PipelineBuildService {
+export class PublishBuildService {
   constructor(
     private readonly db: DbService,
     private readonly scratchGitService: ScratchGitService,
@@ -168,7 +168,7 @@ export class PipelineBuildService {
 
     for (const filePath of filesToProcessInEditPhase) {
       WSLogger.info({
-        source: 'PipelineBuildService.buildPipeline',
+        source: 'PublishBuildService.buildPipeline',
         message: `Processing file in edit phase: ${filePath}`,
         workbookId,
       });
@@ -177,7 +177,7 @@ export class PipelineBuildService {
       let fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', filePath);
       if (!fileData) {
         WSLogger.warn({
-          source: 'PipelineBuildService.buildPipeline',
+          source: 'PublishBuildService.buildPipeline',
           message: `File not found in dirty branch, falling back to main: ${filePath}`,
           workbookId,
         });
@@ -317,7 +317,7 @@ export class PipelineBuildService {
         const originalContentStr = JSON.stringify(contentObj, null, 2);
 
         WSLogger.info({
-          source: 'PipelineBuildService.buildPipeline',
+          source: 'PublishBuildService.buildPipeline',
           message: `Debug Stripping: ${add.path}`,
           workbookId,
           data: {

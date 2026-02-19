@@ -3,14 +3,14 @@ import { WorkbookId } from '@spinner/shared-types';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { DbService } from '../src/db/db.service';
-import { PipelineBuildService } from '../src/publish-pipeline/pipeline-build.service';
+import { PublishBuildService } from '../src/publish-pipeline/publish-build.service';
 import { ScratchGitService } from '../src/scratch-git/scratch-git.service';
 
 async function bootstrap() {
   try {
     const app = await NestFactory.createApplicationContext(AppModule);
     const dbService = app.get(DbService);
-    const buildService = app.get(PipelineBuildService);
+    const buildService = app.get(PublishBuildService);
     const gitService = app.get(ScratchGitService);
 
     console.log('Context created. Getting user...');

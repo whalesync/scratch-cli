@@ -2,54 +2,97 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } fro
 import type { WorkbookId } from '@spinner/shared-types';
 import { ScratchAuthGuard } from '../auth/scratch-auth.guard';
 import type { RequestWithUser } from '../auth/types';
+import { BullEnqueuerService } from '../worker-enqueuer/bull-enqueuer.service';
 import { PlanPublishV2Dto, RunPublishV2Dto } from './dto/publish-v2.dto';
-import { PipelineAdminService } from './pipeline-admin.service';
-import { PipelineBuildService } from './pipeline-build.service';
-import { PipelineRunService } from './pipeline-run.service';
+import { PublishAdminService } from './publish-admin.service';
+import { PublishBuildService } from './publish-build.service';
+import { PublishRunService } from './publish-run.service';
 
 @Controller('workbook/:workbookId/publish-v2')
 @UseGuards(ScratchAuthGuard)
 export class PublishPipelineController {
   constructor(
-    private readonly pipelineBuildService: PipelineBuildService,
-    private readonly pipelineRunService: PipelineRunService,
-    private readonly pipelineAdminService: PipelineAdminService,
+    private readonly publishBuildService: PublishBuildService,
+    private readonly publishRunService: PublishRunService,
+    private readonly publishAdminService: PublishAdminService,
+    private readonly bullEnqueuerService: BullEnqueuerService,
   ) {}
+
+  // ── Direct API (synchronous) ─────────────────────────────────────
 
   @Post('plan')
   async plan(@Param('workbookId') workbookId: WorkbookId, @Body() body: PlanPublishV2Dto, @Req() req: RequestWithUser) {
-    // For now taking userId from body, but should probably match req.user or check permissions
-    // Using req.user.id for security context
-    return this.pipelineBuildService.buildPipeline(workbookId, req.user.id, body.connectorAccountId);
+    return this.publishBuildService.buildPipeline(workbookId, req.user.id, body.connectorAccountId);
   }
 
   @Post('run')
   async run(@Param('workbookId') workbookId: WorkbookId, @Body() body: RunPublishV2Dto) {
-    return this.pipelineRunService.runPipeline(body.pipelineId, body.phase);
+    return this.publishRunService.runPipeline(body.pipelineId, body.phase);
   }
+
+  // ── Job API (asynchronous, resumable) ────────────────────────────
+
+  @Post('plan-job')
+  async planAsJob(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() body: PlanPublishV2Dto,
+    @Req() req: RequestWithUser,
+  ) {
+    // Create the pipeline record first so we can return the pipelineId immediately
+    const { pipelineId } = await this.publishBuildService.createPipeline(
+      workbookId,
+      req.user.id,
+      body.connectorAccountId,
+    );
+
+    const job = await this.bullEnqueuerService.enqueuePlanPipelineJob(
+      workbookId,
+      { userId: req.user.id, organizationId: req.user.organization?.id ?? '' },
+      pipelineId,
+      body.connectorAccountId,
+    );
+    return { jobId: job.id, pipelineId };
+  }
+
+  @Post('run-job')
+  async runAsJob(
+    @Param('workbookId') workbookId: WorkbookId,
+    @Body() body: RunPublishV2Dto,
+    @Req() req: RequestWithUser,
+  ) {
+    const job = await this.bullEnqueuerService.enqueueRunPipelineJob(
+      workbookId,
+      { userId: req.user.id, organizationId: req.user.organization?.id ?? '' },
+      body.pipelineId,
+      body.phase,
+    );
+    return { jobId: job.id };
+  }
+
+  // ── Admin / Query ────────────────────────────────────────────────
 
   @Get()
   async list(@Param('workbookId') workbookId: WorkbookId, @Query('connectorAccountId') connectorAccountId?: string) {
-    return this.pipelineAdminService.listPipelines(workbookId, connectorAccountId);
+    return this.publishAdminService.listPipelines(workbookId, connectorAccountId);
   }
 
   @Get(':pipelineId/entries')
   async entries(@Param('pipelineId') pipelineId: string) {
-    return this.pipelineAdminService.listPipelineEntries(pipelineId);
+    return this.publishAdminService.listPipelineEntries(pipelineId);
   }
 
   @Get('index/files')
   async fileIndex(@Param('workbookId') workbookId: WorkbookId) {
-    return this.pipelineAdminService.listFileIndex(workbookId);
+    return this.publishAdminService.listFileIndex(workbookId);
   }
 
   @Get('index/refs')
   async refIndex(@Param('workbookId') workbookId: WorkbookId) {
-    return this.pipelineAdminService.listRefIndex(workbookId);
+    return this.publishAdminService.listRefIndex(workbookId);
   }
 
   @Delete(':pipelineId')
   async delete(@Param('pipelineId') pipelineId: string) {
-    return this.pipelineAdminService.deletePipeline(pipelineId);
+    return this.publishAdminService.deletePipeline(pipelineId);
   }
 }

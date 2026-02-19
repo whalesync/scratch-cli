@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
-import { PipelineSchemaService } from './pipeline-schema.service';
+import { PublishSchemaService } from './publish-schema.service';
 import { RefCleanerService } from './ref-cleaner.service';
 import { parsePath } from './utils';
 
@@ -21,7 +21,7 @@ export class FileReferenceService {
   constructor(
     private readonly db: DbService,
     private readonly refCleanerService: RefCleanerService,
-    private readonly schemaService: PipelineSchemaService,
+    private readonly schemaService: PublishSchemaService,
   ) {}
 
   /**

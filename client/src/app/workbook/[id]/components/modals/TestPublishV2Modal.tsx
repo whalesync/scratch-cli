@@ -1,6 +1,7 @@
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { workbookApi } from '@/lib/api/workbook';
 import { Badge, Button, Group, Menu, Modal, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
+import { useInterval } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { ConnectorAccount, WorkbookId } from '@spinner/shared-types';
 import { ChevronDownIcon, ListIcon, PlayIcon, PlusIcon, RefreshCwIcon, RocketIcon, Trash2Icon } from 'lucide-react';
@@ -53,11 +54,17 @@ export function TestPublishV2Modal({ opened, onClose, workbookId }: TestPublishV
     }
   }, [workbookId]);
 
+  const { start, stop } = useInterval(fetchPipelines, 2000);
+
   useEffect(() => {
     if (opened) {
       fetchPipelines();
+      start();
+    } else {
+      stop();
     }
-  }, [opened, fetchPipelines]);
+    return stop;
+  }, [opened, fetchPipelines, start, stop]);
 
   const handlePlanAll = async () => {
     setIsPlanning(true);
@@ -125,7 +132,7 @@ export function TestPublishV2Modal({ opened, onClose, workbookId }: TestPublishV
         title={
           <Group gap="xs">
             <RocketIcon size={20} />
-            <Title order={4}>Test Publish V2</Title>
+            <Title order={4}>Publish Pipelines</Title>
           </Group>
         }
         size="90%"

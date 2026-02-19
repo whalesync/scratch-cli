@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 
 @Injectable()
-export class PipelineAdminService {
+export class PublishAdminService {
   constructor(private readonly db: DbService) {}
 
   async listPipelines(workbookId: string, connectorAccountId?: string) {
