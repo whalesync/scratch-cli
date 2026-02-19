@@ -6,11 +6,25 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthType, ConnectorAccount } from '@prisma/client';
-import { createConnectorAccountId, Service, ValidatedOAuthInitiateOptionsDto, WorkbookId } from '@spinner/shared-types';
+import {
+  createConnectorAccountId,
+  Service,
+  SupabaseProjectCredentials,
+  ValidatedOAuthInitiateOptionsDto,
+  WorkbookId,
+} from '@spinner/shared-types';
+import { randomUUID } from 'crypto';
 import { capitalize } from 'lodash';
 import { CredentialEncryptionService } from 'src/credential-encryption/credential-encryption.service';
+import { WSLogger } from 'src/logger';
 import { PostHogEventName, PostHogService } from 'src/posthog/posthog.service';
 import { getServiceDisplayName } from 'src/remote-service/connectors/display-names';
+import { KnexPGClient } from 'src/remote-service/connectors/library/pg-common';
+import {
+  buildConnectionString,
+  buildCreateUserSQL,
+  SupabaseApiClient,
+} from 'src/remote-service/connectors/library/supabase';
 import { canCreateDataSource } from 'src/users/subscription-utils';
 import { Actor } from 'src/users/types';
 import { DbService } from '../db/db.service';
@@ -169,6 +183,12 @@ export class OAuthService {
         customClientSecret: statePayload.customClientSecret,
         connectionName: statePayload.connectionName,
       });
+
+      // Re-run Supabase project setup on re-auth to refresh credentials
+      if (service.toLowerCase() === 'supabase') {
+        await this.setupSupabaseProjects(existingConnectorAccount.id, tokenResponse.access_token);
+      }
+
       return { connectorAccountId: existingConnectorAccount.id };
     } else {
       // Create new connector account (include connection method and custom client creds for storage)
@@ -184,6 +204,11 @@ export class OAuthService {
           connectionName: statePayload.connectionName,
         },
       );
+
+      // Auto-setup all Supabase projects inline so the connection is immediately usable
+      if (service.toLowerCase() === 'supabase') {
+        await this.setupSupabaseProjects(connectorAccount.id, tokenResponse.access_token);
+      }
 
       return { connectorAccountId: connectorAccount.id };
     }
@@ -461,6 +486,111 @@ export class OAuthService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       redirectUri: youtubeProvider.redirectUri,
     };
+  }
+
+  /**
+   * Auto-setup all active Supabase projects for a connector account.
+   * Creates a dedicated DB role per project, retrieves pooler configs,
+   * tests each connection, and stores the results in encrypted credentials.
+   */
+  private async setupSupabaseProjects(connectorAccountId: string, accessToken: string): Promise<void> {
+    try {
+      const apiClient = new SupabaseApiClient(accessToken);
+      const allProjects = await apiClient.getProjects();
+      const activeProjects = allProjects.filter((p) => p.status === 'ACTIVE_HEALTHY');
+
+      if (activeProjects.length === 0) {
+        WSLogger.warn({
+          source: 'OAuthService',
+          message: 'No active Supabase projects found during auto-setup',
+          connectorAccountId,
+        });
+        return;
+      }
+
+      const configuredProjects: SupabaseProjectCredentials[] = [];
+
+      for (const project of activeProjects) {
+        try {
+          const dbUsername = `scratch_svc_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+          const dbPassword = randomUUID() + randomUUID().replace(/-/g, '');
+
+          const createUserSQL = buildCreateUserSQL(dbUsername, dbPassword);
+          await apiClient.executeQuery(project.id, createUserSQL);
+
+          const poolerConfigs = await apiClient.getPoolerConfig(project.id);
+          if (!poolerConfigs || poolerConfigs.length === 0) {
+            WSLogger.warn({
+              source: 'OAuthService',
+              message: `No pooler config for Supabase project ${project.name} (${project.id}), skipping`,
+              connectorAccountId,
+            });
+            continue;
+          }
+
+          const connectionString = buildConnectionString(
+            poolerConfigs[0].connection_string,
+            dbUsername,
+            dbPassword,
+            project.id,
+          );
+
+          // Verify the connection works
+          const pgClient = new KnexPGClient(connectionString, { sslNoVerify: true });
+          try {
+            await pgClient.testQuery();
+          } finally {
+            await pgClient.dispose().catch(() => {});
+          }
+
+          configuredProjects.push({
+            projectRef: project.id,
+            projectName: project.name,
+            connectionString,
+            dbUsername,
+            dbPassword,
+          });
+        } catch (error) {
+          WSLogger.warn({
+            source: 'OAuthService',
+            message: `Failed to setup Supabase project ${project.name} (${project.id}): ${error instanceof Error ? error.message : String(error)}`,
+            connectorAccountId,
+          });
+          // Continue with remaining projects
+        }
+      }
+
+      // Update credentials with the configured projects
+      const account = await this.db.client.connectorAccount.findUnique({
+        where: { id: connectorAccountId },
+      });
+      if (!account) return;
+
+      const decryptedCredentials = await this.credentialEncryptionService.decryptCredentials(
+        account.encryptedCredentials as unknown as EncryptedData,
+      );
+      decryptedCredentials.supabaseProjects = configuredProjects;
+
+      const encryptedCredentials = await this.credentialEncryptionService.encryptCredentials(decryptedCredentials);
+      await this.db.client.connectorAccount.update({
+        where: { id: connectorAccountId },
+        data: { encryptedCredentials: encryptedCredentials as Record<string, any> },
+      });
+
+      WSLogger.info({
+        source: 'OAuthService',
+        message: `Supabase auto-setup complete: ${configuredProjects.length}/${activeProjects.length} projects configured`,
+        connectorAccountId,
+      });
+    } catch (error) {
+      WSLogger.error({
+        source: 'OAuthService',
+        message: `Supabase auto-setup failed: ${error instanceof Error ? error.message : String(error)}`,
+        connectorAccountId,
+        error,
+      });
+      // Don't throw — the account is created, health check will fail and user can retry
+    }
   }
 
   private expiresInToOAuthExpiresAt(tokenExpiresIn?: number): string | undefined {

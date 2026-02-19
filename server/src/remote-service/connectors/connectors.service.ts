@@ -177,26 +177,27 @@ export class ConnectorsService {
         if (!connectorAccount) {
           throw new ConnectorInstantiationError('Connector account is required for Supabase', service);
         }
-        if (!decryptedCredentials?.connectionString) {
-          throw new ConnectorInstantiationError(
-            'Connection string is required for Supabase. Please complete project setup.',
-            service,
-          );
-        }
         if (connectorAccount.authType === AuthType.OAUTH) {
-          const supabaseAccessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
-          if (!decryptedCredentials?.supabaseProjectRef) {
+          const supabaseProjects = decryptedCredentials?.supabaseProjects;
+          if (!supabaseProjects || supabaseProjects.length === 0) {
             throw new ConnectorInstantiationError(
-              'Supabase project is required. Please complete project setup.',
+              'Supabase projects not configured. Please reconnect your Supabase account.',
               service,
             );
           }
+          const supabaseAccessToken = await this.oauthService.getValidAccessToken(connectorAccount.id);
           return new SupabaseConnector({
-            connectionString: decryptedCredentials.connectionString,
+            projects: supabaseProjects.map((p) => ({
+              projectRef: p.projectRef,
+              projectName: p.projectName,
+              connectionString: p.connectionString,
+            })),
             oauthAccessToken: supabaseAccessToken,
-            projectRef: decryptedCredentials.supabaseProjectRef,
           });
         } else {
+          if (!decryptedCredentials?.connectionString) {
+            throw new ConnectorInstantiationError('Connection string is required for Supabase.', service);
+          }
           return new SupabaseConnector({
             connectionString: decryptedCredentials.connectionString,
           });

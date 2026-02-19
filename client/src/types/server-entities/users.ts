@@ -27,7 +27,6 @@ export interface UserExperimentFlags {
   ENABLE_TOKEN_LIMIT_WARNINGS: boolean;
   ENABLE_WEBFLOW_OAUTH: boolean;
   ENABLE_SHOPIFY_OAUTH: boolean;
-  ENABLE_SUPABASE_OAUTH: boolean;
   ENABLE_CREATE_BUG_REPORT: boolean;
 }
 

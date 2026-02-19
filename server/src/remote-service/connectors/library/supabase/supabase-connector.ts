@@ -29,7 +29,7 @@ import {
   type InformationSchemaColumn,
 } from '../pg-common';
 import { SupabaseApiClient, SupabaseApiError } from './supabase-api-client';
-import { SupabaseCredentials } from './supabase-types';
+import { SupabaseCredentials, SupabaseProjectConfig } from './supabase-types';
 
 const READ_BATCH_SIZE = 500;
 
@@ -249,23 +249,54 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   readonly service = Service.SUPABASE;
   static readonly displayName = 'Supabase';
 
-  private readonly connectionString: string;
+  private readonly connectionString: string | undefined;
+  private readonly projects: SupabaseProjectConfig[];
+  private readonly isMultiProject: boolean;
   private readonly apiClient: SupabaseApiClient | undefined;
-  private readonly projectRef: string | undefined;
 
   constructor(credentials: SupabaseCredentials) {
     super();
+    this.projects = credentials.projects ?? [];
+    this.isMultiProject = this.projects.length > 0;
     this.connectionString = credentials.connectionString;
     this.apiClient = credentials.oauthAccessToken ? new SupabaseApiClient(credentials.oauthAccessToken) : undefined;
-    this.projectRef = credentials.projectRef;
+  }
+
+  /**
+   * Resolve the connection string, schema, and table name for a given remoteId.
+   * Multi-project: remoteId = [projectRef, schema, tableName]
+   * Single-project: remoteId = [schema, tableName]
+   */
+  private resolveConnection(remoteId: string[]): { connectionString: string; schema: string; tableName: string } {
+    if (this.isMultiProject && remoteId.length >= 3) {
+      const [projectRef, schema, tableName] = remoteId;
+      const project = this.projects.find((p) => p.projectRef === projectRef);
+      if (!project) {
+        throw new KnexPGClientError(`Unknown Supabase project: ${projectRef}`, 'CONNECTION_ERROR');
+      }
+      return { connectionString: project.connectionString, schema, tableName };
+    }
+
+    if (!this.connectionString) {
+      throw new KnexPGClientError('No connection string configured', 'CONNECTION_ERROR');
+    }
+    return {
+      connectionString: this.connectionString,
+      schema: remoteId[0] ?? 'public',
+      tableName: remoteId[1] ?? remoteId[0],
+    };
   }
 
   /**
    * Run an operation with a short-lived KnexPGClient that is automatically
    * disposed when the operation completes (or throws).
    */
-  private async withPgClient<T>(fn: (client: KnexPGClient) => Promise<T>): Promise<T> {
-    const client = new KnexPGClient(this.connectionString, { sslNoVerify: true });
+  private async withPgClient<T>(fn: (client: KnexPGClient) => Promise<T>, connectionString?: string): Promise<T> {
+    const connStr = connectionString ?? this.connectionString;
+    if (!connStr) {
+      throw new KnexPGClientError('No connection string configured', 'CONNECTION_ERROR');
+    }
+    const client = new KnexPGClient(connStr, { sslNoVerify: true });
     try {
       return await fn(client);
     } finally {
@@ -282,6 +313,23 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async testConnection(): Promise<void> {
+    if (this.isMultiProject) {
+      const errors: string[] = [];
+      for (const project of this.projects) {
+        try {
+          await this.withPgClient((client) => client.testQuery(), project.connectionString);
+        } catch (error) {
+          errors.push(`${project.projectName}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+      if (errors.length === this.projects.length) {
+        throw new KnexPGClientError(
+          `All Supabase projects failed connectivity test: ${errors.join('; ')}`,
+          'CONNECTION_ERROR',
+        );
+      }
+      return;
+    }
     await this.withPgClient((client) => client.testQuery());
   }
 
@@ -290,13 +338,19 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async listTables(): Promise<TablePreview[]> {
+    if (this.isMultiProject) {
+      return this.listTablesMultiProject();
+    }
+    return this.listTablesSingleProject();
+  }
+
+  private async listTablesSingleProject(): Promise<TablePreview[]> {
     return this.withPgClient(async (client) => {
       const tables = await client.findAllTablesExcludingSchemas(
         SUPABASE_SYSTEM_SCHEMAS,
         SUPABASE_SYSTEM_SCHEMA_PATTERNS,
       );
 
-      // Only include base tables (exclude views)
       const baseTables = tables.filter((t) => t.table_type === 'BASE TABLE');
 
       return baseTables.map((t) => {
@@ -316,14 +370,51 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     });
   }
 
+  private async listTablesMultiProject(): Promise<TablePreview[]> {
+    const allTables: TablePreview[] = [];
+
+    for (const project of this.projects) {
+      try {
+        const tables = await this.withPgClient(async (client) => {
+          const rows = await client.findAllTablesExcludingSchemas(
+            SUPABASE_SYSTEM_SCHEMAS,
+            SUPABASE_SYSTEM_SCHEMA_PATTERNS,
+          );
+          return rows.filter((t) => t.table_type === 'BASE TABLE');
+        }, project.connectionString);
+
+        for (const t of tables) {
+          const schemaQualified = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
+          allTables.push({
+            id: {
+              wsId: sanitizeForTableWsId(`${project.projectName}__${t.table_schema}__${t.table_name}`),
+              remoteId: [project.projectRef, t.table_schema, t.table_name],
+            },
+            displayName: `${project.projectName} / ${schemaQualified}`,
+            metadata: {
+              schema: t.table_schema,
+              projectRef: project.projectRef,
+              projectName: project.projectName,
+              description: `Table "${t.table_name}" in schema "${t.table_schema}" of project "${project.projectName}"`,
+            },
+          });
+        }
+      } catch {
+        // Skip projects that fail — testConnection already validates connectivity
+      }
+    }
+
+    return allTables;
+  }
+
   // -------------------------------------------------------------------------
   // Schema
   // -------------------------------------------------------------------------
 
   async fetchJsonTableSpec(id: EntityId): Promise<BaseJsonTableSpec> {
+    const resolved = this.resolveConnection(id.remoteId);
     return this.withPgClient(async (client) => {
-      const schema = id.remoteId[0] ?? 'public';
-      const tableName = id.remoteId[1] ?? id.wsId;
+      const { schema, tableName } = resolved;
 
       const [columns, pkCandidates] = await Promise.all([
         client.findAllColumnsInTable(schema, tableName),
@@ -363,7 +454,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
         schema: tableSchema,
         idColumnRemoteId: primaryKey,
       };
-    });
+    }, resolved.connectionString);
   }
 
   /**
@@ -404,9 +495,9 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
       validateWhereFilter(rawFilter);
     }
 
+    const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
-      const schema = tableSpec.id.remoteId[0] ?? 'public';
-      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const { schema, tableName } = resolved;
       const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
       const filter = rawFilter;
@@ -421,7 +512,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
 
         if (rows.length < READ_BATCH_SIZE) break;
       }
-    });
+    }, resolved.connectionString);
   }
 
   public pullRecordDeep = undefined;
@@ -444,14 +535,14 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async createRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<ConnectorFile[]> {
+    const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
-      const schema = tableSpec.id.remoteId[0] ?? 'public';
-      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const { schema, tableName } = resolved;
       const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
 
       return client.insertMany(schema, tableName, columns, pk, files);
-    });
+    }, resolved.connectionString);
   }
 
   // -------------------------------------------------------------------------
@@ -459,9 +550,9 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async updateRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
-      const schema = tableSpec.id.remoteId[0] ?? 'public';
-      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const { schema, tableName } = resolved;
       const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
 
@@ -471,7 +562,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
       }));
 
       await client.updateMany(schema, tableName, columns, pk, records);
-    });
+    }, resolved.connectionString);
   }
 
   // -------------------------------------------------------------------------
@@ -479,15 +570,15 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async deleteRecords(tableSpec: BaseJsonTableSpec, files: ConnectorFile[]): Promise<void> {
+    const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
-      const schema = tableSpec.id.remoteId[0] ?? 'public';
-      const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
+      const { schema, tableName } = resolved;
       const pk = tableSpec.idColumnRemoteId;
 
       for (const file of files) {
         await client.deleteOne(schema, tableName, file[pk] as string | number, pk);
       }
-    });
+    }, resolved.connectionString);
   }
 
   // -------------------------------------------------------------------------

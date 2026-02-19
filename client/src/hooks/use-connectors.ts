@@ -14,16 +14,13 @@ export const useConnectors = () => {
   const getDefaultAuthMethod = useCallback(
     (service: Service): AuthMethod => {
       // Services that support OAuth
-      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
+      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG, Service.SUPABASE];
 
       if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
         oauthSupportedServices.push(Service.WEBFLOW);
       }
       if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
         oauthSupportedServices.push(Service.SHOPIFY);
-      }
-      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
-        oauthSupportedServices.push(Service.SUPABASE);
       }
 
       // Services that use generic parameters
@@ -49,22 +46,18 @@ export const useConnectors = () => {
     [
       user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
       user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
-      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
     ],
   );
 
   const getSupportedAuthMethods = useCallback(
     (service: Service): AuthMethod[] => {
-      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
+      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG, Service.SUPABASE];
 
       if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
         oauthSupportedServices.push(Service.WEBFLOW);
       }
       if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
         oauthSupportedServices.push(Service.SHOPIFY);
-      }
-      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
-        oauthSupportedServices.push(Service.SUPABASE);
       }
 
       const userProvidedParamsSupportedServices = [
@@ -94,7 +87,6 @@ export const useConnectors = () => {
     [
       user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
       user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
-      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
     ],
   );
  

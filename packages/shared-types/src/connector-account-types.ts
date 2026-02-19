@@ -1,5 +1,13 @@
 // Types related to connector accounts
 
+export interface SupabaseProjectCredentials {
+  projectRef: string;
+  projectName: string;
+  connectionString: string;
+  dbUsername: string;
+  dbPassword: string;
+}
+
 export interface DecryptedCredentials {
   apiKey?: string;
   // WordPress specific
@@ -12,10 +20,8 @@ export interface DecryptedCredentials {
   shopDomain?: string;
   // PostgreSQL specific
   connectionString?: string;
-  // Supabase specific
-  supabaseProjectRef?: string;
-  supabaseDbUsername?: string;
-  supabaseDbPassword?: string;
+  // Supabase multi-project (OAuth)
+  supabaseProjects?: SupabaseProjectCredentials[];
 
   oauthAccessToken?: string;
   oauthRefreshToken?: string;

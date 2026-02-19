@@ -19,8 +19,16 @@ export interface SupabasePoolerConfig {
   connection_string: string;
 }
 
-export interface SupabaseCredentials {
+export interface SupabaseProjectConfig {
+  projectRef: string;
+  projectName: string;
   connectionString: string;
+}
+
+export interface SupabaseCredentials {
+  /** Manual single-project mode */
+  connectionString?: string;
+  /** OAuth multi-project mode */
+  projects?: SupabaseProjectConfig[];
   oauthAccessToken?: string;
-  projectRef?: string;
 }
