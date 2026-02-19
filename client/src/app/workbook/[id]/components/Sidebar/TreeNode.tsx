@@ -9,13 +9,24 @@ import { useDevTools } from '@/hooks/use-dev-tools';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
 import { useWorkbookActiveJobs } from '@/hooks/use-workbook-active-jobs';
 import { useNewWorkbookUIStore } from '@/stores/new-workbook-ui-store';
+import { useWorkbookEditorUIStore } from '@/stores/workbook-editor-store';
+import { OAuthService } from '@/types/oauth';
+import { initiateOAuth } from '@/utils/oauth';
 import { Badge, Box, Collapse, Group, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ConnectorAccount, DataFolder, DataFolderGroup, FileRefEntity, WorkbookId } from '@spinner/shared-types';
+import {
+  AuthType,
+  type ConnectorAccount,
+  type DataFolder,
+  type DataFolderGroup,
+  type FileRefEntity,
+  type WorkbookId,
+} from '@spinner/shared-types';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   ClockIcon,
+  CloudCogIcon,
   DownloadIcon,
   FileJsonIcon,
   FilePlusIcon,
@@ -26,6 +37,7 @@ import {
   RouteIcon,
   SettingsIcon,
   StickyNoteIcon,
+  TableIcon,
   Trash2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -41,6 +53,7 @@ import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveFileModal } from '../shared/RemoveFileModal';
 import { RemoveTableModal } from '../shared/RemoveTableModal';
+import { UpdateConnectionModal } from '../shared/UpdateConnectionModal';
 import { ActiveDataFolderJobIndicator } from './ActiveDataFolderJobIndicator';
 import type { FileTreeMode } from './FileTree';
 
@@ -69,8 +82,10 @@ export function ConnectionNode({
 }: ConnectionNodeProps) {
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
+  const setWorkbookError = useWorkbookEditorUIStore((state) => state.setWorkbookError);
   const { workbook, pullFolders } = useActiveWorkbook();
   const { getJobsForConnector } = useWorkbookActiveJobs(workbookId);
+  const [isReauthorizing, setIsReauthorizing] = useState(false);
 
   const connectorJobs = useMemo(() => {
     if (!connectorAccount) return [];
@@ -113,8 +128,38 @@ export function ConnectionNode({
   // Remove connection modal state
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
 
+  // Update connection modal state
+  const [updateConnectionModalOpened, { open: openUpdateConnectionModal, close: closeUpdateConnectionModal }] =
+    useDisclosure(false);
+
   // Publish V2 modal state
   const [publishV2ModalOpened, { open: openPublishV2Modal, close: closePublishV2Modal }] = useDisclosure(false);
+
+  // Reauthorize handler (OAuth connections)
+  const handleReauthorize = async () => {
+    if (!connectorAccount || connectorAccount.authType !== AuthType.OAUTH) {
+      return;
+    }
+    setIsReauthorizing(true);
+    try {
+      await initiateOAuth(connectorAccount.service as OAuthService, {
+        workbookId: workbookId,
+        redirectPrefix: `${window.location.protocol}//${window.location.host}`,
+        connectionMethod: 'OAUTH_SYSTEM',
+        connectionName: connectorAccount.displayName,
+        returnPage: window.location.pathname,
+        connectorAccountId: connectorAccount.id,
+      });
+    } catch (error) {
+      console.error('OAuth initiation failed:', error);
+      setWorkbookError({
+        description: `Failed to reauthorize connection to ${connectorAccount.displayName}. Please try again.`,
+        cause: error as Error,
+      });
+    } finally {
+      setIsReauthorizing(false);
+    }
+  };
 
   // Pull handler
   const handlePullAll = useCallback(async () => {
@@ -192,7 +237,10 @@ export function ConnectionNode({
             </Text12Medium>
 
             {/* Status dot - only on files page, immediately after name */}
-            {mode === 'files' && !isScratch && (
+
+            {isReauthorizing && <PulsingIcon Icon={CloudCogIcon} size={12} c="var(--mantine-color-yellow-6)" />}
+
+            {mode === 'files' && !isScratch && !isReauthorizing && (
               <Tooltip label={isConnected ? 'Connected' : 'Disconnected'} position="right">
                 <Box
                   style={{
@@ -275,7 +323,16 @@ export function ConnectionNode({
           position={contextMenu}
           items={[
             { label: 'Pull All Tables', icon: DownloadIcon, onClick: handlePullAll },
-            ...(connectorAccount && !isScratch ? [{ label: 'Choose tables', onClick: openChooseTables }] : []),
+            ...(connectorAccount && !isScratch
+              ? [{ label: 'Choose tables', icon: TableIcon, onClick: openChooseTables }]
+              : []),
+            ...(connectorAccount
+              ? [
+                  connectorAccount.authType === AuthType.OAUTH
+                    ? { label: 'Reauthorize', icon: CloudCogIcon, onClick: handleReauthorize }
+                    : { label: 'Edit Connection', icon: SettingsIcon, onClick: openUpdateConnectionModal },
+                ]
+              : []),
             { type: 'divider' as const },
             ...(connectorAccount
               ? [
@@ -287,7 +344,6 @@ export function ConnectionNode({
                   },
                 ]
               : []),
-            { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
             ...(connectorAccount && !isScratch
               ? [{ label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true }]
               : []),
@@ -318,6 +374,15 @@ export function ConnectionNode({
       {/* Test Publish V2 Modal */}
       {connectorAccount && (
         <TestPublishV2Modal opened={publishV2ModalOpened} onClose={closePublishV2Modal} workbookId={workbookId} />
+      )}
+
+      {/* Update Connection Modal */}
+      {connectorAccount && (
+        <UpdateConnectionModal
+          opened={updateConnectionModalOpened}
+          onClose={closeUpdateConnectionModal}
+          connectorAccount={connectorAccount}
+        />
       )}
     </>
   );
@@ -736,6 +801,8 @@ interface EmptyConnectionNodeProps {
 export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConnectionNodeProps) {
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
+  const setWorkbookError = useWorkbookEditorUIStore((state) => state.setWorkbookError);
+  const [isReauthorizing, setIsReauthorizing] = useState(false);
 
   const nodeId = `connection-${connectorAccount.displayName || connectorAccount.id}`;
   const isExpanded = expandedNodes.has(nodeId);
@@ -752,6 +819,10 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
   // Remove connection modal state
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
 
+  // Update connection modal state
+  const [updateConnectionModalOpened, { open: openUpdateConnectionModal, close: closeUpdateConnectionModal }] =
+    useDisclosure(false);
+
   const handleToggle = useCallback(() => {
     toggleNode(nodeId);
   }, [toggleNode, nodeId]);
@@ -766,6 +837,39 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
     // Position menu near the button
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setContextMenu({ x: rect.right, y: rect.bottom });
+  };
+
+  const handleReauthorize = async () => {
+    if (connectorAccount.authType !== AuthType.OAUTH) {
+      // Only necessary for OAuth connections
+      return;
+    }
+    /*
+     * This turns on a temporary overlay until the OAuth does the first redirect to the service
+     * just in case the server is lagging when generating the OAuth URL.
+     */
+    setIsReauthorizing(true);
+
+    try {
+      await initiateOAuth(connectorAccount.service as OAuthService, {
+        workbookId: workbookId,
+        redirectPrefix: `${window.location.protocol}//${window.location.host}`,
+        connectionMethod: 'OAUTH_SYSTEM',
+        connectionName: connectorAccount.displayName,
+        returnPage: window.location.pathname,
+        // setting the connector ID is what makes this a reauthorization
+        connectorAccountId: connectorAccount.id,
+      });
+      // The initiateOAuth function will redirect the user, so we don't need to do anything else here
+    } catch (error) {
+      console.error('OAuth initiation failed:', error);
+      setWorkbookError({
+        description: `Failed to reauthorize connection to ${connectorAccount.displayName}. Please try again.`,
+        cause: error as Error,
+      });
+    } finally {
+      setIsReauthorizing(false);
+    }
   };
 
   return (
@@ -802,17 +906,21 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
           </Text12Medium>
 
           {/* Status dot - immediately after name */}
-          <Tooltip label={isConnected ? 'Connected' : 'Connection error'} position="right">
-            <Box
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: isConnected ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-red-6)',
-                flexShrink: 0,
-              }}
-            />
-          </Tooltip>
+          {isReauthorizing ? (
+            <PulsingIcon Icon={CloudCogIcon} size={12} c="var(--mantine-color-yellow-6)" />
+          ) : (
+            <Tooltip label={isConnected ? 'Connected' : 'Connection error'} position="right">
+              <Box
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: isConnected ? 'var(--mantine-color-green-6)' : 'var(--mantine-color-red-6)',
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
+          )}
 
           {/* Spacer */}
           <Box style={{ flex: 1 }} />
@@ -857,9 +965,11 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
           onClose={() => setContextMenu(null)}
           position={contextMenu}
           items={[
-            { label: 'Choose tables', onClick: openChooseTables },
+            { label: 'Choose tables', icon: TableIcon, onClick: openChooseTables },
+            connectorAccount.authType === AuthType.OAUTH
+              ? { label: 'Reauthorize', icon: CloudCogIcon, onClick: handleReauthorize }
+              : { label: 'Edit Connection', icon: SettingsIcon, onClick: openUpdateConnectionModal },
             { type: 'divider' },
-            { label: 'Reauthorize', onClick: () => console.debug('Reauthorize') },
             { label: 'Remove', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
           ]}
         />
@@ -879,6 +989,12 @@ export function EmptyConnectionNode({ connectorAccount, workbookId }: EmptyConne
         onClose={closeRemoveModal}
         connectorAccount={connectorAccount}
         workbookId={workbookId}
+      />
+
+      <UpdateConnectionModal
+        opened={updateConnectionModalOpened}
+        onClose={closeUpdateConnectionModal}
+        connectorAccount={connectorAccount}
       />
     </>
   );

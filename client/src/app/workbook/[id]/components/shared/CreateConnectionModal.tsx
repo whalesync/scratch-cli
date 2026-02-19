@@ -3,11 +3,9 @@ import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { ModalWrapper } from '@/app/components/ModalWrapper';
 import { useConnectorAccounts } from '@/hooks/use-connector-account';
 import { useSubscription } from '@/hooks/use-subscription';
-import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { ScratchpadApiError } from '@/lib/api/error';
 import { getOauthLabel, getOauthPrivateLabel, serviceName } from '@/service-naming-conventions';
 import { OAuthService } from '@/types/oauth';
-import { INTERNAL_SERVICES } from '@/types/server-entities/connector-accounts';
 import { initiateOAuth } from '@/utils/oauth';
 import {
   Alert,
@@ -22,11 +20,10 @@ import {
 } from '@mantine/core';
 import { Service } from '@spinner/shared-types';
 import { Check } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
+import { AuthMethod, useConnectors } from '@/hooks/use-connectors';
 import type { ConnectorAccount } from '@spinner/shared-types';
-
-type AuthMethod = 'user_provided_params' | 'oauth' | 'oauth_custom';
 
 export type CreateConnectionModalProps = ModalProps & {
   workbookId: string;
@@ -54,97 +51,9 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
   const [customClientId, setCustomClientId] = useState('');
   const [customClientSecret, setCustomClientSecret] = useState('');
   const [showOAuthCustom, setShowOAuthCustom] = useState(false);
-  const { user, isAdmin } = useScratchPadUser();
   const { canCreateDataSource } = useSubscription();
-
   const { createConnectorAccount } = useConnectorAccounts(workbookId);
-
-  const getDefaultAuthMethod = useCallback(
-    (service: Service): AuthMethod => {
-      // Services that support OAuth
-      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
-
-      if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
-        oauthSupportedServices.push(Service.WEBFLOW);
-      }
-      if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
-        oauthSupportedServices.push(Service.SHOPIFY);
-      }
-      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
-        oauthSupportedServices.push(Service.SUPABASE);
-      }
-
-      // Services that use generic parameters
-      const genericParametersSupportedServices = [
-        Service.NOTION,
-        Service.AIRTABLE,
-        Service.WORDPRESS,
-        Service.WEBFLOW,
-        Service.SHOPIFY,
-        Service.AUDIENCEFUL,
-        Service.MOCO,
-        Service.POSTGRES,
-        Service.SUPABASE,
-      ];
-      if (oauthSupportedServices.includes(service)) {
-        return 'oauth';
-      } else if (genericParametersSupportedServices.includes(service)) {
-        return 'user_provided_params';
-      } else {
-        return 'oauth'; // Default fallback
-      }
-    },
-    [
-      user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
-      user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
-      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
-    ],
-  );
-
-  const getSupportedAuthMethods = useCallback(
-    (service: Service): AuthMethod[] => {
-      const oauthSupportedServices = [Service.NOTION, Service.YOUTUBE, Service.WIX_BLOG];
-
-      if (service === Service.WEBFLOW && user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH) {
-        oauthSupportedServices.push(Service.WEBFLOW);
-      }
-      if (service === Service.SHOPIFY && user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH) {
-        oauthSupportedServices.push(Service.SHOPIFY);
-      }
-      if (service === Service.SUPABASE && user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH) {
-        oauthSupportedServices.push(Service.SUPABASE);
-      }
-
-      const userProvidedParamsSupportedServices = [
-        Service.NOTION,
-        Service.AIRTABLE,
-        Service.WORDPRESS,
-        Service.WEBFLOW,
-        Service.SHOPIFY,
-        Service.AUDIENCEFUL,
-        Service.MOCO,
-        Service.POSTGRES,
-        Service.SUPABASE,
-      ];
-      const methods: AuthMethod[] = [];
-      if (oauthSupportedServices.includes(service)) {
-        methods.push('oauth');
-        // Enable Private OAuth only for YouTube (generic-ready for future services)
-        if (service === Service.YOUTUBE) {
-          methods.push('oauth_custom');
-        }
-      }
-      if (userProvidedParamsSupportedServices.includes(service)) {
-        methods.push('user_provided_params');
-      }
-      return methods;
-    },
-    [
-      user?.experimentalFlags?.ENABLE_WEBFLOW_OAUTH,
-      user?.experimentalFlags?.ENABLE_SHOPIFY_OAUTH,
-      user?.experimentalFlags?.ENABLE_SUPABASE_OAUTH,
-    ],
-  );
+  const { getDefaultAuthMethod, getSupportedAuthMethods, availableServices } = useConnectors();
 
   const handleSelectNewService = (service: Service) => {
     setNewService(service);
@@ -287,12 +196,6 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
     }
   };
 
-  const connectorListFromFlags = (user?.experimentalFlags?.CONNECTOR_LIST ?? []) as Service[];
-
-  // For admins show all services. Dedupe in case of overlap between flags and internal services.
-  const availableServices = isAdmin
-    ? [...new Set([...connectorListFromFlags, ...INTERNAL_SERVICES])]
-    : connectorListFromFlags;
   return (
     <ModalWrapper
       title="Create Connection"
