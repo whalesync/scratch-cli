@@ -94,7 +94,7 @@ export const useSyncStore = create<SyncStoreState>((set, get) => ({
 
           if (job.state === 'completed' || job.state === 'failed' || job.state === 'canceled') {
             const syncId = Object.keys(state.activeJobs).find(
-              (key) => state.activeJobs[key as SyncId] === job.dbJobId,
+              (key) => state.activeJobs[key as SyncId] === job.bullJobId,
             ) as SyncId;
 
             if (syncId) {
