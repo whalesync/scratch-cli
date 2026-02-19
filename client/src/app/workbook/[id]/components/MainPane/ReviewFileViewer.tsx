@@ -115,7 +115,8 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
     setIsPublishing(true);
     try {
       // Find the dataFolderId from the file path (folder name is first segment)
-      const folderName = filePath.split('/')[0];
+      const lastIndex = filePath.lastIndexOf('/');
+      const folderName = filePath.substring(0, lastIndex);
       const folder = folders.find((f) => f.name === folderName);
 
       if (!folder) {

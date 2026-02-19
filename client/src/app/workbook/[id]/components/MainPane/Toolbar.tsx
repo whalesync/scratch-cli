@@ -103,9 +103,12 @@ export function Toolbar({ workbook }: ToolbarProps) {
         setIsPublishing(true);
         try {
           // Get unique folder names from dirty files
+          // this is ultra fragile and will break if the folder name contains a slash
+          // we should probably include folder IDs in the dirty file object in the future
           const dirtyFolderNames = new Set<string>();
           dirtyFiles.forEach((file) => {
-            const folderName = file.path.split('/')[0];
+            const lastIndex = file.path.lastIndexOf('/');
+            const folderName = file.path.substring(0, lastIndex);
             if (folderName) {
               dirtyFolderNames.add(folderName);
             }
