@@ -13,6 +13,7 @@ import { PostgresColumnType, Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { sanitizeForTableWsId } from '../../ids';
+import { FOREIGN_KEY_OPTIONS } from '../../json-schema';
 import {
   type BaseJsonTableSpec,
   type ConnectorErrorDetails,
@@ -26,6 +27,7 @@ import {
   KnexPGClientError,
   SUPABASE_SYSTEM_SCHEMA_PATTERNS,
   SUPABASE_SYSTEM_SCHEMAS,
+  TableName,
   type InformationSchemaColumn,
 } from '../pg-common';
 import { SupabaseApiError } from './supabase-api-client';
@@ -350,57 +352,40 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
         SUPABASE_SYSTEM_SCHEMA_PATTERNS,
       );
 
-      const baseTables = tables.filter((t) => t.table_type === 'BASE TABLE');
-
-      return baseTables.map((t) => {
-        const displayName = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
-        return {
-          id: {
-            wsId: sanitizeForTableWsId(`${this.connectionStringProjectRef}__${t.table_schema}__${t.table_name}`),
-            remoteId: [this.connectionStringProjectRef!, t.table_schema, t.table_name],
-          },
-          displayName,
-          metadata: {
-            schema: t.table_schema,
-            description: `Table "${t.table_name}" in schema "${t.table_schema}"`,
-          },
-        };
-      });
+      return tables.map((t) => this.parseTables(t, this.connectionStringProjectRef!));
     });
+  }
+
+  private parseTables(t: TableName, projectRef: string, projectName?: string): TablePreview {
+    const displayName = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
+    return {
+      id: {
+        wsId: sanitizeForTableWsId(`${projectName || projectRef}__${t.table_schema}__${t.table_name}`),
+        remoteId: [projectRef, t.table_schema, t.table_name],
+      },
+      displayName,
+      metadata: {
+        schema: t.table_schema,
+        projectRef: projectRef,
+        projectName: projectName,
+        description: `Table "${t.table_name}" in schema "${t.table_schema}"`,
+      },
+    };
   }
 
   private async listTablesOAuth(): Promise<TablePreview[]> {
     const allTables: TablePreview[] = [];
 
     for (const project of this.projects) {
-      try {
-        const tables = await this.withPgClient(async (client) => {
-          const rows = await client.findAllTablesExcludingSchemas(
-            SUPABASE_SYSTEM_SCHEMAS,
-            SUPABASE_SYSTEM_SCHEMA_PATTERNS,
-          );
-          return rows.filter((t) => t.table_type === 'BASE TABLE');
-        }, project.connectionString);
+      const tables = await this.withPgClient(async (client) => {
+        const rows = await client.findAllTablesExcludingSchemas(
+          SUPABASE_SYSTEM_SCHEMAS,
+          SUPABASE_SYSTEM_SCHEMA_PATTERNS,
+        );
+        return rows;
+      }, project.connectionString);
 
-        for (const t of tables) {
-          const schemaQualified = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
-          allTables.push({
-            id: {
-              wsId: sanitizeForTableWsId(`${project.projectName}__${t.table_schema}__${t.table_name}`),
-              remoteId: [project.projectRef, t.table_schema, t.table_name],
-            },
-            displayName: `${project.projectName} / ${schemaQualified}`,
-            metadata: {
-              schema: t.table_schema,
-              projectRef: project.projectRef,
-              projectName: project.projectName,
-              description: `Table "${t.table_name}" in schema "${t.table_schema}" of project "${project.projectName}"`,
-            },
-          });
-        }
-      } catch {
-        // Skip projects that fail — testConnection already validates connectivity
-      }
+      allTables.push(...tables.map((t) => this.parseTables(t, project.projectRef, project.projectName)));
     }
 
     return allTables;
@@ -415,12 +400,25 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     return this.withPgClient(async (client) => {
       const { schema, tableName } = resolved;
 
-      const [columns, pkCandidates] = await Promise.all([
+      const [columns, pkCandidates, foreignKeys] = await Promise.all([
         client.findAllColumnsInTable(schema, tableName),
         client.findPrimaryColumnCandidates(schema, tableName),
+        client.findAllForeignKeysInTable(schema, tableName),
       ]);
 
       const primaryKey = this.pickPrimaryKey(pkCandidates, columns);
+
+      // Build a map from column name → linked table display name
+      const fkMap = new Map<string, string>();
+      for (const fk of foreignKeys) {
+        if (fk.foreign_table_name) {
+          const linkedTableId =
+            fk.foreign_table_schema === 'public'
+              ? fk.foreign_table_name
+              : `${fk.foreign_table_schema}.${fk.foreign_table_name}`;
+          fkMap.set(fk.column_name, linkedTableId);
+        }
+      }
 
       const schemaProperties: Record<string, TSchema> = {};
       for (const col of columns) {
@@ -434,6 +432,12 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
         // Generated/identity columns are read-only
         if (isGeneratedColumn(col) || col.is_updatable === 'NO') {
           (annotated as Record<string, unknown>)[READONLY_FLAG] = true;
+        }
+
+        // Annotate foreign key columns
+        const linkedTableId = fkMap.get(col.column_name);
+        if (linkedTableId) {
+          (annotated as Record<string, unknown>)[FOREIGN_KEY_OPTIONS] = { linkedTableId };
         }
 
         schemaProperties[col.column_name] = isNullable || hasDefault ? Type.Optional(annotated) : annotated;
