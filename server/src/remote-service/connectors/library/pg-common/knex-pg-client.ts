@@ -273,14 +273,14 @@ export class KnexPGClient {
   async selectAll(
     schema: string,
     tableName: string,
-    columns: string[],
+    columns: string[] | undefined,
     primaryId: string,
     limit: number,
     offset: number,
     filter?: string,
   ): Promise<Record<string, unknown>[]> {
-    const escaped = escapeColumns(columns);
-    let query = this.knex(`${schema}.${tableName}`).select(escaped).orderBy(primaryId).offset(offset).limit(limit);
+    const selection = columns ? escapeColumns(columns) : '*';
+    let query = this.knex(`${schema}.${tableName}`).select(selection).orderBy(primaryId).offset(offset).limit(limit);
     if (filter) {
       query = query.whereRaw(filter);
     }
@@ -312,11 +312,10 @@ export class KnexPGClient {
   async insertOne(
     schema: string,
     tableName: string,
-    columns: string[],
     primaryId: string,
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const results = await this.insertMany(schema, tableName, columns, primaryId, [data]);
+    const results = await this.insertMany(schema, tableName, primaryId, [data]);
     return results[0];
   }
 
@@ -324,18 +323,16 @@ export class KnexPGClient {
   async insertMany(
     schema: string,
     tableName: string,
-    columns: string[],
     primaryId: string,
     records: Record<string, unknown>[],
   ): Promise<Record<string, unknown>[]> {
-    const escaped = escapeColumns(columns);
     const insertData = records.map((record) => {
       const filtered = { ...record };
       delete filtered[primaryId];
       return escapeObjectKeys(filtered);
     });
 
-    const rows = (await this.knex(`${schema}.${tableName}`).insert(insertData).returning(escaped)) as Record<
+    const rows = (await this.knex(`${schema}.${tableName}`).insert(insertData).returning('*')) as Record<
       string,
       unknown
     >[];
@@ -358,12 +355,10 @@ export class KnexPGClient {
   async updateOne(
     schema: string,
     tableName: string,
-    columns: string[],
     recordId: string | number,
     primaryId: string,
     data: Record<string, unknown>,
   ): Promise<Record<string, unknown> | 'not_found'> {
-    const escaped = escapeColumns(columns);
     const filteredData = { ...data };
     delete filteredData[primaryId];
     const escapedData = escapeObjectKeys(filteredData);
@@ -371,7 +366,7 @@ export class KnexPGClient {
     const rows = (await this.knex(`${schema}.${tableName}`)
       .where(primaryId, recordId)
       .update(escapedData)
-      .returning(escaped)) as Record<string, unknown>[];
+      .returning('*')) as Record<string, unknown>[];
 
     if (rows.length === 0) {
       return 'not_found';
@@ -393,11 +388,9 @@ export class KnexPGClient {
   async updateMany(
     schema: string,
     tableName: string,
-    columns: string[],
     primaryId: string,
     records: { id: string | number; data: Record<string, unknown> }[],
   ): Promise<(Record<string, unknown> | 'not_found')[]> {
-    const escaped = escapeColumns(columns);
     const results: (Record<string, unknown> | 'not_found')[] = [];
 
     await this.knex.transaction(async (trx) => {
@@ -409,7 +402,7 @@ export class KnexPGClient {
         const rows = (await trx(`${schema}.${tableName}`)
           .where(primaryId, record.id)
           .update(escapedData)
-          .returning(escaped)) as Record<string, unknown>[];
+          .returning('*')) as Record<string, unknown>[];
 
         if (rows.length === 0) {
           results.push('not_found');

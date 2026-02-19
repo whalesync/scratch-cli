@@ -8,7 +8,7 @@
  * Authenticates via OAuth 2.0 with the Supabase Management API.
  * Data access uses a dedicated PostgreSQL role created during setup.
  */
-import { Type, type TObject, type TSchema } from '@sinclair/typebox';
+import { Type, type TSchema } from '@sinclair/typebox';
 import { PostgresColumnType, Service } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
@@ -28,7 +28,8 @@ import {
   SUPABASE_SYSTEM_SCHEMAS,
   type InformationSchemaColumn,
 } from '../pg-common';
-import { SupabaseApiClient, SupabaseApiError } from './supabase-api-client';
+import { SupabaseApiError } from './supabase-api-client';
+import { extractProjectRef } from './supabase-setup-utils';
 import { SupabaseCredentials, SupabaseProjectConfig } from './supabase-types';
 
 const READ_BATCH_SIZE = 500;
@@ -251,25 +252,27 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
 
   private readonly connectionString: string | undefined;
   private readonly projects: SupabaseProjectConfig[];
-  private readonly isMultiProject: boolean;
-  private readonly apiClient: SupabaseApiClient | undefined;
+  private readonly isOAuth: boolean;
+  private readonly connectionStringProjectRef: string | undefined;
 
   constructor(credentials: SupabaseCredentials) {
     super();
     this.projects = credentials.projects ?? [];
-    this.isMultiProject = this.projects.length > 0;
+    this.isOAuth = this.projects.length > 0;
     this.connectionString = credentials.connectionString;
-    this.apiClient = credentials.oauthAccessToken ? new SupabaseApiClient(credentials.oauthAccessToken) : undefined;
+    this.connectionStringProjectRef = credentials.connectionString
+      ? extractProjectRef(credentials.connectionString)
+      : undefined;
   }
 
   /**
    * Resolve the connection string, schema, and table name for a given remoteId.
-   * Multi-project: remoteId = [projectRef, schema, tableName]
-   * Single-project: remoteId = [schema, tableName]
+   * remoteId is always [projectRef, schema, tableName].
    */
   private resolveConnection(remoteId: string[]): { connectionString: string; schema: string; tableName: string } {
-    if (this.isMultiProject && remoteId.length >= 3) {
-      const [projectRef, schema, tableName] = remoteId;
+    const [projectRef, schema, tableName] = remoteId;
+
+    if (this.isOAuth) {
       const project = this.projects.find((p) => p.projectRef === projectRef);
       if (!project) {
         throw new KnexPGClientError(`Unknown Supabase project: ${projectRef}`, 'CONNECTION_ERROR');
@@ -280,11 +283,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     if (!this.connectionString) {
       throw new KnexPGClientError('No connection string configured', 'CONNECTION_ERROR');
     }
-    return {
-      connectionString: this.connectionString,
-      schema: remoteId[0] ?? 'public',
-      tableName: remoteId[1] ?? remoteId[0],
-    };
+    return { connectionString: this.connectionString, schema, tableName };
   }
 
   /**
@@ -313,7 +312,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async testConnection(): Promise<void> {
-    if (this.isMultiProject) {
+    if (this.isOAuth) {
       const errors: string[] = [];
       for (const project of this.projects) {
         try {
@@ -338,13 +337,13 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
   // -------------------------------------------------------------------------
 
   async listTables(): Promise<TablePreview[]> {
-    if (this.isMultiProject) {
-      return this.listTablesMultiProject();
+    if (this.isOAuth) {
+      return this.listTablesOAuth();
     }
-    return this.listTablesSingleProject();
+    return this.listTablesConnectionString();
   }
 
-  private async listTablesSingleProject(): Promise<TablePreview[]> {
+  private async listTablesConnectionString(): Promise<TablePreview[]> {
     return this.withPgClient(async (client) => {
       const tables = await client.findAllTablesExcludingSchemas(
         SUPABASE_SYSTEM_SCHEMAS,
@@ -357,8 +356,8 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
         const displayName = t.table_schema === 'public' ? t.table_name : `${t.table_schema}.${t.table_name}`;
         return {
           id: {
-            wsId: sanitizeForTableWsId(`${t.table_schema}__${t.table_name}`),
-            remoteId: [t.table_schema, t.table_name],
+            wsId: sanitizeForTableWsId(`${this.connectionStringProjectRef}__${t.table_schema}__${t.table_name}`),
+            remoteId: [this.connectionStringProjectRef!, t.table_schema, t.table_name],
           },
           displayName,
           metadata: {
@@ -370,7 +369,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     });
   }
 
-  private async listTablesMultiProject(): Promise<TablePreview[]> {
+  private async listTablesOAuth(): Promise<TablePreview[]> {
     const allTables: TablePreview[] = [];
 
     for (const project of this.projects) {
@@ -498,13 +497,12 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
       const { schema, tableName } = resolved;
-      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
       const filter = rawFilter;
       let offset = 0;
 
       while (true) {
-        const rows = await client.selectAll(schema, tableName, columns, pk, READ_BATCH_SIZE, offset, filter);
+        const rows = await client.selectAll(schema, tableName, undefined, pk, READ_BATCH_SIZE, offset, filter);
         if (rows.length === 0) break;
 
         await callback({ files: rows as ConnectorFile[] });
@@ -538,10 +536,9 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
       const { schema, tableName } = resolved;
-      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
 
-      return client.insertMany(schema, tableName, columns, pk, files);
+      return client.insertMany(schema, tableName, pk, files);
     }, resolved.connectionString);
   }
 
@@ -553,7 +550,6 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     const resolved = this.resolveConnection(tableSpec.id.remoteId);
     return this.withPgClient(async (client) => {
       const { schema, tableName } = resolved;
-      const columns = Object.keys((tableSpec.schema as TObject).properties ?? {});
       const pk = tableSpec.idColumnRemoteId;
 
       const records = files.map((file) => ({
@@ -561,7 +557,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
         data: file,
       }));
 
-      await client.updateMany(schema, tableName, columns, pk, records);
+      await client.updateMany(schema, tableName, pk, records);
     }, resolved.connectionString);
   }
 

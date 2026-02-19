@@ -1,6 +1,19 @@
 import { SUPABASE_SYSTEM_SCHEMAS } from '../pg-common';
 
 /**
+ * Extract the Supabase project ref from a pooler connection string.
+ * Supavisor shared endpoints use username format: `postgres.PROJECT_REF`.
+ */
+export function extractProjectRef(connectionString: string): string {
+  const url = new URL(connectionString);
+  const parts = url.username.split('.');
+  if (parts.length >= 2) {
+    return parts.slice(1).join('.');
+  }
+  throw new Error('Cannot extract project ref from connection string username');
+}
+
+/**
  * Build the PL/pgSQL to create a service account role with permissions on all user schemas.
  */
 export function buildCreateUserSQL(username: string, password: string): string {
