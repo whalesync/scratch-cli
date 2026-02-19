@@ -22,6 +22,8 @@ export function ActiveDataFolderJobIndicator({ folder }: ActiveDataFolderJobIndi
 
   const job = folderJobs[0];
 
+  if (!job.publicProgress) return null;
+
   let cardContent: React.ReactNode = (
     <Group gap={8} wrap="nowrap">
       <Text12Regular c="var(--fg-secondary)">{job.type}</Text12Regular>
