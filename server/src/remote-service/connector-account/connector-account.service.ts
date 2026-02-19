@@ -117,7 +117,10 @@ export class ConnectorAccountService {
       },
     });
 
-    return connectorAccount;
+    // Re-fetch to include health status set by testConnection()
+    return this.db.client.connectorAccount.findUniqueOrThrow({
+      where: { id: connectorAccount.id },
+    });
   }
 
   async findAll(workbookId: WorkbookId, actor: Actor): Promise<ConnectorAccount[]> {
@@ -344,8 +347,9 @@ export class ConnectorAccountService {
 
   async testConnection(workbookId: WorkbookId, id: string, actor: Actor): Promise<TestConnectionResponse> {
     const account = await this.findOne(workbookId, id, actor);
+    let connector: Connector<Service, any> | undefined;
     try {
-      const connector = await this.connectorsService.getConnector({
+      connector = await this.connectorsService.getConnector({
         service: account.service as Service,
         connectorAccount: account,
         decryptedCredentials: account,
@@ -358,6 +362,7 @@ export class ConnectorAccountService {
         data: {
           healthStatus: 'OK',
           healthStatusLastCheckedAt: new Date(),
+          healthStatusMessage: null,
         },
       });
 
@@ -370,7 +375,14 @@ export class ConnectorAccountService {
         userId: actor.userId,
         connectorAccountId: id,
       });
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      let errorMessage: string;
+      if (connector) {
+        errorMessage = connector.extractConnectorErrorDetails(error).userFriendlyMessage;
+      } else {
+        errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      }
+
       await this.db.client.connectorAccount.update({
         where: { id },
         data: {

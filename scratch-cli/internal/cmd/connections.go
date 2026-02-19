@@ -359,6 +359,9 @@ func printConnectionCreated(result *api.Connection, jsonOutput bool) error {
 	if result.HealthStatus != nil {
 		fmt.Printf("  Health:  %s\n", *result.HealthStatus)
 	}
+	if result.HealthStatusMessage != nil && *result.HealthStatusMessage != "" {
+		fmt.Printf("  Message: %s\n", *result.HealthStatusMessage)
+	}
 	fmt.Println()
 	return nil
 }

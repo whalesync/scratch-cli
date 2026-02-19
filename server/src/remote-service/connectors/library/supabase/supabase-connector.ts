@@ -616,6 +616,36 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
       };
     }
 
+    if (error instanceof Error) {
+      const msg = error.message;
+
+      // Knex pool timeout (unreachable host / wrong port)
+      if (msg.startsWith('Knex: Timeout acquiring a connection')) {
+        return {
+          userFriendlyMessage:
+            'Could not connect to the database. Please verify the host and port in your connection string.',
+          description: msg,
+        };
+      }
+
+      // DNS resolution failure (often caused by unencoded '@' in password)
+      if (msg.includes('getaddrinfo ENOTFOUND')) {
+        return {
+          userFriendlyMessage:
+            'Could not resolve the database hostname. If your password contains special characters, they must be URL-encoded.',
+          description: msg,
+        };
+      }
+
+      // SASL errors (empty or malformed password)
+      if (msg.includes('SASL')) {
+        return {
+          userFriendlyMessage: 'Authentication failed. The password appears empty or malformed.',
+          description: msg,
+        };
+      }
+    }
+
     return {
       userFriendlyMessage: 'An error occurred while connecting to Supabase',
       description: error instanceof Error ? error.message : String(error),
@@ -626,7 +656,9 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     switch (code) {
       case '28P01':
       case '28000':
-        return 'Authentication failed. Please reconnect your Supabase account.';
+        return this.isOAuth
+          ? 'Authentication failed. Please reconnect your Supabase account.'
+          : 'Authentication failed. Please check the password in your connection string.';
       case '3D000':
         return 'Database does not exist. Please check your Supabase project settings.';
       case '08001':

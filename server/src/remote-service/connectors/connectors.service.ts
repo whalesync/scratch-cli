@@ -11,6 +11,7 @@ import { MocoConnector } from './library/moco/moco-connector';
 import { NotionConnector } from './library/notion/notion-connector';
 import { PostgresConnector } from './library/postgres/postgres-connector';
 import { ShopifyConnector } from './library/shopify/shopify-connector';
+import { SupabaseAuthParser } from './library/supabase/supabase-auth-parser';
 import { SupabaseConnector } from './library/supabase/supabase-connector';
 import { WebflowConnector } from './library/webflow/webflow-connector';
 import { WixBlogConnector } from './library/wix/wix-blog/wix-blog-connector';
@@ -28,6 +29,8 @@ export class ConnectorsService {
     switch (service) {
       case Service.WORDPRESS:
         return new WordPressAuthParser();
+      case Service.SUPABASE:
+        return new SupabaseAuthParser();
       default:
         return undefined;
     }
