@@ -427,6 +427,7 @@ export const CreateConnectionModal = (props: CreateConnectionModalProps) => {
                 placeholder="Enter API Key"
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.currentTarget.value)}
+                type="password"
               />
             )}
         </Stack>
