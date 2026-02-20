@@ -6,8 +6,8 @@ import { API_CONFIG } from '@/lib/api/config';
 import { trackUserSignIn } from '@/lib/posthog';
 import { RouteUrls } from '@/utils/route-urls';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
-import { JSX, ReactNode, useCallback, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { JSX, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 const JWT_TOKEN_REFRESH_MS = 10000; // 10 seconds
 
@@ -35,10 +35,12 @@ export const ScratchPadUserProvider = ({ children }: { children: ReactNode }): J
  * It refreshes the JWT token periodically and sets the value into the API_CONFIG so all API calls can be authenticated
  */
 export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.Element => {
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
+  const router = useRouter();
   const [tokenLoaded, setTokenLoaded] = useState(false);
+  const hadTokenRef = useRef(false);
 
   const loadToken = useCallback(async () => {
     /*
@@ -48,9 +50,15 @@ export const ClerkAuthContextProvider = (props: { children: ReactNode }): JSX.El
 
     if (newToken) {
       API_CONFIG.setAuthToken(newToken);
+      hadTokenRef.current = true;
       setTokenLoaded(true);
+    } else if (hadTokenRef.current) {
+      // Session expired — we previously had a valid token but Clerk now returns null.
+      // Sign out and redirect to sign-in so the user can re-authenticate.
+      await signOut();
+      router.push(RouteUrls.signInPageUrl);
     }
-  }, [getToken]);
+  }, [getToken, signOut, router]);
 
   // This sets the token when the first load of the page is complete
   useEffect(() => {
