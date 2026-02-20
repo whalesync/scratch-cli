@@ -57,7 +57,7 @@ export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' 
     );
   }
 
-  if (displayedFiles.length === 0) {
+  if (displayedFiles.length === 0 && !searchQuery) {
     return (
       <Box p="xl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Text13Regular c="dimmed">This folder is empty</Text13Regular>
@@ -91,11 +91,17 @@ export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' 
 
       {/* File grid */}
       <Box style={{ flex: 1, overflow: 'auto' }} p="md">
-        <SimpleGrid cols={COLUMN_COUNT} spacing="xs" verticalSpacing="xs">
-          {displayedFiles.map((file) => (
-            <FileCard key={file.path} file={file} workbookId={workbookId} mode={mode} />
-          ))}
-        </SimpleGrid>
+        {displayedFiles.length === 0 ? (
+          <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <Text13Regular c="dimmed">No files match &ldquo;{searchQuery}&rdquo;</Text13Regular>
+          </Box>
+        ) : (
+          <SimpleGrid cols={COLUMN_COUNT} spacing="xs" verticalSpacing="xs">
+            {displayedFiles.map((file) => (
+              <FileCard key={file.path} file={file} workbookId={workbookId} mode={mode} />
+            ))}
+          </SimpleGrid>
+        )}
       </Box>
       <Group
         h={36}

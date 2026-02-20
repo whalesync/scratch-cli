@@ -3,7 +3,14 @@ import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { MocoApiClient, MocoError } from './moco-api-client';
 import { buildMocoJsonTableSpec } from './moco-json-schema';
 import { MocoCredentials, MocoEntityType } from './moco-types';
@@ -90,7 +97,7 @@ export class MocoConnector extends Connector<typeof Service.MOCO> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     const entityType = tableSpec.id.wsId as MocoEntityType;
 

@@ -5,7 +5,14 @@ import { Service } from '@spinner/shared-types';
 import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { YoutubeApiClient } from './youtube-api-client';
 import { buildYouTubeJsonTableSpec } from './youtube-json-schema';
 
@@ -117,7 +124,7 @@ export class YouTubeConnector extends Connector<typeof Service.YOUTUBE> {
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     progress: JsonSafeObject,
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     WSLogger.info({ source: 'YouTubeConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });

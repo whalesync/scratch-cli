@@ -1,6 +1,13 @@
 import { Service, TableDiscoveryMode } from '@spinner/shared-types';
 import { JsonSafeObject } from 'src/utils/objects';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from './types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from './types';
 
 /**
  * Defines a utility that parses the user provided parameters for a given service into a set of credentials and extras.
@@ -95,7 +102,7 @@ export abstract class Connector<T extends Service, TConnectorProgress extends Js
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: TConnectorProgress }) => Promise<void>,
     progress: TConnectorProgress,
-    options: { filter?: string },
+    options: ConnectorPullOptions,
   ): Promise<void>;
 
   /**

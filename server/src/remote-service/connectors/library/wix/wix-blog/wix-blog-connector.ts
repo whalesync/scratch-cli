@@ -6,7 +6,14 @@ import { createClient, OAuthStrategy, TokenRole } from '@wix/sdk';
 import { WSLogger } from 'src/logger';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../../connector';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../../types';
 import { HtmlToWixConverter } from '../rich-content/html-to-ricos';
 import { createTurndownService } from '../rich-content/markdown-helpers';
 import { WixToHtmlConverter } from '../rich-content/ricos-to-html';
@@ -83,7 +90,7 @@ export class WixBlogConnector extends Connector<typeof Service.WIX_BLOG> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     progress: JsonSafeObject,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     WSLogger.info({ source: 'WixBlogConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     await callback({ files: [], connectorProgress: progress });

@@ -4,7 +4,14 @@ import TurndownService from 'turndown';
 import { Connector } from '../../connector';
 import { extractErrorMessageFromAxiosError } from '../../error';
 import { sanitizeForTableWsId } from '../../ids';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import {
   WORDPRESS_BATCH_SIZE,
   WORDPRESS_CREATE_UNSUPPORTED_TABLE_IDS,
@@ -73,7 +80,7 @@ export class WordPressConnector extends Connector<typeof Service.WORDPRESS, Word
     callback: (params: { files: ConnectorFile[]; connectorProgress?: WordPressDownloadProgress }) => Promise<void>,
     progress: WordPressDownloadProgress,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     const [tableId] = tableSpec.id.remoteId;
     let offset = progress?.nextOffset ?? 0;

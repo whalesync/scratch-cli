@@ -16,7 +16,14 @@ import _ from 'lodash';
 import { WSLogger } from 'src/logger';
 import { Connector } from '../../connector';
 import { ErrorMessageTemplates } from '../../error';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { createNotionBlockDiff } from './conversion/notion-block-diff';
 import { NotionBlockDiffExecutor } from './conversion/notion-block-diff-executor';
 import { NotionMarkdownConverter } from './conversion/notion-markdown-converter';
@@ -125,7 +132,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
-    options: { filter?: string },
+    options: ConnectorPullOptions,
   ): Promise<void> {
     WSLogger.info({ source: 'NotionConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
 

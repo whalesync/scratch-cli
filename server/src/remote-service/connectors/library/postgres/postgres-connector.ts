@@ -6,6 +6,7 @@ import {
   BaseJsonTableSpec,
   ConnectorErrorDetails,
   ConnectorFile,
+  ConnectorPullOptions,
   EntityId,
   PostgresColumnType,
   TablePreview,
@@ -177,7 +178,7 @@ export class PostgresConnector extends Connector<typeof Service.POSTGRES> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     const tableName = tableSpec.id.remoteId[1] ?? tableSpec.id.wsId;
     let offset = 0;

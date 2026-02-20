@@ -3,7 +3,14 @@ import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { AudiencefulApiClient, AudiencefulError } from './audienceful-api-client';
 import { buildAudiencefulJsonTableSpec } from './audienceful-json-schema';
 import { AudiencefulField } from './audienceful-types';
@@ -86,7 +93,7 @@ export class AudiencefulConnector extends Connector<typeof Service.AUDIENCEFUL> 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     for await (const people of this.client.listPeople()) {
       await callback({ files: people as unknown as ConnectorFile[] });

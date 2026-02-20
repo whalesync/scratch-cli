@@ -6,7 +6,14 @@ import { JsonSafeObject } from 'src/utils/objects';
 import { Webflow, WebflowClient, WebflowError } from 'webflow-api';
 import { minifyHtml } from '../../../../wrappers/html-minify';
 import { Connector } from '../../connector';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { buildWebflowJsonTableSpec } from './webflow-json-schema';
 import { WebflowSchemaParser } from './webflow-schema-parser';
 import { WEBFLOW_ECOMMERCE_COLLECTION_SLUGS } from './webflow-types';
@@ -134,7 +141,7 @@ export class WebflowConnector extends Connector<typeof Service.WEBFLOW> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _progress: JsonSafeObject,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _options: { filter?: string },
+    _options: ConnectorPullOptions,
   ): Promise<void> {
     WSLogger.info({ source: 'WebflowConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
     const [, collectionId] = tableSpec.id.remoteId;

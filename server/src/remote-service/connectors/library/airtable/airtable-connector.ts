@@ -3,7 +3,14 @@ import { isAxiosError } from 'axios';
 import { JsonSafeObject } from 'src/utils/objects';
 import { Connector } from '../../connector';
 import { extractCommonDetailsFromAxiosError, extractErrorMessageFromAxiosError } from '../../error';
-import { BaseJsonTableSpec, ConnectorErrorDetails, ConnectorFile, EntityId, TablePreview } from '../../types';
+import {
+  BaseJsonTableSpec,
+  ConnectorErrorDetails,
+  ConnectorFile,
+  ConnectorPullOptions,
+  EntityId,
+  TablePreview,
+} from '../../types';
 import { AirtableApiClient } from './airtable-api-client';
 import { buildAirtableJsonTableSpec, isReadonlyField } from './airtable-json-schema';
 import { AirtableSchemaParser } from './airtable-schema-parser';
@@ -58,7 +65,7 @@ export class AirtableConnector extends Connector<typeof Service.AIRTABLE> {
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
 
     _progress: JsonSafeObject,
-    options: { filter?: string },
+    options: ConnectorPullOptions,
   ): Promise<void> {
     const [baseId, tableId] = tableSpec.id.remoteId;
 

@@ -18,6 +18,7 @@ import {
   type BaseJsonTableSpec,
   type ConnectorErrorDetails,
   type ConnectorFile,
+  type ConnectorPullOptions,
   type EntityId,
   type TablePreview,
 } from '../../types';
@@ -510,7 +511,7 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: JsonSafeObject }) => Promise<void>,
     _progress: JsonSafeObject,
-    options: { filter?: string },
+    options: ConnectorPullOptions,
   ): Promise<void> {
     const rawFilter = options.filter?.trim() || undefined;
     if (rawFilter) {
