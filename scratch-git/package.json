@@ -11,10 +11,12 @@
     "dev:api": "ts-node-dev --respawn git-scratch-api.ts",
     "start:http-backend": "ts-node git-http-backend.ts",
     "dev:http-backend": "ts-node-dev --respawn git-http-backend.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write \"**/*.ts\"",
     "lint": "eslint \"**/*.ts\"",
-    "lint:fix": "eslint \"**/*.ts\" --fix"
+    "lint:fix": "eslint \"**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -26,6 +28,7 @@
     "node-diff3": "^3.2.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@eslint/js": "^9.18.0",
     "@types/archiver": "^6.0.3",
     "@types/cors": "^2.8.17",
@@ -36,8 +39,10 @@
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
+    "jest": "^29.7.0",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
