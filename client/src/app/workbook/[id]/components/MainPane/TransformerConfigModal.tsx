@@ -1,6 +1,8 @@
 'use client';
 
-import { Button, Checkbox, Group, Modal, Select, Stack, TextInput } from '@mantine/core';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
+import { Button, Checkbox, Group, Modal, Select, Stack, Text, TextInput } from '@mantine/core';
+import type { ComboboxItem } from '@mantine/core';
 import type { DataFolder, DataFolderId, TransformerConfig, TransformerType } from '@spinner/shared-types';
 import { useEffect, useState } from 'react';
 
@@ -94,7 +96,14 @@ export function TransformerConfigModal({
     onClose();
   };
 
-  const folderSelectData = allFolders.map((f) => ({ value: f.id, label: f.name }));
+  const folderSelectData = allFolders.map((f) => ({ value: f.id, label: f.name, connectorService: f.connectorService }));
+
+  const renderFolderOption = ({ option }: { option: ComboboxItem & { connectorService?: string | null } }) => (
+    <Group gap="xs" wrap="nowrap">
+      {option.connectorService && <ConnectorIcon connector={option.connectorService} size={16} p={0} />}
+      <Text size="sm">{option.label}</Text>
+    </Group>
+  );
 
   const isSaveDisabled =
     (type === 'source_fk_to_dest_fk' && !referencedDataFolderId) ||
@@ -133,6 +142,7 @@ export function TransformerConfigModal({
             data={folderSelectData}
             value={referencedDataFolderId}
             onChange={(val) => setReferencedDataFolderId((val || '') as DataFolderId | '')}
+            renderOption={renderFolderOption}
             searchable
           />
         )}
@@ -146,6 +156,7 @@ export function TransformerConfigModal({
               data={folderSelectData}
               value={referencedDataFolderId}
               onChange={(val) => setReferencedDataFolderId((val || '') as DataFolderId | '')}
+              renderOption={renderFolderOption}
               searchable
             />
             <TextInput

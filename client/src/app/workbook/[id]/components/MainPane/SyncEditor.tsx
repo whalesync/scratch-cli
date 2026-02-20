@@ -27,6 +27,7 @@ import {
   TextInput,
   Tooltip,
 } from '@mantine/core';
+import type { ComboboxItem } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { FieldMapType, SyncId, TransformerConfig, WorkbookId } from '@spinner/shared-types';
 import {
@@ -43,6 +44,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { ConnectorIcon } from '@/app/components/Icons/ConnectorIcon';
 import { SyncPreviewPanel } from './SyncPreviewPanel';
 import { TransformerConfigModal } from './TransformerConfigModal';
 
@@ -101,6 +103,13 @@ const SCHEDULE_OPTIONS: ScheduleOption[] = [
   { value: '0 * * * *', label: 'Every hour', disabled: true },
   { value: '0 0 * * *', label: 'Daily at midnight', disabled: true },
 ];
+
+const renderFolderOption = ({ option }: { option: ComboboxItem & { connectorService?: string | null } }) => (
+  <Group gap="xs" wrap="nowrap">
+    {option.connectorService && <ConnectorIcon connector={option.connectorService} size={16} p={0} />}
+    <Text size="sm">{option.label}</Text>
+  </Group>
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderAutocompleteOption = ({ option }: any) => (
@@ -547,12 +556,13 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                         placeholder="Select source"
                         data={allFolders
                           .filter((f) => f.id !== pair.destId)
-                          .map((f) => ({ value: f.id, label: f.name }))}
+                          .map((f) => ({ value: f.id, label: f.name, connectorService: f.connectorService }))}
                         value={pair.sourceId}
                         onChange={(val) => {
                           updatePair(index, { sourceId: val || '' });
                           if (val) ensureSchemaPaths(val);
                         }}
+                        renderOption={renderFolderOption}
                         searchable
                       />
                       <Select
@@ -560,12 +570,13 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                         placeholder="Select destination"
                         data={allFolders
                           .filter((f) => f.id !== pair.sourceId)
-                          .map((f) => ({ value: f.id, label: f.name }))}
+                          .map((f) => ({ value: f.id, label: f.name, connectorService: f.connectorService }))}
                         value={pair.destId}
                         onChange={(val) => {
                           updatePair(index, { destId: val || '' });
                           if (val) ensureSchemaPaths(val);
                         }}
+                        renderOption={renderFolderOption}
                         searchable
                       />
                     </Group>
