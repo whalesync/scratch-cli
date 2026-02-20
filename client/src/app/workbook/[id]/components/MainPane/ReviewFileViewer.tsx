@@ -4,6 +4,7 @@ import { ButtonCompactDanger, ButtonCompactPrimary, ButtonCompactSecondary } fro
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
 import { useDataFolders } from '@/hooks/use-data-folders';
+import { findDataFolderForFile } from '@/utils/data-folder-helpers';
 import { useFileByPath } from '@/hooks/use-file-path';
 import { workbookApi } from '@/lib/api/workbook';
 import { json } from '@codemirror/lang-json';
@@ -114,10 +115,7 @@ export function ReviewFileViewer({ workbookId, filePath }: ReviewFileViewerProps
 
     setIsPublishing(true);
     try {
-      // Find the dataFolderId from the file path (folder name is first segment)
-      const lastIndex = filePath.lastIndexOf('/');
-      const folderName = filePath.substring(0, lastIndex);
-      const folder = folders.find((f) => f.name === folderName);
+      const folder = findDataFolderForFile(folders, filePath);
 
       if (!folder) {
         console.debug('Could not find data folder for file:', filePath);

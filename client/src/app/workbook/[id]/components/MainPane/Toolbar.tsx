@@ -16,10 +16,11 @@ import { useDirtyFiles } from '@/hooks/use-dirty-files';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
 import { trackToggleDisplayMode } from '@/lib/posthog';
 import { useLayoutManagerStore } from '@/stores/layout-manager-store';
+import { getDirtyDataFolderIds } from '@/utils/data-folder-helpers';
 import { RouteUrls } from '@/utils/route-urls';
 import { Box, Breadcrumbs, Group, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { ConnectorAccount, DataFolderId, Workbook } from '@spinner/shared-types';
+import type { ConnectorAccount, Workbook } from '@spinner/shared-types';
 import { WorkbookId } from '@spinner/shared-types';
 import {
   BugIcon,
@@ -124,30 +125,12 @@ export function Toolbar({ workbook }: ToolbarProps) {
       onConfirm: async () => {
         setIsPublishing(true);
         try {
-          // Get unique folder names from dirty files
-          // this is ultra fragile and will break if the folder name contains a slash
-          // we should probably include folder IDs in the dirty file object in the future
-          const dirtyFolderNames = new Set<string>();
-          dirtyFiles.forEach((file) => {
-            const lastIndex = file.path.lastIndexOf('/');
-            const folderName = file.path.substring(0, lastIndex);
-            if (folderName) {
-              dirtyFolderNames.add(folderName);
-            }
-          });
-
-          // Find dataFolderIds for dirty folders
-          const dataFolderIds: DataFolderId[] = [];
-          dataFolderGroups.forEach((group) => {
-            group.dataFolders.forEach((folder) => {
-              if (dirtyFolderNames.has(folder.name)) {
-                dataFolderIds.push(folder.id);
-              }
-            });
-          });
+          const dataFolderIds = getDirtyDataFolderIds(dirtyFiles, dataFolderGroups);
 
           if (dataFolderIds.length !== 0) {
             await publishFolders(dataFolderIds);
+          } else {
+            console.debug('No dirty data folders found to publish');
           }
         } catch (error) {
           console.debug('Failed to publish changes:', error);

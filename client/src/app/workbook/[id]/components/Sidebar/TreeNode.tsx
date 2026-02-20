@@ -408,7 +408,6 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const pathname = usePathname();
   const expandedNodes = useNewWorkbookUIStore((state) => state.expandedNodes);
   const toggleNode = useNewWorkbookUIStore((state) => state.toggleNode);
-  const { isDevToolsEnabled } = useDevTools();
   const { pullFolders } = useActiveWorkbook();
 
   const nodeId = `table-${folder.id}`;
@@ -708,9 +707,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       <RemoveTableModal opened={removeModalOpened} onClose={closeRemoveModal} folder={folder} workbookId={workbookId} />
 
       {/* Schema Modal (dev tools only) */}
-      {isDevToolsEnabled && (
-        <DataFolderSchemaModal opened={schemaModalOpened} onClose={closeSchemaModal} folder={folder} />
-      )}
+      <DataFolderSchemaModal opened={schemaModalOpened} onClose={closeSchemaModal} folder={folder} />
 
       {/* Delete All Records Modal */}
       <DeleteAllRecordsModal
