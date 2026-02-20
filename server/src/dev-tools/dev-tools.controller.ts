@@ -15,7 +15,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { DataFolderId, GetAllJobsResponseDto } from '@spinner/shared-types';
+import type { DataFolderId, DecryptedCredentials, GetAllJobsResponseDto } from '@spinner/shared-types';
 import {
   ChangeUserOrganizationDto,
   createSubscriptionId,
@@ -249,6 +249,43 @@ export class DevToolsController {
         lastInvoicePaid: true,
       },
     });
+  }
+
+  /* Connector account credentials (admin) */
+  @Get('connections/:id')
+  async getConnectionCredentials(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (!hasAdminToolsPermission(req.user)) {
+      throw new UnauthorizedException('Only admins can view connection credentials');
+    }
+
+    const account = await this.connectorAccountService.findOneByIdAdmin(id);
+    const { id: accountId, service, ...rest } = account;
+
+    // Extract only DecryptedCredentials fields (strip ConnectorAccount DB fields)
+    const credentialKeys: (keyof DecryptedCredentials)[] = [
+      'apiKey',
+      'username',
+      'password',
+      'endpoint',
+      'domain',
+      'shopDomain',
+      'connectionString',
+      'supabaseProjects',
+      'oauthAccessToken',
+      'oauthRefreshToken',
+      'oauthExpiresAt',
+      'oauthWorkspaceId',
+      'customOAuthClientId',
+      'customOAuthClientSecret',
+    ];
+    const credentials: Record<string, unknown> = {};
+    for (const key of credentialKeys) {
+      if (rest[key] !== undefined) {
+        credentials[key] = rest[key];
+      }
+    }
+
+    return { id: accountId, service, credentials };
   }
 
   /* Admin job listing */

@@ -20,11 +20,15 @@ export class ConnectionSummary {
   id: string;
   name: string;
   service: string;
+  workbookId: string | null;
+  createdAt: Date;
 
   constructor(connectorAccount: ConnectorAccount) {
     this.id = connectorAccount.id;
     this.name = connectorAccount.displayName;
     this.service = connectorAccount.service.toString();
+    this.workbookId = connectorAccount.workbookId;
+    this.createdAt = connectorAccount.createdAt;
   }
 }
 

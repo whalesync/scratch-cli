@@ -10,10 +10,11 @@ import { devToolsApi } from '@/lib/api/dev-tools';
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { User } from '@/types/server-entities/users';
 import { getBuildFlavor } from '@/utils/build';
-import { Accordion, Anchor, Card, Checkbox, CloseButton, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
+import { Accordion, Anchor, Card, Checkbox, CloseButton, Code, Group, Stack, Table, TextInput, Tooltip } from '@mantine/core';
 import { IdPrefixes } from '@spinner/shared-types';
-import { CreditCardIcon, HatGlassesIcon, SquarePenIcon, Trash2Icon } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { ConnectorAccountId } from '@spinner/shared-types';
+import { CreditCardIcon, HatGlassesIcon, LockKeyholeIcon, SquarePenIcon, Trash2Icon } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { clerkUserUrl, stripeCustomerUrl } from '../utils';
 
 export const UserDetailsCard = ({
@@ -28,6 +29,23 @@ export const UserDetailsCard = ({
   const [saving, setSaving] = useState(false);
   const [newOrgId, setNewOrgId] = useState('');
   const [deleteOldOrg, setDeleteOldOrg] = useState(false);
+  const [credentialsMap, setCredentialsMap] = useState<Record<string, Record<string, unknown> | null>>({});
+  const [loadingCredentials, setLoadingCredentials] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setCredentialsMap({});
+    setLoadingCredentials({});
+  }, [details]);
+
+  const sortedConnections = useMemo(
+    () =>
+      [...details.connections].sort((a, b) => {
+        const wbCompare = (a.workbookId ?? '').localeCompare(b.workbookId ?? '');
+        if (wbCompare !== 0) return wbCompare;
+        return (a.name ?? '').localeCompare(b.name ?? '');
+      }),
+    [details.connections],
+  );
   const { open: openConfirm, dialogProps } = useConfirmDialog();
   const orgIdError =
     newOrgId.trim() && !newOrgId.trim().startsWith(IdPrefixes.ORGANIZATION)
@@ -69,6 +87,30 @@ export const UserDetailsCard = ({
       },
     });
   }, [newOrgId, deleteOldOrg, details, openConfirm, onRefreshUser]);
+
+  const handleViewCredentials = useCallback(async (connectionId: string) => {
+    if (credentialsMap[connectionId] !== undefined) {
+      setCredentialsMap((prev) => {
+        const next = { ...prev };
+        delete next[connectionId];
+        return next;
+      });
+      return;
+    }
+    try {
+      setLoadingCredentials((prev) => ({ ...prev, [connectionId]: true }));
+      const result = await devToolsApi.getConnectionCredentials(connectionId as ConnectorAccountId);
+      setCredentialsMap((prev) => ({ ...prev, [connectionId]: result.credentials }));
+    } catch (error) {
+      console.error('Failed to get credentials', error);
+      ScratchpadNotifications.error({
+        title: 'Failed to get credentials',
+        message: 'Could not retrieve credentials for this connection',
+      });
+    } finally {
+      setLoadingCredentials((prev) => ({ ...prev, [connectionId]: false }));
+    }
+  }, [credentialsMap]);
 
   const handleRemoveSetting = useCallback(
     async (key: string) => {
@@ -205,15 +247,39 @@ export const UserDetailsCard = ({
                 <Table.Th w="120px">ID</Table.Th>
                 <Table.Th>Name</Table.Th>
                 <Table.Th>Service</Table.Th>
+                <Table.Th>Workbook</Table.Th>
+                <Table.Th>Created</Table.Th>
+                <Table.Th w="40px" />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {details.connections.map((connection) => (
-                <Table.Tr key={connection.id}>
-                  <Table.Td>{connection.id}</Table.Td>
-                  <Table.Td>{connection.name}</Table.Td>
-                  <Table.Td>{connection.service}</Table.Td>
-                </Table.Tr>
+              {sortedConnections.map((connection) => (
+                <Fragment key={connection.id}>
+                  <Table.Tr>
+                    <Table.Td>{connection.id}</Table.Td>
+                    <Table.Td>{connection.name}</Table.Td>
+                    <Table.Td>{connection.service}</Table.Td>
+                    <Table.Td>{connection.workbookId || '-'}</Table.Td>
+                    <Table.Td>{new Date(connection.createdAt).toLocaleDateString()}</Table.Td>
+                    <Table.Td>
+                      <ToolIconButton
+                        icon={LockKeyholeIcon}
+                        onClick={() => handleViewCredentials(connection.id)}
+                        tooltip="View credentials"
+                        loading={loadingCredentials[connection.id]}
+                      />
+                    </Table.Td>
+                  </Table.Tr>
+                  {credentialsMap[connection.id] !== undefined && (
+                    <Table.Tr>
+                      <Table.Td colSpan={6}>
+                        <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                          {JSON.stringify(credentialsMap[connection.id], null, 2)}
+                        </Code>
+                      </Table.Td>
+                    </Table.Tr>
+                  )}
+                </Fragment>
               ))}
             </Table.Tbody>
           </Table>

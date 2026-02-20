@@ -90,9 +90,9 @@ export default function UsersDevPage() {
                   <Table.Tr>
                     <Table.Th>ID</Table.Th>
                     <Table.Th>Name</Table.Th>
-                    <Table.Th>Clerk</Table.Th>
-                    <Table.Th>Email</Table.Th>
-                    <Table.Th>Created</Table.Th>
+                    {!currentUserDetails && <Table.Th>Clerk</Table.Th>}
+                    {!currentUserDetails && <Table.Th>Email</Table.Th>}
+                    {!currentUserDetails && <Table.Th>Created</Table.Th>}
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -113,34 +113,42 @@ export default function UsersDevPage() {
                       </Table.Td>
                       <Table.Td>{user.name || '-'}</Table.Td>
 
-                      <Table.Td>
-                        <Group>
-                          {user.clerkId}
-                          <Anchor href={clerkUserUrl(user.clerkId, getBuildFlavor())} target="_blank" rel="noreferrer">
-                            <StyledLucideIcon Icon={HatGlassesIcon} size={16} />
-                          </Anchor>
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        {user.email || '-'}
-                        <CopyButton value={user?.email || ''} timeout={2000}>
-                          {({ copied, copy }) => (
-                            <Tooltip label={copied ? 'Copied' : `${user?.email}`} withArrow position="right">
-                              <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
-                                {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                        </CopyButton>
-                      </Table.Td>
-                      <Table.Td>{new Date(user.createdAt).toLocaleDateString()}</Table.Td>
+                      {!currentUserDetails && (
+                        <Table.Td>
+                          <Group>
+                            {user.clerkId}
+                            <Anchor
+                              href={clerkUserUrl(user.clerkId, getBuildFlavor())}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <StyledLucideIcon Icon={HatGlassesIcon} size={16} />
+                            </Anchor>
+                          </Group>
+                        </Table.Td>
+                      )}
+                      {!currentUserDetails && (
+                        <Table.Td>
+                          {user.email || '-'}
+                          <CopyButton value={user?.email || ''} timeout={2000}>
+                            {({ copied, copy }) => (
+                              <Tooltip label={copied ? 'Copied' : `${user?.email}`} withArrow position="right">
+                                <ActionIcon color={copied ? 'teal' : 'gray'} variant="subtle" onClick={copy}>
+                                  {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+                                </ActionIcon>
+                              </Tooltip>
+                            )}
+                          </CopyButton>
+                        </Table.Td>
+                      )}
+                      {!currentUserDetails && <Table.Td>{new Date(user.createdAt).toLocaleDateString()}</Table.Td>}
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
               </Table>
             )}
             {currentUserDetails && (
-              <Stack miw="40%">
+              <Stack miw="60%">
                 <UserDetailsCard
                   details={currentUserDetails}
                   onClose={clearCurrentUserDetails}

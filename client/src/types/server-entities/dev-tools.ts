@@ -21,4 +21,6 @@ export interface ConnectionSummary {
   id: string;
   name: string;
   service: string;
+  workbookId: string | null;
+  createdAt: string;
 }

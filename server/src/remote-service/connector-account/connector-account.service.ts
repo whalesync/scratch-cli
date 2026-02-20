@@ -162,6 +162,20 @@ export class ConnectorAccountService {
   }
 
   /**
+   * Find a connector account by ID only, without any scoping.
+   * Admin-only: caller must enforce admin access.
+   */
+  async findOneByIdAdmin(id: string): Promise<ConnectorAccount & DecryptedCredentials> {
+    const connectorAccount = await this.db.client.connectorAccount.findUnique({
+      where: { id },
+    });
+    if (!connectorAccount) {
+      throw new NotFoundException('ConnectorAccount not found');
+    }
+    return this.getDecryptedAccount(connectorAccount);
+  }
+
+  /**
    * Find a connector account by ID only, without workbook context.
    * Used for internal operations like OAuth callback where we need to look up an account.
    * Organization check is done via the workbook relation.

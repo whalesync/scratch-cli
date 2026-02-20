@@ -1,6 +1,13 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
-import { ChangeUserOrganizationDto, DataFolderId, GetAllJobsResponseDto, ScratchPlanType } from '@spinner/shared-types';
+import {
+  ChangeUserOrganizationDto,
+  ConnectorAccountId,
+  DataFolderId,
+  DecryptedCredentials,
+  GetAllJobsResponseDto,
+  ScratchPlanType,
+} from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -66,6 +73,19 @@ export const devToolsApi = {
       await axios.post('/dev-tools/subscription/plan/cancel');
     } catch (error) {
       handleAxiosError(error, 'Failed to force cancel subscription');
+    }
+  },
+  getConnectionCredentials: async (
+    connectionId: ConnectorAccountId,
+  ): Promise<{ id: string; service: string; credentials: Partial<DecryptedCredentials> }> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<{ id: string; service: string; credentials: Partial<DecryptedCredentials> }>(
+        `/dev-tools/connections/${connectionId}`,
+      );
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get credentials for connection: ' + connectionId);
     }
   },
   getDataFolderSchema: async (dataFolderId: DataFolderId): Promise<Record<string, unknown>> => {
