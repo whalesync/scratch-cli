@@ -38,6 +38,11 @@ export class PublishPipelineController {
     @Body() body: PlanPublishV2Dto,
     @Req() req: RequestWithUser,
   ) {
+    const hasDiffs = await this.publishBuildService.hasDiffs(workbookId, body.connectorAccountId);
+    if (!hasDiffs) {
+      return { jobId: null, pipelineId: null };
+    }
+
     // Create the pipeline record first so we can return the pipelineId immediately
     const { pipelineId } = await this.publishBuildService.createPipeline(
       workbookId,

@@ -52,6 +52,23 @@ export class PublishBuildService {
     return { pipelineId, branchName };
   }
 
+  async hasDiffs(workbookId: string, connectorAccountId?: string): Promise<boolean> {
+    const wkbId = workbookId as WorkbookId;
+    const changes = (await this.scratchGitService.getRepoStatus(wkbId)) as Array<{ path: string; status: string }>;
+    if (changes.length === 0) return false;
+    if (!connectorAccountId) return true;
+
+    const dataFolders = await this.db.client.dataFolder.findMany({ where: { workbookId: wkbId, connectorAccountId } });
+    const prefixes = dataFolders
+      .map((df) => df.path)
+      .filter((p): p is string => !!p)
+      .map((p) => (p.startsWith('/') ? p.substring(1) : p))
+      .map((p) => (p.endsWith('/') ? p : p + '/'));
+
+    if (prefixes.length === 0) return false;
+    return changes.some((c) => prefixes.some((prefix) => c.path.startsWith(prefix)));
+  }
+
   /**
    * Builds the publish pipeline for a given workbook.
    * If pipelineId is provided, uses the existing pipeline record (job flow).
