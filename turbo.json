@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "migrate": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["^build"],
       "persistent": true,

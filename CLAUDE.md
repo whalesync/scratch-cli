@@ -62,6 +62,7 @@ This monorepo uses Turborepo. Prefer running commands from the **root directory*
 ```bash
 yarn dev              # Start all dev servers (client, server, scratch-git, shared-types watch)
 yarn build            # Build all packages with caching and correct dependency ordering
+yarn migrate          # Run database migrations
 yarn lint             # Run linting across all packages
 yarn format           # Reformat code across all packages
 yarn test             # Run tests across all packages

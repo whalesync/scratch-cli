@@ -37,6 +37,9 @@ yarn dev
 # Build all packages with caching and correct dependency ordering
 yarn build
 
+# Run database migrations
+yarn migrate
+
 # Run linting across all packages
 yarn lint
 

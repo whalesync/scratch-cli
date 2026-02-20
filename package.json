@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "turbo dev dev:http-backend",
     "build": "turbo build",
+    "migrate": "turbo migrate",
     "lint": "turbo lint",
     "format": "turbo format",
     "test": "turbo test",

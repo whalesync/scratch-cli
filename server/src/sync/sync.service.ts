@@ -691,36 +691,17 @@ export class SyncService {
         let destinationPath: string;
 
         if (destinationRemoteId === null) {
-          // This is a new record - inject match key so subsequent syncs can find it
-          if (tableMapping.recordMatching) {
-            const destColumnId = tableMapping.recordMatching.destinationColumnId;
-            const sourceMatchValue = get(sourceRecord.fields, tableMapping.recordMatching.sourceColumnId);
+          // This is a new record
 
-            // Fail if source match key is missing or falsy
-            if (sourceMatchValue === undefined || sourceMatchValue === null) {
-              result.errors.push({
-                sourceRemoteId,
-                error: `Source record missing match key field: ${tableMapping.recordMatching.sourceColumnId}`,
-              });
-              continue;
-            }
-            if (typeof sourceMatchValue !== 'string' || sourceMatchValue === '') {
-              result.errors.push({
-                sourceRemoteId,
-                error: `Source record has empty or invalid match key for field: ${tableMapping.recordMatching.sourceColumnId}`,
-              });
-              continue;
-            }
-
-            // Skip injection if column mappings already populated this field (user config wins)
-            if (get(transformedFields, destColumnId) === undefined) {
-              set(transformedFields, destColumnId, sourceMatchValue);
-            }
+          // Generate a temporary ID for the new record so it can be matched on subsequent syncs,
+          // but only if the column mappings haven't already set the destination ID column.
+          const existingIdValue = get(transformedFields, destIdColumn);
+          const hasExplicitId =
+            existingIdValue != null && (typeof existingIdValue === 'string' || typeof existingIdValue === 'number');
+          const tempId = hasExplicitId ? String(existingIdValue) : createScratchPendingPublishId();
+          if (!hasExplicitId) {
+            set(transformedFields, destIdColumn, tempId);
           }
-
-          // Generate a temporary ID for the new record so it can be matched on subsequent syncs
-          const tempId = createScratchPendingPublishId();
-          set(transformedFields, destIdColumn, tempId);
 
           // Track this new record mapping for Phase 2 FK resolution
           newRecordMappings.push({ sourceRemoteId, tempId });
