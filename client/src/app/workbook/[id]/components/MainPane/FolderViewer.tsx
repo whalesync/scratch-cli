@@ -3,9 +3,9 @@
 import { ButtonCompactSecondary } from '@/app/components/base/buttons';
 import { Text12Regular, Text13Regular, TextMono12Regular } from '@/app/components/base/text';
 import { useFolderFileList } from '@/hooks/use-folder-file-list';
-import { Box, Group, SimpleGrid, Stack, UnstyledButton } from '@mantine/core';
+import { Box, Group, SimpleGrid, Stack, TextInput, UnstyledButton } from '@mantine/core';
 import type { DataFolderId, FileRefEntity, WorkbookId } from '@spinner/shared-types';
-import { FileIcon } from 'lucide-react';
+import { FileIcon, SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
@@ -22,8 +22,9 @@ interface FolderViewerProps {
 export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' }: FolderViewerProps) {
   const { files, isLoading } = useFolderFileList(workbookId, folderId);
   const [showAll, setShowAll] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter to only files, optionally filter to dirty only in review mode, and apply limit
+  // Filter to only files, optionally filter to dirty only in review mode, apply search, and apply limit
   const { displayedFiles, totalCount, hasMore } = useMemo(() => {
     let fileItems = files.filter((f): f is FileRefEntity => f.type === 'file');
 
@@ -33,13 +34,20 @@ export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' 
     }
 
     const total = fileItems.length;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      fileItems = fileItems.filter((f) => f.name.toLowerCase().includes(query));
+    }
+
     const limited = showAll ? fileItems : fileItems.slice(0, INITIAL_LIMIT);
     return {
       displayedFiles: limited,
       totalCount: total,
       hasMore: total > INITIAL_LIMIT && !showAll,
     };
-  }, [files, showAll, mode]);
+  }, [files, showAll, mode, searchQuery]);
 
   if (isLoading && files.length === 0) {
     return (
@@ -89,6 +97,24 @@ export function FolderViewer({ workbookId, folderId, folderName, mode = 'files' 
           ))}
         </SimpleGrid>
       </Box>
+      <Group
+        h={36}
+        px="md"
+        justify="flex-end"
+        style={{
+          borderTop: '0.5px solid var(--fg-divider)',
+          flexShrink: 0,
+          backgroundColor: 'var(--bg-base)',
+        }}
+      >
+        <TextInput
+          size="xs"
+          placeholder="Filter files..."
+          leftSection={<SearchIcon size={12} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+        />
+      </Group>
     </Stack>
   );
 }
