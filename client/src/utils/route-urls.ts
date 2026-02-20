@@ -15,6 +15,14 @@ export class RouteUrls {
   static healthPageUrl = '/health';
   static workbookPageUrl = (id: string) => `/workbook/${id}`;
   static workbookFilesPageUrl = (id: string) => `/workbook/${id}/files`;
+  static workbookFilesFileUrl = (id: string, filePath: string) => {
+    const encoded = filePath
+      .replace(/^\/+/, '')
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+    return `/workbook/${id}/files/${encoded}`;
+  };
   static workbookReviewPageUrl = (id: string) => `/workbook/${id}/review`;
   static workbookReviewFileUrl = (id: string, filePath: string) => {
     const encoded = filePath

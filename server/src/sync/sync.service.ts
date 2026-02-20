@@ -219,6 +219,19 @@ export class SyncService {
       }
     }
 
+    // Validate record matching fields exist in field mappings
+    for (const mapping of dto.folderMappings) {
+      if (mapping.matchingSourceField && mapping.matchingDestinationField) {
+        const destField = mapping.fieldMap[mapping.matchingSourceField];
+        const resolvedDest = typeof destField === 'string' ? destField : destField?.destinationField;
+        if (resolvedDest !== mapping.matchingDestinationField) {
+          throw new BadRequestException(
+            `Record matching fields "${mapping.matchingSourceField}" -> "${mapping.matchingDestinationField}" do not match any field mapping`,
+          );
+        }
+      }
+    }
+
     // Transaction to update sync details and replace mappings
     const updated = await this.db.client.$transaction(async (tx) => {
       // 1. Delete existing table pairs

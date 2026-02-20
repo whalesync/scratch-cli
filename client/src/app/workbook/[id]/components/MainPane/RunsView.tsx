@@ -544,7 +544,7 @@ function AffectedFilesTable({ files }: { files: Array<{ path: string; operation:
             <Table.Tr key={i}>
               <Table.Td style={{ fontFamily: 'monospace', fontSize: 12 }}>
                 <Link
-                  href={RouteUrls.workbookReviewFileUrl(workbookId, file.path)}
+                  href={RouteUrls.workbookFilesFileUrl(workbookId, file.path)}
                   style={{ color: 'inherit', textDecoration: 'underline' }}
                 >
                   {file.path}

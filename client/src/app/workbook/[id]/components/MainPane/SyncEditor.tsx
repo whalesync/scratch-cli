@@ -664,16 +664,30 @@ export function SyncEditor({ workbookId, syncId }: SyncEditorProps) {
                       placeholder="Select matching pair"
                       data={pair.fieldMappings
                         .filter((m) => m.sourceField && m.destField)
-                        .map((m) => ({
-                          value: m.sourceField,
-                          label: `${m.sourceField} <-> ${m.destField}`,
-                        }))}
-                      value={pair.matchingSourceField}
+                        .reduce<{ value: string; label: string }[]>((acc, m) => {
+                          const value = `${m.sourceField}::${m.destField}`;
+                          if (!acc.some((item) => item.value === value)) {
+                            acc.push({ value, label: `${m.sourceField} <-> ${m.destField}` });
+                          }
+                          return acc;
+                        }, [])}
+                      value={
+                        pair.matchingSourceField && pair.matchingDestinationField
+                          ? `${pair.matchingSourceField}::${pair.matchingDestinationField}`
+                          : null
+                      }
+                      error={
+                        pair.fieldMappings.every(
+                          (mapping) =>
+                            mapping.sourceField !== pair.matchingSourceField ||
+                            mapping.destField !== pair.matchingDestinationField,
+                        ) && 'Record matching must use one of the current field mappings'
+                      }
                       onChange={(val) => {
-                        const mapping = pair.fieldMappings.find((m) => m.sourceField === val);
+                        const [sourceField, destField] = val?.split('::') ?? [];
                         updatePair(index, {
-                          matchingSourceField: val || '',
-                          matchingDestinationField: mapping?.destField || '',
+                          matchingSourceField: sourceField || '',
+                          matchingDestinationField: destField || '',
                         });
                       }}
                       searchable
