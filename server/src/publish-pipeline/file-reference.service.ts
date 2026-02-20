@@ -141,15 +141,18 @@ export class FileReferenceService {
     files: Array<{ path: string; content: any }>,
     schema?: any,
   ): Promise<void> {
-    // 1. Remove existing refs
+    // 1. Remove existing refs (batched to avoid bind variable limit)
     const filePaths = files.map((f) => f.path);
-    await this.db.client.fileReference.deleteMany({
-      where: {
-        workbookId,
-        branch,
-        sourceFilePath: { in: filePaths },
-      },
-    });
+    const DELETE_BATCH_SIZE = 10000;
+    for (let i = 0; i < filePaths.length; i += DELETE_BATCH_SIZE) {
+      await this.db.client.fileReference.deleteMany({
+        where: {
+          workbookId,
+          branch,
+          sourceFilePath: { in: filePaths.slice(i, i + DELETE_BATCH_SIZE) },
+        },
+      });
+    }
 
     // 2. Extract new refs
     const allRefs: ExtractedRef[] = [];
@@ -216,6 +219,7 @@ export class FileReferenceService {
     workbookId: string,
     targets: Array<{ folderPath: string; fileName?: string; recordId?: string }>,
     branches: string[] = ['main', 'dirty'],
+    onProgress?: (step: string) => Promise<void>,
   ): Promise<
     {
       sourceFilePath: string;
@@ -232,7 +236,9 @@ export class FileReferenceService {
     const chunks = chunk(targets, 2000);
     const results: { sourceFilePath: string; branch: string }[] = [];
 
-    for (const c of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const c = chunks[i];
+      await onProgress?.(`Finding inbound references (${i * 2000 + c.length}/${targets.length})`);
       const conditions = c.map((t) => {
         const orList: any[] = [];
         if (t.fileName && t.folderPath) {

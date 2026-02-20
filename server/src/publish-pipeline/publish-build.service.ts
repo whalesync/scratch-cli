@@ -62,6 +62,7 @@ export class PublishBuildService {
     userId: string,
     connectorAccountId?: string,
     existingPipelineId?: string,
+    onProgress?: (step: string) => Promise<void>,
   ): Promise<PublishPlanInfo> {
     let pipelineId: string;
     let branchName: string;
@@ -86,6 +87,8 @@ export class PublishBuildService {
       path: string;
       status: 'added' | 'modified' | 'deleted';
     }>;
+
+    await onProgress?.(`Diffing branches (${changes.length} changes found)`);
 
     if (connectorAccountId) {
       // Find all data folders for this connector in this workbook
@@ -130,8 +133,14 @@ export class PublishBuildService {
     const deletedRecordIds = new Set<string>();
     const deletedFileRecordIds = new Map<string, string | null>();
     const targetsForRefCheck: Array<{ folderPath: string; fileName: string; recordId?: string }> = [];
+    const deletedTotal = deletedFiles.length;
+    let deletedProcessed = 0;
 
     for (const del of deletedFiles) {
+      deletedProcessed++;
+      if (deletedProcessed === 1 || deletedProcessed % 50 === 0 || deletedProcessed === deletedTotal) {
+        await onProgress?.(`Resolving deleted record IDs (${deletedProcessed}/${deletedTotal})`);
+      }
       const { folderPath, filename: fileName } = parsePath(del.path);
       const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
 
@@ -143,7 +152,12 @@ export class PublishBuildService {
     // 2. Identify Inbound Refs to Deleted Files
     // TODO: do we need to search in both branches?
     const searchBranches = [MAIN_BRANCH, DIRTY_BRANCH];
-    const inboundRefs = await this.fileReferenceService.findRefsToFiles(workbookId, targetsForRefCheck, searchBranches);
+    const inboundRefs = await this.fileReferenceService.findRefsToFiles(
+      workbookId,
+      targetsForRefCheck,
+      searchBranches,
+      onProgress,
+    );
 
     // Identify files that need editing because they reference a deleted file
     const filesReferringToDeletedFiles = new Set<string>();
@@ -160,6 +174,8 @@ export class PublishBuildService {
     for (const p of filesReferringToDeletedFiles) filesToProcessInEditPhase.add(p);
 
     let editCount = 0;
+    const editPhaseTotal = filesToProcessInEditPhase.size;
+    let editPhaseProcessed = 0;
     const planEntries: Array<{
       filePath: string;
       phase: PublishPlanPhase;
@@ -170,6 +186,10 @@ export class PublishBuildService {
     }> = [];
 
     for (const filePath of filesToProcessInEditPhase) {
+      editPhaseProcessed++;
+      if (editPhaseProcessed === 1 || editPhaseProcessed % 50 === 0 || editPhaseProcessed === editPhaseTotal) {
+        await onProgress?.(`Processing edits (${editPhaseProcessed}/${editPhaseTotal})`);
+      }
       WSLogger.info({
         source: 'PublishBuildService.buildPipeline',
         message: `Processing file in edit phase: ${filePath}`,
@@ -274,8 +294,14 @@ export class PublishBuildService {
 
     // --- Phase 2: [create] ---
     let createCount = 0;
+    let createPhaseProcessed = 0;
+    const createPhaseTotal = addedFiles.length;
 
     for (const add of addedFiles) {
+      createPhaseProcessed++;
+      if (createPhaseProcessed === 1 || createPhaseProcessed % 50 === 0 || createPhaseProcessed === createPhaseTotal) {
+        await onProgress?.(`Processing creates (${createPhaseProcessed}/${createPhaseTotal})`);
+      }
       const fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
       if (fileData?.content) {
         const { folderPath } = parsePath(add.path);
@@ -345,7 +371,14 @@ export class PublishBuildService {
     }
 
     // --- Phase 3: [delete] ---
+    const deletePhaseTotal = deletedFiles.length;
+    let deletePhaseProcessed = 0;
+
     for (const del of deletedFiles) {
+      deletePhaseProcessed++;
+      if (deletePhaseProcessed === 1 || deletePhaseProcessed % 50 === 0 || deletePhaseProcessed === deletePhaseTotal) {
+        await onProgress?.(`Processing deletes (${deletePhaseProcessed}/${deletePhaseTotal})`);
+      }
       // recordId was already looked up above when building deletedRecordIds
       const recordId = deletedFileRecordIds.get(del.path);
       const { folderPath } = parsePath(del.path);
@@ -367,6 +400,7 @@ export class PublishBuildService {
 
     // Create Entries
     if (planEntries.length > 0) {
+      await onProgress?.(`Saving plan entries (${planEntries.length} entries)`);
       const chunks = chunk(planEntries, 2000);
       for (const c of chunks) {
         await this.db.client.publishPlanEntry.createMany({

@@ -7,6 +7,7 @@ import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-
 
 export type PlanPipelinePublicProgress = {
   status: 'planning' | 'completed' | 'failed';
+  step?: string;
   edits: number;
   creates: number;
   deletes: number;
@@ -68,12 +69,28 @@ export class PlanPipelineJobHandler implements JobHandlerBuilder<PlanPipelineJob
       connectorProgress: {},
     });
 
+    const onProgress = async (step: string) => {
+      await checkpoint({
+        publicProgress: {
+          status: 'planning',
+          step,
+          edits: 0,
+          creates: 0,
+          deletes: 0,
+          backfills: 0,
+        },
+        jobProgress: {},
+        connectorProgress: {},
+      });
+    };
+
     try {
       const plan = await this.pipelineBuildService.buildPipeline(
         data.workbookId,
         data.userId,
         data.connectorAccountId,
         data.pipelineId,
+        onProgress,
       );
 
       // Count entries by phase from the returned plan
