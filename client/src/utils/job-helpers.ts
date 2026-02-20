@@ -32,7 +32,12 @@ export const getJobDescription = (job: JobEntity): string => {
   switch (jobType) {
     case 'sync': {
       if (progress?.tables && Array.isArray(progress.tables)) {
-        const count = progress.tables.length;
+        const tables = progress.tables as Array<{ status?: string }>;
+        const failedCount = tables.filter((t) => t.status === 'failed').length;
+        const count = tables.length;
+        if (failedCount > 0) {
+          return `Sync failed for ${failedCount} of ${count} table${count !== 1 ? 's' : ''}`;
+        }
         return `Synced ${count} table${count !== 1 ? 's' : ''}`;
       }
       if (progress?.syncName) {

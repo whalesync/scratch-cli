@@ -8,7 +8,10 @@ import type { JsonSafeObject } from '../../../utils/objects';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 
 /** Maximum number of file paths to track per category in progress */
-const MAX_PROGRESS_PATHS = 1000;
+const MAX_PROGRESS_PATHS = 100;
+
+/** Maximum number of errors to track per category in progress */
+const MAX_PROGRESS_ERRORS = 100;
 
 export type SyncDataFoldersPublicProgress = {
   totalFilesSynced: number;
@@ -22,6 +25,8 @@ export type SyncDataFoldersPublicProgress = {
     createdPaths: string[];
     updatedPaths: string[];
     deletedPaths: string[];
+    errorCount: number;
+    errors: Array<{ sourceRemoteId: string; error: string }>;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
   }[];
 };
@@ -137,11 +142,16 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         createdPaths: [] as string[],
         updatedPaths: [] as string[],
         deletedPaths: [] as string[],
+        errorCount: 0,
+        errors: [] as Array<{ sourceRemoteId: string; error: string }>,
         status: 'pending' as const,
       };
     });
 
     let totalFilesSynced = 0;
+
+    // Track unique source records that hit errors, per table
+    const erroredRecordIds: Set<string>[] = tableMappings.map(() => new Set<string>());
 
     // Process each table mapping
     for (let i = 0; i < tableMappings.length; i++) {
@@ -185,6 +195,9 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
         tableProgress.updates = result.recordsUpdated;
         tableProgress.createdPaths = result.createdPaths.slice(0, MAX_PROGRESS_PATHS);
         tableProgress.updatedPaths = result.updatedPaths.slice(0, MAX_PROGRESS_PATHS);
+        for (const e of result.errors) erroredRecordIds[i].add(e.sourceRemoteId);
+        tableProgress.errorCount = erroredRecordIds[i].size;
+        tableProgress.errors = result.errors.slice(0, MAX_PROGRESS_ERRORS);
         tableProgress.status = result.errors.length > 0 ? 'failed' : 'completed';
         totalFilesSynced += result.recordsCreated + result.recordsUpdated;
 
@@ -199,15 +212,17 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
           });
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         WSLogger.error({
           source: 'SyncDataFoldersJob',
           message: 'Failed to sync table mapping',
           syncId: data.syncId,
           sourceDataFolderId: tableMapping.sourceDataFolderId,
           destinationDataFolderId: tableMapping.destinationDataFolderId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: errorMessage,
         });
 
+        tableProgress.errors = [{ sourceRemoteId: '', error: errorMessage }];
         tableProgress.status = 'failed';
       }
 
@@ -250,16 +265,24 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
               tableIndex: i,
               errors: fkResult.errors,
             });
+            for (const e of fkResult.errors) erroredRecordIds[i].add(e.sourceRemoteId);
+            tablesProgress[i].errorCount = erroredRecordIds[i].size;
+            tablesProgress[i].errors = [...tablesProgress[i].errors, ...fkResult.errors].slice(0, MAX_PROGRESS_ERRORS);
             tablesProgress[i].status = 'failed';
           }
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           WSLogger.error({
             source: 'SyncDataFoldersJob',
             message: 'Failed to resolve foreign keys for table mapping',
             syncId: data.syncId,
             tableIndex: i,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: errorMessage,
           });
+          tablesProgress[i].errors = [
+            ...tablesProgress[i].errors,
+            { sourceRemoteId: '', error: `Foreign key resolution failed: ${errorMessage}` },
+          ].slice(0, MAX_PROGRESS_ERRORS);
           tablesProgress[i].status = 'failed';
         }
       }
@@ -272,9 +295,12 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       connectorProgress: {},
     });
 
-    // Update lastSyncTime on the Sync record
-    const allTablesSucceeded = tablesProgress.every((t) => t.status === 'completed');
+    // Check if any tables failed
+    const failedTables = tablesProgress.filter((t) => t.status === 'failed');
+    const allTablesSucceeded = failedTables.length === 0;
+
     if (allTablesSucceeded) {
+      // Update lastSyncTime on the Sync record
       await this.prisma.sync.update({
         where: { id: data.syncId },
         data: { lastSyncTime: new Date() },
@@ -286,7 +312,7 @@ export class SyncDataFoldersJobHandler implements JobHandlerBuilder<SyncDataFold
       data: {
         source: 'job',
         entityId: data.syncId,
-        message: 'Sync completed',
+        message: allTablesSucceeded ? 'Sync completed' : 'Sync completed with errors',
         jobId: params.jobId,
       },
     });

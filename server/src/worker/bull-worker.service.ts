@@ -185,6 +185,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         status,
         error: error instanceof Error ? error.message : 'Unknown error',
         finishedOn: new Date(),
+        progress: latestProgress,
       });
 
       if (error instanceof JobCanceledError) {

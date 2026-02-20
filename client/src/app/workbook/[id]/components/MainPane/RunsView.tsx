@@ -120,6 +120,15 @@ const formatTimestamp = (date?: Date | null): string => {
   });
 };
 
+/** Derive the effective state for a job, checking sync table-level failures in progress. */
+const getEffectiveState = (job: JobEntity): JobEntity['state'] => {
+  if (job.state !== 'completed') return job.state;
+  const progress = job.publicProgress as Record<string, unknown> | undefined;
+  if (!progress?.tables || !Array.isArray(progress.tables)) return job.state;
+  const hasTableFailure = (progress.tables as Array<{ status?: string }>).some((t) => t.status === 'failed');
+  return hasTableFailure ? 'failed' : job.state;
+};
+
 const getJobKey = (job: JobEntity): string => `${job.bullJobId}`;
 
 export function RunsView() {
@@ -270,7 +279,8 @@ function JobRow({
 }) {
   const jobType = getJobType(job.type);
   const typeColor = getTypeColor(jobType);
-  const statusColor = getStatusColor(job.state);
+  const effectiveState = getEffectiveState(job);
+  const statusColor = getStatusColor(effectiveState);
   const description = getJobDescription(job);
   const duration = formatDuration(job.processedOn, job.finishedOn);
   const time = job.processedOn ? timeAgo(job.processedOn) : '-';
@@ -346,7 +356,7 @@ function JobRow({
               />
             )}
             <Text size="sm" style={{ color: statusColor }}>
-              {getStatusLabel(job.state)}
+              {getStatusLabel(effectiveState)}
             </Text>
           </Group>
         </Table.Td>
@@ -557,14 +567,20 @@ function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) 
     creates?: number;
     updates?: number;
     deletes?: number;
+    errorCount?: number;
     createdPaths?: string[];
     updatedPaths?: string[];
     deletedPaths?: string[];
+    errors?: Array<{ sourceRemoteId?: string; error?: string }>;
     status?: string;
   }>;
   if (tables.length === 0) return null;
 
   const affectedFiles = collectAffectedFiles(tables);
+  const hasErrors = tables.some((t) => (t.errorCount ?? t.errors?.length ?? 0) > 0);
+  const allErrors = tables.flatMap((t) =>
+    (t.errors ?? []).map((e) => ({ tableName: t.name, sourceRemoteId: e.sourceRemoteId, error: e.error })),
+  );
 
   return (
     <>
@@ -576,6 +592,7 @@ function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) 
             <Table.Th>Creates</Table.Th>
             <Table.Th>Updates</Table.Th>
             <Table.Th>Deletes</Table.Th>
+            {hasErrors && <Table.Th>Errors</Table.Th>}
             <Table.Th>Status</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -587,13 +604,55 @@ function SyncProgressTable({ progress }: { progress: Record<string, unknown> }) 
               <Table.Td>{table.creates ?? 0}</Table.Td>
               <Table.Td>{table.updates ?? 0}</Table.Td>
               <Table.Td>{table.deletes ?? 0}</Table.Td>
+              {hasErrors && (
+                <Table.Td>
+                  <Text13Regular c={table.errorCount ? 'var(--mantine-color-red-6)' : undefined}>
+                    {table.errorCount ?? table.errors?.length ?? 0}
+                  </Text13Regular>
+                </Table.Td>
+              )}
               <Table.Td>{table.status ?? '-'}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
       </Table>
+      {allErrors.length > 0 && <SyncErrorsTable errors={allErrors} />}
       <AffectedFilesTable files={affectedFiles} />
     </>
+  );
+}
+
+function SyncErrorsTable({
+  errors,
+}: {
+  errors: Array<{ tableName?: string; sourceRemoteId?: string; error?: string }>;
+}) {
+  return (
+    <Box mt="xs">
+      <Text12Medium c="var(--mantine-color-red-6)" mb={4}>
+        Errors ({errors.length >= 100 ? '100+' : errors.length})
+      </Text12Medium>
+      <Table striped highlightOnHover withColumnBorders>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Table</Table.Th>
+            <Table.Th>Source Record</Table.Th>
+            <Table.Th>Error</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {errors.map((err, i) => (
+            <Table.Tr key={i}>
+              <Table.Td>{err.tableName ?? '-'}</Table.Td>
+              <Table.Td style={{ fontFamily: 'monospace', fontSize: 12 }}>{err.sourceRemoteId ?? '-'}</Table.Td>
+              <Table.Td>
+                <Text13Regular c="var(--mantine-color-red-6)">{err.error ?? 'Unknown error'}</Text13Regular>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Box>
   );
 }
 
