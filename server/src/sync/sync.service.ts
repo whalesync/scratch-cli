@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DataFolder, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { TSchema } from '@sinclair/typebox';
 import {
   ColumnMapping,
@@ -346,213 +346,6 @@ export class SyncService {
   }
 
   /**
-   * Fills sync caches (match keys and remote ID mappings) before running a sync.
-   * Fetches all files from source and destination folders, parses their content,
-   * populates the SyncMatchKeys table for both sides, and creates SyncRemoteIdMapping entries
-   * for records that exist in both source and destination.
-   * Fetches files from source and destination folders and parses them into records.
-   *
-   * @param sourceFolder - The source DataFolder with schema
-   * @param destinationFolder - The destination DataFolder with schema
-   * @param tableMapping - The table mapping with source/destination folder IDs
-   * @param workbookId - The workbook ID
-   * @param actor - The actor performing the operation
-   * @returns Object containing source and destination records, plus a map from destination record ID to file path
-   */
-  async fetchRecordsForSync(
-    sourceFolder: DataFolder,
-    destinationFolder: DataFolder,
-    tableMapping: TableMapping,
-    workbookId: WorkbookId,
-    actor: Actor,
-  ): Promise<{
-    sourceRecords: SyncRecord[];
-    destinationRecords: SyncRecord[];
-    destinationIdToFilePath: Map<string, string>;
-  }> {
-    // Get idColumnRemoteId from schemas
-    const sourceIdColumn = this.getIdColumnFromSchema(sourceFolder.schema);
-    const destinationIdColumn = this.getIdColumnFromSchema(destinationFolder.schema);
-
-    // Fetch source and destination files
-    const sourceFiles = await this.dataFolderService.getAllFileContentsByFolderId(
-      workbookId,
-      tableMapping.sourceDataFolderId,
-      actor,
-    );
-    const destinationFiles = await this.dataFolderService.getAllFileContentsByFolderId(
-      workbookId,
-      tableMapping.destinationDataFolderId,
-      actor,
-    );
-
-    // Parse files to extract fields using the correct ID column for each side
-    const sourceRecords = sourceFiles.map((file) => parseFileToRecord(file, sourceIdColumn));
-    const destinationRecords = destinationFiles.map((file) => parseFileToRecord(file, destinationIdColumn));
-
-    // Build a map from destination record ID to file path for updates
-    const destinationIdToFilePath = new Map<string, string>();
-    for (let i = 0; i < destinationRecords.length; i++) {
-      destinationIdToFilePath.set(destinationRecords[i].id, destinationFiles[i].path);
-    }
-
-    return { sourceRecords, destinationRecords, destinationIdToFilePath };
-  }
-
-  /**
-   * Fills sync caches (match keys and remote ID mappings) before running a sync.
-   * Populates the SyncMatchKeys table for both sides, and creates SyncRemoteIdMapping entries
-   * for records that exist in both source and destination.
-   *
-   * @param syncId - The sync ID
-   * @param tableMapping - The table mapping with source/destination folder IDs
-   * @param sourceRecords - The source records to process
-   * @param destinationRecords - The destination records to process
-   */
-  async fillSyncCaches(
-    syncId: SyncId,
-    tableMapping: TableMapping,
-    sourceRecords: SyncRecord[],
-    destinationRecords: SyncRecord[],
-  ): Promise<void> {
-    if (!tableMapping.recordMatching) {
-      // No record matching — every source record is a create.
-      // Insert mappings directly with null destination so the rest of the flow treats them as new.
-      const allSourceMappings: RemoteIdMappingPair[] = sourceRecords.map((r) => ({
-        sourceRemoteId: r.id,
-        destinationRemoteId: null,
-      }));
-      if (allSourceMappings.length > 0) {
-        await this.upsertRemoteIdMappings(syncId, tableMapping, allSourceMappings);
-      }
-      return;
-    }
-
-    // Insert match keys for both sides
-    await this.insertSourceMatchKeys(syncId, tableMapping, sourceRecords);
-    await this.insertDestinationMatchKeys(syncId, tableMapping, destinationRecords);
-
-    // Create remote ID mappings for both matched and unmatched source records
-    // Get all source records, with corresponding destination remote IDs if they exist
-    const allSourceMappings = await this.db.client.$queryRaw<
-      { sourceRemoteId: string; destinationRemoteId: string | null }[]
-    >`
-      SELECT src."remoteId" as "sourceRemoteId", dest."remoteId" as "destinationRemoteId"
-      FROM "SyncMatchKeys" src
-      LEFT JOIN "SyncMatchKeys" dest
-        ON src."syncId" = dest."syncId"
-        AND src."matchId" = dest."matchId"
-        AND dest."dataFolderId" = ${tableMapping.destinationDataFolderId}
-      WHERE src."syncId" = ${syncId}
-        AND src."dataFolderId" = ${tableMapping.sourceDataFolderId}
-    `;
-
-    if (allSourceMappings.length > 0) {
-      await this.upsertRemoteIdMappings(syncId, tableMapping, allSourceMappings);
-    }
-  }
-
-  /**
-   * Populates the SyncForeignKeyRecord cache for lookup_field transformers.
-   * For each column mapping that uses a lookup_field transformer, this method:
-   * 1. Fetches all records from the referenced DataFolder
-   * 2. Extracts unique FK values from the source records
-   * 3. Caches the referenced record data in SyncForeignKeyRecord
-   *
-   * This must be called before transformation so that lookupFieldFromFkRecord()
-   * can resolve FK values to field values from the referenced records.
-   */
-  private async populateForeignKeyRecordCache(
-    syncId: SyncId,
-    tableMapping: TableMapping,
-    sourceRecords: SyncRecord[],
-    workbookId: WorkbookId,
-    actor: Actor,
-  ): Promise<void> {
-    const lookupFieldMappings = tableMapping.columnMappings.filter((m) => m.transformer?.type === 'lookup_field');
-
-    if (lookupFieldMappings.length === 0) {
-      return;
-    }
-
-    // Clear existing FK record cache for this sync
-    await this.db.client.syncForeignKeyRecord.deleteMany({ where: { syncId } });
-
-    // Group mappings by referenced data folder to avoid duplicate fetches
-    const byFolder = new Map<DataFolderId, ColumnMapping[]>();
-    for (const mapping of lookupFieldMappings) {
-      const opts = mapping.transformer!.options as LookupFieldOptions;
-      const arr = byFolder.get(opts.referencedDataFolderId) ?? [];
-      arr.push(mapping);
-      byFolder.set(opts.referencedDataFolderId, arr);
-    }
-
-    for (const [referencedFolderId, mappings] of byFolder) {
-      // Fetch the referenced DataFolder for its schema
-      const folder = await this.db.client.dataFolder.findUnique({
-        where: { id: referencedFolderId },
-      });
-      if (!folder) {
-        WSLogger.warn({
-          source: 'SyncService',
-          message: `Referenced DataFolder ${referencedFolderId} not found for lookup_field transformer`,
-        });
-        continue;
-      }
-
-      // Fetch and parse records from the referenced DataFolder
-      const idColumn = this.getIdColumnFromSchema(folder.schema);
-      const files = await this.dataFolderService.getAllFileContentsByFolderId(workbookId, referencedFolderId, actor);
-      const records = files.map((f) => parseFileToRecord(f, idColumn));
-      const recordsById = new Map(records.map((r) => [r.id, r.fields]));
-
-      // Collect all unique FK values across all columns that reference this folder
-      const fkValues = new Set<string>();
-      for (const mapping of mappings) {
-        for (const record of sourceRecords) {
-          const val = get(record.fields, mapping.sourceColumnId);
-          if (val === null || val === undefined) continue;
-          if (Array.isArray(val)) {
-            for (const elem of val) {
-              if (elem !== null && elem !== undefined && (typeof elem === 'string' || typeof elem === 'number')) {
-                fkValues.add(String(elem));
-              }
-            }
-          } else if (typeof val === 'string' || typeof val === 'number') {
-            fkValues.add(String(val));
-          }
-        }
-      }
-
-      // Create one cache entry per unique (dataFolderId, foreignKeyValue)
-      const entries: Array<{
-        syncId: string;
-        dataFolderId: string;
-        foreignKeyValue: string;
-        recordData: Prisma.InputJsonValue;
-      }> = [];
-
-      for (const fkValue of fkValues) {
-        const recordData = recordsById.get(fkValue);
-        if (!recordData) continue;
-        entries.push({
-          syncId,
-          dataFolderId: referencedFolderId,
-          foreignKeyValue: fkValue,
-          recordData: recordData as Prisma.InputJsonValue,
-        });
-      }
-
-      if (entries.length > 0) {
-        await this.db.client.syncForeignKeyRecord.createMany({
-          data: entries,
-          skipDuplicates: true,
-        });
-      }
-    }
-  }
-
-  /**
    * Syncs records from source to destination DataFolder based on a TableMapping.
    * Creates new records in destination for unmatched source records,
    * and updates existing destination records for matched ones.
@@ -595,57 +388,104 @@ export class SyncService {
       throw new NotFoundException(`Destination DataFolder ${tableMapping.destinationDataFolderId} not found`);
     }
 
-    // 2. Clear existing match keys for this sync's table mapping
-    await this.clearMatchKeysForDataFolder(syncId, tableMapping.sourceDataFolderId);
-    await this.clearMatchKeysForDataFolder(syncId, tableMapping.destinationDataFolderId);
+    // Get idColumnRemoteId from schemas
+    const sourceIdColumn = this.getIdColumnFromSchema(sourceFolder.schema);
+    const destinationIdColumn = this.getIdColumnFromSchema(destinationFolder.schema);
 
-    // 3. Fetch records from source and destination folders
-    const { sourceRecords, destinationRecords, destinationIdToFilePath } = await this.fetchRecordsForSync(
-      sourceFolder,
-      destinationFolder,
-      tableMapping,
-      workbookId,
-      actor,
-    );
+    // ===========================================================================================
+    // Pass 1: Populate caches (match keys, FK records, remote ID mappings)
+    // Skipped in FOREIGN_KEY_MAPPING phase — it reuses caches built by the DATA phase.
+    // ===========================================================================================
 
-    // 4. Fill caches - populates match keys and creates initial remote ID mappings
-    await this.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+    const destinationIdToFilePath = new Map<string, string>();
+    const destinationRecordsById = new Map<string, SyncRecord>();
+    const fkValuesByFolder = new Map<DataFolderId, Set<string>>();
 
-    // 4a. Populate FK record cache for lookup_field transformers (DATA phase only)
     if (phase === 'DATA') {
-      await this.populateForeignKeyRecordCache(syncId, tableMapping, sourceRecords, workbookId, actor);
+      // Clear existing caches for this sync's table mapping
+      await this.clearMatchKeysForDataFolder(syncId, tableMapping.sourceDataFolderId);
+      await this.clearMatchKeysForDataFolder(syncId, tableMapping.destinationDataFolderId);
+      await this.clearRemoteIdMappingsForDataFolder(syncId, tableMapping.sourceDataFolderId);
+
+      // Page through source files — insert match keys and collect FK values per batch
+      let sourceCursor: string | undefined;
+      let batchCounter = 0;
+      do {
+        const page = await this.dataFolderService.getFileContentsByFolderIdPaginated(
+          workbookId,
+          tableMapping.sourceDataFolderId,
+          actor,
+          DIRTY_BRANCH,
+          sourceCursor,
+        );
+        const batchRecords = page.files.map((file) => parseFileToRecord(file, sourceIdColumn));
+
+        WSLogger.info({
+          source: 'SyncService.syncTableMapping',
+          message: `Pass 1: source batch`,
+          syncId,
+          records: batchRecords.length,
+          cursor: sourceCursor ?? 'initial',
+          batch: batchCounter,
+        });
+
+        await this.fillSyncCachesBatch(syncId, tableMapping, batchRecords, []);
+        this.collectForeignKeyValues(tableMapping, batchRecords, fkValuesByFolder);
+
+        sourceCursor = page.nextCursor;
+        batchCounter++;
+      } while (sourceCursor);
     }
 
-    // Create maps of records by ID for quick lookup
-    const sourceRecordsById = new Map(sourceRecords.map((r) => [r.id, r]));
-    const destinationRecordsById = new Map(destinationRecords.map((r) => [r.id, r]));
+    // Page through destination files — insert match keys and build lookup maps per batch
+    let destCursor: string | undefined;
+    let batchCounter = 0;
+    do {
+      const page = await this.dataFolderService.getFileContentsByFolderIdPaginated(
+        workbookId,
+        tableMapping.destinationDataFolderId,
+        actor,
+        DIRTY_BRANCH,
+        destCursor,
+      );
 
-    // 5. Get all source-to-destination mappings
-    const mappingsBySourceId = await this.getDestinationRemoteIds(
-      syncId,
-      tableMapping.sourceDataFolderId,
-      Array.from(sourceRecordsById.keys()),
-    );
-
-    // Check for source records that weren't included in mappings (missing or falsy match key)
-    if (tableMapping.recordMatching) {
-      for (const [sourceId, sourceRecord] of sourceRecordsById) {
-        if (!mappingsBySourceId.has(sourceId)) {
-          const matchKeyValue = get(sourceRecord.fields, tableMapping.recordMatching.sourceColumnId);
-          if (matchKeyValue === undefined || matchKeyValue === null) {
-            result.errors.push({
-              sourceRemoteId: sourceId,
-              error: `Source record missing record matching field: ${tableMapping.recordMatching.sourceColumnId}`,
-            });
-          } else if (typeof matchKeyValue !== 'string' || matchKeyValue === '') {
-            result.errors.push({
-              sourceRemoteId: sourceId,
-              error: `Source record has empty or invalid record matching value for field: ${tableMapping.recordMatching.sourceColumnId}`,
-            });
-          }
-        }
+      const batchRecords: SyncRecord[] = [];
+      for (const file of page.files) {
+        const record = parseFileToRecord(file, destinationIdColumn);
+        batchRecords.push(record);
+        destinationIdToFilePath.set(record.id, file.path);
+        destinationRecordsById.set(record.id, record);
       }
+
+      WSLogger.info({
+        source: 'SyncService.syncTableMapping',
+        message: `Pass 1: destination batch`,
+        syncId,
+        records: batchRecords.length,
+        cursor: destCursor ?? 'initial',
+        batch: batchCounter,
+      });
+
+      if (phase === 'DATA') {
+        // Only need to fill the caches in the first phase
+        await this.fillSyncCachesBatch(syncId, tableMapping, [], batchRecords);
+      }
+
+      destCursor = page.nextCursor;
+      batchCounter++;
+    } while (destCursor);
+
+    if (phase === 'DATA') {
+      // Finalize caches — join match keys to create remote ID mappings
+      await this.buildRecordMatchingMappings(syncId, tableMapping);
+
+      // Populate FK record cache for lookup_field transformers
+      await this.populateForeignKeyRecordCache(syncId, fkValuesByFolder, workbookId, actor);
     }
+
+    // ===========================================================================================
+    // Pass 2: Iterate source pages again to transform and write records using populated caches
+    // ===========================================================================================
 
     // Get the destination folder path for new files
     const destinationFolderPath = destinationFolder.path?.replace(/^\//, '') ?? '';
@@ -653,110 +493,171 @@ export class SyncService {
     // Get the destination idColumnRemoteId from schema
     const destIdColumn = this.getIdColumnFromSchema(destinationFolder.schema);
 
-    // 6. Partition records and transform
-    const filesToWrite: Array<{ path: string; content: string }> = [];
-
-    // Build a set of existing destination filenames for dedup
-    const usedDestFileNames = new Set<string>(
-      Array.from(destinationIdToFilePath.values()).map((p) => p.split('/').pop()!),
-    );
-
     // Get destination table spec for slug resolution
     const destTableSpec = destinationFolder.schema as BaseJsonTableSpec | null;
 
     // Create lookup tools for transformers that need FK resolution
     const lookupTools = createLookupTools(this.db, syncId);
 
+    // Build a set of existing destination filenames for dedup
+    const usedDestFileNames = new Set<string>(
+      Array.from(destinationIdToFilePath.values()).map((p) => p.split('/').pop()!),
+    );
+
     // Track new records so we can backfill SyncRemoteIdMapping with their temp IDs
     const newRecordMappings: Array<{ sourceRemoteId: string; tempId: string }> = [];
 
-    for (const [sourceRemoteId, destinationRemoteId] of mappingsBySourceId) {
-      const sourceRecord = sourceRecordsById.get(sourceRemoteId);
-      if (!sourceRecord) {
-        result.errors.push({
-          sourceRemoteId,
-          error: 'Source record not found',
-        });
-        continue;
+    // Accumulated files to write across all source pages
+    const filesToWrite: Array<{ path: string; content: string }> = [];
+
+    // Page through source files again for transformation
+    let sourceCursor: string | undefined;
+    do {
+      const page = await this.dataFolderService.getFileContentsByFolderIdPaginated(
+        workbookId,
+        tableMapping.sourceDataFolderId,
+        actor,
+        DIRTY_BRANCH,
+        sourceCursor,
+      );
+
+      // Parse this batch of source records
+      const batchRecords = page.files.map((file) => parseFileToRecord(file, sourceIdColumn));
+      const batchRecordsById = new Map(batchRecords.map((r) => [r.id, r]));
+
+      WSLogger.info({
+        source: 'SyncService.syncTableMapping',
+        message: `Pass 2: source batch`,
+        syncId,
+        records: batchRecords.length,
+        cursor: sourceCursor ?? 'initial',
+        batch: batchCounter,
+      });
+
+      // Get mappings for this batch
+      const batchMappings = await this.getDestinationRemoteIds(
+        syncId,
+        tableMapping.sourceDataFolderId,
+        Array.from(batchRecordsById.keys()),
+      );
+
+      // Check for source records that weren't included in mappings (missing or falsy match key)
+      if (tableMapping.recordMatching) {
+        for (const [sourceId, sourceRecord] of batchRecordsById) {
+          if (!batchMappings.has(sourceId)) {
+            const matchKeyValue = get(sourceRecord.fields, tableMapping.recordMatching.sourceColumnId);
+            if (matchKeyValue === undefined || matchKeyValue === null) {
+              result.errors.push({
+                sourceRemoteId: sourceId,
+                error: `Source record missing record matching field: ${tableMapping.recordMatching.sourceColumnId}`,
+              });
+            } else if (typeof matchKeyValue !== 'string' || matchKeyValue === '') {
+              result.errors.push({
+                sourceRemoteId: sourceId,
+                error: `Source record has empty or invalid record matching value for field: ${tableMapping.recordMatching.sourceColumnId}`,
+              });
+            }
+          }
+        }
       }
 
-      try {
-        const transformedFields = await transformRecordAsync(
-          sourceRecord,
-          tableMapping.columnMappings,
-          lookupTools,
-          phase,
-        );
-
-        let destinationPath: string;
-
-        if (destinationRemoteId === null) {
-          // This is a new record
-
-          // Generate a temporary ID for the new record so it can be matched on subsequent syncs,
-          // but only if the column mappings haven't already set the destination ID column.
-          const existingIdValue = get(transformedFields, destIdColumn);
-          const hasExplicitId =
-            existingIdValue != null && (typeof existingIdValue === 'string' || typeof existingIdValue === 'number');
-          const tempId = hasExplicitId ? String(existingIdValue) : createScratchPendingPublishId();
-          if (!hasExplicitId) {
-            set(transformedFields, destIdColumn, tempId);
-          }
-
-          // Track this new record mapping for Phase 2 FK resolution
-          newRecordMappings.push({ sourceRemoteId, tempId });
-
-          // Resolve filename: prefer slug from destination schema, fall back to temp ID
-          const slugValue = destTableSpec?.slugColumnRemoteId
-            ? (get(transformedFields, destTableSpec.slugColumnRemoteId) as string | undefined)
-            : undefined;
-          const baseName = resolveBaseFileName({ slugValue, idValue: tempId });
-          const fileName = deduplicateFileName(baseName, '.json', usedDestFileNames, tempId);
-          destinationPath = destinationFolderPath ? `${destinationFolderPath}/${fileName}` : fileName;
-
-          result.recordsCreated++;
-          result.createdPaths.push(destinationPath);
-        } else {
-          // This is an existing record - use the existing file path
-          const existingPath = destinationIdToFilePath.get(destinationRemoteId);
-          if (!existingPath) {
-            result.errors.push({
-              sourceRemoteId,
-              error: `Could not find file path for existing destination record ${destinationRemoteId}`,
-            });
-            continue;
-          }
-          destinationPath = existingPath;
-
-          // Merge existing destination fields with transformed source fields (source takes precedence).
-          // This preserves destination fields that aren't covered by column mappings.
-          const existingRecord = destinationRecordsById.get(destinationRemoteId);
-          if (existingRecord) {
-            Object.assign(transformedFields, merge({}, existingRecord.fields, transformedFields));
-          }
-
-          result.recordsUpdated++;
-          result.updatedPaths.push(destinationPath);
+      for (const [sourceRemoteId, destinationRemoteId] of batchMappings) {
+        const sourceRecord = batchRecordsById.get(sourceRemoteId);
+        if (!sourceRecord) {
+          result.errors.push({
+            sourceRemoteId,
+            error: 'Source record not found',
+          });
+          continue;
         }
 
-        const content = serializeRecord(transformedFields);
-        filesToWrite.push({ path: destinationPath, content });
-      } catch (error) {
-        result.errors.push({
-          sourceRemoteId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        try {
+          const transformedFields = await transformRecordAsync(
+            sourceRecord,
+            tableMapping.columnMappings,
+            lookupTools,
+            phase,
+          );
+
+          let destinationPath: string;
+
+          if (destinationRemoteId === null) {
+            // This is a new record
+
+            // Generate a temporary ID for the new record so it can be matched on subsequent syncs,
+            // but only if the column mappings haven't already set the destination ID column.
+            const existingIdValue = get(transformedFields, destIdColumn);
+            const hasExplicitId =
+              existingIdValue != null && (typeof existingIdValue === 'string' || typeof existingIdValue === 'number');
+            const tempId = hasExplicitId ? String(existingIdValue) : createScratchPendingPublishId();
+            if (!hasExplicitId) {
+              set(transformedFields, destIdColumn, tempId);
+            }
+
+            // Track this new record mapping for Phase 2 FK resolution
+            newRecordMappings.push({ sourceRemoteId, tempId });
+
+            // Resolve filename: prefer slug from destination schema, fall back to temp ID
+            const slugValue = destTableSpec?.slugColumnRemoteId
+              ? (get(transformedFields, destTableSpec.slugColumnRemoteId) as string | undefined)
+              : undefined;
+            const baseName = resolveBaseFileName({ slugValue, idValue: tempId });
+            const fileName = deduplicateFileName(baseName, '.json', usedDestFileNames, tempId);
+            destinationPath = destinationFolderPath ? `${destinationFolderPath}/${fileName}` : fileName;
+
+            result.recordsCreated++;
+            result.createdPaths.push(destinationPath);
+          } else {
+            // This is an existing record - use the existing file path
+            const existingPath = destinationIdToFilePath.get(destinationRemoteId);
+            if (!existingPath) {
+              result.errors.push({
+                sourceRemoteId,
+                error: `Could not find file path for existing destination record ${destinationRemoteId}`,
+              });
+              continue;
+            }
+            destinationPath = existingPath;
+
+            // Merge existing destination fields with transformed source fields (source takes precedence).
+            // This preserves destination fields that aren't covered by column mappings.
+            const existingRecord = destinationRecordsById.get(destinationRemoteId);
+            if (existingRecord) {
+              Object.assign(transformedFields, merge({}, existingRecord.fields, transformedFields));
+            }
+
+            result.recordsUpdated++;
+            result.updatedPaths.push(destinationPath);
+          }
+
+          const content = serializeRecord(transformedFields);
+          filesToWrite.push({ path: destinationPath, content });
+        } catch (error) {
+          result.errors.push({
+            sourceRemoteId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
-    }
+
+      sourceCursor = page.nextCursor;
+      batchCounter++;
+    } while (sourceCursor);
 
     // 7. Backfill SyncRemoteIdMapping for newly created records with their temp IDs
-    // This is needed so Phase 2 FK resolution can find destination IDs for new records
-    if (newRecordMappings.length > 0) {
+    // This is needed so the FOREIGN_KEY_MAPPING phase can find destination IDs for new records
+    if (phase === 'DATA' && newRecordMappings.length > 0) {
       await this.updateRemoteIdMappingsForNewRecords(syncId, tableMapping.sourceDataFolderId, newRecordMappings);
     }
 
     // 8. Write all files in batch to the dirty branch
     if (filesToWrite.length > 0) {
+      WSLogger.info({
+        source: 'SyncService.syncTableMapping',
+        message: `Committing files to git`,
+        syncId,
+        files: filesToWrite.length,
+      });
       try {
         await this.scratchGitService.commitFilesToBranch(
           workbookId,
@@ -780,6 +681,203 @@ export class SyncService {
     }
 
     return result;
+  }
+
+  /**
+   * Fills sync caches (match keys and remote ID mappings) before running a sync.
+   * Populates the SyncMatchKeys table for both sides, and creates SyncRemoteIdMapping entries
+   * for records that exist in both source and destination.
+   *
+   * @param syncId - The sync ID
+   * @param tableMapping - The table mapping with source/destination folder IDs
+   * @param sourceRecords - The source records to process
+   * @param destinationRecords - The destination records to process
+   */
+  /**
+   * Processes a batch of source and destination records for cache population.
+   * Inserts match keys (when recordMatching is configured) or creates direct
+   * remote ID mappings (when no recordMatching) for this batch.
+   */
+  async fillSyncCachesBatch(
+    syncId: SyncId,
+    tableMapping: TableMapping,
+    sourceRecords: SyncRecord[],
+    destinationRecords: SyncRecord[],
+  ): Promise<void> {
+    if (!tableMapping.recordMatching) {
+      // No record matching — every source record is a create.
+      // Insert mappings directly with null destination so the rest of the flow treats them as new.
+      const batchMappings: RemoteIdMappingPair[] = sourceRecords.map((r) => ({
+        sourceRemoteId: r.id,
+        destinationRemoteId: null,
+      }));
+      if (batchMappings.length > 0) {
+        await this.upsertRemoteIdMappings(syncId, tableMapping, batchMappings);
+      }
+      return;
+    }
+
+    // Insert match keys for both sides
+    if (sourceRecords.length > 0) {
+      await this.insertSourceMatchKeys(syncId, tableMapping, sourceRecords);
+    }
+    if (destinationRecords.length > 0) {
+      await this.insertDestinationMatchKeys(syncId, tableMapping, destinationRecords);
+    }
+  }
+
+  /**
+   * Finalizes sync caches after all batches have been processed.
+   * Joins source and destination match keys to create remote ID mappings.
+   * Only needed when recordMatching is configured.
+   */
+  async buildRecordMatchingMappings(syncId: SyncId, tableMapping: TableMapping): Promise<void> {
+    if (!tableMapping.recordMatching) {
+      return;
+    }
+
+    // Create remote ID mappings for both matched and unmatched source records
+    const allSourceMappings = await this.db.client.$queryRaw<
+      { sourceRemoteId: string; destinationRemoteId: string | null }[]
+    >`
+      SELECT src."remoteId" as "sourceRemoteId", dest."remoteId" as "destinationRemoteId"
+      FROM "SyncMatchKeys" src
+      LEFT JOIN "SyncMatchKeys" dest
+        ON src."syncId" = dest."syncId"
+        AND src."matchId" = dest."matchId"
+        AND dest."dataFolderId" = ${tableMapping.destinationDataFolderId}
+      WHERE src."syncId" = ${syncId}
+        AND src."dataFolderId" = ${tableMapping.sourceDataFolderId}
+    `;
+
+    const matchedCount = allSourceMappings.filter((m) => m.destinationRemoteId !== null).length;
+    WSLogger.info({
+      source: 'SyncService.buildRecordMatchingMappings',
+      message: 'Built mappings for record matching',
+      syncId,
+      totalSourceRecords: allSourceMappings.length,
+      matchedRecords: matchedCount,
+      unmatchedRecords: allSourceMappings.length - matchedCount,
+    });
+
+    if (allSourceMappings.length > 0) {
+      await this.upsertRemoteIdMappings(syncId, tableMapping, allSourceMappings);
+    }
+  }
+
+  /**
+   * Collects foreign key values from a batch of source records for lookup_field transformers.
+   * Accumulates values into the provided map of sets, keyed by referenced DataFolder ID.
+   */
+  private collectForeignKeyValues(
+    tableMapping: TableMapping,
+    sourceRecords: SyncRecord[],
+    fkValuesByFolder: Map<DataFolderId, Set<string>>,
+  ): void {
+    const lookupFieldMappings = tableMapping.columnMappings.filter((m) => m.transformer?.type === 'lookup_field');
+    if (lookupFieldMappings.length === 0) {
+      return;
+    }
+
+    let collectedCount = 0;
+    for (const mapping of lookupFieldMappings) {
+      const opts = mapping.transformer!.options as LookupFieldOptions;
+      if (!fkValuesByFolder.has(opts.referencedDataFolderId)) {
+        fkValuesByFolder.set(opts.referencedDataFolderId, new Set());
+      }
+      const fkValues = fkValuesByFolder.get(opts.referencedDataFolderId)!;
+      const sizeBefore = fkValues.size;
+
+      for (const record of sourceRecords) {
+        const val = get(record.fields, mapping.sourceColumnId);
+        if (val === null || val === undefined) continue;
+        if (Array.isArray(val)) {
+          for (const elem of val) {
+            if (elem !== null && elem !== undefined && (typeof elem === 'string' || typeof elem === 'number')) {
+              fkValues.add(String(elem));
+            }
+          }
+        } else if (typeof val === 'string' || typeof val === 'number') {
+          fkValues.add(String(val));
+        }
+      }
+
+      collectedCount += fkValues.size - sizeBefore;
+    }
+
+    WSLogger.info({
+      source: 'SyncService.collectForeignKeyValues',
+      message: `Collected FK values from source records`,
+      sourceRecords: sourceRecords.length,
+      newFkValues: collectedCount,
+    });
+  }
+
+  /**
+   * Populates the SyncForeignKeyRecord cache for lookup_field transformers.
+   * Uses pre-collected FK values (from collectForeignKeyValues) to fetch and
+   * cache the referenced record data.
+   */
+  private async populateForeignKeyRecordCache(
+    syncId: SyncId,
+    fkValuesByFolder: Map<DataFolderId, Set<string>>,
+    workbookId: WorkbookId,
+    actor: Actor,
+  ): Promise<void> {
+    if (fkValuesByFolder.size === 0) {
+      return;
+    }
+
+    // Clear existing FK record cache for this sync
+    await this.db.client.syncForeignKeyRecord.deleteMany({ where: { syncId } });
+
+    for (const [referencedFolderId, fkValues] of fkValuesByFolder) {
+      if (fkValues.size === 0) continue;
+
+      // Fetch the referenced DataFolder for its schema
+      const folder = await this.db.client.dataFolder.findUnique({
+        where: { id: referencedFolderId },
+      });
+      if (!folder) {
+        WSLogger.warn({
+          source: 'SyncService',
+          message: `Referenced DataFolder ${referencedFolderId} not found for lookup_field transformer`,
+        });
+        continue;
+      }
+
+      // Fetch and parse records from the referenced DataFolder
+      const idColumn = this.getIdColumnFromSchema(folder.schema);
+      const files = await this.dataFolderService.getAllFileContentsByFolderId(workbookId, referencedFolderId, actor);
+      const records = files.map((f) => parseFileToRecord(f, idColumn));
+      const recordsById = new Map(records.map((r) => [r.id, r.fields]));
+
+      // Create one cache entry per unique (dataFolderId, foreignKeyValue)
+      const entries: Array<{
+        syncId: string;
+        dataFolderId: string;
+        foreignKeyValue: string;
+        recordData: Prisma.InputJsonValue;
+      }> = [];
+
+      for (const fkValue of fkValues) {
+        const recordData = recordsById.get(fkValue);
+        if (!recordData) continue;
+        entries.push({
+          syncId,
+          dataFolderId: referencedFolderId,
+          foreignKeyValue: fkValue,
+          recordData: recordData as Prisma.InputJsonValue,
+        });
+      }
+
+      if (entries.length > 0) {
+        await this.db.client.syncForeignKeyRecord.createMany({
+          data: entries,
+          skipDuplicates: true,
+        });
+      }
+    }
   }
 
   // ===============================================================================================================
@@ -992,6 +1090,15 @@ export class SyncService {
   }
 
   /**
+   * Clears remote ID mappings for a specific sync and DataFolder combination.
+   */
+  private async clearRemoteIdMappingsForDataFolder(syncId: SyncId, dataFolderId: DataFolderId): Promise<void> {
+    await this.db.client.syncRemoteIdMapping.deleteMany({
+      where: { syncId, dataFolderId },
+    });
+  }
+
+  /**
    * Finds match IDs that exist in both source and destination DataFolders.
    * Returns the set of matchIds that have records on both sides.
    */
@@ -1049,14 +1156,13 @@ export class SyncService {
 
     const sourceIdColumn = this.getIdColumnFromSchema(sourceFolder.schema);
 
-    // Fetch files from the source folder
-    const files = await this.dataFolderService.getAllFileContentsByFolderId(workbookId, sourceId, actor);
-    const file = files.find((f) => f.path === dto.filePath);
+    // Fetch the single source file
+    const file = await this.scratchGitService.getRepoFile(workbookId, DIRTY_BRANCH, dto.filePath);
     if (!file) {
       throw new NotFoundException(`File not found: ${dto.filePath}`);
     }
 
-    const record = parseFileToRecord(file, sourceIdColumn);
+    const record = parseFileToRecord({ folderId: sourceId, path: dto.filePath, content: file.content }, sourceIdColumn);
     const columnMappings = fieldMapToColumnMappings(dto.fieldMap);
 
     // Stub lookup tools — FK lookups are not available in preview

@@ -24,11 +24,13 @@ import { extractSchemaFields, SchemaField } from 'src/utils/schema-helpers';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
 import { BaseJsonTableSpec } from '../remote-service/connectors/types';
-import { DIRTY_BRANCH, RepoFileRef, ScratchGitService } from '../scratch-git/scratch-git.service';
+import { DIRTY_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { DataFolderEntity, DataFolderGroupEntity } from './entities/data-folder.entity';
 import { FilesService } from './files.service';
 import { WorkbookEventService } from './workbook-event.service';
 import { WorkbookService } from './workbook.service';
+
+const PAGINATED_FILE_BATCH_SIZE = 1000;
 
 @Injectable()
 export class DataFolderService {
@@ -704,11 +706,8 @@ export class DataFolderService {
   }
 
   /**
-   * Get all file contents for a data folder.
+   * Get all file contents for a data folder using paginated reads.
    * Returns an array of objects containing the folder ID, file path, and content.
-   * @deprecated: This is a temporary method used by SyncService to grab all files in a DataFolder.
-   * It should be replaced by something more efficient once there's support in the Git service
-   * for batch read operations.
    */
   async getAllFileContentsByFolderId(
     workbookId: WorkbookId,
@@ -723,21 +722,66 @@ export class DataFolderService {
     }
 
     const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
-    const repoFiles = (await this.scratchGitService.listRepoFiles(workbookId, branch, folderPath)) as RepoFileRef[];
+    const allFiles: { folderId: DataFolderId; path: string; content: string }[] = [];
+    let cursor: string | undefined;
 
-    return Promise.all(
-      repoFiles.map(async (fileRef) => {
-        const result = await this.scratchGitService.getRepoFile(workbookId, branch, fileRef.path);
-        if (result === null) {
-          throw new NotFoundException(`Unable to find ${fileRef.path}`);
-        }
-        return {
-          folderId: folderId,
-          path: fileRef.path,
-          content: result.content,
-        };
-      }),
+    do {
+      const page = await this.scratchGitService.getRepoFilesPaginated(
+        workbookId,
+        branch,
+        folderPath,
+        PAGINATED_FILE_BATCH_SIZE,
+        cursor,
+      );
+
+      for (const file of page.files) {
+        allFiles.push({
+          folderId,
+          path: `${folderPath}/${file.name}`,
+          content: file.content,
+        });
+      }
+
+      cursor = page.nextCursor;
+    } while (cursor);
+
+    return allFiles;
+  }
+
+  /**
+   * Get a single page of file contents for a data folder.
+   * Returns the files in this page and a nextCursor for fetching the next page.
+   */
+  async getFileContentsByFolderIdPaginated(
+    workbookId: WorkbookId,
+    folderId: DataFolderId,
+    actor: Actor,
+    branch: string = DIRTY_BRANCH,
+    cursor?: string,
+  ): Promise<{ files: { folderId: DataFolderId; path: string; content: string }[]; nextCursor?: string }> {
+    const folder = await this.findOne(folderId, actor);
+
+    if (!folder.path) {
+      throw new InternalServerErrorException(`Path missing from DataFolder ${folderId}`);
+    }
+
+    const folderPath = folder.path.replace(/^\//, ''); // remove preceding / for git paths
+
+    const page = await this.scratchGitService.getRepoFilesPaginated(
+      workbookId,
+      branch,
+      folderPath,
+      PAGINATED_FILE_BATCH_SIZE,
+      cursor,
     );
+
+    const files = page.files.map((file) => ({
+      folderId,
+      path: `${folderPath}/${file.name}`,
+      content: file.content,
+    }));
+
+    return { files, nextCursor: page.nextCursor };
   }
 
   /**

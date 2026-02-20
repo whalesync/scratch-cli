@@ -157,7 +157,8 @@ describe('SyncService - fillSyncCaches', () => {
     };
 
     // Call fillSyncCaches with records
-    await syncService.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.fillSyncCachesBatch(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.buildRecordMatchingMappings(syncId, tableMapping);
 
     // Verify SyncMatchKeys were inserted for both sides
     const sourceMatches = await prisma.syncMatchKeys.findMany({
@@ -214,7 +215,8 @@ describe('SyncService - fillSyncCaches', () => {
       },
     };
 
-    await syncService.fillSyncCaches(syncId, tableMapping, [], []);
+    await syncService.fillSyncCachesBatch(syncId, tableMapping, [], []);
+    await syncService.buildRecordMatchingMappings(syncId, tableMapping);
 
     const matchKeys = await prisma.syncMatchKeys.findMany({ where: { syncId } });
     expect(matchKeys).toHaveLength(0);
@@ -238,7 +240,8 @@ describe('SyncService - fillSyncCaches', () => {
       },
     };
 
-    await syncService.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.fillSyncCachesBatch(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.buildRecordMatchingMappings(syncId, tableMapping);
 
     // No mappings should be created since no match keys were created
     // (records don't have the matching column values)
@@ -264,7 +267,8 @@ describe('SyncService - fillSyncCaches', () => {
       },
     };
 
-    await syncService.fillSyncCaches(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.fillSyncCachesBatch(syncId, tableMapping, sourceRecords, destinationRecords);
+    await syncService.buildRecordMatchingMappings(syncId, tableMapping);
 
     // Source match keys should be created for both records
     const sourceMatches = await prisma.syncMatchKeys.findMany({
@@ -324,8 +328,27 @@ describe('SyncService - syncTableMapping', () => {
 
     dataFolderService = {
       getAllFileContentsByFolderId: jest.fn(),
+      getFileContentsByFolderIdPaginated: jest.fn(),
       findOne: jest.fn(),
     } as unknown as DataFolderService;
+
+    // Wire paginated mock to delegate to getAllFileContentsByFolderId mock,
+    // returning all files in a single page (no nextCursor).
+    (dataFolderService.getFileContentsByFolderIdPaginated as jest.Mock).mockImplementation(
+      async (wbId, folderId, actorArg, branch, cursor) => {
+        // Only return files on the first page (no cursor)
+        if (cursor) {
+          return { files: [], nextCursor: undefined };
+        }
+        const files = await (dataFolderService.getAllFileContentsByFolderId as jest.Mock)(
+          wbId,
+          folderId,
+          actorArg,
+          branch,
+        );
+        return { files: files ?? [], nextCursor: undefined };
+      },
+    );
 
     scratchGitService = {
       commitFilesToBranch: jest
@@ -1406,8 +1429,25 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
 
     dataFolderService = {
       getAllFileContentsByFolderId: jest.fn(),
+      getFileContentsByFolderIdPaginated: jest.fn(),
       findOne: jest.fn(),
     } as unknown as DataFolderService;
+
+    // Wire paginated mock to delegate to getAllFileContentsByFolderId mock
+    (dataFolderService.getFileContentsByFolderIdPaginated as jest.Mock).mockImplementation(
+      async (wbId, folderId, actorArg, branch, cursor) => {
+        if (cursor) {
+          return { files: [], nextCursor: undefined };
+        }
+        const files = await (dataFolderService.getAllFileContentsByFolderId as jest.Mock)(
+          wbId,
+          folderId,
+          actorArg,
+          branch,
+        );
+        return { files: files ?? [], nextCursor: undefined };
+      },
+    );
 
     scratchGitService = {
       commitFilesToBranch: jest
@@ -2128,8 +2168,25 @@ describe('SyncService - lookup_field transformer', () => {
 
     dataFolderService = {
       getAllFileContentsByFolderId: jest.fn(),
+      getFileContentsByFolderIdPaginated: jest.fn(),
       findOne: jest.fn(),
     } as unknown as DataFolderService;
+
+    // Wire paginated mock to delegate to getAllFileContentsByFolderId mock
+    (dataFolderService.getFileContentsByFolderIdPaginated as jest.Mock).mockImplementation(
+      async (wbId, folderId, actorArg, branch, cursor) => {
+        if (cursor) {
+          return { files: [], nextCursor: undefined };
+        }
+        const files = await (dataFolderService.getAllFileContentsByFolderId as jest.Mock)(
+          wbId,
+          folderId,
+          actorArg,
+          branch,
+        );
+        return { files: files ?? [], nextCursor: undefined };
+      },
+    );
 
     scratchGitService = {
       commitFilesToBranch: jest

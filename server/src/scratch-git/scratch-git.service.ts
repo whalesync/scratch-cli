@@ -75,6 +75,16 @@ export class ScratchGitService {
     return this.scratchGitClient.getFile(workbookId, branch, path);
   }
 
+  async getRepoFilesPaginated(
+    workbookId: WorkbookId,
+    branch: string,
+    folder: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<{ files: Array<{ name: string; content: string }>; nextCursor?: string }> {
+    return this.scratchGitClient.readFilesPaginated(workbookId, branch, folder, limit, cursor);
+  }
+
   async commitFile(workbookId: WorkbookId, path: string, content: string, message: string): Promise<void> {
     await this.scratchGitClient.commitFiles(workbookId, 'dirty', [{ path, content }], message);
   }
