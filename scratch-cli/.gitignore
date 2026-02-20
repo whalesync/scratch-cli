@@ -19,3 +19,6 @@ coverage.out
 
 # Downloaded content via scratchmd
 test-files/
+
+# Local project repos
+repos/

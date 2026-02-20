@@ -1,0 +1,255 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { DbService } from '../../db/db.service';
+import { ScratchGitService } from '../../scratch-git/scratch-git.service';
+import { FileIndexService } from '../file-index.service';
+import { FileReferenceService } from '../file-reference.service';
+import { PublishBuildService } from '../publish-build.service';
+import { PublishSchemaService } from '../publish-schema.service';
+import { RefCleanerService } from '../ref-cleaner.service';
+
+const WORKBOOK_ID = 'wkb_test';
+const USER_ID = 'user_test';
+const PIPELINE_ID = 'pipeline_test';
+const BRANCH_NAME = `publish/${USER_ID}/${PIPELINE_ID}`;
+
+// Minimal Prisma mock that captures createMany calls
+function makeDbMock() {
+  return {
+    client: {
+      publishPlan: {
+        create: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue({ id: PIPELINE_ID, branchName: BRANCH_NAME }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      publishPlanEntry: {
+        createMany: jest.fn().mockResolvedValue({}),
+      },
+      dataFolder: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    },
+  };
+}
+
+describe('PublishBuildService', () => {
+  let service: PublishBuildService;
+  let db: ReturnType<typeof makeDbMock>;
+  let scratchGitService: jest.Mocked<ScratchGitService>;
+  let fileIndexService: jest.Mocked<FileIndexService>;
+  let fileReferenceService: jest.Mocked<FileReferenceService>;
+  let refCleanerService: jest.Mocked<RefCleanerService>;
+  let schemaService: jest.Mocked<PublishSchemaService>;
+
+  beforeEach(async () => {
+    db = makeDbMock();
+
+    scratchGitService = {
+      getRepoStatus: jest.fn().mockResolvedValue([]),
+      readRepoFiles: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<ScratchGitService>;
+
+    fileIndexService = {
+      getRecordId: jest.fn().mockResolvedValue(null),
+    } as unknown as jest.Mocked<FileIndexService>;
+
+    fileReferenceService = {
+      findRefsToFiles: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<FileReferenceService>;
+
+    refCleanerService = {
+      // Pass content through unchanged by default
+      stripReferencesWithSchema: jest.fn().mockImplementation((_wkb, content) => Promise.resolve(content)),
+    } as unknown as jest.Mocked<RefCleanerService>;
+
+    schemaService = {
+      getDataFolderInfo: jest.fn().mockResolvedValue({ id: 'df_1', spec: { schema: {} } }),
+    } as unknown as jest.Mocked<PublishSchemaService>;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PublishBuildService,
+        { provide: DbService, useValue: db },
+        { provide: ScratchGitService, useValue: scratchGitService },
+        { provide: FileIndexService, useValue: fileIndexService },
+        { provide: FileReferenceService, useValue: fileReferenceService },
+        { provide: RefCleanerService, useValue: refCleanerService },
+        { provide: PublishSchemaService, useValue: schemaService },
+      ],
+    }).compile();
+
+    service = module.get<PublishBuildService>(PublishBuildService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('buildPipeline with existingPipelineId', () => {
+    it('returns a planned result with no phases when there are no changes', async () => {
+      scratchGitService.getRepoStatus.mockResolvedValue([]);
+
+      const result = await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      expect(result.pipelineId).toBe(PIPELINE_ID);
+      expect(result.status).toBe('planned');
+      expect(result.phases).toEqual([]);
+      expect(db.client.publishPlan.update).toHaveBeenCalledWith({
+        where: { id: PIPELINE_ID },
+        data: { status: 'planned' },
+      });
+      expect(db.client.publishPlanEntry.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Phase 1: edit', () => {
+    it('creates an edit entry for a modified file', async () => {
+      const filePath = 'articles/article1.json';
+      const content = JSON.stringify({ title: 'Hello' });
+
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'modified' }]);
+      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content }]);
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const saved = db.client.publishPlanEntry.createMany.mock.calls[0][0].data as Array<{ phase: string }>;
+      expect(saved.some((e) => e.phase === 'edit')).toBe(true);
+    });
+
+    it('falls back to main branch when file is missing from dirty', async () => {
+      const filePath = 'articles/ref-clearer.json';
+      const content = JSON.stringify({ title: 'Ref file' });
+
+      // Simulate a file that refers to deleted content — present in main but not dirty
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: 'articles/deleted.json', status: 'deleted' }]);
+      fileIndexService.getRecordId.mockResolvedValue('rec_deleted');
+      fileReferenceService.findRefsToFiles.mockResolvedValue([{ sourceFilePath: filePath, branch: 'main' }]);
+
+      // dirty returns nothing for the ref-clearing candidate; main has it
+      scratchGitService.readRepoFiles.mockImplementation((_wkb, branch, paths) => {
+        if (branch === 'main') {
+          return Promise.resolve(paths.map((p) => ({ path: p, content: p === filePath ? content : null })));
+        }
+        return Promise.resolve(paths.map((p) => ({ path: p, content: null })));
+      });
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // readRepoFiles should have been called for both dirty and main
+      const calls = scratchGitService.readRepoFiles.mock.calls;
+      expect(calls.some(([, branch]) => branch === 'dirty')).toBe(true);
+      expect(calls.some(([, branch]) => branch === 'main')).toBe(true);
+    });
+
+    it('creates a backfill entry when pseudo-ref stripping changes the content', async () => {
+      const filePath = 'articles/article1.json';
+      const originalContent = { title: 'Hello', ref: '@/new/record.json' };
+      const strippedContent = { title: 'Hello', ref: null };
+
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'modified' }]);
+      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content: JSON.stringify(originalContent) }]);
+
+      // Pass 1 (IDS_ONLY): no change; Pass 2 (PSEUDO_ONLY): strips the ref
+      refCleanerService.stripReferencesWithSchema
+        .mockResolvedValueOnce(originalContent) // pass 1
+        .mockResolvedValueOnce(strippedContent); // pass 2
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const saved = db.client.publishPlanEntry.createMany.mock.calls[0][0].data as Array<{ phase: string }>;
+      expect(saved.some((e) => e.phase === 'edit')).toBe(true);
+      expect(saved.some((e) => e.phase === 'backfill')).toBe(true);
+    });
+  });
+
+  describe('Phase 2: create', () => {
+    it('creates a create entry for an added file', async () => {
+      const filePath = 'articles/new.json';
+      const content = JSON.stringify({ title: 'New Article' });
+
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'added' }]);
+      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content }]);
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const saved = db.client.publishPlanEntry.createMany.mock.calls[0][0].data as Array<{ phase: string }>;
+      expect(saved.some((e) => e.phase === 'create')).toBe(true);
+    });
+
+    it('skips a file that is not found in dirty', async () => {
+      const filePath = 'articles/ghost.json';
+
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'added' }]);
+      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content: null }]);
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      expect(db.client.publishPlanEntry.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Phase 3: delete', () => {
+    it('creates a delete entry for a deleted file', async () => {
+      const filePath = 'articles/old.json';
+
+      scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'deleted' }]);
+      fileIndexService.getRecordId.mockResolvedValue('rec_old');
+      fileReferenceService.findRefsToFiles.mockResolvedValue([]);
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const saved = db.client.publishPlanEntry.createMany.mock.calls[0][0].data as Array<{
+        phase: string;
+        remoteRecordId: string | null;
+      }>;
+      const deleteEntry = saved.find((e) => e.phase === 'delete');
+      expect(deleteEntry).toBeDefined();
+      expect(deleteEntry?.remoteRecordId).toBe('rec_old');
+    });
+  });
+
+  describe('batching', () => {
+    it('calls readRepoFiles in batches of 100 for large edit sets', async () => {
+      // 150 modified files → 2 batches
+      const files = Array.from({ length: 150 }, (_, i) => ({
+        path: `articles/file${i}.json`,
+        status: 'modified' as const,
+      }));
+      const content = JSON.stringify({ title: 'x' });
+
+      scratchGitService.getRepoStatus.mockResolvedValue(files);
+      scratchGitService.readRepoFiles.mockImplementation((_wkb, _branch, paths) =>
+        Promise.resolve(paths.map((p) => ({ path: p, content }))),
+      );
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      // Two dirty-branch batches for the edit phase
+      const dirtyCalls = scratchGitService.readRepoFiles.mock.calls.filter(([, branch]) => branch === 'dirty');
+      expect(dirtyCalls.length).toBe(2);
+      expect(dirtyCalls[0][2].length).toBe(100);
+      expect(dirtyCalls[1][2].length).toBe(50);
+    });
+
+    it('calls savePlanEntries after each batch', async () => {
+      // 150 files → 2 edit batches → 2 createMany calls
+      const files = Array.from({ length: 150 }, (_, i) => ({
+        path: `articles/file${i}.json`,
+        status: 'modified' as const,
+      }));
+      const content = JSON.stringify({ title: 'x' });
+
+      scratchGitService.getRepoStatus.mockResolvedValue(files);
+      scratchGitService.readRepoFiles.mockImplementation((_wkb, _branch, paths) =>
+        Promise.resolve(paths.map((p) => ({ path: p, content }))),
+      );
+
+      await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
+
+      expect(db.client.publishPlanEntry.createMany).toHaveBeenCalledTimes(2);
+    });
+  });
+});

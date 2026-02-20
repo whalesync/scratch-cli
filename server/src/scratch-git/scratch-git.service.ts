@@ -85,6 +85,14 @@ export class ScratchGitService {
     return this.scratchGitClient.readFilesPaginated(workbookId, branch, folder, limit, cursor);
   }
 
+  async readRepoFiles(
+    workbookId: WorkbookId,
+    branch: string,
+    paths: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    return this.scratchGitClient.readFiles(workbookId, branch, paths);
+  }
+
   async commitFile(workbookId: WorkbookId, path: string, content: string, message: string): Promise<void> {
     await this.scratchGitClient.commitFiles(workbookId, 'dirty', [{ path, content }], message);
   }

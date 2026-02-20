@@ -185,107 +185,136 @@ export class PublishBuildService {
       status: string;
     }> = [];
 
-    for (const filePath of filesToProcessInEditPhase) {
-      editPhaseProcessed++;
-      if (editPhaseProcessed === 1 || editPhaseProcessed % 50 === 0 || editPhaseProcessed === editPhaseTotal) {
-        await onProgress?.(`Processing edits (${editPhaseProcessed}/${editPhaseTotal})`);
-      }
-      WSLogger.info({
-        source: 'PublishBuildService.buildPipeline',
-        message: `Processing file in edit phase: ${filePath}`,
-        workbookId,
+    const savePlanEntries = async () => {
+      if (planEntries.length === 0) return;
+      await this.db.client.publishPlanEntry.createMany({
+        data: planEntries.map((e) => ({
+          planId: pipelineId,
+          filePath: e.filePath,
+          phase: e.phase,
+          operation: e.operation,
+          remoteRecordId: e.remoteRecordId ?? null,
+          dataFolderId: e.dataFolderId ?? null,
+          status: e.status,
+        })),
       });
-      // Fetch content: try Dirty first, fallback to main
-      // Fallback is needed since we might need to clear refs from files that are deleted in dirty.
-      let fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', filePath);
-      if (!fileData) {
-        WSLogger.warn({
-          source: 'PublishBuildService.buildPipeline',
-          message: `File not found in dirty branch, falling back to main: ${filePath}`,
-          workbookId,
-        });
-        fileData = await this.scratchGitService.getRepoFile(wkbId, 'main', filePath);
+      planEntries.length = 0;
+    };
+
+    for (const editBatch of chunk(Array.from(filesToProcessInEditPhase), 100)) {
+      // Bulk fetch from dirty; fall back to main for any missing paths
+      const dirtyResults = await this.scratchGitService.readRepoFiles(wkbId, 'dirty', editBatch);
+      const dirtyMap = new Map(dirtyResults.map((r) => [r.path, r.content]));
+
+      const missingPaths = editBatch.filter((p) => !dirtyMap.get(p));
+      const mainMap = new Map<string, string | null>();
+      if (missingPaths.length > 0) {
+        const mainResults = await this.scratchGitService.readRepoFiles(wkbId, 'main', missingPaths);
+        for (const r of mainResults) mainMap.set(r.path, r.content);
       }
 
-      if (fileData?.content) {
-        let contentObj: ParsedContent;
-        try {
-          contentObj = JSON.parse(fileData.content) as ParsedContent;
-        } catch {
-          // Not JSON? Just commit as is if it was user-modified.
-          if (filesToProcessInEditPhase.has(filePath) && modifiedFiles.some((m) => m.path === filePath)) {
-            const { folderPath } = parsePath(filePath);
-            const info = await getDataFolderInfo(folderPath);
+      for (const filePath of editBatch) {
+        editPhaseProcessed++;
+        if (editPhaseProcessed === 1 || editPhaseProcessed % 50 === 0 || editPhaseProcessed === editPhaseTotal) {
+          await onProgress?.(`Processing edits (${editPhaseProcessed}/${editPhaseTotal})`);
+        }
 
+        const rawContent = dirtyMap.get(filePath) ?? mainMap.get(filePath);
+        if (!dirtyMap.get(filePath) && mainMap.has(filePath)) {
+          WSLogger.warn({
+            source: 'PublishBuildService.buildPipeline',
+            message: `File not found in dirty branch, falling back to main: ${filePath}`,
+            workbookId,
+          });
+        } else {
+          WSLogger.info({
+            source: 'PublishBuildService.buildPipeline',
+            message: `Processing file in edit phase: ${filePath}`,
+            workbookId,
+          });
+        }
+
+        if (rawContent) {
+          let contentObj: ParsedContent;
+          try {
+            contentObj = JSON.parse(rawContent) as ParsedContent;
+          } catch {
+            // Not JSON? Just commit as is if it was user-modified.
+            if (modifiedFiles.some((m) => m.path === filePath)) {
+              const { folderPath } = parsePath(filePath);
+              const info = await getDataFolderInfo(folderPath);
+
+              planEntries.push({
+                filePath,
+                phase: 'edit',
+                operation: JSON.parse(rawContent) as ParsedContent,
+                dataFolderId: info?.id,
+                status: 'pending',
+              });
+              editCount++;
+            }
+            continue;
+          }
+
+          const { folderPath } = parsePath(filePath);
+          const info = await getDataFolderInfo(folderPath);
+          const schema = info?.spec?.schema as Schema;
+          const dataFolderId = info?.id;
+
+          // --- TWO PASS STRIPPING ---
+
+          // Pass 1: Strip references to DELETED records.
+          const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+            workbookId,
+            contentObj,
+            schema,
+            deletedPathsSet,
+            deletedRecordIds,
+            'IDS_ONLY',
+          );
+          const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
+
+          // Pass 2: Strip references to NEW records (Pseudo-refs).
+          const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+            workbookId,
+            pass1ContentObj,
+            schema,
+            addedPathsSet,
+            undefined,
+            'PSEUDO_ONLY',
+          );
+          const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
+
+          // Determine Edit Operation
+          const originalContentStr = JSON.stringify(contentObj, null, 2);
+          const isUserModified = modifiedFiles.some((m) => m.path === filePath);
+          const isRefCleared = pass1ContentStr !== originalContentStr;
+          const isPseudoStripped = pass2ContentStr !== pass1ContentStr;
+
+          if (isUserModified || isRefCleared || isPseudoStripped) {
             planEntries.push({
               filePath,
               phase: 'edit',
-              operation: JSON.parse(fileData.content) as ParsedContent,
-              dataFolderId: info?.id,
-              status: 'pending',
-            });
-            editCount++;
-          }
-          continue;
-        }
-
-        const { folderPath } = parsePath(filePath);
-        const info = await getDataFolderInfo(folderPath);
-        const schema = info?.spec?.schema as Schema;
-        const dataFolderId = info?.id;
-
-        // --- TWO PASS STRIPPING ---
-
-        // Pass 1: Strip references to DELETED records.
-        const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
-          workbookId,
-          contentObj,
-          schema,
-          deletedPathsSet,
-          deletedRecordIds,
-          'IDS_ONLY',
-        );
-        const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
-
-        // Pass 2: Strip references to NEW records (Pseudo-refs).
-        const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
-          workbookId,
-          pass1ContentObj,
-          schema,
-          addedPathsSet,
-          undefined,
-          'PSEUDO_ONLY',
-        );
-        const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
-
-        // Determine Edit Operation
-        const originalContentStr = JSON.stringify(contentObj, null, 2);
-        const isUserModified = modifiedFiles.some((m) => m.path === filePath);
-        const isRefCleared = pass1ContentStr !== originalContentStr;
-        const isPseudoStripped = pass2ContentStr !== pass1ContentStr;
-
-        if (isUserModified || isRefCleared || isPseudoStripped) {
-          planEntries.push({
-            filePath,
-            phase: 'edit',
-            operation: pass2ContentObj,
-            dataFolderId: dataFolderId || null,
-            status: 'pending',
-          });
-          editCount++;
-
-          // Backfill Logic
-          if (pass2ContentStr !== pass1ContentStr) {
-            planEntries.push({
-              filePath,
-              phase: 'backfill',
-              operation: pass1ContentObj,
+              operation: pass2ContentObj,
               dataFolderId: dataFolderId || null,
               status: 'pending',
             });
+            editCount++;
+
+            // Backfill Logic
+            if (pass2ContentStr !== pass1ContentStr) {
+              planEntries.push({
+                filePath,
+                phase: 'backfill',
+                operation: pass1ContentObj,
+                dataFolderId: dataFolderId || null,
+                status: 'pending',
+              });
+            }
           }
         }
       }
+      await savePlanEntries();
     }
 
     if (editCount > 0) {
@@ -297,73 +326,85 @@ export class PublishBuildService {
     let createPhaseProcessed = 0;
     const createPhaseTotal = addedFiles.length;
 
-    for (const add of addedFiles) {
-      createPhaseProcessed++;
-      if (createPhaseProcessed === 1 || createPhaseProcessed % 50 === 0 || createPhaseProcessed === createPhaseTotal) {
-        await onProgress?.(`Processing creates (${createPhaseProcessed}/${createPhaseTotal})`);
-      }
-      const fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
-      if (fileData?.content) {
-        const { folderPath } = parsePath(add.path);
-        const info = await getDataFolderInfo(folderPath);
+    for (const createBatch of chunk(addedFiles, 100)) {
+      const batchPaths = createBatch.map((f) => f.path);
+      const dirtyResults = await this.scratchGitService.readRepoFiles(wkbId, 'dirty', batchPaths);
+      const dirtyMap = new Map(dirtyResults.map((r) => [r.path, r.content]));
 
-        let contentObj: ParsedContent;
-        try {
-          contentObj = JSON.parse(fileData.content) as ParsedContent;
-        } catch {
+      for (const add of createBatch) {
+        createPhaseProcessed++;
+        if (
+          createPhaseProcessed === 1 ||
+          createPhaseProcessed % 50 === 0 ||
+          createPhaseProcessed === createPhaseTotal
+        ) {
+          await onProgress?.(`Processing creates (${createPhaseProcessed}/${createPhaseTotal})`);
+        }
+
+        const rawContent = dirtyMap.get(add.path);
+        if (rawContent) {
+          const { folderPath } = parsePath(add.path);
+          const info = await getDataFolderInfo(folderPath);
+
+          let contentObj: ParsedContent;
+          try {
+            contentObj = JSON.parse(rawContent) as ParsedContent;
+          } catch {
+            planEntries.push({
+              filePath: add.path,
+              phase: 'create',
+              operation: JSON.parse(rawContent) as ParsedContent,
+              dataFolderId: info?.id || null,
+              status: 'pending',
+            });
+            createCount++;
+            continue;
+          }
+
+          const schema = info?.spec?.schema as Schema;
+          const dataFolderId = info?.id;
+
+          // Pass 1: Strip Deleted
+          const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+            workbookId,
+            contentObj,
+            schema,
+            deletedPathsSet,
+          );
+          const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
+
+          // Pass 2: Strip Pseudo
+          const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
+            workbookId,
+            pass1ContentObj,
+            schema,
+            addedPathsSet,
+            undefined,
+            'PSEUDO_ONLY',
+          );
+          const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
+
           planEntries.push({
             filePath: add.path,
             phase: 'create',
-            operation: JSON.parse(fileData.content) as ParsedContent,
-            dataFolderId: info?.id || null,
-            status: 'pending',
-          });
-          createCount++;
-          continue;
-        }
-
-        const schema = info?.spec?.schema as Schema;
-        const dataFolderId = info?.id;
-
-        // Pass 1: Strip Deleted
-        const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
-          workbookId,
-          contentObj,
-          schema,
-          deletedPathsSet,
-        );
-        const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
-
-        // Pass 2: Strip Pseudo
-        const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
-          workbookId,
-          pass1ContentObj,
-          schema,
-          addedPathsSet,
-          undefined,
-          'PSEUDO_ONLY',
-        );
-        const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
-
-        planEntries.push({
-          filePath: add.path,
-          phase: 'create',
-          operation: pass2ContentObj,
-          dataFolderId: dataFolderId || null,
-          status: 'pending',
-        });
-        createCount++;
-
-        if (pass2ContentStr !== pass1ContentStr) {
-          planEntries.push({
-            filePath: add.path,
-            phase: 'backfill',
-            operation: pass1ContentObj,
+            operation: pass2ContentObj,
             dataFolderId: dataFolderId || null,
             status: 'pending',
           });
+          createCount++;
+
+          if (pass2ContentStr !== pass1ContentStr) {
+            planEntries.push({
+              filePath: add.path,
+              phase: 'backfill',
+              operation: pass1ContentObj,
+              dataFolderId: dataFolderId || null,
+              status: 'pending',
+            });
+          }
         }
       }
+      await savePlanEntries();
     }
 
     if (createCount > 0) {
@@ -398,24 +439,8 @@ export class PublishBuildService {
       phases.push({ type: 'delete', recordCount: deletedFiles.length });
     }
 
-    // Create Entries
-    if (planEntries.length > 0) {
-      await onProgress?.(`Saving plan entries (${planEntries.length} entries)`);
-      const chunks = chunk(planEntries, 2000);
-      for (const c of chunks) {
-        await this.db.client.publishPlanEntry.createMany({
-          data: c.map((e) => ({
-            planId: pipelineId,
-            filePath: e.filePath,
-            phase: e.phase,
-            operation: e.operation,
-            remoteRecordId: e.remoteRecordId ?? null,
-            dataFolderId: e.dataFolderId ?? null,
-            status: e.status,
-          })),
-        });
-      }
-    }
+    await onProgress?.('Saving plan entries');
+    await savePlanEntries();
 
     // Mark as planned (ready to run)
     await this.db.client.publishPlan.update({
