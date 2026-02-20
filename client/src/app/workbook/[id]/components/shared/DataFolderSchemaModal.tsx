@@ -1,6 +1,6 @@
 'use client';
 
-import { devToolsApi } from '@/lib/api/dev-tools';
+import { dataFolderApi } from '@/lib/api/data-folder';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
 import { ActionIcon, Box, Loader, Modal, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
@@ -28,8 +28,8 @@ export function DataFolderSchemaModal({ opened, onClose, folder }: DataFolderSch
     setError(null);
     setSchema(null);
 
-    devToolsApi
-      .getDataFolderSchema(folder.id)
+    dataFolderApi
+      .getSchema(folder.id)
       .then((data) => setSchema(data))
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load schema'))
       .finally(() => setLoading(false));

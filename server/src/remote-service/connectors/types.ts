@@ -61,5 +61,5 @@ export type RecordErrorsMetadata = {
 // filter: a connector specific expression that represents the filter to be applied to the records
 // Any other options are unique to connector implementation.
 export type ConnectorPullOptions = {
-  filter?: string;
+  filter?: string | undefined;
 } & Record<string, unknown>;

@@ -3,7 +3,6 @@ import { UpdateSettingsDto, User } from '@/types/server-entities/users';
 import {
   ChangeUserOrganizationDto,
   ConnectorAccountId,
-  DataFolderId,
   DecryptedCredentials,
   GetAllJobsResponseDto,
   ScratchPlanType,
@@ -86,15 +85,6 @@ export const devToolsApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to get credentials for connection: ' + connectionId);
-    }
-  },
-  getDataFolderSchema: async (dataFolderId: DataFolderId): Promise<Record<string, unknown>> => {
-    try {
-      const axios = API_CONFIG.getAxiosInstance();
-      const res = await axios.get<Record<string, unknown>>(`/dev-tools/data-folder/${dataFolderId}/schema`);
-      return res.data;
-    } catch (error) {
-      handleAxiosError(error, 'Failed to get schema for data folder: ' + dataFolderId);
     }
   },
   getAllJobs: async (params?: {

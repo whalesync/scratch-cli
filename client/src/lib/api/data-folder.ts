@@ -84,6 +84,16 @@ export const dataFolderApi = {
     }
   },
 
+  getSchema: async (dataFolderId: DataFolderId): Promise<Record<string, unknown>> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<Record<string, unknown>>(`/data-folder/${dataFolderId}/schema`);
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to get schema for data folder: ' + dataFolderId);
+    }
+  },
+
   deleteAllRecords: async (workbookId: WorkbookId, folderPath: string): Promise<void> => {
     try {
       const axios = API_CONFIG.getAxiosInstance();
