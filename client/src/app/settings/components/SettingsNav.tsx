@@ -68,7 +68,7 @@ const devNavItems: NavItem[] = [
   },
   {
     id: 'jobs',
-    label: 'Jobs',
+    label: 'Job Manager',
     icon: BriefcaseIcon,
     href: '/settings/dev/jobs',
   },

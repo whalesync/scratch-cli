@@ -28,6 +28,7 @@ export * from './dto/data-folder/move-data-folder.dto';
 export * from './dto/data-folder/rename-data-folder.dto';
 export * from './dto/data-folder/update-data-folder.dto';
 export * from './dto/dev-tools/change-user-organization.dto';
+export * from './dto/dev-tools/get-all-jobs.dto';
 export * from './dto/dev-tools/update-dev-subscription.dto';
 export * from './dto/oauth/oauth-initiate-options.dto';
 export * from './dto/oauth/oauth-state-payload';

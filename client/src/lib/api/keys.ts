@@ -42,6 +42,8 @@ export const SWR_KEYS = {
   },
   jobs: {
     activeByWorkbook: (workbookId: WorkbookId) => ['jobs', 'active-by-workbook', workbookId] as const,
+    allJobs: (limit?: number, offset?: number, statuses?: string[], userId?: string) =>
+      ['jobs', 'all', limit, offset, statuses?.join(',') ?? 'all', userId ?? 'all'] as const,
   },
   dirtyFiles: {
     list: (workbookId: WorkbookId) => ['dirty-files', 'list', workbookId] as const,

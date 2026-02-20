@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuditLogModule } from 'src/audit/audit-log.module';
 import { ScratchConfigModule } from 'src/config/scratch-config.module';
 import { DbModule } from 'src/db/db.module';
+import { JobModule } from 'src/job/job.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { ConnectorAccountModule } from 'src/remote-service/connector-account/connector-account.module';
 import { UserModule } from 'src/users/users.module';
@@ -18,6 +19,7 @@ import { DevToolsService } from './dev-tools.service';
     UserModule,
     PaymentModule,
     WorkbookModule,
+    JobModule,
     WorkerEnqueuerModule,
     ConnectorAccountModule,
     AuditLogModule,

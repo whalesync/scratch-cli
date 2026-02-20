@@ -1,6 +1,6 @@
 import { UserDetails } from '@/types/server-entities/dev-tools';
 import { UpdateSettingsDto, User } from '@/types/server-entities/users';
-import { ChangeUserOrganizationDto, DataFolderId, ScratchPlanType } from '@spinner/shared-types';
+import { ChangeUserOrganizationDto, DataFolderId, GetAllJobsResponseDto, ScratchPlanType } from '@spinner/shared-types';
 import { API_CONFIG } from './config';
 import { handleAxiosError } from './error';
 
@@ -75,6 +75,27 @@ export const devToolsApi = {
       return res.data;
     } catch (error) {
       handleAxiosError(error, 'Failed to get schema for data folder: ' + dataFolderId);
+    }
+  },
+  getAllJobs: async (params?: {
+    limit?: number;
+    offset?: number;
+    statuses?: string[];
+    userId?: string;
+  }): Promise<GetAllJobsResponseDto> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      const res = await axios.get<GetAllJobsResponseDto>('/dev-tools/jobs', {
+        params: {
+          limit: params?.limit,
+          offset: params?.offset,
+          statuses: params?.statuses?.join(','),
+          userId: params?.userId,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      handleAxiosError(error, 'Failed to fetch all jobs');
     }
   },
 };

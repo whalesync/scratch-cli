@@ -15,7 +15,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { DataFolderId } from '@spinner/shared-types';
+import type { DataFolderId, GetAllJobsResponseDto } from '@spinner/shared-types';
 import {
   ChangeUserOrganizationDto,
   createSubscriptionId,
@@ -41,6 +41,8 @@ import { userToActor } from 'src/users/types';
 import { UsersService } from 'src/users/users.service';
 import { WorkbookService } from 'src/workbook/workbook.service';
 import { BullEnqueuerService } from 'src/worker-enqueuer/bull-enqueuer.service';
+import { DbJobStatus, dbJobToJobEntity } from '../job/entities/job.entity';
+import { JobService } from '../job/job.service';
 import { DataFolderService } from '../workbook/data-folder.service';
 import { DevToolsService } from './dev-tools.service';
 import { UserDetail } from './entities/user-detail.entity';
@@ -67,6 +69,7 @@ export class DevToolsController {
     private readonly devToolsService: DevToolsService,
     private readonly bullEnqueuerService: BullEnqueuerService,
     private readonly dataFolderService: DataFolderService,
+    private readonly jobService: JobService,
   ) {}
 
   @Post('users/change-organization')
@@ -246,6 +249,52 @@ export class DevToolsController {
         lastInvoicePaid: true,
       },
     });
+  }
+
+  /* Admin job listing */
+  @Get('jobs')
+  async getAllJobs(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('statuses') statuses?: string,
+    @Query('userId') userId?: string,
+    @Req() req?: RequestWithUser,
+  ): Promise<GetAllJobsResponseDto> {
+    if (!hasAdminToolsPermission(req!.user)) {
+      throw new UnauthorizedException('Only admins can list all jobs');
+    }
+
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+    const statusFilter = statuses ? (statuses.split(',') as DbJobStatus[]) : undefined;
+
+    const { jobs, total } = await this.jobService.getAllJobs(limitNum, offsetNum, {
+      statuses: statusFilter,
+      userId,
+    });
+
+    return {
+      jobs: jobs.map((job) => {
+        const entity = dbJobToJobEntity(job);
+        return {
+          dbJobId: job.id,
+          bullJobId: entity.bullJobId,
+          workbookId: entity.workbookId,
+          dataFolderId: entity.dataFolderId,
+          userId: job.userId,
+          type: entity.type,
+          state: entity.state,
+          publicProgress: entity.publicProgress as Record<string, unknown>,
+          processedOn: job.processedOn?.toISOString() ?? null,
+          finishedOn: job.finishedOn?.toISOString() ?? null,
+          createdAt: job.createdAt.toISOString(),
+          failedReason: entity.failedReason,
+        };
+      }),
+      total,
+      limit: limitNum,
+      offset: offsetNum,
+    };
   }
 
   /* Data folder JSON schema */

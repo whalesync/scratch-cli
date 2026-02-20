@@ -89,6 +89,29 @@ export class JobService {
     return jobs;
   }
 
+  async getAllJobs(
+    limit = 50,
+    offset = 0,
+    filter?: { statuses?: DbJobStatus[]; userId?: string },
+  ): Promise<{ jobs: DbJob[]; total: number }> {
+    const where = {
+      ...(filter?.statuses?.length && { status: { in: filter.statuses } }),
+      ...(filter?.userId && { userId: filter.userId }),
+    };
+
+    const [jobs, total] = await this.db.client.$transaction([
+      this.db.client.dbJob.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.db.client.dbJob.count({ where }),
+    ]);
+
+    return { jobs, total };
+  }
+
   async getJobById(id: string): Promise<DbJob | null> {
     const job = await this.db.client.dbJob.findUnique({
       where: { id },
