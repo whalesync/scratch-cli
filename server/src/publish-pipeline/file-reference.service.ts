@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable } from '@nestjs/common';
+import { chunk } from 'lodash';
 import { DbService } from '../db/db.service';
 import { PublishSchemaService } from './publish-schema.service';
 import { RefCleanerService } from './ref-cleaner.service';
@@ -182,24 +183,29 @@ export class FileReferenceService {
       }
     }
 
-    // 3. Insert
-    await this.db.client.fileReference.createMany({
-      data: allRefs.map((ref) => {
-        let folderPath = ref.targetFolderPath;
-        if (ref.targetFolderId && folderIdToNameMap.has(ref.targetFolderId)) {
-          folderPath = folderIdToNameMap.get(ref.targetFolderId)!;
-        }
+    // 3. Insert in chunks to avoid Postgres parameter limits (65,535 max)
+    const recordsToInsert = allRefs.map((ref) => {
+      let folderPath = ref.targetFolderPath;
+      if (ref.targetFolderId && folderIdToNameMap.has(ref.targetFolderId)) {
+        folderPath = folderIdToNameMap.get(ref.targetFolderId)!;
+      }
 
-        return {
-          workbookId,
-          branch,
-          sourceFilePath: ref.sourceFilePath,
-          targetFolderPath: folderPath,
-          targetFileName: ref.targetFileName,
-          targetFileRecordId: ref.targetFileRecordId,
-        };
-      }),
+      return {
+        workbookId,
+        branch,
+        sourceFilePath: ref.sourceFilePath,
+        targetFolderPath: folderPath,
+        targetFileName: ref.targetFileName,
+        targetFileRecordId: ref.targetFileRecordId,
+      };
     });
+
+    const chunks = chunk(recordsToInsert, 2000);
+    for (const c of chunks) {
+      await this.db.client.fileReference.createMany({
+        data: c,
+      });
+    }
   }
 
   /**
@@ -222,29 +228,37 @@ export class FileReferenceService {
 
     // This is a complex OR query.
     // For each target, we want to find refs that match (folder AND filename) OR (folder AND recordId).
+    // Split targets into chunks to avoid Postgres parameter limits (max 32767 on some query topologies)
+    const chunks = chunk(targets, 2000);
+    const results: { sourceFilePath: string; branch: string }[] = [];
 
-    const conditions = targets.map((t) => {
-      const orList: any[] = [];
-      if (t.fileName && t.folderPath) {
-        orList.push({ targetFolderPath: t.folderPath, targetFileName: t.fileName });
-      }
-      if (t.recordId) {
-        orList.push({ targetFileRecordId: t.recordId });
-      }
-      return { OR: orList };
-    });
+    for (const c of chunks) {
+      const conditions = c.map((t) => {
+        const orList: any[] = [];
+        if (t.fileName && t.folderPath) {
+          orList.push({ targetFolderPath: t.folderPath, targetFileName: t.fileName });
+        }
+        if (t.recordId) {
+          orList.push({ targetFileRecordId: t.recordId });
+        }
+        return { OR: orList };
+      });
 
-    return this.db.client.fileReference.findMany({
-      where: {
-        workbookId,
-        branch: { in: branches },
-        OR: conditions,
-      },
-      select: {
-        sourceFilePath: true,
-        branch: true,
-      },
-    });
+      const chunkResults = await this.db.client.fileReference.findMany({
+        where: {
+          workbookId,
+          branch: { in: branches },
+          OR: conditions,
+        },
+        select: {
+          sourceFilePath: true,
+          branch: true,
+        },
+      });
+      results.push(...chunkResults);
+    }
+
+    return results;
   }
 
   /**

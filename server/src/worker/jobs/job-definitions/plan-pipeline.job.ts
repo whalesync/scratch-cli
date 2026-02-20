@@ -1,5 +1,5 @@
 import type { WorkbookId } from '@spinner/shared-types';
-import { PipelineBuildService } from 'src/publish-pipeline/pipeline-build.service';
+import { PublishBuildService } from 'src/publish-pipeline/publish-build.service';
 import { WSLogger } from '../../../logger';
 import type { JobDefinitionBuilder, JobHandlerBuilder, Progress } from '../base-types';
 
@@ -32,7 +32,7 @@ export type PlanPipelineJobDefinition = JobDefinitionBuilder<
 // ── Handler ──────────────────────────────────────────────────────────
 
 export class PlanPipelineJobHandler implements JobHandlerBuilder<PlanPipelineJobDefinition> {
-  constructor(private readonly pipelineBuildService: PipelineBuildService) {}
+  constructor(private readonly pipelineBuildService: PublishBuildService) {}
 
   async run(params: {
     jobId: string;

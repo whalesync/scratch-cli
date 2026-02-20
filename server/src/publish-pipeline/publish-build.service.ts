@@ -1,7 +1,7 @@
-// /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
 import { randomUUID } from 'crypto';
+import { chunk } from 'lodash';
 import { ParsedContent, Schema } from 'src/utils/objects';
 import { DbService } from '../db/db.service';
 import { WSLogger } from '../logger';
@@ -367,17 +367,20 @@ export class PublishBuildService {
 
     // Create Entries
     if (planEntries.length > 0) {
-      await this.db.client.publishPlanEntry.createMany({
-        data: planEntries.map((e) => ({
-          planId: pipelineId,
-          filePath: e.filePath,
-          phase: e.phase,
-          operation: e.operation,
-          remoteRecordId: e.remoteRecordId ?? null,
-          dataFolderId: e.dataFolderId ?? null,
-          status: e.status,
-        })),
-      });
+      const chunks = chunk(planEntries, 2000);
+      for (const c of chunks) {
+        await this.db.client.publishPlanEntry.createMany({
+          data: c.map((e) => ({
+            planId: pipelineId,
+            filePath: e.filePath,
+            phase: e.phase,
+            operation: e.operation,
+            remoteRecordId: e.remoteRecordId ?? null,
+            dataFolderId: e.dataFolderId ?? null,
+            status: e.status,
+          })),
+        });
+      }
     }
 
     // Mark as planned (ready to run)

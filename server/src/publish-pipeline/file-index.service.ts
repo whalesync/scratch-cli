@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { chunk } from 'lodash';
 import { DbService } from '../db/db.service';
 
 export interface FileIndexEntry {
@@ -33,32 +34,35 @@ export class FileIndexService {
     const now = new Date();
 
     // Use Prisma Transaction for upserts.
-    // This is safer than raw SQL and handles generating CUIDs automatically.
+    // Chunking to avoid Postgres 65,535 parameter limit
+    const chunks = chunk(entries, 1000);
 
-    await this.db.client.$transaction(
-      entries.map((entry) =>
-        this.db.client.fileIndex.upsert({
-          where: {
-            workbookId_folderPath_recordId: {
+    for (const c of chunks) {
+      await this.db.client.$transaction(
+        c.map((entry) =>
+          this.db.client.fileIndex.upsert({
+            where: {
+              workbookId_folderPath_recordId: {
+                workbookId: entry.workbookId,
+                folderPath: entry.folderPath,
+                recordId: entry.recordId,
+              },
+            },
+            update: {
+              filename: entry.filename, // Filename might change (rename)
+              lastSeenAt: now,
+            },
+            create: {
               workbookId: entry.workbookId,
               folderPath: entry.folderPath,
               recordId: entry.recordId,
+              filename: entry.filename,
+              lastSeenAt: now,
             },
-          },
-          update: {
-            filename: entry.filename, // Filename might change (rename)
-            lastSeenAt: now,
-          },
-          create: {
-            workbookId: entry.workbookId,
-            folderPath: entry.folderPath,
-            recordId: entry.recordId,
-            filename: entry.filename,
-            lastSeenAt: now,
-          },
-        }),
-      ),
-    );
+          }),
+        ),
+      );
+    }
   }
 
   /**
@@ -100,6 +104,30 @@ export class FileIndexService {
       select: { recordId: true },
     });
     return entry?.recordId || null;
+  }
+
+  async getRecordIds(
+    workbookId: string,
+    lookups: { folderPath: string; filename: string }[],
+  ): Promise<Map<string, string>> {
+    if (lookups.length === 0) return new Map();
+
+    const resultEntries: Array<{ folderPath: string; filename: string; recordId: string }> = [];
+    const chunks = chunk(lookups, 10000);
+
+    for (const c of chunks) {
+      const entries = await this.db.client.fileIndex.findMany({
+        where: { workbookId, OR: c },
+        select: { folderPath: true, filename: true, recordId: true },
+      });
+      resultEntries.push(...entries);
+    }
+
+    const map = new Map<string, string>();
+    for (const e of resultEntries) {
+      map.set(`${e.folderPath}:${e.filename}`, e.recordId);
+    }
+    return map;
   }
 
   async getFilename(workbookId: string, folderPath: string, recordId: string): Promise<string | null> {

@@ -10,6 +10,7 @@ import { WorkerEnqueuerModule } from '../worker-enqueuer/worker-enqueuer.module'
 import { PublishAdminService } from './publish-admin.service';
 import { PublishBuildService } from './publish-build.service';
 import { PublishPipelineController } from './publish-pipeline.controller';
+import { PublishRefResolverService } from './publish-ref-resolver.service';
 import { PublishRunService } from './publish-run.service';
 import { PublishSchemaService } from './publish-schema.service';
 import { RefCleanerService } from './ref-cleaner.service';
@@ -22,6 +23,7 @@ import { RefCleanerService } from './ref-cleaner.service';
     FileReferenceService,
     PublishAdminService,
     PublishBuildService,
+    PublishRefResolverService,
     PublishRunService,
     RefCleanerService,
     PublishSchemaService,
@@ -31,6 +33,7 @@ import { RefCleanerService } from './ref-cleaner.service';
     FileReferenceService,
     PublishAdminService,
     PublishBuildService,
+    PublishRefResolverService,
     PublishRunService,
     RefCleanerService,
     PublishSchemaService,

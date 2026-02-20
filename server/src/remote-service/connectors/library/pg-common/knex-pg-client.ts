@@ -472,6 +472,18 @@ export class KnexPGClient {
   // CRUD — Delete
   // -------------------------------------------------------------------------
 
+  /** Delete multiple rows by primary key. Returns the number of affected rows. */
+  async deleteMany(
+    schema: string,
+    tableName: string,
+    recordIds: (string | number)[],
+    primaryId: string,
+  ): Promise<number> {
+    if (recordIds.length === 0) return 0;
+    const count = await this.knex(`${schema}.${tableName}`).whereIn(primaryId, recordIds).del();
+    return count;
+  }
+
   /** Delete a single row by primary key. Returns 'not_found' if zero rows affected. */
   async deleteOne(
     schema: string,

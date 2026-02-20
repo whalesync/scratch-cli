@@ -11,6 +11,7 @@ import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { EncryptedData } from '../utils/encryption';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
+import { PublishRefResolverService } from './publish-ref-resolver.service';
 import { PublishSchemaService } from './publish-schema.service';
 import { PipelinePhase, PublishPlanInfo } from './types';
 import { parsePath } from './utils';
@@ -33,6 +34,7 @@ export class PublishRunService {
     private readonly fileReferenceService: FileReferenceService,
     private readonly scratchGitService: ScratchGitService,
     private readonly schemaService: PublishSchemaService,
+    private readonly refResolverService: PublishRefResolverService,
   ) {}
 
   async runPipeline(pipelineId: string, phase?: string): Promise<PublishPlanInfo> {
@@ -253,61 +255,6 @@ export class PublishRunService {
   }
 
   /**
-   * Resolve pseudo-references (@/path/file.json) in a JSON operation to real record IDs.
-   * Walks all string values in the object recursively.
-   */
-  private async resolvePseudoRefs(workbookId: string, obj: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const result: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'string' && value.startsWith('@/')) {
-        // Resolve pseudo-reference to real ID
-        const targetPath = value.substring(2); // Strip "@/"
-        const { folderPath: folder, filename } = parsePath(targetPath);
-
-        const recordId = await this.fileIndexService.getRecordId(workbookId, folder, filename);
-        if (!recordId) {
-          throw new Error(
-            `Cannot resolve pseudo-ref "${value}": no record ID found in FileIndex for folder="${folder}" file="${filename}"`,
-          );
-        }
-        // Debug only
-        // console.log(`[Run] Resolved pseudo-ref "${value}" → "${recordId}"`);
-        result[key] = recordId;
-      } else if (Array.isArray(value)) {
-        // Recurse into arrays
-        const resolved: unknown[] = [];
-        for (const item of value) {
-          if (typeof item === 'string' && item.startsWith('@/')) {
-            const targetPath = item.substring(2);
-            const { folderPath: folder, filename } = parsePath(targetPath);
-            const recordId = await this.fileIndexService.getRecordId(workbookId, folder, filename);
-
-            if (!recordId) {
-              throw new Error(
-                `Cannot resolve pseudo-ref "${item}": no record ID found in FileIndex for folder="${folder}" file="${filename}"`,
-              );
-            }
-            resolved.push(recordId);
-          } else if (typeof item === 'object' && item !== null) {
-            resolved.push(await this.resolvePseudoRefs(workbookId, item as Record<string, unknown>));
-          } else {
-            resolved.push(item);
-          }
-        }
-        result[key] = resolved;
-      } else if (typeof value === 'object' && value !== null) {
-        // Recurse into nested objects
-        result[key] = await this.resolvePseudoRefs(workbookId, value as Record<string, unknown>);
-      } else {
-        result[key] = value;
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * Process a batch of entries for a single table.
    * If successful, upgrades status to 'success'.
    * If failed, marks all as 'failed-batch' for later individual retry.
@@ -369,16 +316,16 @@ export class PublishRunService {
     workbookId: string,
     planId: string,
   ): Promise<void> {
+    const rawOps = entries.map((e) => e.operation as Record<string, unknown>).filter(Boolean);
+    const resolvedOps = await this.refResolverService.resolveBatchPseudoRefs(workbookId, rawOps);
+
     const operations: ParsedContent[] = [];
     const entriesWithOps: { entry: PublishEntry; resolvedOp: ParsedContent }[] = [];
 
+    let opIndex = 0;
     for (const entry of entries) {
       if (!entry.operation) continue;
-      // Resolve pseudo-refs
-      const resolvedOp = (await this.resolvePseudoRefs(
-        workbookId,
-        entry.operation as Record<string, unknown>,
-      )) as ParsedContent;
+      const resolvedOp = resolvedOps[opIndex++] as ParsedContent;
       operations.push(resolvedOp);
       entriesWithOps.push({ entry, resolvedOp });
     }
@@ -422,25 +369,30 @@ export class PublishRunService {
     workbookId: string,
     planId: string,
   ): Promise<void> {
-    const operations: any[] = [];
-    const entriesWithOps: { entry: PublishEntry; resolvedOp: ParsedContent }[] = [];
     const idField = tableSpec.idColumnRemoteId || 'id';
 
+    const rawOps = entries
+      .map((e) => {
+        if (!e.operation) return null;
+        const content = { ...(e.operation as Record<string, unknown>) };
+        // Strip temporary ID
+        const idValue = content[idField];
+        if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
+          delete content[idField];
+        }
+        return content;
+      })
+      .filter(Boolean) as Record<string, unknown>[];
+
+    const resolvedOps = await this.refResolverService.resolveBatchPseudoRefs(workbookId, rawOps);
+
+    const operations: any[] = [];
+    const entriesWithOps: { entry: PublishEntry; resolvedOp: ParsedContent }[] = [];
+
+    let opIndex = 0;
     for (const entry of entries) {
       if (!entry.operation) continue;
-      const content = { ...(entry.operation as Record<string, unknown>) };
-
-      // Strip temporary ID
-      const idValue = content[idField];
-      if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
-        delete content[idField];
-      }
-
-      // Resolve pseudo-refs (if any - create usually doesn't have them yet, but back references might?)
-      // Assuming create operations might have pseudo-refs to *other* already created records?
-      // Yes, safe to resolve.
-      const resolvedOp = await this.resolvePseudoRefs(workbookId, content);
-
+      const resolvedOp = resolvedOps[opIndex++];
       operations.push(resolvedOp);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       entriesWithOps.push({ entry, resolvedOp: resolvedOp as any });
@@ -536,19 +488,14 @@ export class PublishRunService {
     });
 
     // 2. Index
-    // Need to parse paths.
-    // Optimization: delete many by folder/filename or just by iterate?
-    // DeleteMany with OR conditions is okay.
     const fileIndexDeletes = validEntries.map((e) => {
       const { folderPath, filename } = parsePath(e.filePath);
       return { folderPath, filename };
     });
 
-    // We can't do deleteMany with (folder, filename) pairs easily in Prisma without OR
-    // Loop is fine for local DB cleanup (fast)
-    for (const { folderPath, filename } of fileIndexDeletes) {
+    if (fileIndexDeletes.length > 0) {
       await this.db.client.fileIndex.deleteMany({
-        where: { workbookId, folderPath, filename },
+        where: { workbookId, OR: fileIndexDeletes },
       });
     }
 

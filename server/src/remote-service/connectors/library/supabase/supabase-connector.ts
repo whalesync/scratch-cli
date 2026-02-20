@@ -594,8 +594,9 @@ export class SupabaseConnector extends Connector<typeof Service.SUPABASE> {
       const { schema, tableName } = resolved;
       const pk = tableSpec.idColumnRemoteId;
 
-      for (const file of files) {
-        await client.deleteOne(schema, tableName, file[pk] as string | number, pk);
+      const ids = files.map((file) => file[pk] as string | number);
+      if (ids.length > 0) {
+        await client.deleteMany(schema, tableName, ids, pk);
       }
     }, resolved.connectionString);
   }
