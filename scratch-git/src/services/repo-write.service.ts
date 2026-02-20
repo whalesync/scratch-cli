@@ -265,14 +265,14 @@ export class RepoWriteService extends BaseRepoService {
     changes: FileChange[],
     prefix = '',
   ): Promise<string> {
-    const directChanges: FileChange[] = [];
+    const directChangesMap: Map<string, FileChange> = new Map();
     const subtreeChanges: Map<string, FileChange[]> = new Map();
 
     for (const change of changes) {
       const relativePath = prefix ? change.path.slice(prefix.length + 1) : change.path;
       const slashIndex = relativePath.indexOf('/');
       if (slashIndex === -1) {
-        directChanges.push({ ...change, path: relativePath });
+        directChangesMap.set(relativePath, { ...change, path: relativePath });
       } else {
         const subtreeName = relativePath.slice(0, slashIndex);
         const existing = subtreeChanges.get(subtreeName) || [];
@@ -281,9 +281,11 @@ export class RepoWriteService extends BaseRepoService {
       }
     }
 
+    const currentEntryPaths = new Set(currentEntries.map((e) => e.path));
+
     const newEntries: TreeEntry[] = [];
     for (const entry of currentEntries) {
-      const direct = directChanges.find((c) => c.path === entry.path);
+      const direct = directChangesMap.get(entry.path);
       const subtree = subtreeChanges.get(entry.path);
 
       if (direct) {
@@ -325,8 +327,8 @@ export class RepoWriteService extends BaseRepoService {
       }
     }
 
-    for (const change of directChanges) {
-      if ((change.type === 'add' || change.type === 'modify') && !currentEntries.some((e) => e.path === change.path)) {
+    for (const [path, change] of directChangesMap) {
+      if ((change.type === 'add' || change.type === 'modify') && !currentEntryPaths.has(path)) {
         const newBlob = await git.writeBlob({
           fs,
           dir,
@@ -343,7 +345,7 @@ export class RepoWriteService extends BaseRepoService {
     }
 
     for (const [name, subChanges] of subtreeChanges) {
-      if (!currentEntries.some((e) => e.path === name)) {
+      if (!currentEntryPaths.has(name)) {
         const newSubtreeOid = await this.applyChangesToTree(dir, [], subChanges, prefix ? `${prefix}/${name}` : name);
         newEntries.push({
           mode: '040000',
