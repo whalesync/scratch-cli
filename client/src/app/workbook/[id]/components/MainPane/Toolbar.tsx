@@ -10,6 +10,7 @@ import { Text12Medium, Text12Regular } from '@/app/components/base/text';
 import { StyledLucideIcon } from '@/app/components/Icons/StyledLucideIcon';
 import { ConfirmDialog, useConfirmDialog } from '@/app/components/modals/ConfirmDialog';
 import { useActiveWorkbook } from '@/hooks/use-active-workbook';
+import { useConnectorAccount } from '@/hooks/use-connector-account';
 import { useDataFolders } from '@/hooks/use-data-folders';
 import { useDirtyFiles } from '@/hooks/use-dirty-files';
 import { useScratchPadUser } from '@/hooks/useScratchpadUser';
@@ -32,8 +33,8 @@ import {
   TerminalIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TestPublishV2Modal } from '../modals/TestPublishV2Modal';
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ConnectToCLIModal } from '../shared/ConnectToCLIModal';
@@ -53,6 +54,14 @@ export function Toolbar({ workbook }: ToolbarProps) {
   const { user } = useScratchPadUser();
   const openReportABugModal = useLayoutManagerStore((state) => state.openReportABugModal);
   const { dataFolderGroups } = useDataFolders(workbook.id);
+
+  const searchParams = useSearchParams();
+  const newConnectionId = searchParams.get('newConnectionId');
+  const { connectorAccount: oauthAccount } = useConnectorAccount(
+    newConnectionId ? workbook.id : undefined,
+    newConnectionId ?? undefined,
+  );
+  const hasOpenedOAuthModal = useRef(false);
 
   const isReviewPage = pathname.includes('/review');
   const isFilesPage = pathname.includes('/files');
@@ -75,6 +84,19 @@ export function Toolbar({ workbook }: ToolbarProps) {
 
   // Publish V2 modal state
   const [publishV2ModalOpened, { open: openPublishV2Modal, close: closePublishV2Modal }] = useDisclosure(false);
+
+  // Open table picker after OAuth connection redirect
+  useEffect(() => {
+    if (oauthAccount && !hasOpenedOAuthModal.current) {
+      hasOpenedOAuthModal.current = true;
+      setNewlyCreatedAccount(oauthAccount);
+      openChooseTables();
+      // Clean up the query param from the URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('newConnectionId');
+      router.replace(url.pathname + url.search);
+    }
+  }, [oauthAccount, openChooseTables, router]);
 
   // Action states
   const [isPulling, setIsPulling] = useState(false);

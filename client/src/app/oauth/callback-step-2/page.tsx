@@ -85,8 +85,10 @@ export default function OAuthCallbackPage() {
 
         // Redirect to returnPage (if specified) or workbooks page after a short delay
         const returnPage = extractReturnPageFromState();
+        const redirectUrl = new URL(returnPage || RouteUrls.homePageUrl, window.location.origin);
+        redirectUrl.searchParams.set('newConnectionId', result.connectorAccountId);
         setTimeout(() => {
-          router.push(returnPage || RouteUrls.homePageUrl);
+          router.push(redirectUrl.pathname + redirectUrl.search);
         }, 1000);
       } catch (error) {
         console.error('OAuth callback error:', error);
