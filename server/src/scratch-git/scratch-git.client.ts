@@ -119,6 +119,19 @@ export class ScratchGitClient {
     >;
   }
 
+  async readFilesFromFolder(
+    repoId: string,
+    branch: string,
+    folderPath: string,
+    filenames: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    return this.callGitApi(`/api/repo/read/${repoId}/files-from-folder`, 'POST', {
+      branch,
+      folderPath,
+      filenames,
+    }) as Promise<Array<{ path: string; content: string | null }>>;
+  }
+
   async readFilesPaginated(
     repoId: string,
     branch: string,

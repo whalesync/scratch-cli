@@ -45,11 +45,11 @@ describe('PublishBuildService', () => {
 
     scratchGitService = {
       getRepoStatus: jest.fn().mockResolvedValue([]),
-      readRepoFiles: jest.fn().mockResolvedValue([]),
+      readRepoFilesByFolder: jest.fn().mockResolvedValue([]),
     } as unknown as jest.Mocked<ScratchGitService>;
 
     fileIndexService = {
-      getRecordId: jest.fn().mockResolvedValue(null),
+      getRecordIds: jest.fn().mockResolvedValue(new Map()),
     } as unknown as jest.Mocked<FileIndexService>;
 
     fileReferenceService = {
@@ -107,7 +107,7 @@ describe('PublishBuildService', () => {
       const content = JSON.stringify({ title: 'Hello' });
 
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'modified' }]);
-      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content }]);
+      scratchGitService.readRepoFilesByFolder.mockResolvedValue([{ path: filePath, content }]);
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
 
@@ -122,11 +122,11 @@ describe('PublishBuildService', () => {
 
       // Simulate a file that refers to deleted content — present in main but not dirty
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: 'articles/deleted.json', status: 'deleted' }]);
-      fileIndexService.getRecordId.mockResolvedValue('rec_deleted');
+      fileIndexService.getRecordIds.mockResolvedValue(new Map([['articles:deleted.json', 'rec_deleted']]));
       fileReferenceService.findRefsToFiles.mockResolvedValue([{ sourceFilePath: filePath, branch: 'main' }]);
 
       // dirty returns nothing for the ref-clearing candidate; main has it
-      scratchGitService.readRepoFiles.mockImplementation((_wkb, branch, paths) => {
+      scratchGitService.readRepoFilesByFolder.mockImplementation((_wkb, branch, paths) => {
         if (branch === 'main') {
           return Promise.resolve(paths.map((p) => ({ path: p, content: p === filePath ? content : null })));
         }
@@ -135,8 +135,8 @@ describe('PublishBuildService', () => {
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
 
-      // readRepoFiles should have been called for both dirty and main
-      const calls = scratchGitService.readRepoFiles.mock.calls;
+      // readRepoFilesByFolder should have been called for both dirty and main
+      const calls = scratchGitService.readRepoFilesByFolder.mock.calls;
       expect(calls.some(([, branch]) => branch === 'dirty')).toBe(true);
       expect(calls.some(([, branch]) => branch === 'main')).toBe(true);
     });
@@ -147,7 +147,9 @@ describe('PublishBuildService', () => {
       const strippedContent = { title: 'Hello', ref: null };
 
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'modified' }]);
-      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content: JSON.stringify(originalContent) }]);
+      scratchGitService.readRepoFilesByFolder.mockResolvedValue([
+        { path: filePath, content: JSON.stringify(originalContent) },
+      ]);
 
       // Pass 1 (IDS_ONLY): no change; Pass 2 (PSEUDO_ONLY): strips the ref
       refCleanerService.stripReferencesWithSchema
@@ -169,7 +171,7 @@ describe('PublishBuildService', () => {
       const content = JSON.stringify({ title: 'New Article' });
 
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'added' }]);
-      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content }]);
+      scratchGitService.readRepoFilesByFolder.mockResolvedValue([{ path: filePath, content }]);
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
 
@@ -182,7 +184,7 @@ describe('PublishBuildService', () => {
       const filePath = 'articles/ghost.json';
 
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'added' }]);
-      scratchGitService.readRepoFiles.mockResolvedValue([{ path: filePath, content: null }]);
+      scratchGitService.readRepoFilesByFolder.mockResolvedValue([{ path: filePath, content: null }]);
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
 
@@ -195,7 +197,7 @@ describe('PublishBuildService', () => {
       const filePath = 'articles/old.json';
 
       scratchGitService.getRepoStatus.mockResolvedValue([{ path: filePath, status: 'deleted' }]);
-      fileIndexService.getRecordId.mockResolvedValue('rec_old');
+      fileIndexService.getRecordIds.mockResolvedValue(new Map([['articles:old.json', 'rec_old']]));
       fileReferenceService.findRefsToFiles.mockResolvedValue([]);
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
@@ -221,14 +223,14 @@ describe('PublishBuildService', () => {
       const content = JSON.stringify({ title: 'x' });
 
       scratchGitService.getRepoStatus.mockResolvedValue(files);
-      scratchGitService.readRepoFiles.mockImplementation((_wkb, _branch, paths) =>
+      scratchGitService.readRepoFilesByFolder.mockImplementation((_wkb, _branch, paths) =>
         Promise.resolve(paths.map((p) => ({ path: p, content }))),
       );
 
       await service.buildPipeline(WORKBOOK_ID, USER_ID, undefined, PIPELINE_ID);
 
       // Two dirty-branch batches for the edit phase
-      const dirtyCalls = scratchGitService.readRepoFiles.mock.calls.filter(([, branch]) => branch === 'dirty');
+      const dirtyCalls = scratchGitService.readRepoFilesByFolder.mock.calls.filter(([, branch]) => branch === 'dirty');
       expect(dirtyCalls.length).toBe(2);
       expect(dirtyCalls[0][2].length).toBe(100);
       expect(dirtyCalls[1][2].length).toBe(50);
@@ -243,7 +245,7 @@ describe('PublishBuildService', () => {
       const content = JSON.stringify({ title: 'x' });
 
       scratchGitService.getRepoStatus.mockResolvedValue(files);
-      scratchGitService.readRepoFiles.mockImplementation((_wkb, _branch, paths) =>
+      scratchGitService.readRepoFilesByFolder.mockImplementation((_wkb, _branch, paths) =>
         Promise.resolve(paths.map((p) => ({ path: p, content }))),
       );
 

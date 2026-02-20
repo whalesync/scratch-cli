@@ -145,25 +145,27 @@ export class PublishBuildService {
     const deletedPathsSet = new Set(deletedFiles.map((f) => f.path));
 
     // --- Prepare for "Delete Ref Clearing" ---
-    // 1. Identify Deleted Record IDs
+    // 1. Identify Deleted Record IDs (bulk lookup)
+
+    await onProgress?.(`Resolving deleted record IDs (${deletedFiles.length} files)`);
+
+    const deletedLookups = deletedFiles.map((del) => {
+      const { folderPath, filename: fileName } = parsePath(del.path);
+      return { folderPath, filename: fileName };
+    });
+    const recordIdMap = await this.fileIndexService.getRecordIds(workbookId, deletedLookups);
 
     const deletedRecordIds = new Set<string>();
     const deletedFileRecordIds = new Map<string, string | null>();
     const targetsForRefCheck: Array<{ folderPath: string; fileName: string; recordId?: string }> = [];
-    const deletedTotal = deletedFiles.length;
-    let deletedProcessed = 0;
 
     for (const del of deletedFiles) {
-      deletedProcessed++;
-      if (deletedProcessed === 1 || deletedProcessed % 50 === 0 || deletedProcessed === deletedTotal) {
-        await onProgress?.(`Resolving deleted record IDs (${deletedProcessed}/${deletedTotal})`);
-      }
       const { folderPath, filename: fileName } = parsePath(del.path);
-      const recordId = await this.fileIndexService.getRecordId(workbookId, folderPath, fileName);
+      const recordId = recordIdMap.get(`${folderPath}:${fileName}`) ?? null;
 
       if (recordId) deletedRecordIds.add(recordId);
-      deletedFileRecordIds.set(del.path, recordId || null);
-      targetsForRefCheck.push({ folderPath, fileName, recordId: recordId || undefined });
+      deletedFileRecordIds.set(del.path, recordId);
+      targetsForRefCheck.push({ folderPath, fileName, recordId: recordId ?? undefined });
     }
 
     // 2. Identify Inbound Refs to Deleted Files
@@ -220,13 +222,13 @@ export class PublishBuildService {
 
     for (const editBatch of chunk(Array.from(filesToProcessInEditPhase), 100)) {
       // Bulk fetch from dirty; fall back to main for any missing paths
-      const dirtyResults = await this.scratchGitService.readRepoFiles(wkbId, 'dirty', editBatch);
+      const dirtyResults = await this.scratchGitService.readRepoFilesByFolder(wkbId, 'dirty', editBatch);
       const dirtyMap = new Map(dirtyResults.map((r) => [r.path, r.content]));
 
       const missingPaths = editBatch.filter((p) => !dirtyMap.get(p));
       const mainMap = new Map<string, string | null>();
       if (missingPaths.length > 0) {
-        const mainResults = await this.scratchGitService.readRepoFiles(wkbId, 'main', missingPaths);
+        const mainResults = await this.scratchGitService.readRepoFilesByFolder(wkbId, 'main', missingPaths);
         for (const r of mainResults) mainMap.set(r.path, r.content);
       }
 
@@ -345,7 +347,7 @@ export class PublishBuildService {
 
     for (const createBatch of chunk(addedFiles, 100)) {
       const batchPaths = createBatch.map((f) => f.path);
-      const dirtyResults = await this.scratchGitService.readRepoFiles(wkbId, 'dirty', batchPaths);
+      const dirtyResults = await this.scratchGitService.readRepoFilesByFolder(wkbId, 'dirty', batchPaths);
       const dirtyMap = new Map(dirtyResults.map((r) => [r.path, r.content]));
 
       for (const add of createBatch) {

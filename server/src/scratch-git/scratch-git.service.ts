@@ -93,6 +93,42 @@ export class ScratchGitService {
     return this.scratchGitClient.readFiles(workbookId, branch, paths);
   }
 
+  async readRepoFilesFromFolder(
+    workbookId: WorkbookId,
+    branch: string,
+    folderPath: string,
+    filenames: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    return this.scratchGitClient.readFilesFromFolder(workbookId, branch, folderPath, filenames);
+  }
+
+  // Groups paths by their parent folder and calls readFilesFromFolder per group,
+  // which uses a single optimized tree walk per folder instead of one per file.
+  async readRepoFilesByFolder(
+    workbookId: WorkbookId,
+    branch: string,
+    paths: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    if (paths.length === 0) return [];
+
+    const byFolder = new Map<string, string[]>();
+    for (const p of paths) {
+      const normalized = p.startsWith('/') ? p.slice(1) : p;
+      const folder = normalized.includes('/') ? normalized.substring(0, normalized.lastIndexOf('/')) : '';
+      const filename = normalized.includes('/') ? normalized.substring(normalized.lastIndexOf('/') + 1) : normalized;
+      if (!byFolder.has(folder)) byFolder.set(folder, []);
+      byFolder.get(folder)!.push(filename);
+    }
+
+    const groups = await Promise.all(
+      Array.from(byFolder.entries()).map(([folder, filenames]) =>
+        this.scratchGitClient.readFilesFromFolder(workbookId, branch, folder, filenames),
+      ),
+    );
+
+    return groups.flat();
+  }
+
   async commitFile(workbookId: WorkbookId, path: string, content: string, message: string): Promise<void> {
     await this.scratchGitClient.commitFiles(workbookId, 'dirty', [{ path, content }], message);
   }

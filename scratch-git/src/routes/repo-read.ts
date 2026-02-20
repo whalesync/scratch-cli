@@ -45,6 +45,29 @@ repoReadRouter.get('/diff', async (req, res) => {
   }
 });
 
+repoReadRouter.post('/files-from-folder', async (req, res) => {
+  try {
+    const { id } = req.params as { id: string };
+    const {
+      branch = 'main',
+      folderPath,
+      filenames,
+    } = req.body as {
+      branch?: string;
+      folderPath: string;
+      filenames: string[];
+    };
+    if (!folderPath) throw new Error('Body param folderPath is required');
+    if (!filenames || !Array.isArray(filenames)) throw new Error('Body param filenames must be an array');
+
+    const gitService = new RepoReadService(id);
+    const results = await gitService.readFilesFromFolder(branch, folderPath, filenames);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 repoReadRouter.post('/files', async (req, res) => {
   try {
     const { id } = req.params as { id: string };

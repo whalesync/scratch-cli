@@ -49,6 +49,63 @@ export class RepoReadService extends BaseRepoService {
     return { main: mainContent, dirty: dirtyContent };
   }
 
+  // Optimized variant: resolve ref once, single tree walk over the folder subtree to build path→oid,
+  // then fetch all blobs in parallel (no per-file tree traversal).
+  async readFilesFromFolder(
+    branch: string,
+    folderPath: string,
+    filenames: string[],
+  ): Promise<Array<{ path: string; content: string | null }>> {
+    if (filenames.length === 0) return [];
+
+    const dir = this.getRepoPath();
+    const folder = folderPath.startsWith('/') ? folderPath.slice(1) : folderPath;
+    // Full paths as stored in git (no leading slash)
+    const fullPaths = filenames.map((name) => (folder ? `${folder}/${name}` : name));
+    const pathSet = new Set(fullPaths);
+
+    let commitOid: string;
+    try {
+      commitOid = await this.resolveRef(branch);
+    } catch {
+      return fullPaths.map((p) => ({ path: p, content: null }));
+    }
+
+    const oidMap = new Map<string, string>();
+    await git.walk({
+      fs,
+      dir,
+      gitdir: dir,
+      trees: [git.TREE({ ref: commitOid })],
+      map: async (filepath, [entry]) => {
+        if (!entry) return undefined;
+        const type = await entry.type();
+        if (type === 'tree') {
+          // Descend only into the target folder (skip everything else)
+          if (folder === '') return true;
+          return filepath === folder || folder.startsWith(filepath + '/') ? true : undefined;
+        }
+        if (type === 'blob' && pathSet.has(filepath)) {
+          oidMap.set(filepath, await entry.oid());
+        }
+        return undefined;
+      },
+    });
+
+    return Promise.all(
+      fullPaths.map(async (p) => {
+        const oid = oidMap.get(p);
+        if (!oid) return { path: p, content: null };
+        try {
+          const { blob } = await git.readBlob({ fs, dir, gitdir: dir, oid });
+          return { path: p, content: new TextDecoder().decode(blob) };
+        } catch {
+          return { path: p, content: null };
+        }
+      }),
+    );
+  }
+
   // TODO: optimize this
   async readFiles(branch: string, paths: string[]): Promise<Array<{ path: string; content: string | null }>> {
     const results = await Promise.all(
