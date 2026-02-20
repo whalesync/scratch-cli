@@ -16,7 +16,7 @@ import { FolderViewer } from '../../components/MainPane/FolderViewer';
 export default function FileDetailPage() {
   const params = useParams<{ id: string; path: string[] }>();
   const workbookId = params.id as WorkbookId;
-  const { folders } = useDataFolders(workbookId);
+  const { folders, isLoading: foldersLoading } = useDataFolders(workbookId);
 
   // Decode each path segment and rejoin
   const pathSegments = useMemo(() => params.path?.map((segment) => decodeURIComponent(segment)) ?? [], [params.path]);
@@ -33,6 +33,12 @@ export default function FileDetailPage() {
   // If path matches a folder, show folder viewer
   if (matchedFolder) {
     return <FolderViewer workbookId={workbookId} folderId={matchedFolder.id} folderName={matchedFolder.name} />;
+  }
+
+  // Don't render FileViewer until folders have loaded — a single-segment path
+  // might be a folder, and we'd incorrectly try to read a directory as a file.
+  if (foldersLoading && pathSegments.length === 1) {
+    return null;
   }
 
   // Otherwise show file viewer
