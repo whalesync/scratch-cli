@@ -374,7 +374,13 @@ func runLinkedAvailable(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	for _, table := range tableList.Tables {
-		fmt.Printf("  - %s (ID: %s)\n", table.DisplayName, table.ID)
+		if table.Disabled {
+			fmt.Printf("  - %s (not available)\n", table.DisplayName)
+		} else if table.DisabledCreates {
+			fmt.Printf("  - %s (ID: %s) (creates not supported)\n", table.DisplayName, table.ID)
+		} else {
+			fmt.Printf("  - %s (ID: %s)\n", table.DisplayName, table.ID)
+		}
 	}
 	fmt.Println()
 
@@ -456,7 +462,23 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	name, _ := cmd.Flags().GetString("name")
 
 	if connectionID != "" && len(tableIDs) > 0 {
-		// Non-interactive mode
+		// Non-interactive mode: check if the table is disabled or has restricted creates
+		var matchedTable *api.TablePreview
+		tableList, err := client.ListConnectionTables(workbookID, connectionID)
+		if err == nil {
+			requestedID := strings.Join(tableIDs, ",")
+			for _, t := range tableList.Tables {
+				if t.ID.String() == requestedID {
+					matched := t
+					matchedTable = &matched
+					break
+				}
+			}
+		}
+		if matchedTable != nil && matchedTable.Disabled {
+			return fmt.Errorf("table %q is not available for linking", matchedTable.DisplayName)
+		}
+
 		if name == "" {
 			name = tableIDs[0]
 		}
@@ -481,6 +503,9 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
 			fmt.Printf("  ID: %s\n", result.ID)
+			if matchedTable != nil && matchedTable.DisabledCreates {
+				fmt.Println("  Note: Creating new records is not supported for this table.")
+			}
 			fmt.Println("Downloading files...")
 		}
 
@@ -558,10 +583,16 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no tables found for connection '%s'", selectedConnection.DisplayName)
 	}
 
-	// Step 3: Select table(s)
+	// Step 3: Select table(s) — show disabled tables with a marker, and creates-not-supported info
 	tableOptions := make([]string, len(tables))
 	for i, t := range tables {
-		tableOptions[i] = fmt.Sprintf("%s (ID: %s)", t.DisplayName, t.ID)
+		if t.Disabled {
+			tableOptions[i] = fmt.Sprintf("%s (not available)", t.DisplayName)
+		} else if t.DisabledCreates {
+			tableOptions[i] = fmt.Sprintf("%s (creates not supported)", t.DisplayName)
+		} else {
+			tableOptions[i] = fmt.Sprintf("%s (ID: %s)", t.DisplayName, t.ID)
+		}
 	}
 
 	var selectedTableIdxs []int
@@ -575,6 +606,13 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 
 	if len(selectedTableIdxs) == 0 {
 		return fmt.Errorf("no tables selected")
+	}
+
+	// Check if any selected table is disabled
+	for _, idx := range selectedTableIdxs {
+		if tables[idx].Disabled {
+			return fmt.Errorf("table %q is not available for linking", tables[idx].DisplayName)
+		}
 	}
 
 	var selectedTableIDs []string
@@ -617,6 +655,13 @@ func runLinkedAdd(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Printf("\nLinked table '%s' created successfully.\n", result.Name)
 		fmt.Printf("  ID: %s\n", result.ID)
+		// Check if any selected table has creates not supported
+		for _, idx := range selectedTableIdxs {
+			if tables[idx].DisabledCreates {
+				fmt.Println("  Note: Creating new records is not supported for this table.")
+				break
+			}
+		}
 		fmt.Println("Downloading files...")
 	}
 

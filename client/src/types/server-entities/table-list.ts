@@ -3,6 +3,8 @@ import { EntityId, TableDiscoveryMode } from '@spinner/shared-types';
 export interface TablePreview {
   id: EntityId;
   displayName: string;
+  disabled?: boolean;
+  disabledCreates?: boolean;
 }
 
 export interface TableList {

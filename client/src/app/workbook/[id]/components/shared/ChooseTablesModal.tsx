@@ -26,6 +26,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import type { ConnectorAccount, DataFolderId, WorkbookId } from '@spinner/shared-types';
@@ -35,6 +36,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 const FILTER_SUPPORTED_SERVICES = new Set([Service.NOTION, Service.AIRTABLE]);
+
+const DISABLED_MESSAGES: Partial<Record<Service, string>> = {
+  [Service.SUPABASE]: "This table doesn't have a unique value column (primary key).",
+};
+const DEFAULT_DISABLED_MESSAGE = 'Not available';
+
+const DISABLED_CREATES_MESSAGES: Partial<Record<Service, string>> = {
+  [Service.SUPABASE]: "This table doesn't have an auto generated primary key, creates are not supported",
+};
+const DEFAULT_DISABLED_CREATES_MESSAGE = 'Creates are not supported';
 
 interface ChooseTablesModalProps {
   opened: boolean;
@@ -114,6 +125,17 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
     return searchData?.tables ?? [];
   }, [searchData]);
 
+  // Build a set of disabled table keys for quick lookup
+  const disabledTableKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const table of availableTables) {
+      if (table.disabled) {
+        keys.add(table.id.remoteId.join('/'));
+      }
+    }
+    return keys;
+  }, [availableTables]);
+
   // Initialize state when modal opens
   useEffect(() => {
     if (opened) {
@@ -122,7 +144,9 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
       linkedFolders.forEach((folder) => {
         if (folder.tableId.length > 0) {
           const key = folder.tableId.join('/');
-          linked.add(key);
+          if (!disabledTableKeys.has(key)) {
+            linked.add(key);
+          }
           if (folder.filter) {
             initialFilters.set(key, folder.filter);
           }
@@ -134,9 +158,10 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
       setStep(1);
       setShowConfirmation(false);
     }
-  }, [opened, linkedFolders]);
+  }, [opened, linkedFolders, disabledTableKeys]);
 
   const handleToggleTable = (table: TablePreview) => {
+    if (table.disabled) return;
     const tableKey = table.id.remoteId.join('/');
     setSelectedTableIds((prev) => {
       const next = new Set(prev);
@@ -323,8 +348,40 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
               return (
                 <Checkbox
                   key={tableKey}
-                  label={<Text13Regular>{table.displayName}</Text13Regular>}
+                  label={
+                    <Group gap={6} align="center" wrap="nowrap">
+                      <Text13Regular c={table.disabled ? 'dimmed' : undefined}>
+                        {table.displayName}
+                      </Text13Regular>
+                      {table.disabled && (
+                        <Tooltip
+                          label={
+                            DISABLED_MESSAGES[connectorAccount.service] ?? DEFAULT_DISABLED_MESSAGE
+                          }
+                          multiline
+                          maw={250}
+                          position="right"
+                        >
+                          <AlertTriangleIcon size={14} color="var(--mantine-color-dimmed)" />
+                        </Tooltip>
+                      )}
+                      {!table.disabled && table.disabledCreates && (
+                        <Tooltip
+                          label={
+                            DISABLED_CREATES_MESSAGES[connectorAccount.service] ??
+                            DEFAULT_DISABLED_CREATES_MESSAGE
+                          }
+                          multiline
+                          maw={250}
+                          position="right"
+                        >
+                          <AlertTriangleIcon size={14} color="var(--mantine-color-yellow-6)" />
+                        </Tooltip>
+                      )}
+                    </Group>
+                  }
                   checked={isChecked}
+                  disabled={table.disabled}
                   onChange={() => handleToggleTable(table)}
                 />
               );
@@ -398,8 +455,40 @@ export function ChooseTablesModal({ opened, onClose, workbookId, connectorAccoun
                     return (
                       <Checkbox
                         key={tableKey}
-                        label={<Text13Regular>{table.displayName}</Text13Regular>}
+                        label={
+                          <Group gap={6} align="center" wrap="nowrap">
+                            <Text13Regular c={table.disabled ? 'dimmed' : undefined}>
+                              {table.displayName}
+                            </Text13Regular>
+                            {table.disabled && (
+                              <Tooltip
+                                label={
+                                  DISABLED_MESSAGES[connectorAccount.service] ?? DEFAULT_DISABLED_MESSAGE
+                                }
+                                multiline
+                                maw={250}
+                                position="right"
+                              >
+                                <AlertTriangleIcon size={14} color="var(--mantine-color-dimmed)" />
+                              </Tooltip>
+                            )}
+                            {!table.disabled && table.disabledCreates && (
+                              <Tooltip
+                                label={
+                                  DISABLED_CREATES_MESSAGES[connectorAccount.service] ??
+                                  DEFAULT_DISABLED_CREATES_MESSAGE
+                                }
+                                multiline
+                                maw={250}
+                                position="right"
+                              >
+                                <AlertTriangleIcon size={14} color="var(--mantine-color-yellow-6)" />
+                              </Tooltip>
+                            )}
+                          </Group>
+                        }
                         checked={isChecked}
+                        disabled={table.disabled}
                         onChange={() => handleToggleTable(table)}
                       />
                     );

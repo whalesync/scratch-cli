@@ -20,6 +20,7 @@ import { DbService } from 'src/db/db.service';
 import { JobEntity } from 'src/job/entities/job.entity';
 import { JobService } from 'src/job/job.service';
 import { PostHogService } from 'src/posthog/posthog.service';
+import { ConnectorAccountService } from 'src/remote-service/connector-account/connector-account.service';
 import { ScratchGitService } from 'src/scratch-git/scratch-git.service';
 import { userToActor } from 'src/users/types';
 import { DataFolderService } from 'src/workbook/data-folder.service';
@@ -45,6 +46,7 @@ export class CliLinkedController {
     private readonly scratchGitService: ScratchGitService,
     private readonly db: DbService,
     private readonly jobService: JobService,
+    private readonly connectorAccountService: ConnectorAccountService,
   ) {}
 
   /**
@@ -85,6 +87,14 @@ export class CliLinkedController {
     const workbook = await this.workbookService.findOne(workbookId as WorkbookId, actor);
     if (!workbook) {
       throw new NotFoundException('Workbook not found');
+    }
+
+    // Check if the table is disabled (e.g. no unique column)
+    const { tables } = await this.connectorAccountService.listTables(validatedDto.connectorAccountId, actor);
+    const tableIdStr = validatedDto.tableId.join(',');
+    const matchedTable = tables.find((t) => [...t.id.remoteId].join(',') === tableIdStr);
+    if (matchedTable?.disabled) {
+      throw new BadRequestException('This table is not available for linking');
     }
 
     return await this.dataFolderService.createFolder(

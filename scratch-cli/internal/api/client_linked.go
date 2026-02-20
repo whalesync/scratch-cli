@@ -48,9 +48,11 @@ func (t TablePreviewID) String() string {
 
 // TablePreview represents a table available from a connector.
 type TablePreview struct {
-	ID          TablePreviewID         `json:"id"`
-	DisplayName string                 `json:"displayName"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID              TablePreviewID         `json:"id"`
+	DisplayName     string                 `json:"displayName"`
+	Disabled        bool                   `json:"disabled,omitempty"`
+	DisabledCreates bool                   `json:"disabledCreates,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TableList represents the response from listing tables for a single connection.
