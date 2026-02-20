@@ -22,12 +22,12 @@ The core configuration for a sync, stored as JSON in the `Sync.mappings` column.
 
 ### Database Tables
 
-| Table | Purpose |
-|-------|---------|
-| `Sync` | Stores sync configuration including name, mappings JSON, and `lastSyncTime` |
-| `SyncTablePair` | Links source/destination DataFolder pairs for a sync |
-| `SyncMatchKeys` | Temporary table for matching records during sync execution |
-| `SyncRemoteIdMapping` | Persists source→destination record ID mappings |
+| Table                  | Purpose                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Sync`                 | Stores sync configuration including name, mappings JSON, and `lastSyncTime`                                      |
+| `SyncTablePair`        | Links source/destination DataFolder pairs for a sync                                                             |
+| `SyncMatchKeys`        | Temporary table for matching records during sync execution                                                       |
+| `SyncRemoteIdMapping`  | Persists source→destination record ID mappings                                                                   |
 | `SyncForeignKeyRecord` | Caches referenced records for `lookup_field` transformers (keyed by `syncId`, `dataFolderId`, `foreignKeyValue`) |
 
 ## Sync Execution Flow
@@ -68,14 +68,14 @@ This two-phase approach is necessary because destination records must exist (cre
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/workbooks/:workbookId/syncs` | Create a new sync |
-| `PATCH` | `/workbooks/:workbookId/syncs/:syncId` | Update sync configuration |
-| `GET` | `/workbooks/:workbookId/syncs` | List all syncs for a workbook |
-| `POST` | `/workbooks/:workbookId/syncs/:syncId/run` | Execute the sync |
-| `DELETE` | `/workbooks/:workbookId/syncs/:syncId` | Delete a sync |
-| `POST` | `/workbooks/:workbookId/syncs/validate-mapping` | Validate field mapping between two schemas |
+| Method   | Path                                            | Description                                |
+| -------- | ----------------------------------------------- | ------------------------------------------ |
+| `POST`   | `/workbooks/:workbookId/syncs`                  | Create a new sync                          |
+| `PATCH`  | `/workbooks/:workbookId/syncs/:syncId`          | Update sync configuration                  |
+| `GET`    | `/workbooks/:workbookId/syncs`                  | List all syncs for a workbook              |
+| `POST`   | `/workbooks/:workbookId/syncs/:syncId/run`      | Execute the sync                           |
+| `DELETE` | `/workbooks/:workbookId/syncs/:syncId`          | Delete a sync                              |
+| `POST`   | `/workbooks/:workbookId/syncs/validate-mapping` | Validate field mapping between two schemas |
 
 ### Create/Update Sync DTO
 
@@ -88,6 +88,156 @@ DTOs are defined in `@spinner/shared-types` (see [packages/shared-types/src/dto/
   - `matchingSourceField`, `matchingDestinationField`: Optional columns used for record matching
 - `schedule`, `autoPublish`: Accepted but not yet implemented
 - `enableValidation` (UpdateSyncDto only): Set to `false` to skip schema validation on update
+
+## Examples
+
+### Example 1: Simple field mapping (no transformers)
+
+Sync blog posts from Airtable to a Webflow CMS collection, renaming fields to match the destination schema.
+
+**API Request** — `POST /workbooks/:workbookId/syncs`
+
+```json
+{
+  "name": "Airtable Posts → Webflow",
+  "folderMappings": [
+    {
+      "sourceId": "datafolder_airtable_posts",
+      "destId": "datafolder_webflow_posts",
+      "fieldMap": {
+        "Title": "name",
+        "Body": "post-body",
+        "Author Name": "author",
+        "Published": "is-published"
+      },
+      "matchingSourceField": "id",
+      "matchingDestinationField": "airtable_id"
+    }
+  ]
+}
+```
+
+**Stored SyncMapping** — the server converts the DTO `fieldMap` object into a `columnMappings` array:
+
+```json
+{
+  "version": 1,
+  "tableMappings": [
+    {
+      "sourceDataFolderId": "datafolder_airtable_posts",
+      "destinationDataFolderId": "datafolder_webflow_posts",
+      "columnMappings": [
+        { "sourceColumnId": "Title", "destinationColumnId": "name" },
+        { "sourceColumnId": "Body", "destinationColumnId": "post-body" },
+        { "sourceColumnId": "Author Name", "destinationColumnId": "author" },
+        { "sourceColumnId": "Published", "destinationColumnId": "is-published" }
+      ],
+      "recordMatching": {
+        "sourceColumnId": "id",
+        "destinationColumnId": "airtable_id"
+      }
+    }
+  ]
+}
+```
+
+**What happens at sync time:**
+
+- Source record `{ "id": "rec_001", "Title": "Hello World", "Body": "...", "Author Name": "Jane", "Published": true }` becomes destination record `{ "airtable_id": "rec_001", "name": "Hello World", "post-body": "...", "author": "Jane", "is-published": true }`.
+- `airtable_id` is auto-injected via record matching even though it's not in `fieldMap`.
+- On subsequent runs, records with matching `id` ↔ `airtable_id` values are updated in place rather than duplicated.
+
+### Example 2: Transformers and foreign key resolution
+
+Sync products and their categories from Notion to a CMS. Products reference categories via a foreign key, and prices are stored as strings in Notion but need to be numbers in the destination.
+
+**API Request** — `POST /workbooks/:workbookId/syncs`
+
+```json
+{
+  "name": "Notion Products → CMS",
+  "folderMappings": [
+    {
+      "sourceId": "datafolder_notion_categories",
+      "destId": "datafolder_cms_categories",
+      "fieldMap": {
+        "Name": "name",
+        "Description": "description"
+      },
+      "matchingSourceField": "id",
+      "matchingDestinationField": "notion_id"
+    },
+    {
+      "sourceId": "datafolder_notion_products",
+      "destId": "datafolder_cms_products",
+      "fieldMap": {
+        "Name": "title",
+        "Price": {
+          "destinationField": "price",
+          "transformer": {
+            "type": "string_to_number",
+            "options": { "stripCurrency": true }
+          }
+        },
+        "Category ID": {
+          "destinationField": "category_id",
+          "transformer": {
+            "type": "source_fk_to_dest_fk",
+            "options": { "referencedDataFolderId": "datafolder_notion_categories" }
+          }
+        }
+      },
+      "matchingSourceField": "id",
+      "matchingDestinationField": "notion_id"
+    }
+  ]
+}
+```
+
+> **Note on `fieldMap` limitations:** Since `fieldMap` is a `Record<string, ...>`, each source field can only appear once. To map one source field to multiple destination fields (e.g., using both `source_fk_to_dest_fk` and `lookup_field` on the same column), edit the stored `SyncMapping.columnMappings` array directly, which supports duplicate `sourceColumnId` entries:
+>
+> ```json
+> "columnMappings": [
+>   {
+>     "sourceColumnId": "Category ID",
+>     "destinationColumnId": "category_id",
+>     "transformer": { "type": "source_fk_to_dest_fk", "options": { "referencedDataFolderId": "datafolder_notion_categories" } }
+>   },
+>   {
+>     "sourceColumnId": "Category ID",
+>     "destinationColumnId": "category_name",
+>     "transformer": { "type": "lookup_field", "options": { "referencedDataFolderId": "datafolder_notion_categories", "referencedFieldPath": "Name" } }
+>   }
+> ]
+> ```
+
+**What happens at sync time:**
+
+1. **Phase 1 (DATA)**: Categories are synced first. Then products are synced — `Price: "$29.99"` is transformed to `price: 29.99`. The `source_fk_to_dest_fk` transformer passes through the raw value in this phase (destination records may not exist yet).
+2. **Phase 2 (FOREIGN_KEY_MAPPING)**: Products are re-processed — `source_fk_to_dest_fk` now resolves `Category ID: "cat_001"` (Notion ID) to `category_id: "cms_cat_001"` (the destination ID) via `SyncRemoteIdMapping`.
+
+### Example 3: Multi-table sync without record matching
+
+Copy data into a fresh destination (no matching needed — all records are created new each run).
+
+```json
+{
+  "name": "Import Event Speakers",
+  "folderMappings": [
+    {
+      "sourceId": "datafolder_speakers_csv",
+      "destId": "datafolder_website_speakers",
+      "fieldMap": {
+        "full_name": "name",
+        "bio_text": "biography",
+        "headshot_url": "photo"
+      }
+    }
+  ]
+}
+```
+
+Without `matchingSourceField` / `matchingDestinationField`, every source record creates a new destination record on each run. This is useful for one-time imports or sources where records don't have stable IDs.
 
 ## Schema Validation
 
@@ -115,6 +265,7 @@ Common pattern: Source uses `id` column, destination stores the source ID in a d
 When creating **new** destination records, the sync automatically injects the source's match key value into the destination's match key field. This ensures subsequent syncs can match the record by content.
 
 Example: If `recordMatching` is configured as:
+
 ```typescript
 recordMatching: {
   sourceColumnId: 'id',
@@ -125,6 +276,7 @@ recordMatching: {
 And a source record has `{ id: 'rec_001', name: 'John' }`, the new destination record will automatically include `source_id: 'rec_001'` even if it's not in the column mappings.
 
 **Behavior notes:**
+
 - If column mappings already populate the match key field, auto-injection is skipped (user config wins)
 - If the source record is missing the match key field, the record fails with an error
 
@@ -133,10 +285,12 @@ And a source record has `{ id: 'rec_001', name: 'John' }`, the new destination r
 Column mappings can include an optional `transformer` configuration that processes source values before writing them to the destination. Transformers are registered in [transformers/](transformers/) and looked up via `getTransformer()`.
 
 Each `ColumnMapping` can specify a `transformer` with:
+
 - `type`: The transformer type identifier
 - `options`: An optional key-value bag of transformer-specific configuration
 
 During sync, `transformRecordAsync` applies each mapping's transformer within a `TransformContext` that provides:
+
 - The full source record and field path
 - The raw source value
 - `LookupTools` for FK resolution
@@ -146,20 +300,20 @@ If a transformer fails, the record is skipped and an error is added to the sync 
 
 ### Available Transformers
 
-| Type | Phase | Description |
-|------|-------|-------------|
-| `source_fk_to_dest_fk` | `FOREIGN_KEY_MAPPING` | Resolves a source foreign key ID to the corresponding destination ID via `SyncRemoteIdMapping`. Passes through the raw value in `DATA` phase. Options: `referencedDataFolderId`. |
-| `lookup_field` | `DATA` | Looks up a field value from a record referenced by a foreign key using the `SyncForeignKeyRecord` cache. Skips in `FOREIGN_KEY_MAPPING` phase. Options: `referencedDataFolderId`, `referencedFieldPath` (dot-path into the referenced record). |
+| Type                   | Phase                 | Description                                                                                                                                                                                                                                    |
+| ---------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source_fk_to_dest_fk` | `FOREIGN_KEY_MAPPING` | Resolves a source foreign key ID to the corresponding destination ID via `SyncRemoteIdMapping`. Passes through the raw value in `DATA` phase. Options: `referencedDataFolderId`.                                                               |
+| `lookup_field`         | `DATA`                | Looks up a field value from a record referenced by a foreign key using the `SyncForeignKeyRecord` cache. Skips in `FOREIGN_KEY_MAPPING` phase. Options: `referencedDataFolderId`, `referencedFieldPath` (dot-path into the referenced record). |
 
 ## Key Files
 
-| File | Description |
-|------|-------------|
-| [sync.service.ts](sync.service.ts) | Core sync logic |
-| [sync.controller.ts](sync.controller.ts) | REST API endpoints |
-| [schema-validator.ts](schema-validator.ts) | Schema compatibility checking |
-| [transformers/](transformers/) | Transformer registry, types, `LookupTools`, and implementations |
-| [shared-types/.../create-sync.dto.ts](../../../packages/shared-types/src/dto/sync/create-sync.dto.ts) | Canonical DTO definitions |
+| File                                                                                                  | Description                                                     |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [sync.service.ts](sync.service.ts)                                                                    | Core sync logic                                                 |
+| [sync.controller.ts](sync.controller.ts)                                                              | REST API endpoints                                              |
+| [schema-validator.ts](schema-validator.ts)                                                            | Schema compatibility checking                                   |
+| [transformers/](transformers/)                                                                        | Transformer registry, types, `LookupTools`, and implementations |
+| [shared-types/.../create-sync.dto.ts](../../../packages/shared-types/src/dto/sync/create-sync.dto.ts) | Canonical DTO definitions                                       |
 
 ## Limitations
 
