@@ -66,15 +66,41 @@ async function bootstrap() {
     // 3. Init Repo
     await gitService.initRepo(wkbId);
 
-    // 4. Create a file (will be added to dirty)
-    // We create a dummy schema first so our stripping logic has something to read
-    const schemaPath = 'folder/schema.json';
-    const schemaContent = {
+    // 3.5 Create DataFolder for schema resolution
+    // We reuse schemaContent defined below or define it once here.
+    const schemaContentForDf = {
       type: 'object',
       properties: {
         ref: { type: 'string', 'x-scratch-foreign-key': 'folder' },
       },
     };
+
+    const dataFolder = await dbService.client.dataFolder.create({
+      data: {
+        id: `df_${randomUUID()}`,
+        workbookId: wkbId,
+        path: '/folder',
+        name: 'folder',
+        lastSchemaRefreshAt: new Date(),
+        // index: 0, // Removed as it doesn't exist in schema
+        schema: {
+          id: 'rt_folder',
+          slug: 'folder',
+          name: 'folder',
+          schema: schemaContentForDf,
+          idColumnRemoteId: 'id',
+        } as any,
+      },
+    });
+    const dfId = dataFolder.id;
+
+    // 4. Create a file (will be added to dirty)
+    // We create a dummy schema first so our stripping logic has something to read
+    const schemaPath = 'folder/schema.json';
+    // schemaContent variable downstream will be shadowed or conflict if I used let.
+    // The previous code had const schemaContent.
+    // I will just use schemaContentForDf here too.
+
     const existingPath = 'folder/existing.json';
     const existingContentMain = { name: 'Existing File' };
 
@@ -82,7 +108,7 @@ async function bootstrap() {
       wkbId,
       'main',
       [
-        { path: schemaPath, content: JSON.stringify(schemaContent) },
+        { path: schemaPath, content: JSON.stringify(schemaContentForDf) },
         { path: existingPath, content: JSON.stringify(existingContentMain) },
       ],
       'Add existing files to main',
@@ -107,7 +133,7 @@ async function bootstrap() {
       wkbId,
       'dirty',
       [
-        { path: schemaPath, content: JSON.stringify(schemaContent) },
+        { path: schemaPath, content: JSON.stringify(schemaContentForDf) },
         { path: newPath, content: JSON.stringify(newContent) },
         { path: existingPath, content: JSON.stringify(existingContentDirty) },
       ],
@@ -136,6 +162,11 @@ async function bootstrap() {
       // Check Edit Operation (Should be stripped)
       if (editEntry.operation) {
         const json = editEntry.operation as any;
+        if (editEntry.dataFolderId !== dfId) {
+          console.error(`FAILURE: dataFolderId mismatch. Expected ${dfId}, got ${editEntry.dataFolderId}`);
+        } else {
+          console.log(`SUCCESS: Edit Entry dataFolderId matches: ${editEntry.dataFolderId}`);
+        }
         if (json.ref === null || json.ref === undefined) {
           console.log('SUCCESS: Edit Ref was stripped!');
         } else {

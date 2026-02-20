@@ -39,6 +39,7 @@ import {
   StickyNoteIcon,
   TableIcon,
   Trash2Icon,
+  UnlinkIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
@@ -49,6 +50,7 @@ import { AdvancedFolderSettingsModal } from '../shared/AdvancedFolderSettingsMod
 import { ChooseTablesModal } from '../shared/ChooseTablesModal';
 import { ContextMenu } from '../shared/ContextMenu';
 import { DataFolderSchemaModal } from '../shared/DataFolderSchemaModal';
+import { DeleteAllRecordsModal } from '../shared/DeleteAllRecordsModal';
 import { NewFileModal } from '../shared/NewFileModal';
 import { RemoveConnectionModal } from '../shared/RemoveConnectionModal';
 import { RemoveFileModal } from '../shared/RemoveFileModal';
@@ -310,6 +312,7 @@ export function ConnectionNode({
                   workbookId={workbookId}
                   mode={mode}
                   dirtyFilePaths={dirtyFilePaths}
+                  groupName={group.name}
                 />
               ))}
         </Stack>
@@ -397,6 +400,7 @@ interface TableNodeProps {
   workbookId: WorkbookId;
   mode?: FileTreeMode;
   dirtyFilePaths?: Set<string>;
+  groupName: string;
 }
 
 function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: TableNodeProps) {
@@ -415,13 +419,14 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
   const folderPath = `/workbook/${workbookId}/${routeBase}/${encodeURIComponent(folder.name)}`;
   const isSelected = pathname === folderPath;
 
-  const { files, isLoading } = useFolderFileList(workbookId, folder.id);
+  const { files, isLoading, refreshFiles } = useFolderFileList(workbookId, folder.id);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Modal states
   const [newFileModalOpened, { open: openNewFileModal, close: closeNewFileModal }] = useDisclosure(false);
   const [removeModalOpened, { open: openRemoveModal, close: closeRemoveModal }] = useDisclosure(false);
+  const [deleteAllModalOpened, { open: openDeleteAllModal, close: closeDeleteAllModal }] = useDisclosure(false);
   const [schemaModalOpened, { open: openSchemaModal, close: closeSchemaModal }] = useDisclosure(false);
   const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
 
@@ -434,6 +439,15 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
     }
   };
 
+  // Refresh handler for this table (just revalidate SWR)
+  const handleRefreshTable = async () => {
+    try {
+      await refreshFiles();
+    } catch (error) {
+      console.error('Failed to refresh table:', error);
+    }
+  };
+
   // Limit files for display
   const { displayedFiles, hiddenCount, dirtyCount, hasAnyDirtyFiles } = useMemo(() => {
     let fileItems = files.filter((f): f is FileRefEntity => f.type === 'file');
@@ -443,7 +457,74 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       fileItems = fileItems.filter((f) => dirtyFilePaths.has(f.path));
     }
 
-    const dirty = fileItems.filter((f) => f.status === 'modified' || f.status === 'created').length;
+    // Inject deleted files (ghost nodes)
+    // TODO: this is a bit of a hack, we should have a better way to do this
+    // Probably by taking the files from the main branch
+    if (mode === 'review' && dirtyFilePaths) {
+      // Determine the expected path prefix for this folder
+      // If we have existing files, use their directory. Otherwise, construct it.
+      let folderPrefix = '';
+      if (fileItems.length > 0) {
+        const firstFilePath = fileItems[0].path;
+        const lastSlashIndex = firstFilePath.lastIndexOf('/');
+        if (lastSlashIndex !== -1) {
+          folderPrefix = firstFilePath.substring(0, lastSlashIndex + 1);
+        }
+      } else {
+        // Fallback: Try multiple potential prefixes
+        // 1. Just folder name (e.g. "MyTable/")
+        // 2. Group + Folder (e.g. "Scratch/MyTable/")
+        // We will filter dirty paths against ANY of these to find candidates
+      }
+
+      // Check for dirty paths that starts with this folder's prefix BUT are not in the current file list
+      const existingPaths = new Set(fileItems.map((f) => f.path));
+
+      dirtyFilePaths.forEach((dirtyPath) => {
+        // Strict prefix check to ensure it belongs to this folder
+        // Also check if it's already in the list (if so, it's modified/created, not deleted)
+
+        let belongsToFolder = false;
+
+        // If we have existing files, we know the exact prefix
+        if (folderPrefix) {
+          belongsToFolder = dirtyPath.startsWith(folderPrefix);
+        } else {
+          // Heuristic: check if path contains folder name as a segment
+          // This is safer than constructing a rigid prefix
+          const parts = dirtyPath.split('/');
+          // Look for folder name in path parts (excluding the filename)
+          // e.g. "Scratch/Table1/file.json" -> parts=["Scratch", "Table1", "file.json"]
+          // We expect "Table1" to be one of the parent directories
+          if (parts.length > 1) {
+            const parentDirs = parts.slice(0, parts.length - 1);
+            belongsToFolder = parentDirs.includes(folder.name);
+          }
+        }
+
+        if (belongsToFolder && !existingPaths.has(dirtyPath)) {
+          // It's in dirty list but not in file list -> it's deleted
+          const parts = dirtyPath.split('/');
+          const name = parts[parts.length - 1];
+          fileItems.push({
+            path: dirtyPath,
+            name: name,
+            type: 'file',
+            status: 'deleted',
+            // Add dummy values for required fields if any
+            content: '', // not needed for list
+            parentFolderId: folder.id,
+          } as FileRefEntity);
+        }
+      });
+
+      // Re-sort if we added items
+      fileItems.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    const dirty = fileItems.filter(
+      (f) => f.status === 'modified' || f.status === 'created' || f.status === 'deleted',
+    ).length;
     const limited = fileItems.slice(0, FILE_LIMIT);
     const hidden = Math.max(0, fileItems.length - FILE_LIMIT);
 
@@ -453,7 +534,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
       dirtyCount: dirty,
       hasAnyDirtyFiles: fileItems.length > 0,
     };
-  }, [files, mode, dirtyFilePaths]);
+  }, [files, mode, dirtyFilePaths, folder.name, folder.id]);
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -563,7 +644,7 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 
           {/* File list */}
           {displayedFiles.map((file) => (
-            <FileNode key={file.path} file={file} mode={mode} />
+            <FileNode key={file.path} file={file} mode={mode} onSuccess={handleRefreshTable} />
           ))}
 
           {/* Hidden count indicator - links to folder view */}
@@ -614,7 +695,8 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
             { label: 'View Schema', icon: FileJsonIcon, onClick: openSchemaModal },
             { label: 'Advanced Settings', icon: SettingsIcon, onClick: openSettings },
             { type: 'divider' },
-            { label: 'Remove this table', icon: Trash2Icon, onClick: openRemoveModal, delete: true },
+            { label: 'Unlink this table', icon: UnlinkIcon, onClick: openRemoveModal, delete: true },
+            { label: 'Delete all records', icon: Trash2Icon, onClick: openDeleteAllModal, delete: true },
           ]}
         />
       )}
@@ -630,6 +712,15 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
         <DataFolderSchemaModal opened={schemaModalOpened} onClose={closeSchemaModal} folder={folder} />
       )}
 
+      {/* Delete All Records Modal */}
+      <DeleteAllRecordsModal
+        opened={deleteAllModalOpened}
+        onClose={closeDeleteAllModal}
+        folder={folder}
+        workbookId={workbookId}
+        onSuccess={handleRefreshTable}
+      />
+
       {/* Advanced Folder Settings Modal */}
       <AdvancedFolderSettingsModal opened={settingsOpened} onClose={closeSettings} folder={folder} />
     </>
@@ -643,11 +734,13 @@ function TableNode({ folder, workbookId, mode = 'files', dirtyFilePaths }: Table
 interface FileNodeProps {
   file: FileRefEntity;
   mode?: FileTreeMode;
+  onSuccess?: () => void;
 }
 
-function FileNode({ file, mode = 'files' }: FileNodeProps) {
+function FileNode({ file, mode = 'files', onSuccess }: FileNodeProps) {
   const params = useParams<{ id: string }>();
   const pathname = usePathname();
+  const router = useRouter();
   const { showSecretButton } = useDevTools();
 
   // Build the file path for the URL - encode each segment but keep slashes
@@ -665,10 +758,11 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
   const isSelected = pathname.includes(`/${routeBase}/${encodedPath}`);
 
   // Determine if file is dirty (modified)
-  const isDirty = file.status === 'modified' || file.status === 'created';
+  const isDirty = file.status === 'modified' || file.status === 'created' || file.status === 'deleted';
+  const isDeleted = file.status === 'deleted';
 
   // Text color: always primary (the dot indicator is enough)
-  const textColor = 'var(--fg-primary)';
+  const textColor = isDeleted ? 'var(--fg-secondary)' : 'var(--fg-primary)';
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -689,70 +783,73 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
     setContextMenu({ x: rect.right, y: rect.bottom });
   };
 
+  const handleFileClick = () => {
+    router.push(href);
+  };
+
   return (
     <>
-      <Link href={href} style={{ textDecoration: 'none' }}>
-        <UnstyledButton
-          px="sm"
-          py={4}
-          onContextMenu={mode === 'files' ? handleContextMenu : undefined}
-          style={{
-            width: `calc(100% - ${INDENT_PX}px)`,
-            marginLeft: INDENT_PX,
-            backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
-            borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
-          }}
-          __vars={{
-            '--hover-bg': 'var(--mantine-color-gray-1)',
-          }}
-          styles={{
-            root: {
-              '&:hover': {
-                backgroundColor: isSelected ? 'var(--bg-selected)' : 'var(--hover-bg)',
-              },
+      <UnstyledButton
+        onClick={handleFileClick}
+        px="sm"
+        py={4}
+        onContextMenu={mode === 'files' ? handleContextMenu : undefined}
+        style={{
+          width: `calc(100% - ${INDENT_PX}px)`,
+          marginLeft: INDENT_PX,
+          backgroundColor: isSelected ? 'var(--bg-selected)' : 'transparent',
+          borderLeft: isSelected ? '3px solid var(--mantine-primary-color-filled)' : '3px solid transparent',
+        }}
+        __vars={{
+          '--hover-bg': 'var(--mantine-color-gray-1)',
+        }}
+        styles={{
+          root: {
+            '&:hover': {
+              backgroundColor: isSelected ? 'var(--bg-selected)' : 'var(--hover-bg)',
             },
-          }}
-        >
-          <Group gap={6} wrap="nowrap">
-            {/* Dirty indicator dot (or spacer for alignment) */}
+          },
+        }}
+      >
+        <Group gap={6} wrap="nowrap">
+          {/* Dirty indicator dot (or spacer for alignment) */}
+          <Box
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: isDirty ? 'var(--mantine-color-orange-6)' : 'transparent',
+              flexShrink: 0,
+            }}
+          />
+
+          <TextMono12Regular c={textColor} truncate style={{ flex: 1 }}>
+            {file.name}
+          </TextMono12Regular>
+
+          {/* Three dots menu - only in files mode */}
+          {mode === 'files' && (
             <Box
+              onClick={handleThreeDotsClick}
               style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: isDirty ? 'var(--mantine-color-orange-6)' : 'transparent',
-                flexShrink: 0,
+                padding: 2,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                opacity: 0.5,
               }}
-            />
-
-            <TextMono12Regular c={textColor} truncate style={{ flex: 1 }}>
-              {file.name}
-            </TextMono12Regular>
-
-            {/* Three dots menu - only in files mode */}
-            {mode === 'files' && (
-              <Box
-                onClick={handleThreeDotsClick}
-                style={{
-                  padding: 2,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  opacity: 0.5,
-                }}
-                onMouseOver={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = '1';
-                }}
-                onMouseOut={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = '0.5';
-                }}
-              >
-                <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
-              </Box>
-            )}
-          </Group>
-        </UnstyledButton>
-      </Link>
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = '1';
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = '0.5';
+              }}
+            >
+              <StyledLucideIcon Icon={MoreHorizontalIcon} size="sm" c="var(--fg-secondary)" />
+            </Box>
+          )}
+        </Group>
+      </UnstyledButton>
 
       <ContextMenu
         opened={!!contextMenu}
@@ -784,6 +881,7 @@ function FileNode({ file, mode = 'files' }: FileNodeProps) {
         onClose={closeRemoveFile}
         workbookId={params.id as WorkbookId}
         file={file}
+        onSuccess={onSuccess}
       />
     </>
   );

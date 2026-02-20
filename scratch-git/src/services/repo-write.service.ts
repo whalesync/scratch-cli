@@ -191,9 +191,11 @@ export class RepoWriteService extends BaseRepoService {
     const conflicts: string[] = [];
     const changesToCommit: FileChange[] = [];
 
+    const mainTreeFiles = await this.getTreeFiles(dir, mainCommit);
+
     for (const edit of edits) {
       if (edit.status === 'deleted') {
-        const existsOnMain = await this.fileExists(MAIN_BRANCH, edit.path);
+        const existsOnMain = mainTreeFiles.has(edit.path);
         if (existsOnMain) changesToCommit.push({ path: edit.path, type: 'delete' });
       } else if (edit.content !== null) {
         const mainContent = await this.getFileContent(MAIN_BRANCH, edit.path);

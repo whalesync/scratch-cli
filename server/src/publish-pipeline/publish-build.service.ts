@@ -2,9 +2,10 @@
 import { Injectable } from '@nestjs/common';
 import { WorkbookId } from '@spinner/shared-types';
 import { randomUUID } from 'crypto';
-import { ParsedContent } from 'src/utils/objects';
+import { ParsedContent, Schema } from 'src/utils/objects';
 import { DbService } from '../db/db.service';
 import { WSLogger } from '../logger';
+import { BaseJsonTableSpec } from '../remote-service/connectors/types';
 import { DIRTY_BRANCH, MAIN_BRANCH, ScratchGitService } from '../scratch-git/scratch-git.service';
 import { FileIndexService } from './file-index.service';
 import { FileReferenceService } from './file-reference.service';
@@ -112,11 +113,12 @@ export class PublishBuildService {
 
     const phases: PipelinePhase[] = [];
 
-    // Cache schemas to avoid repeated reads
-    const schemaCache = new Map<string, any>();
+    // Cache table specs to avoid repeated reads
+    // Cache table specs to avoid repeated reads
+    const dataFolderCache = new Map<string, { id: string; spec: BaseJsonTableSpec } | null>();
 
-    const getSchema = async (folderPath: string) => {
-      return this.schemaService.getJsonSchema(workbookId, folderPath, schemaCache);
+    const getDataFolderInfo = async (folderPath: string) => {
+      return this.schemaService.getDataFolderInfo(workbookId, folderPath, dataFolderCache);
     };
 
     const addedPathsSet = new Set(addedFiles.map((f) => f.path));
@@ -163,6 +165,7 @@ export class PublishBuildService {
       phase: PublishPlanPhase;
       operation: ParsedContent;
       remoteRecordId?: string | null;
+      dataFolderId?: string | null;
       status: string;
     }> = [];
 
@@ -190,12 +193,15 @@ export class PublishBuildService {
           contentObj = JSON.parse(fileData.content) as ParsedContent;
         } catch {
           // Not JSON? Just commit as is if it was user-modified.
-          // TODO: review
           if (filesToProcessInEditPhase.has(filePath) && modifiedFiles.some((m) => m.path === filePath)) {
+            const { folderPath } = parsePath(filePath);
+            const info = await getDataFolderInfo(folderPath);
+
             planEntries.push({
               filePath,
               phase: 'edit',
               operation: JSON.parse(fileData.content) as ParsedContent,
+              dataFolderId: info?.id,
               status: 'pending',
             });
             editCount++;
@@ -204,34 +210,30 @@ export class PublishBuildService {
         }
 
         const { folderPath } = parsePath(filePath);
-        const schema = await getSchema(folderPath);
+        const info = await getDataFolderInfo(folderPath);
+        const schema = info?.spec?.schema as Schema;
+        const dataFolderId = info?.id;
 
         // --- TWO PASS STRIPPING ---
 
         // Pass 1: Strip references to DELETED records.
-        // We use deletedPathsSet as "addedPaths" (masking) so pseudo-refs to them are stripped.
-        // We use deletedRecordIds to strip by ID.
-        // Mode = ALL (strips both IDs and Pseudo-refs to 'addedPaths').
         const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
           workbookId,
           contentObj,
           schema,
           deletedPathsSet,
-
           deletedRecordIds,
-          'IDS_ONLY', // Strip Deleted IDs and Deleted Pseudo-refs
+          'IDS_ONLY',
         );
         const pass1ContentStr = JSON.stringify(pass1ContentObj, null, 2);
 
         // Pass 2: Strip references to NEW records (Pseudo-refs).
-        // Mode = PSEUDO_ONLY.
         const pass2ContentObj = await this.refCleanerService.stripReferencesWithSchema(
           workbookId,
-          pass1ContentObj, // Input is result of Pass 1
+          pass1ContentObj,
           schema,
           addedPathsSet,
-
-          undefined, // No ID stripping in this pass
+          undefined,
           'PSEUDO_ONLY',
         );
         const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
@@ -247,18 +249,18 @@ export class PublishBuildService {
             filePath,
             phase: 'edit',
             operation: pass2ContentObj,
+            dataFolderId: dataFolderId || null,
             status: 'pending',
           });
           editCount++;
 
           // Backfill Logic
-          // If Pass 2 != Pass 1, it means we stripped pseudo-refs.
-          // We backfill with Pass 1 content.
           if (pass2ContentStr !== pass1ContentStr) {
             planEntries.push({
               filePath,
               phase: 'backfill',
               operation: pass1ContentObj,
+              dataFolderId: dataFolderId || null,
               status: 'pending',
             });
           }
@@ -276,6 +278,9 @@ export class PublishBuildService {
     for (const add of addedFiles) {
       const fileData = await this.scratchGitService.getRepoFile(wkbId, 'dirty', add.path);
       if (fileData?.content) {
+        const { folderPath } = parsePath(add.path);
+        const info = await getDataFolderInfo(folderPath);
+
         let contentObj: ParsedContent;
         try {
           contentObj = JSON.parse(fileData.content) as ParsedContent;
@@ -284,14 +289,15 @@ export class PublishBuildService {
             filePath: add.path,
             phase: 'create',
             operation: JSON.parse(fileData.content) as ParsedContent,
+            dataFolderId: info?.id || null,
             status: 'pending',
           });
           createCount++;
           continue;
         }
 
-        const { folderPath } = parsePath(add.path);
-        const schema = await getSchema(folderPath);
+        const schema = info?.spec?.schema as Schema;
+        const dataFolderId = info?.id;
 
         // Pass 1: Strip Deleted
         const pass1ContentObj = await this.refCleanerService.stripReferencesWithSchema(
@@ -313,26 +319,11 @@ export class PublishBuildService {
         );
         const pass2ContentStr = JSON.stringify(pass2ContentObj, null, 2);
 
-        // Determine Edit Operation
-        const originalContentStr = JSON.stringify(contentObj, null, 2);
-
-        WSLogger.info({
-          source: 'PublishBuildService.buildPipeline',
-          message: `Debug Stripping: ${add.path}`,
-          workbookId,
-          data: {
-            addedPaths: Array.from(addedPathsSet),
-            original: originalContentStr,
-            pass1: pass1ContentStr,
-            pass2: pass2ContentStr,
-            schemaFound: !!schema,
-          },
-        });
-
         planEntries.push({
           filePath: add.path,
           phase: 'create',
           operation: pass2ContentObj,
+          dataFolderId: dataFolderId || null,
           status: 'pending',
         });
         createCount++;
@@ -342,6 +333,7 @@ export class PublishBuildService {
             filePath: add.path,
             phase: 'backfill',
             operation: pass1ContentObj,
+            dataFolderId: dataFolderId || null,
             status: 'pending',
           });
         }
@@ -356,12 +348,15 @@ export class PublishBuildService {
     for (const del of deletedFiles) {
       // recordId was already looked up above when building deletedRecordIds
       const recordId = deletedFileRecordIds.get(del.path);
+      const { folderPath } = parsePath(del.path);
+      const info = await getDataFolderInfo(folderPath);
 
       planEntries.push({
         filePath: del.path,
         phase: 'delete',
         operation: {},
         remoteRecordId: recordId || null,
+        dataFolderId: info?.id || null,
         status: 'pending',
       });
     }
@@ -379,6 +374,7 @@ export class PublishBuildService {
           phase: e.phase,
           operation: e.operation,
           remoteRecordId: e.remoteRecordId ?? null,
+          dataFolderId: e.dataFolderId ?? null,
           status: e.status,
         })),
       });

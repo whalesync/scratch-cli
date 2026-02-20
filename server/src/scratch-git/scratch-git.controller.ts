@@ -68,4 +68,13 @@ export class ScratchGitController {
     console.log(`[ScratchGitController] deleteCheckpoint called for ${workbookId} name=${name}`);
     return this.scratchGitService.deleteCheckpoint(workbookId, name);
   }
+
+  @Delete(':id/data-folder/files')
+  async deleteAllFilesInDataFolder(
+    @Param('id') workbookId: WorkbookId,
+    @Query('path') folderPath: string,
+  ): Promise<void> {
+    console.log(`[ScratchGitController] deleteAllFilesInDataFolder called for ${workbookId} path=${folderPath}`);
+    return this.scratchGitService.deleteAllFilesInDataFolder(workbookId, folderPath);
+  }
 }

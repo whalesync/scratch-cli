@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import git from 'isomorphic-git';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -88,7 +89,10 @@ export class BaseRepoService {
       });
       return new TextDecoder().decode(blob);
     } catch (err) {
-      console.error(`Error getting file content for ${filePath} on branch ${branch}:`, err);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      if (err && (err as any).code !== 'NotFoundError' && (err as any).name !== 'NotFoundError') {
+        console.error(`Error getting file content for ${filePath} on branch ${branch}:`, err);
+      }
       return null;
     }
   }

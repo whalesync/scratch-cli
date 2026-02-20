@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Service, WorkbookId } from '@spinner/shared-types';
 import { WSLogger } from 'src/logger';
+import { ParsedContent } from 'src/utils/objects';
 import { CredentialEncryptionService } from '../credential-encryption/credential-encryption.service';
 import { DbService } from '../db/db.service';
 import { Connector } from '../remote-service/connectors/connector';
 import { ConnectorsService } from '../remote-service/connectors/connectors.service';
-import { BaseJsonTableSpec } from '../remote-service/connectors/types';
+import { BaseJsonTableSpec, ConnectorFile } from '../remote-service/connectors/types';
 import { ScratchGitService } from '../scratch-git/scratch-git.service';
 import { EncryptedData } from '../utils/encryption';
 import { FileIndexService } from './file-index.service';
@@ -13,6 +14,14 @@ import { FileReferenceService } from './file-reference.service';
 import { PublishSchemaService } from './publish-schema.service';
 import { PipelinePhase, PublishPlanInfo } from './types';
 import { parsePath } from './utils';
+
+type PublishEntry = {
+  id: string;
+  filePath: string;
+  operation: any;
+  remoteRecordId?: string | null;
+  dataFolderId?: string | null;
+};
 
 @Injectable()
 export class PublishRunService {
@@ -37,6 +46,8 @@ export class PublishRunService {
 
     // Cache tableSpecs per folder to avoid repeated DB lookups
     const tableSpecCache = new Map<string, BaseJsonTableSpec>();
+    // Cache tableSpecs per dataFolderId
+    const dataFolderSpecCache = new Map<string, BaseJsonTableSpec | null>();
 
     try {
       const allPhases = ['edit', 'create', 'delete', 'backfill'] as const;
@@ -62,31 +73,99 @@ export class PublishRunService {
           data: { pipelineId },
         });
 
-        for (const entry of entries) {
-          try {
-            const tableSpec = await this.getTableSpecForEntry(plan.workbookId, entry.filePath, tableSpecCache);
-            await this.dispatchEntry(currentPhase, entry, connector, tableSpec, plan.workbookId, plan.id);
+        // Fetch distinct tables (by dataFolderId) that have pending entries
+        const distinctFolders = await this.db.client.publishPlanEntry.findMany({
+          where: { planId: pipelineId, phase: currentPhase, status: 'pending' },
+          select: { dataFolderId: true },
+          distinct: ['dataFolderId'],
+        });
 
-            await this.db.client.publishPlanEntry.update({
-              where: { id: entry.id },
-              data: { status: 'success' },
-            });
-          } catch (err) {
-            WSLogger.error({
+        WSLogger.info({
+          source: 'PublishRunService.runPipeline',
+          message: `Found ${distinctFolders.length} distinct folders/tables to process in ${currentPhase} phase`,
+          workbookId: plan.workbookId,
+          data: { pipelineId, folders: distinctFolders.map((t) => t.dataFolderId) },
+        });
+
+        for (const { dataFolderId } of distinctFolders) {
+          if (!dataFolderId) continue;
+
+          // Fetch all entries for this table
+          const entries = await this.db.client.publishPlanEntry.findMany({
+            where: {
+              planId: pipelineId,
+              phase: currentPhase,
+              status: 'pending',
+              dataFolderId,
+            },
+            orderBy: { id: 'asc' }, // Ensure deterministic order
+          });
+
+          if (entries.length === 0) continue;
+
+          // Resolve table spec
+          const tableSpec = await this.schemaService.getTableSpecById(dataFolderId, dataFolderSpecCache);
+          if (!tableSpec) {
+            WSLogger.warn({
               source: 'PublishRunService.runPipeline',
-              message: `Entry failed: ${entry.filePath}`,
-              error: err,
+              message: `Could not find spec for dataFolderId: ${dataFolderId}`,
               workbookId: plan.workbookId,
-              data: { pipelineId, entryId: entry.id },
             });
-            await this.db.client.publishPlanEntry.update({
-              where: { id: entry.id },
-              data: {
-                status: 'failed',
-                error: err instanceof Error ? err.message : String(err),
-              },
-            });
-            throw err; // Fail fast for now
+            // Mark entries as failed?
+            continue;
+          }
+
+          // Determine batch size
+          const batchSize = connector.getBatchSize(
+            currentPhase === 'delete' ? 'delete' : currentPhase === 'create' ? 'create' : 'update',
+          );
+
+          WSLogger.info({
+            source: 'PublishRunService.runPipeline',
+            message: `Processing table for folder ${dataFolderId} (${entries.length} entries)`,
+            workbookId: plan.workbookId,
+            data: { pipelineId, tableSpecName: tableSpec.name, batchSize },
+          });
+
+          // Chunk entries
+          for (let i = 0; i < entries.length; i += batchSize) {
+            const batch = entries.slice(i, i + batchSize);
+            await this.processBatch(currentPhase, batch, connector, tableSpec, plan.workbookId, plan.id);
+          }
+        }
+
+        // --- RETRY LOGIC ---
+        // Fetch failed-batch entries for this phase (across all tables)
+        const failedEntries = await this.db.client.publishPlanEntry.findMany({
+          where: { planId: pipelineId, phase: currentPhase, status: 'failed-batch' },
+        });
+
+        if (failedEntries.length > 0) {
+          WSLogger.warn({
+            source: 'PublishRunService.runPipeline',
+            message: `Retrying ${failedEntries.length} failed-batch entries individually`,
+            workbookId: plan.workbookId,
+            data: { pipelineId },
+          });
+
+          // Group failed entries by table again for spec resolution (or just resolve one by one)
+          // Resolving one by one is safer but slower.
+          // We can reuse the same table-based iteration logic or just cache specs.
+          // Let's iterate individually but verify spec from cache.
+
+          for (const entry of failedEntries) {
+            let tableSpec: BaseJsonTableSpec | null = null;
+            if (entry.dataFolderId) {
+              tableSpec = await this.schemaService.getTableSpecById(entry.dataFolderId, dataFolderSpecCache);
+            }
+            if (!tableSpec) {
+              // Fallback to path lookup if dataFolderId missing (old entries?)
+              const { folderPath } = parsePath(entry.filePath);
+              tableSpec = await this.getTableSpecForFolder(plan.workbookId, folderPath, tableSpecCache);
+            }
+
+            // Process individually (batch size 1)
+            await this.processBatch(currentPhase, [entry], connector, tableSpec, plan.workbookId, plan.id);
           }
         }
 
@@ -159,15 +238,13 @@ export class PublishRunService {
   }
 
   /**
-   * Get the BaseJsonTableSpec for a given entry by looking up the DataFolder.
+   * Get the BaseJsonTableSpec for a given folder.
    */
-  private async getTableSpecForEntry(
+  private async getTableSpecForFolder(
     workbookId: string,
-    filePath: string,
+    folderPath: string,
     cache: Map<string, BaseJsonTableSpec>,
   ): Promise<BaseJsonTableSpec> {
-    // Extract folder path from file path (e.g. "articles/my-post.json" → "articles")
-    const { folderPath } = parsePath(filePath);
     const spec = await this.schemaService.getTableSpec(workbookId, folderPath, cache);
     if (!spec) {
       return { name: 'unknown', schema: {} } as BaseJsonTableSpec;
@@ -231,242 +308,339 @@ export class PublishRunService {
   }
 
   /**
-   * Dispatch a single entry to the connector based on phase.
+   * Process a batch of entries for a single table.
+   * If successful, upgrades status to 'success'.
+   * If failed, marks all as 'failed-batch' for later individual retry.
    */
-  private async dispatchEntry(
+  private async processBatch(
     phase: string,
-    entry: { filePath: string; operation: any; remoteRecordId?: string | null },
+    entries: PublishEntry[], // Type explicitly if possible, but 'any' avoids circular dep issues for now
     connector: Connector<Service, any>,
     tableSpec: BaseJsonTableSpec,
     workbookId: string,
     planId: string,
   ): Promise<void> {
-    const operation = entry.operation as Record<string, unknown>;
+    try {
+      switch (phase) {
+        case 'edit':
+        case 'backfill':
+          await this.dispatchUpdateBatch(phase, entries, connector, tableSpec, workbookId, planId);
+          break;
+        case 'create':
+          await this.dispatchCreateBatch(phase, entries, connector, tableSpec, workbookId, planId);
+          break;
+        case 'delete':
+          await this.dispatchDeleteBatch(entries, connector, tableSpec, workbookId, planId);
+          break;
+        default:
+          throw new Error(`Unknown phase: ${phase}`);
+      }
 
-    // Skip if no operation (except delete)
-    if (phase !== 'delete' && !operation) {
-      WSLogger.warn({
-        source: 'PublishRunService.dispatchEntry',
-        message: `Skipping entry with no operation: ${entry.filePath}`,
-        workbookId,
-        data: { planId, entry },
+      // success
+      await this.db.client.publishPlanEntry.updateMany({
+        where: { id: { in: entries.map((e) => e.id) } },
+        data: { status: 'success', error: null },
       });
-      return;
-    }
+    } catch (err) {
+      WSLogger.warn({
+        source: 'PublishRunService.processBatch',
+        message: `Batch failed (size=${entries.length})`,
+        error: err,
+        workbookId,
+        data: { planId, phase, entryIds: entries.map((e) => e.id) },
+      });
 
-    switch (phase) {
-      case 'edit':
-      case 'backfill':
-        await this.dispatchEditOrBackfill(phase, { ...entry, operation }, connector, tableSpec, workbookId, planId);
-        break;
-      case 'create':
-        await this.dispatchCreate(phase, { ...entry, operation }, connector, tableSpec, workbookId, planId);
-        break;
-      case 'delete':
-        await this.dispatchDelete(entry, connector, tableSpec, workbookId);
-        break;
-      default:
-        throw new Error(`Unknown phase: ${phase}`);
+      // failed-batch
+      await this.db.client.publishPlanEntry.updateMany({
+        where: { id: { in: entries.map((e) => e.id) } },
+        data: {
+          status: 'failed-batch',
+          error: err instanceof Error ? err.message : String(err),
+        },
+      });
     }
   }
 
-  private async dispatchEditOrBackfill(
+  private async dispatchUpdateBatch(
     phase: string,
-    entry: { filePath: string; operation: Record<string, unknown> },
+    entries: PublishEntry[],
     connector: Connector<Service, any>,
     tableSpec: BaseJsonTableSpec,
     workbookId: string,
     planId: string,
   ): Promise<void> {
-    // Resolve any remaining pseudo-references before sending
-    const operation = await this.resolvePseudoRefs(workbookId, entry.operation);
-    await connector.updateRecords(tableSpec, [operation]);
+    const operations: ParsedContent[] = [];
+    const entriesWithOps: { entry: PublishEntry; resolvedOp: ParsedContent }[] = [];
 
-    // After edit/backfill: update reference index with new content
-    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
-      { path: entry.filePath, content: operation },
-    ]);
+    for (const entry of entries) {
+      if (!entry.operation) continue;
+      // Resolve pseudo-refs
+      const resolvedOp = (await this.resolvePseudoRefs(
+        workbookId,
+        entry.operation as Record<string, unknown>,
+      )) as ParsedContent;
+      operations.push(resolvedOp);
+      entriesWithOps.push({ entry, resolvedOp });
+    }
 
-    // Commit to main immediately
+    if (operations.length === 0) return;
+
+    // Bulk update
+    await connector.updateRecords(tableSpec, operations);
+
+    // Update Refs & Git
+    // We can do this in parallel or sequentially. Sequential for safety.
+    const refUpdates = entriesWithOps.map(({ entry, resolvedOp }) => ({
+      path: entry.filePath,
+      content: resolvedOp,
+    }));
+
+    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', refUpdates);
+
+    // Git Commit (Main)
+    const gitFiles = refUpdates.map((u) => ({ path: u.path, content: JSON.stringify(u.content, null, 2) }));
     await this.scratchGitService.commitFilesToBranch(
       workbookId as WorkbookId,
       'main',
-      [{ path: entry.filePath, content: JSON.stringify(operation, null, 2) }],
-      `Publish V2 ${phase}: ${entry.filePath}`,
+      gitFiles,
+      `Publish V2 ${phase} batch (${entries.length})`,
     );
 
-    // If this is the final operation for this file, also commit to dirty
-    await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(operation, null, 2));
+    // Git Commit (Dirty) - checking if final
+    const dirtySyncBatch = entriesWithOps.map(({ entry, resolvedOp }) => ({
+      filePath: entry.filePath,
+      content: JSON.stringify(resolvedOp, null, 2),
+    }));
+    await this.syncBatchToDirtyIfFinal(workbookId, planId, phase, dirtySyncBatch);
   }
 
-  private async dispatchCreate(
+  private async dispatchCreateBatch(
     phase: string,
-    entry: { filePath: string; operation: Record<string, unknown> },
+    entries: PublishEntry[],
     connector: Connector<Service, any>,
     tableSpec: BaseJsonTableSpec,
     workbookId: string,
     planId: string,
   ): Promise<void> {
-    // Strip temporary IDs before sending to connector
+    const operations: any[] = [];
+    const entriesWithOps: { entry: PublishEntry; resolvedOp: ParsedContent }[] = [];
     const idField = tableSpec.idColumnRemoteId || 'id';
-    const content = { ...entry.operation };
-    const idValue = content[idField];
-    if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
-      delete content[idField];
-    }
-    const returned = await connector.createRecords(tableSpec, [content]);
 
-    // After create: add file to FileIndex with the real ID
-    if (returned[0]) {
-      const realId = (returned[0] as Record<string, unknown>)[idField];
+    for (const entry of entries) {
+      if (!entry.operation) continue;
+      const content = { ...(entry.operation as Record<string, unknown>) };
+
+      // Strip temporary ID
+      const idValue = content[idField];
+      if (typeof idValue === 'string' && idValue.startsWith('sppi_')) {
+        delete content[idField];
+      }
+
+      // Resolve pseudo-refs (if any - create usually doesn't have them yet, but back references might?)
+      // Assuming create operations might have pseudo-refs to *other* already created records?
+      // Yes, safe to resolve.
+      const resolvedOp = await this.resolvePseudoRefs(workbookId, content);
+
+      operations.push(resolvedOp);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      entriesWithOps.push({ entry, resolvedOp: resolvedOp as any });
+    }
+
+    if (operations.length === 0) return;
+
+    // Bulk create
+    const returnedRecords = await connector.createRecords(tableSpec, operations as ConnectorFile[]);
+
+    // Post-process
+    const fileIndexUpdates: { workbookId: string; folderPath: string; filename: string; recordId: string }[] = [];
+    const refUpdates: { path: string; content: any }[] = [];
+    const gitFiles: { path: string; content: string }[] = [];
+
+    for (let i = 0; i < entriesWithOps.length; i++) {
+      const { entry, resolvedOp } = entriesWithOps[i];
+      const returned = returnedRecords[i] || resolvedOp; // Fallback if connector doesn't return
+
+      // Update File Index
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const realId = (returned as any)[idField];
       if (realId && typeof realId === 'string') {
         const { folderPath, filename } = parsePath(entry.filePath);
-
-        await this.fileIndexService.upsertBatch([
-          {
-            workbookId,
-            folderPath,
-            recordId: realId,
-            filename,
-          },
-        ]);
-        WSLogger.info({
-          source: 'PublishRunService.dispatchCreate',
-          message: `Added to FileIndex: ${entry.filePath} -> ${realId}`,
+        fileIndexUpdates.push({
           workbookId,
+          folderPath,
+          filename,
+          recordId: realId,
         });
+      }
+
+      // Update Refs
+      refUpdates.push({ path: entry.filePath, content: returned });
+
+      // Git
+      gitFiles.push({ path: entry.filePath, content: JSON.stringify(returned, null, 2) });
+    }
+
+    if (fileIndexUpdates.length > 0) {
+      await this.fileIndexService.upsertBatch(fileIndexUpdates);
+    }
+
+    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', refUpdates);
+
+    await this.scratchGitService.commitFilesToBranch(
+      workbookId as WorkbookId,
+      'main',
+      gitFiles,
+      `Publish V2 create batch (${entries.length})`,
+    );
+
+    // Dirty sync
+    const dirtySyncBatch = entriesWithOps.map(({ entry, resolvedOp }, i) => {
+      const returned = returnedRecords[i] || resolvedOp;
+      return {
+        filePath: entry.filePath,
+        content: JSON.stringify(returned, null, 2),
+      };
+    });
+    await this.syncBatchToDirtyIfFinal(workbookId, planId, phase, dirtySyncBatch);
+  }
+
+  private async dispatchDeleteBatch(
+    entries: PublishEntry[],
+    connector: Connector<Service, any>,
+    tableSpec: BaseJsonTableSpec,
+    workbookId: string,
+    planId: string,
+  ): Promise<void> {
+    const idField = tableSpec.idColumnRemoteId || 'id';
+    const filters: { [key: string]: string }[] = [];
+    const validEntries: PublishEntry[] = [];
+
+    for (const entry of entries) {
+      if (entry.remoteRecordId) {
+        filters.push({ [idField]: entry.remoteRecordId });
+        validEntries.push(entry);
       }
     }
 
-    // Update reference index with new content (use returned data which has the real ID)
-    const finalContent = returned[0] || entry.operation;
-    await this.fileReferenceService.updateRefsForFiles(workbookId, 'main', [
-      { path: entry.filePath, content: finalContent },
-    ]);
-    WSLogger.info({
-      source: 'PublishRunService.dispatchCreate',
-      message: `Updated refs for created file: ${entry.filePath}`,
-      workbookId,
+    if (filters.length === 0) return;
+
+    // Bulk delete
+    await connector.deleteRecords(tableSpec, filters);
+
+    // Cleanup local state
+    const filesToDelete = validEntries.map((e) => e.filePath);
+
+    // 1. Refs
+    await this.db.client.fileReference.deleteMany({
+      where: { workbookId, sourceFilePath: { in: filesToDelete } },
     });
 
-    // Commit to main immediately (with real ID)
-    await this.scratchGitService.commitFilesToBranch(
-      workbookId as WorkbookId,
-      'main',
-      [{ path: entry.filePath, content: JSON.stringify(finalContent, null, 2) }],
-      `Publish V2 create: ${entry.filePath}`,
-    );
-    WSLogger.info({
-      source: 'PublishRunService.dispatchCreate',
-      message: `Committed create to main: ${entry.filePath}`,
-      workbookId,
+    // 2. Index
+    // Need to parse paths.
+    // Optimization: delete many by folder/filename or just by iterate?
+    // DeleteMany with OR conditions is okay.
+    const fileIndexDeletes = validEntries.map((e) => {
+      const { folderPath, filename } = parsePath(e.filePath);
+      return { folderPath, filename };
     });
 
-    // If this is the final operation for this file, also commit to dirty
-    await this.commitToDirtyIfFinal(workbookId, planId, phase, entry.filePath, JSON.stringify(finalContent, null, 2));
-  }
-
-  private async dispatchDelete(
-    entry: { filePath: string; remoteRecordId?: string | null },
-    connector: Connector<Service, any>,
-    tableSpec: BaseJsonTableSpec,
-    workbookId: string,
-  ): Promise<void> {
-    const idField = tableSpec.idColumnRemoteId || 'id';
-    const remoteId = entry.remoteRecordId;
-
-    if (remoteId) {
-      await connector.deleteRecords(tableSpec, [{ [idField]: remoteId }]);
-
-      // After delete: remove refs where this file is the source
-      await this.db.client.fileReference.deleteMany({
-        where: { workbookId, sourceFilePath: entry.filePath },
-      });
-      WSLogger.info({
-        source: 'PublishRunService.dispatchDelete',
-        message: `Deleted refs for file: ${entry.filePath}`,
-        workbookId,
-      });
-
-      // Remove from FileIndex
-      const { folderPath, filename } = parsePath(entry.filePath);
+    // We can't do deleteMany with (folder, filename) pairs easily in Prisma without OR
+    // Loop is fine for local DB cleanup (fast)
+    for (const { folderPath, filename } of fileIndexDeletes) {
       await this.db.client.fileIndex.deleteMany({
         where: { workbookId, folderPath, filename },
       });
-      WSLogger.info({
-        source: 'PublishRunService.dispatchDelete',
-        message: `Removed from FileIndex: ${entry.filePath}`,
-        workbookId,
-      });
-
-      // Delete from main immediately
-      await this.scratchGitService.deleteFilesFromBranch(
-        workbookId as WorkbookId,
-        'main',
-        [entry.filePath],
-        `Publish V2 delete: ${entry.filePath}`,
-      );
-      WSLogger.info({
-        source: 'PublishRunService.dispatchDelete',
-        message: `Deleted from main: ${entry.filePath}`,
-        workbookId,
-      });
-    } else {
-      WSLogger.warn({
-        source: 'PublishRunService.dispatchDelete',
-        message: `Delete entry has no remoteRecordId: ${entry.filePath}`,
-        workbookId,
-      });
     }
+
+    // 3. Git
+    await this.scratchGitService.deleteFilesFromBranch(
+      workbookId as WorkbookId,
+      'main',
+      filesToDelete,
+      `Publish V2 delete batch (${filesToDelete.length})`,
+    );
+
+    // Dirty sync
+    const dirtySyncBatch = validEntries.map((entry) => ({
+      filePath: entry.filePath,
+      content: null,
+    }));
+    await this.syncBatchToDirtyIfFinal(workbookId, planId, 'delete', dirtySyncBatch);
   }
 
   /**
-   * If this is the final operation for a file (no later phases pending),
-   * commit the published content to dirty so it matches main.
+   * Identifies which files in the batch are going through their final operation
+   * (no later phases pending), and syncs them to the dirty branch.
+   * If content is null, it means the file was deleted.
    */
-  private async commitToDirtyIfFinal(
+  private async syncBatchToDirtyIfFinal(
     workbookId: string,
     planId: string,
     currentPhase: string,
-    filePath: string,
-    content: string,
+    items: { filePath: string; content: string | null }[],
   ): Promise<void> {
-    // Backfill is always the last phase — always sync to dirty
-    if (currentPhase === 'backfill') {
-      await this.scratchGitService.commitFilesToBranch(
-        workbookId as WorkbookId,
-        'dirty',
-        [{ path: filePath, content }],
-        `Sync published content to dirty: ${filePath}`,
-      );
-      console.log(`[Run] Synced to dirty (backfill is final): ${filePath}`);
-      return;
+    if (items.length === 0) return;
+
+    const finalDeletes: string[] = [];
+    const finalCommits: { path: string; content: string }[] = [];
+
+    // Backfill and delete are always the last phase for a record — always sync to dirty
+    if (currentPhase === 'backfill' || currentPhase === 'delete') {
+      for (const item of items) {
+        if (item.content === null) {
+          finalDeletes.push(item.filePath);
+        } else {
+          finalCommits.push({ path: item.filePath, content: item.content });
+        }
+      }
+    } else {
+      // For edit/create: we must check if a backfill entry exists for these files
+      const filePaths = items.map((i) => i.filePath);
+
+      // Find all later pending phases for any of these files
+      const laterEntries = await this.db.client.publishPlanEntry.groupBy({
+        by: ['filePath'],
+        where: {
+          planId,
+          filePath: { in: filePaths },
+          phase: 'backfill',
+          status: 'pending',
+        },
+        _count: true,
+      });
+
+      // Map of filePath -> count of later pending entries
+      const pendingMap = new Map(laterEntries.map((g) => [g.filePath, g._count]));
+
+      for (const item of items) {
+        if (!pendingMap.has(item.filePath)) {
+          // No backfill coming — this is the final content, sync to dirty
+          if (item.content === null) {
+            finalDeletes.push(item.filePath);
+          } else {
+            finalCommits.push({ path: item.filePath, content: item.content });
+          }
+        }
+      }
     }
 
-    // For edit/create: check if a backfill entry exists for this file
-    const laterPhases = currentPhase === 'edit' ? ['backfill'] : currentPhase === 'create' ? ['backfill'] : [];
-    if (laterPhases.length === 0) return; // delete — file already gone from dirty
+    // Execute batch writes
+    if (finalDeletes.length > 0) {
+      await this.scratchGitService.deleteFilesFromBranch(
+        workbookId as WorkbookId,
+        'dirty',
+        finalDeletes,
+        `Sync published deletes to dirty (${finalDeletes.length})`,
+      );
+    }
 
-    const laterEntryCount = await this.db.client.publishPlanEntry.count({
-      where: {
-        planId,
-        filePath,
-        phase: { in: laterPhases },
-        status: 'pending',
-      },
-    });
-
-    if (laterEntryCount === 0) {
-      // No backfill coming — this is the final content, sync to dirty
+    if (finalCommits.length > 0) {
       await this.scratchGitService.commitFilesToBranch(
         workbookId as WorkbookId,
         'dirty',
-        [{ path: filePath, content }],
-        `Sync published content to dirty: ${filePath}`,
+        finalCommits,
+        `Sync published content to dirty (${finalCommits.length})`,
       );
-      console.log(`[Run] Synced to dirty (final for file): ${filePath}`);
-    } else {
-      console.log(`[Run] Skipping dirty sync for ${filePath} — ${laterEntryCount} later entries pending`);
     }
   }
 }

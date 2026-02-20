@@ -2,7 +2,7 @@ import { isUnauthorizedError } from '@/lib/api/error';
 import { filesApi } from '@/lib/api/files';
 import { SWR_KEYS } from '@/lib/api/keys';
 import { DataFolderId, FileOrFolderRefEntity, WorkbookId } from '@spinner/shared-types';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import useSWR from 'swr';
 
 export interface UseFolderFileListReturn {
@@ -29,10 +29,6 @@ export const useFolderFileList = (
     },
   );
 
-  const refreshFiles = useCallback(async () => {
-    await mutate();
-  }, [mutate]);
-
   const displayError = useMemo(() => {
     if (isUnauthorizedError(error)) {
       // ignore this error as it will be fixed after the token is refreshed
@@ -45,6 +41,8 @@ export const useFolderFileList = (
     files: data?.items ?? [],
     isLoading,
     error: displayError,
-    refreshFiles,
+    refreshFiles: async () => {
+      await mutate();
+    },
   };
 };

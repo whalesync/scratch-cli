@@ -83,4 +83,15 @@ export const dataFolderApi = {
       handleAxiosError(error, 'Failed to publish data folders');
     }
   },
+
+  deleteAllRecords: async (workbookId: WorkbookId, folderPath: string): Promise<void> => {
+    try {
+      const axios = API_CONFIG.getAxiosInstance();
+      await axios.delete(`/scratch-git/${workbookId}/data-folder/files`, {
+        params: { path: folderPath },
+      });
+    } catch (error) {
+      handleAxiosError(error, 'Failed to delete all records in: ' + folderPath);
+    }
+  },
 };

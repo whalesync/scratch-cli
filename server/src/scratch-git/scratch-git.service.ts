@@ -139,4 +139,9 @@ export class ScratchGitService {
   async deleteCheckpoint(workbookId: WorkbookId, name: string): Promise<void> {
     await this.scratchGitClient.deleteCheckpoint(workbookId, name);
   }
+
+  async deleteAllFilesInDataFolder(workbookId: WorkbookId, folderPath: string): Promise<void> {
+    // Delete the folder from dirty branch only to ensure a diff is generated
+    await this.deleteFolder(workbookId, folderPath, `Delete all records in ${folderPath}`, DIRTY_BRANCH);
+  }
 }

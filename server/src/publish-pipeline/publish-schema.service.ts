@@ -60,4 +60,63 @@ export class PublishSchemaService {
     const spec = await this.getTableSpec(workbookId, folderPath, cache);
     return spec?.schema ?? null;
   }
+
+  /**
+   * Look up the DataFolder for a given path and return its ID and TableSpec.
+   */
+  async getDataFolderInfo(
+    workbookId: string,
+    folderPath: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    cache?: Map<string, { id: string; spec: BaseJsonTableSpec } | null>,
+  ): Promise<{ id: string; spec: BaseJsonTableSpec } | null> {
+    // TODO: We could cache this result too if needed
+    try {
+      const dataFolder = await this.db.client.dataFolder.findFirst({
+        where: {
+          workbookId,
+          path: { in: [folderPath, `/${folderPath}`] },
+        },
+        select: { id: true, schema: true },
+      });
+
+      if (!dataFolder) return null;
+
+      const spec = (dataFolder.schema as unknown as BaseJsonTableSpec) || null;
+      return { id: dataFolder.id, spec };
+    } catch (error) {
+      console.error(`Error fetching data folder info for: ${folderPath}`, error);
+      return null;
+    }
+  }
+  /**
+   * Look up the TableSpec for a given DataFolder ID.
+   */
+  async getTableSpecById(
+    dataFolderId: string,
+    cache?: Map<string, BaseJsonTableSpec | null>,
+  ): Promise<BaseJsonTableSpec | null> {
+    if (cache && cache.has(dataFolderId)) {
+      return cache.get(dataFolderId) ?? null;
+    }
+
+    try {
+      const dataFolder = await this.db.client.dataFolder.findUnique({
+        where: { id: dataFolderId },
+        select: { schema: true },
+      });
+
+      const spec = (dataFolder?.schema as unknown as BaseJsonTableSpec) || null;
+      if (cache) {
+        cache.set(dataFolderId, spec);
+      }
+      return spec;
+    } catch (error) {
+      console.error(`Error fetching table spec for dataFolderId: ${dataFolderId}`, error);
+      if (cache) {
+        cache.set(dataFolderId, null);
+      }
+      return null;
+    }
+  }
 }
