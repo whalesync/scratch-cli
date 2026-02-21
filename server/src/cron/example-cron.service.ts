@@ -9,13 +9,15 @@ export class ExampleCronService {
   constructor(
     private readonly configService: ScratchConfigService,
     private readonly dbService: DbService,
-  ) {}
+  ) {
+    WSLogger.info({ source: 'ExampleCronService', message: 'Cron services initializing... 🔄' });
+  }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   exampleCronTask() {
     WSLogger.info({
       source: 'ExampleCronService',
-      message: 'Running an example cron task once per day',
+      message: '⏱️ Running an example cron task every 30 minutes',
     });
   }
 }

@@ -39,6 +39,12 @@ type NotionDownloadProgress = {
   nextCursor: string | undefined;
 };
 
+interface NotionPullOptions extends ConnectorPullOptions {
+  filter?: string | undefined;
+  excludePageContent?: boolean | undefined;
+  childContentMaxDepth?: number | undefined;
+}
+
 const page_size = Number(process.env.NOTION_PAGE_SIZE ?? 100);
 export class NotionConnector extends Connector<typeof Service.NOTION, NotionDownloadProgress> {
   readonly service = Service.NOTION;
@@ -132,7 +138,7 @@ export class NotionConnector extends Connector<typeof Service.NOTION, NotionDown
     tableSpec: BaseJsonTableSpec,
     callback: (params: { files: ConnectorFile[]; connectorProgress?: NotionDownloadProgress }) => Promise<void>,
     progress: NotionDownloadProgress,
-    options: ConnectorPullOptions,
+    options: NotionPullOptions,
   ): Promise<void> {
     WSLogger.info({ source: 'NotionConnector', message: 'pullRecordFiles called', tableId: tableSpec.id.wsId });
 

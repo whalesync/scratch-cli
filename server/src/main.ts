@@ -61,8 +61,10 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(new WSLoggerShim());
   const port = process.env.PORT ?? 3010;
+  WSLogger.info({ source: 'main', message: `==========================================` });
   WSLogger.info({ source: 'main', message: `Listening on port: ${port}` });
-  WSLogger.info({ source: 'main', message: `SERVICE TYPE: ${process.env.SERVICE_TYPE}` });
+  WSLogger.info({ source: 'main', message: `Microservice Type: ${process.env.SERVICE_TYPE?.toUpperCase()}` });
+  WSLogger.info({ source: 'main', message: `==========================================` });
 
   await app.listen(port);
   startupFinished = true;

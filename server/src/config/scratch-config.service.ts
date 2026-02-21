@@ -218,7 +218,7 @@ export class ScratchConfigService {
     ]) as MicroserviceType;
   }
 
-  public static isFrontendAPIService(): boolean {
+  public static isAPIService(): boolean {
     const type = process.env.SERVICE_TYPE;
     return type === MicroserviceType.FRONTEND || type === MicroserviceType.MONOLITH;
   }
