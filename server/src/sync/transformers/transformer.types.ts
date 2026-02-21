@@ -8,6 +8,7 @@ export type SyncPhase = 'DATA' | 'FOREIGN_KEY_MAPPING';
  */
 export interface SyncRecord {
   id: string;
+  filePath: string;
   fields: Record<string, unknown>;
 }
 
@@ -24,7 +25,7 @@ export interface LookupTools {
    * @param referencedDataFolderId - The DataFolder that contains the referenced records
    * @returns The destination remote ID, or null if not found
    */
-  getDestinationIdForSourceFk(sourceFkValue: string, referencedDataFolderId: DataFolderId): Promise<string | null>;
+  getDestinationPathForSourceFk(sourceFkValue: string, referencedDataFolderId: DataFolderId): Promise<string | null>;
 
   /**
    * Looks up a field value from a record referenced by a foreign key.

@@ -70,6 +70,7 @@ function fieldMapToColumnMappings(fieldMap: FieldMapType): ColumnMapping[] {
 export interface RemoteIdMappingPair {
   sourceRemoteId: string;
   destinationRemoteId: string | null;
+  destinationFilePath: string | null;
 }
 
 interface FileContent {
@@ -397,8 +398,8 @@ export class SyncService {
     // Skipped in FOREIGN_KEY_MAPPING phase — it reuses caches built by the DATA phase.
     // ===========================================================================================
 
-    const destinationIdToFilePath = new Map<string, string>();
-    const destinationRecordsById = new Map<string, SyncRecord>();
+    const destinationRecordsByPath = new Map<string, SyncRecord>();
+    const usedDestFileNames = new Set<string>();
     const fkValuesByFolder = new Map<DataFolderId, Set<string>>();
 
     if (phase === 'DATA') {
@@ -453,8 +454,8 @@ export class SyncService {
       for (const file of page.files) {
         const record = parseFileToRecord(file, destinationIdColumn);
         batchRecords.push(record);
-        destinationIdToFilePath.set(record.id, file.path);
-        destinationRecordsById.set(record.id, record);
+        destinationRecordsByPath.set(file.path, record);
+        usedDestFileNames.add(file.path.split('/').pop()!);
       }
 
       WSLogger.info({
@@ -499,13 +500,8 @@ export class SyncService {
     // Create lookup tools for transformers that need FK resolution
     const lookupTools = createLookupTools(this.db, syncId);
 
-    // Build a set of existing destination filenames for dedup
-    const usedDestFileNames = new Set<string>(
-      Array.from(destinationIdToFilePath.values()).map((p) => p.split('/').pop()!),
-    );
-
-    // Track new records so we can backfill SyncRemoteIdMapping with their temp IDs
-    const newRecordMappings: Array<{ sourceRemoteId: string; tempId: string }> = [];
+    // Track new records so we can backfill SyncRemoteIdMapping with their file paths and record IDs
+    const newRecordMappings: Array<{ sourceRemoteId: string; filePath: string; destinationRecordId: string }> = [];
 
     // Accumulated files to write across all source pages
     const filesToWrite: Array<{ path: string; content: string }> = [];
@@ -535,7 +531,7 @@ export class SyncService {
       });
 
       // Get mappings for this batch
-      const batchMappings = await this.getDestinationRemoteIds(
+      const batchMappings = await this.getDestinationMappings(
         syncId,
         tableMapping.sourceDataFolderId,
         Array.from(batchRecordsById.keys()),
@@ -561,7 +557,7 @@ export class SyncService {
         }
       }
 
-      for (const [sourceRemoteId, destinationRemoteId] of batchMappings) {
+      for (const [sourceRemoteId, mapping] of batchMappings) {
         const sourceRecord = batchRecordsById.get(sourceRemoteId);
         if (!sourceRecord) {
           result.errors.push({
@@ -581,7 +577,7 @@ export class SyncService {
 
           let destinationPath: string;
 
-          if (destinationRemoteId === null) {
+          if (mapping.destinationFilePath === null) {
             // This is a new record
 
             // Generate a temporary ID for the new record so it can be matched on subsequent syncs,
@@ -594,9 +590,6 @@ export class SyncService {
               set(transformedFields, destIdColumn, tempId);
             }
 
-            // Track this new record mapping for Phase 2 FK resolution
-            newRecordMappings.push({ sourceRemoteId, tempId });
-
             // Resolve filename: prefer slug from destination schema, fall back to temp ID
             const slugValue = destTableSpec?.slugColumnRemoteId
               ? (get(transformedFields, destTableSpec.slugColumnRemoteId) as string | undefined)
@@ -605,23 +598,22 @@ export class SyncService {
             const fileName = deduplicateFileName(baseName, '.json', usedDestFileNames, tempId);
             destinationPath = destinationFolderPath ? `${destinationFolderPath}/${fileName}` : fileName;
 
+            // Track this new record mapping for Phase 2 FK resolution
+            newRecordMappings.push({
+              sourceRemoteId,
+              filePath: destinationPath,
+              destinationRecordId: String(tempId),
+            });
+
             result.recordsCreated++;
             result.createdPaths.push(destinationPath);
           } else {
-            // This is an existing record - use the existing file path
-            const existingPath = destinationIdToFilePath.get(destinationRemoteId);
-            if (!existingPath) {
-              result.errors.push({
-                sourceRemoteId,
-                error: `Could not find file path for existing destination record ${destinationRemoteId}`,
-              });
-              continue;
-            }
-            destinationPath = existingPath;
+            // Use the file path from the mapping (from SyncMatchKeys.filePath via buildRecordMatchingMappings)
+            destinationPath = mapping.destinationFilePath;
 
             // Merge existing destination fields with transformed source fields (source takes precedence).
             // This preserves destination fields that aren't covered by column mappings.
-            const existingRecord = destinationRecordsById.get(destinationRemoteId);
+            const existingRecord = destinationRecordsByPath.get(mapping.destinationFilePath);
             if (existingRecord) {
               Object.assign(transformedFields, merge({}, existingRecord.fields, transformedFields));
             }
@@ -644,8 +636,8 @@ export class SyncService {
       batchCounter++;
     } while (sourceCursor);
 
-    // 7. Backfill SyncRemoteIdMapping for newly created records with their temp IDs
-    // This is needed so the FOREIGN_KEY_MAPPING phase can find destination IDs for new records
+    // 7. Backfill SyncRemoteIdMapping for newly created records with their file paths
+    // This is needed so the FOREIGN_KEY_MAPPING phase can resolve FK references to new records
     if (phase === 'DATA' && newRecordMappings.length > 0) {
       await this.updateRemoteIdMappingsForNewRecords(syncId, tableMapping.sourceDataFolderId, newRecordMappings);
     }
@@ -710,6 +702,7 @@ export class SyncService {
       const batchMappings: RemoteIdMappingPair[] = sourceRecords.map((r) => ({
         sourceRemoteId: r.id,
         destinationRemoteId: null,
+        destinationFilePath: null,
       }));
       if (batchMappings.length > 0) {
         await this.upsertRemoteIdMappings(syncId, tableMapping, batchMappings);
@@ -738,9 +731,11 @@ export class SyncService {
 
     // Create remote ID mappings for both matched and unmatched source records
     const allSourceMappings = await this.db.client.$queryRaw<
-      { sourceRemoteId: string; destinationRemoteId: string | null }[]
+      { sourceRemoteId: string; destinationRemoteId: string | null; destinationFilePath: string | null }[]
     >`
-      SELECT src."remoteId" as "sourceRemoteId", dest."remoteId" as "destinationRemoteId"
+      SELECT src."remoteId" as "sourceRemoteId",
+             dest."remoteId" as "destinationRemoteId",
+             dest."filePath" as "destinationFilePath"
       FROM "SyncMatchKeys" src
       LEFT JOIN "SyncMatchKeys" dest
         ON src."syncId" = dest."syncId"
@@ -916,9 +911,11 @@ export class SyncService {
             dataFolderId: tableMapping.sourceDataFolderId,
             sourceRemoteId: mapping.sourceRemoteId,
             destinationRemoteId: mapping.destinationRemoteId,
+            destinationFilePath: mapping.destinationFilePath,
           },
           update: {
             destinationRemoteId: mapping.destinationRemoteId,
+            destinationFilePath: mapping.destinationFilePath,
           },
         }),
       ),
@@ -926,14 +923,14 @@ export class SyncService {
   }
 
   /**
-   * Updates SyncRemoteIdMapping entries for newly created records with their destination temp IDs.
-   * During Phase 1, new records have destinationRemoteId = null. This backfills them with the
-   * generated temp ID so Phase 2 FK resolution can find them.
+   * Updates SyncRemoteIdMapping entries for newly created records with their destination file paths
+   * and record IDs. During Phase 1, new records have null destination fields. This backfills them
+   * so Phase 2 FK resolution can resolve references to new records.
    */
   private async updateRemoteIdMappingsForNewRecords(
     syncId: SyncId,
     dataFolderId: DataFolderId,
-    newRecords: Array<{ sourceRemoteId: string; tempId: string }>,
+    newRecords: Array<{ sourceRemoteId: string; filePath: string; destinationRecordId: string }>,
   ): Promise<void> {
     if (newRecords.length === 0) {
       return;
@@ -950,7 +947,8 @@ export class SyncService {
             },
           },
           data: {
-            destinationRemoteId: record.tempId,
+            destinationRemoteId: record.destinationRecordId,
+            destinationFilePath: record.filePath,
           },
         }),
       ),
@@ -958,18 +956,18 @@ export class SyncService {
   }
 
   /**
-   * Bulk lookup of destination remote IDs for multiple source remote IDs.
+   * Bulk lookup of destination mappings for multiple source remote IDs.
    *
    * @param syncId - The sync ID
    * @param dataFolderId - The source DataFolder ID
    * @param sourceRemoteIds - Array of source remote IDs to look up
-   * @returns Map of source remote ID to destination remote ID
+   * @returns Map of source remote ID to destination mapping (record ID + file path)
    */
-  private async getDestinationRemoteIds(
+  private async getDestinationMappings(
     syncId: SyncId,
     dataFolderId: DataFolderId,
     sourceRemoteIds: string[],
-  ): Promise<Map<string, string | null>> {
+  ): Promise<Map<string, { destinationRemoteId: string | null; destinationFilePath: string | null }>> {
     if (sourceRemoteIds.length === 0) {
       return new Map();
     }
@@ -980,10 +978,15 @@ export class SyncService {
         dataFolderId,
         sourceRemoteId: { in: sourceRemoteIds },
       },
-      select: { sourceRemoteId: true, destinationRemoteId: true },
+      select: { sourceRemoteId: true, destinationRemoteId: true, destinationFilePath: true },
     });
 
-    return new Map(mappings.map((m) => [m.sourceRemoteId, m.destinationRemoteId]));
+    return new Map(
+      mappings.map((m) => [
+        m.sourceRemoteId,
+        { destinationRemoteId: m.destinationRemoteId, destinationFilePath: m.destinationFilePath },
+      ]),
+    );
   }
 
   // ============================================================================
@@ -1017,6 +1020,7 @@ export class SyncService {
           dataFolderId,
           matchId: matchValue,
           remoteId: record.id,
+          filePath: record.filePath,
         };
       })
       .filter((key): key is NonNullable<typeof key> => key !== null);
@@ -1168,7 +1172,7 @@ export class SyncService {
     // Stub lookup tools — FK lookups are not available in preview
     const notAvailableInPreviewError = new Error('Lookup is not available in preview');
     const previewLookupTools: LookupTools = {
-      getDestinationIdForSourceFk: () => Promise.reject(notAvailableInPreviewError),
+      getDestinationPathForSourceFk: () => Promise.reject(notAvailableInPreviewError),
       lookupFieldFromFkRecord: () => Promise.reject(notAvailableInPreviewError),
     };
 
@@ -1287,6 +1291,7 @@ function parseFileToRecord(file: FileContent, idColumnRemoteId: string): SyncRec
 
   return {
     id: String(recordId),
+    filePath: file.path,
     fields,
   };
 }
@@ -1330,7 +1335,7 @@ async function transformRecordAsync(
           sourceFieldPath: mapping.sourceColumnId,
           sourceValue,
           lookupTools: lookupTools ?? {
-            getDestinationIdForSourceFk: () => Promise.resolve(null),
+            getDestinationPathForSourceFk: () => Promise.resolve(null),
             lookupFieldFromFkRecord: () => Promise.resolve(null),
           },
           options: mapping.transformer.options ?? {},

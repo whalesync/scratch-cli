@@ -28,43 +28,40 @@ export const sourceFkToDestFkTransformer: FieldTransformer = {
       return { success: true, value: null };
     }
 
-    // Handle arrays — resolve each element
-    if (Array.isArray(sourceValue)) {
-      const resolved: string[] = [];
-      for (const element of sourceValue) {
-        if (element === null || element === undefined) {
-          continue;
-        }
-        const fkStr = String(element);
-        const destId = await lookupTools.getDestinationIdForSourceFk(fkStr, typedOptions.referencedDataFolderId);
-        if (destId === null) {
-          return {
-            success: false,
-            error: `Could not resolve foreign key "${fkStr}" to a destination ID in DataFolder ${typedOptions.referencedDataFolderId}`,
-          };
-        }
-        resolved.push(destId);
-      }
-      return { success: true, value: resolved };
-    }
-
-    // Handle scalar — coerce to string and resolve
-    if (typeof sourceValue !== 'string' && typeof sourceValue !== 'number') {
+    // Normalize scalar to array for uniform processing
+    const isScalar = !Array.isArray(sourceValue);
+    if (isScalar && typeof sourceValue !== 'string' && typeof sourceValue !== 'number') {
       return {
         success: false,
         error: `Expected string, number, or array for FK value, got ${typeof sourceValue}`,
       };
     }
-    const fkStr = String(sourceValue);
-    const destId = await lookupTools.getDestinationIdForSourceFk(fkStr, typedOptions.referencedDataFolderId);
-    if (destId === null) {
-      return {
-        success: false,
-        error: `Could not resolve foreign key "${fkStr}" to a destination ID in DataFolder ${typedOptions.referencedDataFolderId}`,
-      };
+    const elements: unknown[] = isScalar ? [sourceValue] : sourceValue;
+
+    const resolved: string[] = [];
+    for (const element of elements) {
+      if (element === null || element === undefined) {
+        continue;
+      }
+      if (typeof element !== 'string' && typeof element !== 'number') {
+        return {
+          success: false,
+          error: `Expected string or number for FK array element, got ${typeof element}`,
+        };
+      }
+      const fkStr = String(element);
+      const destPath = await lookupTools.getDestinationPathForSourceFk(fkStr, typedOptions.referencedDataFolderId);
+      if (destPath === null) {
+        return {
+          success: false,
+          error: `Could not resolve foreign key "${fkStr}" to a destination path in DataFolder ${typedOptions.referencedDataFolderId}`,
+        };
+      }
+      const pseudoRef = `@/${destPath}`;
+      resolved.push(pseudoRef);
     }
 
-    return { success: true, value: destId };
+    return { success: true, value: isScalar ? resolved[0] : resolved };
   },
 };
 

@@ -135,14 +135,14 @@ describe('SyncService - fillSyncCaches', () => {
   it('should populate SyncMatchKeys and SyncRemoteIdMapping for matching records', async () => {
     // Create source and destination records
     const sourceRecords = [
-      { id: '/file1.json', fields: { email: 'john@example.com' } },
-      { id: '/file2.json', fields: { email: 'jane@example.com' } },
-      { id: '/file3.json', fields: { email: 'bob@example.com' } },
+      { id: '/file1.json', filePath: '/file1.json', fields: { email: 'john@example.com' } },
+      { id: '/file2.json', filePath: '/file2.json', fields: { email: 'jane@example.com' } },
+      { id: '/file3.json', filePath: '/file3.json', fields: { email: 'bob@example.com' } },
     ];
 
     const destinationRecords = [
-      { id: '/item1.json', fields: { email: 'john@example.com' } },
-      { id: '/item2.json', fields: { email: 'jane@example.com' } },
+      { id: '/item1.json', filePath: '/item1.json', fields: { email: 'john@example.com' } },
+      { id: '/item2.json', filePath: '/item2.json', fields: { email: 'jane@example.com' } },
     ];
 
     // Create table mapping with record matching
@@ -182,26 +182,29 @@ describe('SyncService - fillSyncCaches', () => {
     expect(destRemoteIds).toEqual(expectedDestIds);
 
     // Verify SyncRemoteIdMappings were created for all source records
-    // (matched records have destinationRemoteId, unmatched have null)
+    // (matched records have both destinationRemoteId and destinationFilePath, unmatched have null)
     const mappings = await prisma.syncRemoteIdMapping.findMany({
       where: { syncId, dataFolderId: sourceFolderId },
     });
 
     expect(mappings).toHaveLength(3);
 
-    // Verify mapping integrity: check that john@example.com and jane@example.com are mapped
+    // Verify mapping integrity: destinationRemoteId is the record ID, destinationFilePath is the file path
     const johnMapping = mappings.find((m) => m.sourceRemoteId === '/file1.json');
     expect(johnMapping).toBeDefined();
     expect(johnMapping?.destinationRemoteId).toBe('/item1.json');
+    expect(johnMapping?.destinationFilePath).toBe('/item1.json');
 
     const janeMapping = mappings.find((m) => m.sourceRemoteId === '/file2.json');
     expect(janeMapping).toBeDefined();
     expect(janeMapping?.destinationRemoteId).toBe('/item2.json');
+    expect(janeMapping?.destinationFilePath).toBe('/item2.json');
 
-    // Bob's file should have a mapping with null destinationRemoteId since it doesn't exist in destination
+    // Bob's file should have null destination fields since it doesn't exist in destination
     const bobMapping = mappings.find((m) => m.sourceRemoteId === '/file3.json');
     expect(bobMapping).toBeDefined();
     expect(bobMapping?.destinationRemoteId).toBeNull();
+    expect(bobMapping?.destinationFilePath).toBeNull();
   });
 
   it('should handle empty record lists', async () => {
@@ -227,8 +230,8 @@ describe('SyncService - fillSyncCaches', () => {
 
   it('should handle records without matching column values', async () => {
     // Records without the matching column
-    const sourceRecords = [{ id: '/file1.json', fields: { name: 'John' } }];
-    const destinationRecords = [{ id: '/item1.json', fields: { name: 'Jane' } }];
+    const sourceRecords = [{ id: '/file1.json', filePath: '/file1.json', fields: { name: 'John' } }];
+    const destinationRecords = [{ id: '/item1.json', filePath: '/item1.json', fields: { name: 'Jane' } }];
 
     const tableMapping: TableMapping = {
       sourceDataFolderId: sourceFolderId,
@@ -251,11 +254,13 @@ describe('SyncService - fillSyncCaches', () => {
 
   it('should populate SyncMatchKeys using dot-separated paths for nested fields', async () => {
     const sourceRecords = [
-      { id: '/file1.json', fields: { meta: { email: 'john@example.com' } } },
-      { id: '/file2.json', fields: { meta: { email: 'jane@example.com' } } },
+      { id: '/file1.json', filePath: '/file1.json', fields: { meta: { email: 'john@example.com' } } },
+      { id: '/file2.json', filePath: '/file2.json', fields: { meta: { email: 'jane@example.com' } } },
     ];
 
-    const destinationRecords = [{ id: '/item1.json', fields: { contact: { email: 'john@example.com' } } }];
+    const destinationRecords = [
+      { id: '/item1.json', filePath: '/item1.json', fields: { contact: { email: 'john@example.com' } } },
+    ];
 
     const tableMapping: TableMapping = {
       sourceDataFolderId: sourceFolderId,
@@ -291,10 +296,12 @@ describe('SyncService - fillSyncCaches', () => {
     const johnMapping = mappings.find((m) => m.sourceRemoteId === '/file1.json');
     expect(johnMapping).toBeDefined();
     expect(johnMapping?.destinationRemoteId).toBe('/item1.json');
+    expect(johnMapping?.destinationFilePath).toBe('/item1.json');
 
     const janeMapping = mappings.find((m) => m.sourceRemoteId === '/file2.json');
     expect(janeMapping).toBeDefined();
     expect(janeMapping?.destinationRemoteId).toBeNull();
+    expect(janeMapping?.destinationFilePath).toBeNull();
   });
 });
 
@@ -1676,7 +1683,7 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     // Verify the resolved file has the destination author ID
     const phase2PostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     const phase2PostContent = JSON.parse(phase2PostFiles[0].content) as Record<string, unknown>;
-    expect(phase2PostContent.author_id).toBe('dest_author_1'); // Resolved!
+    expect(phase2PostContent.author_id).toBe('@/dest-authors/author1.json'); // Resolved to pseudo-ref!
     expect(phase2PostContent.id).toBe(postTempId); // ID should be preserved
   });
 
@@ -1770,10 +1777,10 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     expect(fkResult.recordsUpdated).toBe(1);
     expect(fkResult.errors).toHaveLength(0);
 
-    // The post's author_id should now be the author's temp ID
+    // The post's author_id should now be the author's file path
     const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
-    expect(resolvedPostContent.author_id).toBe(authorTempId);
+    expect(resolvedPostContent.author_id).toBe(`@/${authorFiles[0].path}`);
   });
 
   it('should handle FK with null value (no error)', async () => {
@@ -1937,7 +1944,7 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
 
     const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
-    expect(resolvedPostContent.author_ids).toEqual(['dest_auth_1', 'dest_auth_2']);
+    expect(resolvedPostContent.author_ids).toEqual(['@/dest-authors/auth1.json', '@/dest-authors/auth2.json']);
   });
 
   it('should return error when FK references a non-existent record', async () => {
@@ -2126,14 +2133,14 @@ describe('SyncService - source_fk_to_dest_fk transformer (two-phase)', () => {
     expect(postsFkResult.recordsUpdated).toBe(1);
     expect(postsFkResult.errors).toHaveLength(0);
 
-    // Verify resolved values
+    // Verify resolved values — FK fields should be file paths, not IDs
     const resolvedAuthorFiles = writtenFilesByCall[writtenFilesByCall.length - 2];
     const resolvedAuthorContent = JSON.parse(resolvedAuthorFiles[0].content) as Record<string, unknown>;
-    expect(resolvedAuthorContent.latest_post_id).toBe(postTempId);
+    expect(resolvedAuthorContent.latest_post_id).toBe(`@/${postFiles[0].path}`);
 
     const resolvedPostFiles = writtenFilesByCall[writtenFilesByCall.length - 1];
     const resolvedPostContent = JSON.parse(resolvedPostFiles[0].content) as Record<string, unknown>;
-    expect(resolvedPostContent.author_id).toBe(authorTempId);
+    expect(resolvedPostContent.author_id).toBe(`@/${authorFiles[0].path}`);
   });
 });
 

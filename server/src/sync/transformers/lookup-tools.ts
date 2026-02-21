@@ -11,23 +11,23 @@ import { LookupTools } from './transformer.types';
  */
 export function createLookupTools(db: DbService, syncId: SyncId): LookupTools {
   return {
-    async getDestinationIdForSourceFk(
+    async getDestinationPathForSourceFk(
       sourceFkValue: string,
       referencedDataFolderId: DataFolderId,
     ): Promise<string | null> {
-      // Look up the destination remote ID for the source FK value
+      // Look up the destination file path for the source FK value.
       // The FK value is a remote ID from the source system, and we need to find
-      // the corresponding destination remote ID using SyncRemoteIdMapping
+      // the corresponding destination file path using SyncRemoteIdMapping.
       const mapping = await db.client.syncRemoteIdMapping.findFirst({
         where: {
           syncId,
           dataFolderId: referencedDataFolderId,
           sourceRemoteId: sourceFkValue,
         },
-        select: { destinationRemoteId: true },
+        select: { destinationFilePath: true },
       });
 
-      return mapping?.destinationRemoteId ?? null;
+      return mapping?.destinationFilePath ?? null;
     },
 
     async lookupFieldFromFkRecord(

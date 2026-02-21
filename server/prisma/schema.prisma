@@ -573,7 +573,8 @@ model SyncMatchKeys {
   syncId       String
   dataFolderId String
   matchId      String
-  remoteId     String // The remote ID of the record (e.g., file path)
+  remoteId     String // The remote ID of the record (from file content)
+  filePath     String @default("") // The file path of the record in git
 
   @@unique([syncId, dataFolderId, matchId])
   @@index([syncId, matchId])
@@ -621,6 +622,9 @@ model SyncRemoteIdMapping {
 
   /// The remote ID of the corresponding record in the destination system (nullable for unmatched source records)
   destinationRemoteId String?
+
+  /// The file path of the corresponding record in the destination system (nullable for unmatched source records)
+  destinationFilePath String?
 
   @@unique([syncId, dataFolderId, sourceRemoteId])
   @@index([syncId])
