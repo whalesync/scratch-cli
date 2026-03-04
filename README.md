@@ -8,8 +8,7 @@ Check out www.scratch.md for more info.
 ### Homebrew (macOS, Linux, WSL)
 
 ```bash
-brew tap whalesync/scratch-cli
-brew install scratchmd
+brew install whalesync/scratch-cli/scratchmd
 ```
 
 ### Scoop (Windows)
