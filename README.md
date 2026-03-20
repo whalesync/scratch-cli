@@ -14,7 +14,7 @@ brew install whalesync/scratch-cli/scratchmd
 ### Scoop (Windows)
 
 ```powershell
-scoop install https://github.com/whalesync/scratch-cli-bucket/blob/master/scratchmd.json
+scoop install https://raw.githubusercontent.com/whalesync/scratch-cli-bucket/main/scratchmd.json
 ```
 
 ### Version Check & Manual Installation
