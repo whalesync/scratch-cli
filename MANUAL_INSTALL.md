@@ -23,15 +23,19 @@ powershell -c "irm https://github.com/whalesync/scratch-cli/releases/latest/down
 ### Apple Silicon (M1-M4)
 
 ```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_arm64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
+curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_arm64.tar.gz | tar xz && sudo mkdir -p /usr/local/bin && sudo mv scratchmd /usr/local/bin/
 ```
 
 ### Intel
 
 ```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_amd64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
+curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_darwin_amd64.tar.gz | tar xz && sudo mkdir -p /usr/local/bin && sudo mv scratchmd /usr/local/bin/
+```
+
+If `scratchmd` is not found after installing, add `/usr/local/bin` to your PATH:
+
+```bash
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 ## Linux
@@ -39,13 +43,11 @@ sudo mv scratchmd /usr/local/bin/
 ### x86_64
 
 ```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_amd64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
+curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_amd64.tar.gz | tar xz && sudo mkdir -p /usr/local/bin && sudo mv scratchmd /usr/local/bin/
 ```
 
 ### ARM64
 
 ```bash
-curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_arm64.tar.gz | tar xz
-sudo mv scratchmd /usr/local/bin/
+curl -L https://github.com/whalesync/scratch-cli/releases/latest/download/scratchmd_linux_arm64.tar.gz | tar xz && sudo mkdir -p /usr/local/bin && sudo mv scratchmd /usr/local/bin/
 ```
