@@ -1,7 +1,6 @@
 # scratchmd CLI
 
-Sync local Markdown files with your CMS (Webflow, WordPress, and more).
-Check out www.scratch.md for more info.
+CLI for [Scratch](https://www.scratch.md) — bulk edit your content with AI. Pull content from Shopify, Webflow, WordPress, Airtable, Notion, and more as local files. Edit with any tool — AI, scripts, spreadsheets — then push changes back with full diff visibility and control.
 
 ## Installation
 
@@ -13,7 +12,7 @@ brew install whalesync/scratch-cli/scratchmd
 
 ### Scoop (Windows)
 
-Install [Scoop](https://scoop.sh/Scoop/) if needed
+Install [Scoop](https://scoop.sh/) if needed
 
 ```powershell
 scoop install https://raw.githubusercontent.com/whalesync/scratch-cli-bucket/main/scratchmd.json
@@ -31,35 +30,22 @@ For manual installation options, see [MANUAL_INSTALL.md](MANUAL_INSTALL.md).
 
 ## Getting Started
 
-### Option 1: quick setup (recommended)
-
 ```bash
-scratchmd setup
+# 1. Log in via browser
+scratchmd auth login
+
+# 2. Create a workbook
+scratchmd workbooks create --name "My Site"
+
+# 3. Connect an external service
+scratchmd connections create --service webflow --display-name "My Webflow"
+
+# 4. Pull content from connected services
+scratchmd workbooks pull <workbook-id>
 ```
 
-### Option 2: Manual setup
+---
 
-```bash
-# 1. Add your CMS account
-scratchmd account add my-site --provider=webflow --api-key=YOUR_KEY
+## Usage
 
-# 2. Link a local folder to a CMS collection
-scratchmd folder link --table-id=TABLE_ID ./my-content
-
-# 3. Download content
-scratchmd content download
-```
-
-## Utilities
-
-### Shell Completion
-
-Add to your `~/.zshrc` or `~/.bashrc`:
-
-```bash
-source <(scratchmd completion $(basename $SHELL))
-```
-
-### VSCode Extension
-
-Coming Soon
+Run `scratchmd --help` to see all available commands, or `scratchmd <command> --help` for details on a specific command.
