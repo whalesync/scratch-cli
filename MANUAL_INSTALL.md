@@ -20,6 +20,14 @@ powershell -c "irm https://github.com/whalesync/scratch-cli/releases/latest/down
 
 ## macOS
 
+### Prerequisites
+
+Git is required. The easiest way to install it on macOS is with the Xcode Command Line Tools:
+
+```bash
+xcode-select --install
+```
+
 ### Apple Silicon (M1-M4)
 
 ```bash

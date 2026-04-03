@@ -2,6 +2,13 @@
 
 CLI for [Scratch](https://www.scratch.md) — bulk edit your content with AI. Pull content from Shopify, Webflow, WordPress, Airtable, Notion, and more as local files. Edit with any tool — AI, scripts, spreadsheets — then push changes back with full diff visibility and control.
 
+## Prerequisites
+
+- **macOS:** Git is required. The easiest way to install it is with the Xcode Command Line Tools:
+  ```bash
+  xcode-select --install
+  ```
+
 ## Installation
 
 ### Homebrew (macOS, Linux, WSL)
