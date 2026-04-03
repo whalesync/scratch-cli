@@ -4,10 +4,11 @@ CLI for [Scratch](https://www.scratch.md) — bulk edit your content with AI. Pu
 
 ## Prerequisites
 
-- **macOS:** Git is required. The easiest way to install it is with the Xcode Command Line Tools:
-  ```bash
-  xcode-select --install
-  ```
+**macOS:** Git is required. The easiest way to install it is with the Xcode Command Line Tools:
+
+```bash
+xcode-select --install
+```
 
 ## Installation
 
